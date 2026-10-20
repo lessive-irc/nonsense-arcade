@@ -1,0 +1,1465 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Customer Service for Ghosts</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Marcellus+SC&family=Instrument+Sans:ital,wght@0,400;0,600;1,400&family=Cutive+Mono&display=swap">
+<style>
+/* Layout: a night-exchange switchboard seen face-on. Incoming lines down the left panel, the decade-by-department jackfield on the right, cords slung between them, the typed call log and the hold-music strip along the foot. */
+:root {
+  --bg: #d8dcd2;        /* exchange enamel, a grey with a green bias */
+  --panel: #eef0e9;
+  --ink: #1d211d;
+  --muted: #566057;
+  --accent: #c27610;    /* signal-lamp amber: the one loud thing on the board */
+  --line: #1d211d2e;
+  --cord: #7a1c26;
+  --brass: #94782f;
+  --hole: #1a1613;
+  --ecto: #3b8a80;
+  --lamp-off: #b4b9ad;
+  --f-plate: "Marcellus SC", "Trajan Pro", Georgia, serif;
+  --f-body: "Instrument Sans", "Helvetica Neue", Arial, sans-serif;
+  --f-log: "Cutive Mono", "Courier New", ui-monospace, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #15120f; --panel: #201b16; --ink: #ece3d0; --muted: #a49780; --accent: #f2a63c;
+    --line: #ece3d02a; --cord: #c8454f; --brass: #c9aa5c; --hole: #050403; --ecto: #7fd6c9; --lamp-off: #3a332b;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #15120f; --panel: #201b16; --ink: #ece3d0; --muted: #a49780; --accent: #f2a63c;
+  --line: #ece3d02a; --cord: #c8454f; --brass: #c9aa5c; --hole: #050403; --ecto: #7fd6c9; --lamp-off: #3a332b;
+  color-scheme: dark;
+}
+/* kit:css:begin */
+/* Arcade kit: structure only, never a look. Inlined between kit:css markers by kit/inline.mjs.
+   The game's own :root must define --bg --ink --muted --accent --panel --line (light), and
+   redefine them in both dark blocks; everything here reads those tokens. */
+*, *::before, *::after { box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  -webkit-tap-highlight-color: transparent;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+button { font: inherit; color: inherit; cursor: pointer; }
+button:disabled { cursor: default; }
+:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+canvas { display: block; max-width: 100%; touch-action: none; }
+
+/* Full-stage screens (title, twist, end). Sit inside a position:relative stage. */
+.kit-overlay {
+  position: absolute; inset: 0; z-index: 5;
+  display: grid; place-items: center; padding: 24px;
+  background: color-mix(in srgb, var(--bg) 88%, transparent);
+  overflow-y: auto;
+}
+.kit-overlay[hidden] { display: none; }
+
+/* Touch pad: shown only on coarse pointers; buttons carry data-key (see Kit.keys). */
+.kit-pad { display: none; gap: 10px; justify-content: center; padding-block: 10px; user-select: none; }
+.kit-pad [data-key] { min-width: 56px; min-height: 56px; touch-action: none; border: 1px solid var(--line); background: var(--panel); }
+@media (pointer: coarse) { .kit-pad { display: flex; } }
+
+.kit-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+
+@media (prefers-reduced-motion: reduce) {
+  .kit-deco, .kit-deco * { animation: none !important; transition: none !important; }
+}
+/* kit:css:end */
+[hidden] { display: none !important; }
+body { font-family: var(--f-body); font-size: 15px; line-height: 1.4; padding-block: 14px; }
+.stage { position: relative; max-width: 1080px; margin: 0 auto; display: grid; gap: 12px; }
+
+/* Header: an engraved plate and the night's meters. */
+.head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: end; gap: 8px 20px; border-bottom: 1.5px solid var(--ink); padding-bottom: 8px; }
+.head h1 { font: 400 26px/1 var(--f-plate); letter-spacing: .06em; margin: 0; }
+.head .sub { font: 11px var(--f-log); color: var(--muted); letter-spacing: .04em; }
+.meters { display: flex; flex-wrap: wrap; gap: 4px 18px; font-family: var(--f-log); font-size: 12px; }
+.meters span { color: var(--muted); margin-right: 5px; }
+.meters b { font-weight: 400; font-size: 15px; font-variant-numeric: tabular-nums; }
+.fuses { display: inline-flex; gap: 3px; vertical-align: -1px; }
+.fuses i { width: 9px; height: 14px; border: 1.5px solid var(--muted); border-radius: 2px; }
+.fuses i.blown { background: var(--cord); border-color: var(--cord); }
+
+/* The desk: two panels plus a canvas laid over both for the cords. */
+.desk { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr); gap: 14px; align-items: start; }
+.desk > canvas { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 3; }
+.panel-h { font: 400 13px var(--f-plate); letter-spacing: .14em; color: var(--muted); margin: 0 0 6px; display: flex; justify-content: space-between; }
+.panel-h small { font: 11px var(--f-log); letter-spacing: 0; }
+
+.lines { display: grid; gap: 7px; }
+.slot { position: relative; display: grid; grid-template-columns: 34px 1fr; gap: 2px 10px; padding: 8px 10px 8px 6px; background: var(--panel); border: 1px solid var(--line); border-left: 4px solid var(--line); min-height: 70px; cursor: pointer; touch-action: none; user-select: none; -webkit-user-select: none; }
+.slot.live { border-left-color: var(--accent); }
+.slot.sel { outline: 2.5px solid var(--accent); outline-offset: 1px; }
+.slot.empty { cursor: default; opacity: .72; }
+.pick { all: unset; grid-row: 1 / span 3; display: grid; justify-items: center; align-content: start; gap: 5px; cursor: pointer; padding-top: 2px; }
+.pick:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.pick .no { font: 11px var(--f-log); color: var(--muted); }
+.lamp { width: 13px; height: 13px; border-radius: 50%; background: var(--lamp-off); border: 1px solid var(--line); }
+.slot.live .lamp { background: var(--accent); box-shadow: 0 0 9px 2px color-mix(in srgb, var(--accent) 65%, transparent); }
+.slot.urgent .lamp { animation: blink .5s steps(2) infinite; }
+.slot.held .lamp { background: var(--ecto); box-shadow: 0 0 8px 1px color-mix(in srgb, var(--ecto) 60%, transparent); animation: none; }
+@keyframes blink { 50% { opacity: .25; } }
+.jackhole { width: 20px; height: 20px; border-radius: 50%; background: radial-gradient(circle, var(--hole) 0 42%, var(--brass) 46% 70%, transparent 74%); }
+.who { display: flex; justify-content: space-between; gap: 8px; align-items: baseline; }
+.who strong { font-weight: 600; font-size: 14px; }
+.who em { font: normal 11px var(--f-log); color: var(--muted); white-space: nowrap; }
+.say { margin: 0; font-size: 13.5px; line-height: 1.38; overflow-wrap: anywhere; }
+.say.reply { font-style: italic; color: var(--cord); }
+.slot .bar { height: 4px; background: var(--line); margin-top: 4px; }
+.slot .bar i { display: block; height: 100%; background: var(--ink); width: 100%; }
+.slot.held .bar i { background: var(--ecto); }
+.meter-row { display: flex; align-items: center; gap: 10px; margin-top: 3px; }
+.meter-row .bar { flex: 1; margin: 0; }
+.hold { flex: none; font: 11px var(--f-log); padding: 3px 7px; background: var(--bg); border: 1px solid var(--line); color: var(--ink); }
+.hold:disabled { opacity: .45; }
+.holdslot { background: color-mix(in srgb, var(--panel) 55%, var(--bg)); border-style: dashed; min-height: 46px; }
+.holdslot .say { color: var(--muted); font: 12px var(--f-log); }
+.holdslot.live { border-style: solid; background: var(--panel); }
+.holdslot.live .say { color: var(--ink); font: italic 14px/1.4 var(--f-body); }
+.relay { font: 11px var(--f-log); color: var(--muted); }
+.relay b { font-weight: 400; color: var(--ecto); }
+
+/* The jackfield: six decades across, three departments down. */
+.field { background: var(--panel); border: 1px solid var(--line); padding: 10px 10px 12px; }
+.grid { display: grid; grid-template-columns: 2.6rem repeat(6, minmax(0, 1fr)); gap: 6px 4px; align-items: center; }
+.grid .dec { font: 600 13px var(--f-body); text-align: center; font-variant-numeric: lining-nums tabular-nums; }
+.grid .dept { font: 400 13px/1.05 var(--f-plate); letter-spacing: .06em; }
+.grid .dept small { display: block; font: 9.5px var(--f-log); color: var(--muted); letter-spacing: 0; text-transform: none; }
+.jk { all: unset; display: grid; justify-items: center; gap: 3px; padding: 6px 0 4px; cursor: pointer; border-radius: 4px; }
+.jk::before { content: ""; width: 26px; height: 26px; border-radius: 50%; background: radial-gradient(circle, var(--hole) 0 40%, var(--brass) 44% 68%, transparent 72%); }
+.jk span { font: 10px var(--f-log); color: var(--muted); }
+.jk:hover, .jk.cur { background: color-mix(in srgb, var(--accent) 16%, transparent); }
+.jk:focus-visible { outline: 2.5px solid var(--accent); outline-offset: 0; }
+.jk.flash-ok { background: color-mix(in srgb, var(--ecto) 28%, transparent); }
+.jk.flash-bad { background: color-mix(in srgb, var(--cord) 26%, transparent); }
+.key { margin: 10px 0 0; font-size: 12px; color: var(--muted); line-height: 1.45; }
+.key b { font-weight: 600; color: var(--ink); }
+
+/* Foot: hold strip and the call log. */
+.foot { display: grid; gap: 8px; }
+.holdbar { display: flex; gap: 10px; align-items: baseline; font-size: 13px; overflow: hidden; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); padding: 5px 0; }
+.holdbar b { font: 11px var(--f-log); color: var(--bg); background: var(--ecto); padding: 1px 6px; flex: none; }
+.holdbar span { font-style: italic; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.log { list-style: none; margin: 0; padding: 0; font: 12px/1.5 var(--f-log); max-height: 6.2em; overflow: hidden; }
+.log li { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.log li:first-child { color: var(--ink); }
+.log li:not(:first-child) { color: var(--muted); }
+.log .bad { color: var(--cord) !important; }
+
+/* Overlays: fixed so they sit on the viewport, not the middle of a tall phone page. */
+.kit-overlay { position: fixed; z-index: 10; place-items: start center; padding-block: max(24px, 6vh); }
+.card { max-width: 560px; display: grid; gap: 12px; background: var(--panel); border: 1px solid var(--line); border-top: 5px solid var(--ink); padding: 22px 22px 20px; }
+.card h2 { font: 400 30px/1.05 var(--f-plate); letter-spacing: .04em; margin: 0; text-wrap: balance; }
+.card .tag { font: 11px var(--f-log); color: var(--muted); letter-spacing: .06em; }
+.card p { margin: 0; text-wrap: pretty; }
+.card .lede { font-size: 17px; }
+.card .small { font-size: 13px; color: var(--muted); }
+.card .letter { font: 13px/1.55 var(--f-log); white-space: pre-line; border-left: 3px solid var(--line); padding-left: 12px; }
+#end-body { display: grid; gap: 10px; }
+.card .stats { font: 12.5px/1.6 var(--f-log); display: grid; grid-template-columns: auto auto; gap: 0 16px; justify-content: start; }
+.card .stats dt { color: var(--muted); }
+.card .stats dd { margin: 0; }
+.card .best { font: 12px var(--f-log); color: var(--muted); }
+.btn { justify-self: start; font: 600 15px var(--f-body); padding: 11px 18px; background: var(--ink); color: var(--panel); border: 0; border-radius: 2px; box-shadow: 0 0 0 1px var(--ink), 3px 3px 0 var(--accent); }
+.btn:hover { box-shadow: 0 0 0 1px var(--ink), 4px 4px 0 var(--accent); }
+.btn:active { transform: translate(2px, 2px); box-shadow: 0 0 0 1px var(--ink), 1px 1px 0 var(--accent); }
+.music { font-style: italic; color: var(--ecto); }
+
+/* Language toggle: a two-key strip, like the board's own switches. */
+.lang { display: inline-flex; flex: none; align-self: center; border: 1.5px solid var(--ink); border-radius: 2px; background: var(--panel); overflow: hidden; }
+.lang button { border: 0; background: transparent; padding: 4px 9px; font: 12px var(--f-log); letter-spacing: .08em; color: var(--muted); }
+.lang button + button { border-left: 1px solid var(--line); }
+.lang button:hover { color: var(--ink); }
+.lang button[aria-pressed="true"] { background: var(--ink); color: var(--panel); }
+.plate { display: flex; align-items: center; gap: 8px 16px; flex-wrap: wrap; }
+.cardfoot { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 16px; }
+.cardfoot .lang { min-height: 32px; }
+
+@media (max-width: 720px) {
+  .desk { grid-template-columns: minmax(0, 1fr); gap: 10px; }
+  .head h1 { font-size: 21px; }
+  .head .sub { display: none; }
+  .meters { gap: 2px 12px; font-size: 11px; }
+  .meters b { font-size: 13px; }
+  .slot { min-height: 0; padding-block: 6px; }
+  /* Quiet lines shrink to one row so the jackfield stays in reach. */
+  .slot.empty .say, .slot.empty .meter-row, .holdslot:not(.live) .say { display: none; }
+  .slot.empty .pick, .holdslot:not(.live) .pick { grid-row: auto; grid-auto-flow: column; align-items: center; }
+  .slot.empty .jackhole, .holdslot:not(.live) .jackhole, .slot.empty .no, .holdslot:not(.live) .no { display: none; }
+  .holdslot:not(.live) .meter-row { display: none; }
+  .holdslot { min-height: 0; }
+  /* The jackfield sticks to the foot of the screen, like the board it is. */
+  .field { position: sticky; bottom: 0; z-index: 2; box-shadow: 0 -6px 14px -8px rgb(0 0 0 / .45); }
+  .say { font-size: 13px; }
+  .grid { grid-template-columns: 2.2rem repeat(6, minmax(0, 1fr)); gap: 2px 2px; }
+  .grid .dec { font-size: 12px; }
+  .grid .dept small { display: none; }
+  .jk::before { width: 24px; height: 24px; }
+  .key { display: none; }
+  .card { padding: 18px 16px; }
+  .card h2 { font-size: 25px; }
+}
+</style>
+</head>
+<body>
+<div class="stage" id="stage">
+  <header class="head">
+    <div>
+      <div class="plate"><h1 data-t="h1">The Night Exchange</h1><div class="lang" role="group" data-ta="langGroup" aria-label="Language"></div></div>
+      <div class="sub" data-t="sub">Department of Departed Affairs · Board 4 · Operator: you</div>
+    </div>
+    <div class="meters" aria-live="off">
+      <div><span data-t="mTime">Time</span><b id="clock">23:00</b></div>
+      <div><span data-t="mShift">Shift</span><b id="shiftno">1</b></div>
+      <div><span data-t="mConn">Connected</span><b id="conn">0</b></div>
+      <div><span data-t="mSurv">Surveys returned</span><b id="surv">0</b></div>
+      <div><span data-t="mDrop">Dropped</span><span class="fuses" id="fuses"><i></i><i></i><i></i><i></i><i></i></span></div>
+    </div>
+  </header>
+
+  <div class="desk" id="desk">
+    <section aria-label="Incoming lines" data-ta="linesAria">
+      <h2 class="panel-h"><span data-t="incoming">Incoming</span> <small id="hint">press 1–4 · then a jack</small></h2>
+      <div class="lines" id="lines"></div>
+    </section>
+    <section class="field" aria-label="Jackfield" data-ta="fieldAria">
+      <h2 class="panel-h"><span data-t="field">Jackfield</span> <small data-t="fieldSub">decade × department</small></h2>
+      <div class="grid" id="grid"></div>
+      <p class="key" data-th="key"><b>Grievance</b> takes complaints. <b>Missing</b> is lost property. <b>Linger</b> is unfinished business. Arrows move along the jacks, Enter plugs, H puts a caller on hold, Esc lets go of the cord.</p>
+    </section>
+    <canvas id="cords" aria-hidden="true"></canvas>
+  </div>
+
+  <footer class="foot">
+    <div class="holdbar"><b data-t="onHold">ON HOLD</b><span id="holdtext"></span></div>
+    <ol class="log" id="log" aria-live="polite"></ol>
+  </footer>
+
+  <div class="kit-overlay" id="title">
+    <div class="card">
+      <div class="tag" data-t="titleTag">Night Exchange · Position vacant · Hours 23:00–05:00</div>
+      <h2 data-t="titleH">Customer Service for Ghosts</h2>
+      <p class="lede" data-t="titleLede">The departed ring in at night. They want the decade they're calling about, and the right department within it. You have a headset, a board and a lot of cord.</p>
+      <p data-th="titleRules">Read each caller's complaint for clues to their era: gas lamps, rationing, a modem. Plug them into <b>Grievance</b> for complaints, <b>Missing</b> for lost property, or <b>Linger</b> for unfinished business. Callers left waiting go spectral and hang up. Five dropped calls and you're let go.</p>
+      <p class="small" data-t="titleKeys">Drag a cord from a caller to a jack, or tap the caller and then the jack. Keyboard: 1–4 pick a line, arrows and Enter plug it, H for “please hold”.</p>
+      <p class="best" id="best" hidden></p>
+      <div class="cardfoot">
+        <button class="btn" id="startbtn" data-t="startBtn">Report for the night shift</button>
+        <div class="lang" role="group" data-ta="langGroup" aria-label="Language"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="kit-overlay" id="memo" hidden>
+    <div class="card">
+      <div class="tag" id="memo-tag"></div>
+      <h2 id="memo-h"></h2>
+      <p class="letter" id="memo-body"></p>
+      <div class="cardfoot">
+        <button class="btn" id="memo-btn">Start the next shift</button>
+        <div class="lang" role="group" data-ta="langGroup" aria-label="Language"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="kit-overlay" id="twist" hidden>
+    <div class="card">
+      <div class="tag" id="twist-tag"></div>
+      <h2 data-t="twistH">The HOLD lamp is lit</h2>
+      <p data-t="twist1">The board goes quiet. Every lamp is dark except one you have never seen lit: the painted-over jack in the corner marked HOLD.</p>
+      <p data-th="twist2">The strings stop. A voice says, <span class="music">“Hello? Is that the operator?”</span></p>
+      <p data-t="twist3">It is your voice. It has been on hold since March 1987. It has been playing to every caller tonight, and several of them complimented it.</p>
+      <p class="small" data-t="twist4">Calls between decades must be relayed through each decade in between (Exchange Regulation 14b). Route yourself through, one decade at a time. Don't put yourself on hold. You know how that goes.</p>
+      <div class="cardfoot">
+        <button class="btn" id="twist-btn" data-t="twistBtn">Take the call</button>
+        <div class="lang" role="group" data-ta="langGroup" aria-label="Language"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="kit-overlay" id="end" hidden>
+    <div class="card">
+      <div class="tag" id="end-tag"></div>
+      <h2 id="end-h"></h2>
+      <div id="end-body"></div>
+      <dl class="stats" id="end-stats"></dl>
+      <div class="cardfoot">
+        <button class="btn" id="end-btn" data-t="endBtn">Start a new night shift</button>
+        <div class="lang" role="group" data-ta="langGroup" aria-label="Language"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* kit:js:begin */
+// Arcade kit: the plumbing every game re-wrote by hand. Inlined between kit:js markers by
+// kit/inline.mjs, so a game stays one standalone file. Defines exactly two globals, `Kit` and
+// (once a game calls Kit.expose) `__arcade`; nothing else, because a bare top-level name can
+// collide with a window property (sandwich-diplomacy's `top()` shadowed by window.top).
+const Kit = (() => {
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const themeWatchers = [];
+  const onTheme = () => themeWatchers.forEach(f => f());
+  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', onTheme);
+  new MutationObserver(onTheme).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+
+  // Canvas code cannot read CSS variables, so mirror the named tokens into an object and
+  // re-read it whenever the theme flips: the viewer's toggle sets data-theme, the OS sets the media query.
+  function tokens(names, onChange) {
+    const C = {};
+    const read = () => {
+      const cs = getComputedStyle(document.documentElement);
+      for (const n of names) C[n] = cs.getPropertyValue('--' + n).trim();
+      onChange?.(C);
+    };
+    read();
+    themeWatchers.push(read);
+    return C;
+  }
+
+  // Keeps a canvas sharp at the device pixel ratio (capped at 2) and sized to its CSS box.
+  function canvas(el, onResize) {
+    const view = { el, cx: el.getContext('2d'), W: 0, H: 0 };
+    const fit = () => {
+      const r = el.getBoundingClientRect(), d = Math.min(2, devicePixelRatio || 1);
+      view.W = r.width; view.H = r.height;
+      el.width = Math.round(r.width * d); el.height = Math.round(r.height * d);
+      view.cx.setTransform(d, 0, 0, d, 0, 0);
+      onResize?.(view);
+    };
+    new ResizeObserver(fit).observe(el);
+    fit();
+    return view;
+  }
+
+  // step(dt) gets seconds, capped at 50 ms so a background tab or a stalled frame cannot
+  // teleport the game; the loop stops while the tab is hidden and resumes without a jump.
+  function loop(step) {
+    let last = 0, raf = 0, on = false;
+    const frame = t => {
+      const dt = last ? Math.min(0.05, (t - last) / 1000) : 0;
+      last = t;
+      step(dt);
+      if (on) raf = requestAnimationFrame(frame);
+    };
+    const ctl = {
+      start() { if (on) return; on = true; last = 0; raf = requestAnimationFrame(frame); },
+      stop() { on = false; cancelAnimationFrame(raf); },
+      get running() { return on; },
+    };
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden && on) { ctl.stop(); ctl.paused = true; }
+      else if (!document.hidden && ctl.paused) { ctl.paused = false; ctl.start(); }
+    });
+    return ctl;
+  }
+
+  // Held keys by KeyboardEvent.key, lower-cased (' ' for Space). Touch pads feed the same set:
+  // any element with data-key="<key>" inside a .kit-pad holds that key while pressed.
+  const held = new Set();
+  const pressFns = [];
+  const norm = k => (k.length === 1 ? k.toLowerCase() : k);
+  const press = (k, down) => {
+    k = norm(k);
+    if (down === held.has(k)) return;
+    down ? held.add(k) : held.delete(k);
+    pressFns.forEach(f => f(k, down));
+  };
+  const GAME_KEYS = new Set([' ', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight']);
+  addEventListener('keydown', e => {
+    if (e.target.closest?.('input, textarea, select, [contenteditable]')) return;
+    if (GAME_KEYS.has(e.key) && !e.target.closest?.('button')) e.preventDefault();
+    if (!e.repeat) press(e.key, true);
+  });
+  addEventListener('keyup', e => press(e.key, false));
+  addEventListener('blur', () => [...held].forEach(k => press(k, false)));
+  document.addEventListener('pointerdown', e => {
+    const b = e.target.closest?.('.kit-pad [data-key]');
+    if (!b) return;
+    e.preventDefault();
+    b.setPointerCapture?.(e.pointerId);
+    press(b.dataset.key, true);
+    const up = () => { press(b.dataset.key, false); b.removeEventListener('pointerup', up); b.removeEventListener('pointercancel', up); };
+    b.addEventListener('pointerup', up);
+    b.addEventListener('pointercancel', up);
+  });
+  const keys = {
+    down: k => held.has(norm(k)),
+    any: (...ks) => ks.some(k => held.has(norm(k))),
+    onPress(fn) { pressFns.push(fn); },
+  };
+
+  // The claude.ai viewer's hot-update hook: keeps `snapshot()` across a republish. Absent when
+  // self-hosted, so start() then receives {}.
+  function boot(start, snapshot) {
+    if (snapshot) window.claude?.hot?.snapshot?.(snapshot);
+    window.claude?.hot?.ready ? window.claude.hot.ready(start) : start(window.claude?.hot?.data ?? {});
+  }
+
+  // The test hook smoke.mjs drives. endings: { name: { jump(), reached(), seconds? } } where
+  // jump() may shortcut the set-up but must leave the ending's final stretch to real game
+  // logic, and reached() is true only once that ending's screen is actually showing.
+  function expose({ state, endings }) {
+    window.__arcade = {
+      get state() { return state(); },
+      endings: Object.fromEntries(Object.entries(endings).map(([k, v]) => [k, { seconds: v.seconds ?? 8 }])),
+      jump: name => endings[name].jump(),
+      reached: name => !!endings[name].reached(),
+    };
+  }
+
+  // Show one overlay and hide the others; focus its first button so Enter/Space continue.
+  function show(el) {
+    document.querySelectorAll('.kit-overlay').forEach(o => { o.hidden = o !== el; });
+    el?.querySelector('button')?.focus({ preventScroll: true });
+  }
+
+  const rnd = (a, b) => a + Math.random() * (b - a);
+  const pick = a => a[Math.floor(Math.random() * a.length)];
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+
+  return { reduce, tokens, canvas, loop, keys, boot, expose, show, rnd, pick, clamp };
+})();
+/* kit:js:end */
+
+const $ = s => document.querySelector(s);
+
+const DECADES = [1890, 1920, 1940, 1960, 1980, 1990];
+const DEPTS = 3;   // 0 Grievance, 1 Missing, 2 Linger; names and codes live in I18N
+// Real boards number their jacks; ours runs department-major: 11–16, 21–26, 31–36.
+const jackNo = (d, p) => `${p + 1}${d + 1}`;
+
+// d = decade index, p = department index. Names and complaints are I18N callers[id], same order.
+const CALLERS = [
+  [0, 0], [0, 1], [0, 2], [0, 0], [1, 1], [1, 2], [1, 0], [1, 1], [2, 0], [2, 1], [2, 2], [2, 0],
+  [3, 0], [3, 1], [3, 2], [3, 0], [4, 2], [4, 1], [4, 1], [4, 0], [5, 2], [5, 0], [5, 1], [5, 2],
+].map(([d, p]) => ({ d, p }));
+
+// The final shift: your own call, relayed decade by decade. It skips the 1990s; you were on hold.
+// Each hop's words are I18N hops[k].
+const HOPS = [{ d: 0, p: 0 }, { d: 1, p: 1 }, { d: 2, p: 2 }, { d: 3, p: 1 }, { d: 4, p: 0 }];
+
+// Every player-visible string, per language. Routing reads only d/p indexes and caller ids, so
+// switching language mid-call cannot change which jack is right.
+const I18N = {
+  en: {
+    docTitle: 'Customer Service for Ghosts',
+    langGroup: 'Language',
+    dec: d => `${d}s`, decade: d => `${d}s`, quote: s => `“${s}”`,
+    depts: [{ code: 'GRI', name: 'Grievance' }, { code: 'MIS', name: 'Missing' }, { code: 'LIN', name: 'Linger' }],
+    h1: 'The Night Exchange',
+    sub: 'Department of Departed Affairs · Board 4 · Operator: you',
+    mTime: 'Time', mShift: 'Shift', mConn: 'Connected', mSurv: 'Surveys returned', mDrop: 'Dropped',
+    linesAria: 'Incoming lines', fieldAria: 'Jackfield',
+    incoming: 'Incoming', field: 'Jackfield', fieldSub: 'decade × department',
+    key: '<b>Grievance</b> takes complaints. <b>Missing</b> is lost property. <b>Linger</b> is unfinished business. Arrows move along the jacks, Enter plugs, H puts a caller on hold, Esc lets go of the cord.',
+    onHold: 'ON HOLD',
+    titleTag: 'Night Exchange · Position vacant · Hours 23:00–05:00',
+    titleH: 'Customer Service for Ghosts',
+    titleLede: "The departed ring in at night. They want the decade they're calling about, and the right department within it. You have a headset, a board and a lot of cord.",
+    titleRules: "Read each caller's complaint for clues to their era: gas lamps, rationing, a modem. Plug them into <b>Grievance</b> for complaints, <b>Missing</b> for lost property, or <b>Linger</b> for unfinished business. Callers left waiting go spectral and hang up. Five dropped calls and you're let go.",
+    titleKeys: 'Drag a cord from a caller to a jack, or tap the caller and then the jack. Keyboard: 1–4 pick a line, arrows and Enter plug it, H for “please hold”.',
+    startBtn: 'Report for the night shift',
+    best: n => `Best night so far: ${n} calls connected.`,
+    memoBtn: n => `Start shift ${n}`,
+    twistTag: time => `${time} · Board 4 · all lines quiet`,
+    twistH: 'The HOLD lamp is lit',
+    twist1: 'The board goes quiet. Every lamp is dark except one you have never seen lit: the painted-over jack in the corner marked HOLD.',
+    twist2: 'The strings stop. A voice says, <span class="music">“Hello? Is that the operator?”</span>',
+    twist3: 'It is your voice. It has been on hold since March 1987. It has been playing to every caller tonight, and several of them complimented it.',
+    twist4: "Calls between decades must be relayed through each decade in between (Exchange Regulation 14b). Route yourself through, one decade at a time. Don't put yourself on hold. You know how that goes.",
+    twistBtn: 'Take the call',
+    endBtn: 'Start a new night shift',
+    lineAria: n => `Line ${n}`, holdAria: 'Line 0, hold',
+    jackAria: (name, dec, no) => `${name}, ${dec}, jack ${no}`,
+    quiet: 'Quiet', quietSay: 'No caller. A faint draught from the mouthpiece.',
+    onHoldTag: 'on hold ♪', fade: ['clear', 'fading', 'spectral'],
+    holding: 'Holding…', heldOnce: 'Held once', pleaseHold: 'Please hold',
+    you: 'You, holding since 14 March 1987',
+    relayOf: (a, b) => `relay ${a} of ${b}`, relayNext: 'next?',
+    ringing: '“…oh. Oh, it\'s ringing.”',
+    holdName: 'HOLD', holdSince: 'since 03/1987', holdSay: 'Painted over. Do not plug.',
+    lastShift: 'last',
+    hintCord: n => `cord up on L${n} · pick a jack`, hintFinal: 'press 0 · then a jack', hintPlay: 'press 1–4 · then a jack',
+    nShiftOpens: (n, calls) => `— shift ${n} opens · ${calls} callers expected —`,
+    nLamp: (n, name) => `L${n} lamp lit · ${name}`,
+    nFinal: 'L0 HOLD lamp lit · caller: you',
+    nDropped: (n, name, how) => `L${n} DROPPED · ${name} ${how}`,
+    nSelfHold: 'L0 put on hold by operator (you)',
+    nHeld: (n, name) => `L${n} “please hold” · ${name} is listening to the music`,
+    nRelayed: (jack, code, dec) => `L0 → ${jack} ${code}/${dec} RELAYED`,
+    nMisrouted: (n, jack) => `L${n} → ${jack} misrouted`,
+    nConnected: (n, jack, code, dec, survey) => `L${n} → ${jack} ${code}/${dec} CONNECTED · ${survey}`,
+    nBackOnHold: 'L0 went back on hold on its own',
+    callers: [
+      { n: 'Mrs Agatha Pell', t: 'The gas lamp outside my window on Cheyne Walk has been hissing at me since 1893. I wish to lodge a formal objection. In ink.' },
+      { n: 'Mr Silas Brook, cabman', t: 'I have mislaid a horse. Brown, sixteen hands, answers to Duke. Last seen pulling my hansom outside the Gaiety.' },
+      { n: 'Miss Clara Venn', t: 'I was halfway through a telegram to Herbert. STOP. I never sent the second half. STOP. He will think I said yes. STOP.' },
+      { n: 'The Rev. Josiah Tull', t: 'The vicarage has been fitted with an electric light and I find it vulgar. The bishop will hear of this, by letter, in about a fortnight.' },
+      { n: 'Mr Dexter Hale', t: 'I left my good spats at a speakeasy on 52nd Street. The password was swordfish. Do not tell anyone the password.' },
+      { n: 'Miss Ruby Marchetti', t: 'I was mid-Charleston when it happened. One and two and… I would very much like to do the three.' },
+      { n: 'Mr Ambrose Fitch', t: 'My new wireless set only receives one man reading the shipping forecast, and he is very rude about Dogger.' },
+      { n: 'Lady Constance Orme', t: 'Someone at the garden party has taken my cloche hat. It is the colour of a bruise and I want it back before the gin runs out.' },
+      { n: 'Mrs Joan Haddock', t: 'My ration book says two ounces of butter and the dairy gave me one and seven-eighths. I have been waiting eighty years for the eighth.' },
+      { n: 'Private Len Oakes', t: 'I lost a letter from my mum somewhere between the blackout and the Anderson shelter. It has a pressed daisy in it.' },
+      { n: 'Mr Walter Grigg, ARP warden', t: 'I was in the middle of telling a man to put that light out. He did not put that light out. I need to finish telling him.' },
+      { n: 'Miss Dot Pruitt', t: 'I queued four hours for nylons and they gave me a recipe for mock banana. I want to speak to whoever invented mock banana.' },
+      { n: 'Mr Roger Plimsoll', t: 'My transistor radio is stuck on a Beatles song and I am not a Beatles person. I am a brass band person. Nobody asked me.' },
+      { n: 'Mrs Sandra Kett', t: 'I have lost a fondue set. It was a wedding present. It had six forks. I have found one fork, and it is not helping.' },
+      { n: 'Mr Neil Ambry', t: 'I nodded off during the moon landing. I would like to finish watching the moon landing. Just the step. I can do without the flag.' },
+      { n: 'Miss Penny Lowe', t: 'Something has nested in my beehive hairdo. I do not want it back. I want it reported to someone with a clipboard.' },
+      { n: 'Mr Gary Thwaite', t: 'I was on the last face of a Rubik\'s Cube. The last face. I need four more minutes and a quiet room.' },
+      { n: 'Ms Debbie Crane', t: 'My Walkman ate my mixtape. Side B. It was for Kevin. I can\'t remake it, the radio doesn\'t play those songs any more.' },
+      { n: 'Mr Clive Rudd', t: 'Both of my shoulder pads have gone missing. I have no shoulders now. You can hear the problem.' },
+      { n: 'Mrs Lorraine Pike', t: 'The video of my wedding has been taped over with the snooker. I would like to speak to the snooker.' },
+      { n: 'Darren (just Darren)', t: 'I was downloading a picture of a sunset on dial-up. 61 per cent. Then my mum picked up the phone. I want my other 39 per cent.' },
+      { n: 'Ms Kim Oyelaran', t: 'My Tamagotchi died while I was dead. That\'s two deaths. I want to file one complaint per death, separately.' },
+      { n: 'Mr Barry Fenwick', t: 'I have mislaid a floppy disk labelled TAXES 97 FINAL FINAL (2). It is in a drawer. The drawer is somewhere near the Spice Girls.' },
+      { n: 'Mr Oliver Strand', t: 'I stockpiled tinned peaches for the Millennium Bug and then died in 1998. I need to know if it happened. Then I can rest.' },
+    ],
+    hops: [
+      'Start me where the gas lamps hiss. I\'d like to complain about how long all this has taken. All of it. Since the very start.',
+      'Next, wherever the jazz is. I lost something there. About forty years, by my count, and a decent umbrella.',
+      'Then the blackout, please. There\'s something I never finished saying. I think it was hello. I\'ve been saying it into a receiver for a very long time.',
+      'Now the year they walked on the moon. I\'ve lost track of time. Literally: a wristwatch, still running, handed in to their lost property.',
+      'And home. Shoulder pads, mixtapes, a Walkman eating side B. Put me through to Grievance. Tell them it\'s me. Tell them I held.',
+    ],
+    wrongDecade: [
+      '(A horse clears its throat.) “This is the eighteen-nineties. I have never been so insulted.”',
+      '(Jazz.) “Too much jazz. This isn\'t my decade.”',
+      '(An air-raid siren.) “Oh, not this again. Wrong decade.”',
+      '(A sitar.) “Someone here is offering me a bead curtain. Wrong decade.”',
+      '(A synthesiser.) “Everyone here has enormous hair. Wrong decade.”',
+      '(A modem screams.) “Is that a fax? Wrong decade.”',
+    ],
+    wrongDept: [
+      '“Right decade. But this is Grievance, and I\'ve nothing against anyone here. Yet.”',
+      '“Lost Property? I haven\'t lost anything except my patience, which you\'re also losing.”',
+      '“Linger? I\'m not lingering, I\'m waiting. The difference is you.”',
+    ],
+    nineties: '“The nineties? I was never there. I was on hold.”',
+    survey: [
+      'survey declined: rattled chains',
+      'survey declined: “I am not filling that in. I am dead.”',
+      'survey declined: walked through the form',
+      'survey declined: asked if “Very satisfied” was a threat',
+      'survey declined: wrote OoooOOooo in box 3',
+      'survey declined: survey now haunted',
+      'survey declined: “I have had one experience. It ended.”',
+      'survey declined: left a cold spot on question 4',
+      'survey declined: requested a survey about the survey',
+      'survey declined: “Ask me in a hundred years”',
+      'survey declined: five chains out of five (not on scale)',
+      'survey declined: moaned in the margin',
+      'survey declined: slammed a door that wasn\'t there',
+      'survey declined: pencil went through hand',
+      'survey declined: “Is this about the butter?”',
+      'survey declined: form found folded into a small swan',
+    ],
+    drop: [
+      'hung up, wailing', 'faded out mid-sentence', 'went fully spectral', 'hung up; temperature on board fell 4°',
+      'left; receiver still swinging', 'dissolved; muttered “typical”', 'hung up; will haunt you lightly',
+    ],
+    quips: [
+      'HOLD jack: still holding.',
+      'HOLD jack: painted over. Something behind it hums.',
+      'HOLD jack: Supervisor\'s note taped here reads DO NOT.',
+      'HOLD jack: strings, faintly, and someone breathing in time.',
+      'HOLD jack: warm to the touch. The others are not.',
+    ],
+    lyrics: [
+      '♪ (strings) … hello? … (strings) … is anybody … (strings, rising) ♪',
+      '♪ I\'d like to complain / about the wait / I\'ve been holding since a quarter past eight ♪',
+      '♪ Line nineteen-eighty-seven / Grievance, please / I\'ll hold, I\'ll hold, I\'m holding, I\'m holding ♪',
+      'Hello? Is that the operator? It\'s me. I\'m the music. I have been the music all night.',
+    ],
+    memos: [
+      {
+        tag: 'MEMO · 00:30 · From the Night Supervisor (d. 1931)',
+        h: 'Re: your first shift',
+        body: 'Well done on not fainting.\n\nTwo points. One: callers fade if left waiting. When they go fully spectral they hang up, and that is a dropped call. Five dropped calls and the Exchange will let you go, which here is a figure of speech with paperwork.\n\nTwo: the hold music. Please stop asking about the hold music. It came with the board.',
+      },
+      {
+        tag: 'MEMO · 02:15 · From the Night Supervisor (d. 1931)',
+        h: 'Re: the small hours',
+        body: 'Busier now. The small hours are when people remember what they meant to say.\n\nUse “please hold” if you must, but each caller will only hold once. They have done enough waiting.\n\nRe: the hold music. It is not getting louder. It is getting clearer. That is different. Do not plug anything into the HOLD jack.',
+      },
+    ],
+    stats: {
+      conn: 'Calls connected', connPlus: n => `${n}, plus you`, dropped: 'Calls dropped', miss: 'Misroutes',
+      held: '“Please hold”s', sent: 'Surveys sent', returned: 'Surveys returned', yours: '1 (yours)',
+    },
+    end: {
+      connected: {
+        tag: (time, jack, code, dec) => `${time} · Line 0 → ${jack} ${code}/${dec} · CONNECTED`,
+        h: 'Your call is important to you',
+        body: `<p class="lede">The line clicks. A woman in 1987 says, “Grievance, how may I help?”</p>
+      <p>You open your mouth to complain and find you've nothing left to complain about. Somebody picked up. That was the whole complaint.</p>
+      <p>For the first time in the Exchange's history, a caller fills in the satisfaction survey. You tick <b>Very satisfied</b>. In the comments box you write: <span class="music">Lovely hold music.</span></p>
+      <p class="small">The HOLD lamp goes dark. Tomorrow's operator will hear silence, and think the board is broken.</p>`,
+      },
+      fired: {
+        tag: time => `${time} · Personnel · By internal pneumatic tube`,
+        h: 'Notice of termination',
+        body: n => `<p class="letter">Dear Operator,
+
+Following ${n} dropped calls on the night shift of Board 4, the Exchange regrets that it will no longer require your services, in this world or the other one.
+
+Please return your headset to the drawer it came from. Your cords will be counted. Your final call log is attached.
+
+Please do not fill in the exit survey. Nobody does.
+
+The Night Supervisor (d. 1931)</p>
+      <p class="small">On your way out, the HOLD jack hums a little louder, as if it knows you.</p>`,
+      },
+      holdmusic: {
+        tag: time => `${time} · Line 0 · ON HOLD`,
+        h: 'You are the hold music',
+        body: `<p class="lede">You put yourself on hold. Of course you did. It's what you know.</p>
+      <p>Somewhere a lamp you'll never see goes amber. The strings swell. The tune comes easily now; you've had thirty-nine years' practice.</p>
+      <p>Tomorrow night a new operator will start, and every caller who waits will hear you: <span class="music">♪ I'd like to complain / about the wait ♪</span></p>
+      <p class="small">Several of them will find it quite catchy. One will ask for it at her funeral, which has already happened.</p>`,
+      },
+    },
+  },
+  fr: {
+    docTitle: 'Service client pour fantômes',
+    langGroup: 'Langue',
+    dec: d => `${d}`, decade: d => `années ${d}`, quote: s => `« ${s} »`,
+    depts: [{ code: 'DOL', name: 'Doléances' }, { code: 'PER', name: 'Perdus' }, { code: 'SUS', name: 'En suspens' }],
+    h1: 'Le Central de nuit',
+    sub: "Ministère des Affaires d'outre-tombe · Standard 4 · Au poste : vous",
+    mTime: 'Heure', mShift: 'Garde', mConn: 'Reliés', mSurv: 'Enquêtes rendues', mDrop: 'Perdus',
+    linesAria: 'Lignes entrantes', fieldAria: 'Tableau des jacks',
+    incoming: 'Appels', field: 'Jacks', fieldSub: 'décennie × service',
+    key: "<b>Doléances</b> reçoit les plaintes. <b>Perdus</b>, ce sont les objets perdus. <b>En suspens</b>, les affaires inachevées. Les flèches parcourent les jacks, Entrée branche, H met en attente, Échap lâche le cordon.",
+    onHold: 'EN ATTENTE',
+    titleTag: 'Central de nuit · Poste à pourvoir · Horaires 23:00–05:00',
+    titleH: 'Service client pour fantômes',
+    titleLede: "Les défunts appellent la nuit. Il leur faut la décennie qui les concerne, et le bon service dans cette décennie. Vous avez un casque, un standard et beaucoup de cordon.",
+    titleRules: "Cherchez l'époque dans chaque plainte : becs de gaz, tickets de rationnement, un modem. Branchez sur <b>Doléances</b> pour les réclamations, <b>Perdus</b> pour les objets perdus, <b>En suspens</b> pour les affaires inachevées. Qui attend trop devient spectral et raccroche. Cinq appels perdus, et c'est la porte.",
+    titleKeys: "Tirez un cordon d'un appel vers un jack, ou touchez l'appel puis le jack. Clavier : 1–4 choisit une ligne, flèches et Entrée la branchent, H pour « ne quittez pas ».",
+    startBtn: 'Prendre la garde de nuit',
+    best: n => `Meilleure nuit : ${n} appels reliés.`,
+    memoBtn: n => `Commencer la garde ${n}`,
+    twistTag: time => `${time} · Standard 4 · toutes les lignes se taisent`,
+    twistH: 'La lampe ATTENTE est allumée',
+    twist1: "Le standard se tait. Toutes les lampes sont éteintes, sauf une que vous n'aviez jamais vue allumée : le jack repeint, dans le coin, marqué ATTENTE.",
+    twist2: "Les violons s'arrêtent. Une voix dit : <span class=\"music\">« Allô ? C'est bien le standard ? »</span>",
+    twist3: "C'est votre voix. Elle est en attente depuis mars 1987. Elle a joué pour chaque appel ce soir, et plusieurs lui ont fait des compliments.",
+    twist4: "Un appel entre deux décennies doit passer par chaque décennie intermédiaire (règlement du Central, article 14 b). Acheminez-vous, une décennie à la fois. Ne vous mettez pas en attente. Vous savez ce que ça donne.",
+    twistBtn: "Prendre l'appel",
+    endBtn: 'Reprendre une garde de nuit',
+    lineAria: n => `Ligne ${n}`, holdAria: 'Ligne 0, attente',
+    jackAria: (name, dec, no) => `${name}, ${dec}, jack ${no}`,
+    quiet: 'Silence', quietSay: "Personne. Un léger courant d'air dans le combiné.",
+    onHoldTag: 'en attente ♪', fade: ['audible', 'faiblit', 'spectral'],
+    holding: 'Patiente…', heldOnce: 'Déjà patienté', pleaseHold: 'Ne quittez pas',
+    you: 'Vous, en attente depuis le 14 mars 1987',
+    relayOf: (a, b) => `relais ${a} sur ${b}`, relayNext: 'suivant ?',
+    ringing: '« … oh. Oh, ça sonne. »',
+    holdName: 'ATTENTE', holdSince: 'depuis 03/1987', holdSay: 'Repeint. Ne pas brancher.',
+    lastShift: 'dernière',
+    hintCord: n => `cordon levé sur L${n} · choisissez un jack`, hintFinal: 'touche 0 · puis un jack', hintPlay: 'touches 1–4 · puis un jack',
+    nShiftOpens: (n, calls) => `— début de la garde ${n} · ${calls} appels attendus —`,
+    nLamp: (n, name) => `L${n} lampe allumée · ${name}`,
+    nFinal: 'L0 lampe ATTENTE allumée · au bout du fil : vous',
+    nDropped: (n, name, how) => `L${n} PERDU · ${name} ${how}`,
+    nSelfHold: 'L0 mise en attente par le standard (vous)',
+    nHeld: (n, name) => `L${n} « ne quittez pas » · ${name} écoute la musique`,
+    nRelayed: (jack, code, dec) => `L0 → ${jack} ${code}/${dec} RELAYÉ`,
+    nMisrouted: (n, jack) => `L${n} → ${jack} mal aiguillé`,
+    nConnected: (n, jack, code, dec, survey) => `L${n} → ${jack} ${code}/${dec} RELIÉ · ${survey}`,
+    nBackOnHold: "L0 est retournée en attente toute seule",
+    callers: [
+      { n: 'Mme Agatha Pell', t: "Le bec de gaz sous ma fenêtre, sur Cheyne Walk, me siffle dessus depuis 1893. Je souhaite déposer une objection formelle. À l'encre." },
+      { n: 'M. Silas Brook, cocher', t: "J'ai égaré un cheval. Bai, seize paumes, répond au nom de Duke. Vu pour la dernière fois attelé à mon fiacre devant le Gaiety." },
+      { n: 'Mlle Clara Venn', t: "J'en étais à la moitié d'un télégramme pour Herbert. STOP. Je n'ai jamais envoyé l'autre moitié. STOP. Il va croire que j'ai dit oui. STOP." },
+      { n: 'Le révérend Josiah Tull', t: "On a installé la lumière électrique au presbytère et je la trouve vulgaire. L'évêque en sera informé, par lettre, d'ici une quinzaine." },
+      { n: 'M. Dexter Hale', t: "J'ai oublié mes belles guêtres dans un speakeasy de la 52e Rue. Le mot de passe était « espadon ». Ne répétez le mot de passe à personne." },
+      { n: 'Mlle Ruby Marchetti', t: "J'étais en plein charleston quand c'est arrivé. Un, et deux, et… J'aimerais beaucoup faire le trois." },
+      { n: 'M. Ambrose Fitch', t: "Mon nouveau poste de TSF ne capte qu'un monsieur qui lit la météo marine, et il est très désobligeant envers Dogger." },
+      { n: 'Lady Constance Orme', t: "Quelqu'un, à la garden-party, m'a pris mon chapeau cloche. Il a la couleur d'un bleu et je le veux avant qu'il n'y ait plus de gin." },
+      { n: 'Mme Joan Haddock', t: "Mon carnet de rationnement dit deux onces de beurre, et la crémerie m'en a donné une et sept huitièmes. J'attends mon huitième depuis quatre-vingts ans." },
+      { n: 'Soldat Len Oakes', t: "J'ai perdu une lettre de ma mère quelque part entre le black-out et l'abri Anderson. Il y a une pâquerette séchée dedans." },
+      { n: 'M. Walter Grigg, défense passive', t: "J'étais en train de dire à un homme d'éteindre sa lumière. Il n'a pas éteint sa lumière. Il faut que je finisse de le lui dire." },
+      { n: 'Mlle Dot Pruitt', t: "J'ai fait quatre heures de queue pour des bas nylon et on m'a donné une recette de fausse banane. Je veux parler à l'inventeur de la fausse banane." },
+      { n: 'M. Roger Plimsoll', t: "Mon transistor est bloqué sur une chanson des Beatles, et moi, je ne suis pas Beatles. Je suis fanfare. On ne m'a pas demandé mon avis." },
+      { n: 'Mme Sandra Kett', t: "J'ai perdu un service à fondue. C'était un cadeau de mariage. Il avait six fourchettes. J'ai retrouvé une fourchette, et ça n'aide pas." },
+      { n: 'M. Neil Ambry', t: "Je me suis assoupi pendant l'alunissage. J'aimerais finir de regarder l'alunissage. Juste le pas. Je peux me passer du drapeau." },
+      { n: 'Mlle Penny Lowe', t: "Quelque chose a fait son nid dans ma coiffure choucroute. Je ne veux pas le récupérer. Je veux qu'on le signale à quelqu'un qui a un porte-bloc." },
+      { n: 'M. Gary Thwaite', t: "J'en étais à la dernière face d'un Rubik's Cube. La dernière face. Il me faut quatre minutes de plus et une pièce au calme." },
+      { n: 'Mme Debbie Crane', t: "Mon Walkman a mangé ma compil. Face B. C'était pour Kevin. Je ne peux pas la refaire, la radio ne passe plus ces chansons-là." },
+      { n: 'M. Clive Rudd', t: "Mes deux épaulettes ont disparu. Je n'ai plus d'épaules. Ça s'entend, non ?" },
+      { n: 'Mme Lorraine Pike', t: "La cassette vidéo de mon mariage a été effacée par du snooker. Je voudrais parler au snooker." },
+      { n: 'Darren (juste Darren)', t: "Je téléchargeais une photo de coucher de soleil sur mon modem 56k. 61 pour cent. Et puis ma mère a décroché le téléphone. Je veux mes 39 pour cent." },
+      { n: 'Mme Kim Oyelaran', t: "Mon Tamagotchi est mort pendant que j'étais morte. Ça fait deux morts. Je veux déposer une plainte par mort, séparément." },
+      { n: 'M. Barry Fenwick', t: "J'ai égaré une disquette étiquetée IMPÔTS 97 DÉFINITIF DÉFINITIF (2). Elle est dans un tiroir. Le tiroir est quelque part près des Spice Girls." },
+      { n: 'M. Oliver Strand', t: "J'avais fait des réserves de pêches au sirop pour le bug de l'an 2000, puis je suis mort en 1998. J'ai besoin de savoir si c'est arrivé. Après, je pourrai reposer en paix." },
+    ],
+    hops: [
+      "Commencez par là où sifflent les becs de gaz. Je voudrais me plaindre du temps que tout cela a pris. De tout. Depuis le tout début.",
+      "Ensuite, là où il y a du jazz. J'y ai perdu quelque chose. Une quarantaine d'années, d'après mes calculs, et un parapluie tout à fait correct.",
+      "Puis le black-out, s'il vous plaît. Il y a une chose que je n'ai jamais fini de dire. Je crois que c'était « allô ». Ça fait très longtemps que je le dis dans un combiné.",
+      "Maintenant, l'année où l'on a marché sur la Lune. J'ai perdu la notion du temps. Au sens propre : une montre-bracelet, qui marche encore, déposée à leurs objets perdus.",
+      "Et à la maison. Épaulettes, compils, un Walkman qui mange la face B. Passez-moi Doléances. Dites-leur que c'est moi. Dites-leur que j'ai patienté.",
+    ],
+    wrongDecade: [
+      "(Un cheval s'éclaircit la gorge.) « Ici, les années 1890. Jamais on ne m'a fait pareil affront. »",
+      "(Du jazz.) « Trop de jazz. Ce n'est pas ma décennie. »",
+      "(Une sirène d'alerte.) « Oh non, pas encore ça. Mauvaise décennie. »",
+      "(Un sitar.) « Quelqu'un ici me propose un rideau de perles. Mauvaise décennie. »",
+      "(Un synthétiseur.) « Tout le monde ici a des cheveux énormes. Mauvaise décennie. »",
+      "(Un modem hurle.) « C'est un fax ? Mauvaise décennie. »",
+    ],
+    wrongDept: [
+      "« Bonne décennie. Mais ici, c'est Doléances, et je n'ai rien contre personne. Pour l'instant. »",
+      "« Les objets perdus ? Je n'ai perdu que patience, et vous êtes en train de perdre la vôtre. »",
+      "« En suspens ? Je ne suis pas en suspens, j'attends. La différence, c'est vous. »",
+    ],
+    nineties: "« Les années 1990 ? Je n'y ai jamais mis les pieds. J'étais en attente. »",
+    survey: [
+      'enquête refusée : a fait cliqueter ses chaînes',
+      'enquête refusée : « Je ne remplis pas ça. Je suis mort. »',
+      'enquête refusée : a traversé le formulaire',
+      'enquête refusée : a demandé si « Très satisfaisant » était une menace',
+      'enquête refusée : a écrit OuuuOOuuu dans la case 3',
+      'enquête refusée : enquête désormais hantée',
+      "enquête refusée : « J'ai eu une seule expérience. Elle s'est terminée. »",
+      'enquête refusée : a laissé un point froid sur la question 4',
+      "enquête refusée : réclame une enquête sur l'enquête",
+      'enquête refusée : « Redemandez-moi dans cent ans »',
+      'enquête refusée : cinq chaînes sur cinq (hors barème)',
+      'enquête refusée : a gémi dans la marge',
+      "enquête refusée : a claqué une porte qui n'existait pas",
+      'enquête refusée : le crayon a traversé la main',
+      "enquête refusée : « C'est pour le beurre ? »",
+      'enquête refusée : formulaire retrouvé plié en petit cygne',
+    ],
+    drop: [
+      'a raccroché en gémissant', "s'est effacé en pleine phrase", 'a viré au spectral intégral', 'a raccroché ; le standard a perdu 4°',
+      'a filé ; le combiné se balance encore', 'a fondu ; a marmonné « forcément »', 'a raccroché ; vous hantera légèrement',
+    ],
+    quips: [
+      'Jack ATTENTE : toujours en attente.',
+      'Jack ATTENTE : repeint. Derrière, quelque chose fredonne.',
+      'Jack ATTENTE : un mot du chef y est scotché : NE PAS.',
+      "Jack ATTENTE : des violons, au loin, et quelqu'un qui respire en mesure.",
+      'Jack ATTENTE : tiède au toucher. Les autres ne le sont pas.',
+    ],
+    lyrics: [
+      "♪ (violons) … allô ? … (violons) … il y a quelqu'un … (violons, crescendo) ♪",
+      "♪ Je voudrais me plaindre / de l'attente / j'attends depuis huit heures trente ♪",
+      '♪ Ligne mil neuf cent quatre-vingt-sept / Doléances, je vous prie / je patiente, je patiente, je patiente encore ♪',
+      "Allô ? C'est le standard ? C'est moi. Je suis la musique. J'ai été la musique toute la nuit.",
+    ],
+    memos: [
+      {
+        tag: 'NOTE · 00:30 · Du Chef de nuit (†1931)',
+        h: 'Objet : votre première garde',
+        body: "Bravo pour l'absence d'évanouissement.\n\nDeux remarques. Un : les appels s'estompent quand on les fait attendre. Une fois tout à fait spectraux, ils raccrochent, et c'est un appel perdu. Cinq appels perdus et le Central se séparera de vous, ce qui, ici, est une façon de parler, avec formulaires.\n\nDeux : la musique d'attente. Merci de cesser de poser des questions sur la musique d'attente. Elle était livrée avec le standard.",
+      },
+      {
+        tag: 'NOTE · 02:15 · Du Chef de nuit (†1931)',
+        h: 'Objet : les petites heures',
+        body: "Plus de monde, à présent. C'est aux petites heures que les gens se rappellent ce qu'ils voulaient dire.\n\nDites « ne quittez pas » s'il le faut, mais chaque appel n'acceptera d'attendre qu'une fois. Ils ont assez attendu.\n\nObjet : la musique d'attente. Elle ne devient pas plus forte. Elle devient plus nette. Ce n'est pas pareil. Ne branchez rien dans le jack ATTENTE.",
+      },
+    ],
+    stats: {
+      conn: 'Appels reliés', connPlus: n => `${n}, plus vous`, dropped: 'Appels perdus', miss: "Erreurs d'aiguillage",
+      held: '« Ne quittez pas »', sent: 'Enquêtes envoyées', returned: 'Enquêtes rendues', yours: '1 (la vôtre)',
+    },
+    end: {
+      connected: {
+        tag: (time, jack, code, dec) => `${time} · Ligne 0 → ${jack} ${code}/${dec} · RELIÉ`,
+        h: 'Votre appel est important pour vous',
+        body: `<p class="lede">La ligne cliquette. Une femme, en 1987, dit : « Doléances, j'écoute ? »</p>
+      <p>Vous ouvrez la bouche pour vous plaindre, et plus rien ne vient. Quelqu'un a décroché. C'était toute la plainte.</p>
+      <p>Pour la première fois dans l'histoire du Central, un appel remplit l'enquête de satisfaction. Vous cochez <b>Très satisfaisant</b>. Dans la case commentaires, vous écrivez : <span class="music">Jolie musique d'attente.</span></p>
+      <p class="small">La lampe ATTENTE s'éteint. La personne de garde demain entendra le silence, et croira le standard en panne.</p>`,
+      },
+      fired: {
+        tag: time => `${time} · Personnel · Par tube pneumatique interne`,
+        h: 'Avis de licenciement',
+        body: n => `<p class="letter">Madame, Monsieur,
+
+À la suite de ${n} appels perdus lors de la garde de nuit du Standard 4, le Central a le regret de vous informer qu'il n'aura plus besoin de vos services, ni dans ce monde, ni dans l'autre.
+
+Veuillez remettre votre casque dans le tiroir d'où il vient. Vos cordons seront comptés. Votre dernier journal d'appels est joint.
+
+Merci de ne pas remplir l'enquête de sortie. Personne ne le fait.
+
+Veuillez agréer l'expression de nos condoléances distinguées.
+
+Le Chef de nuit (†1931)</p>
+      <p class="small">En sortant, vous entendez le jack ATTENTE bourdonner un peu plus fort, comme s'il vous connaissait.</p>`,
+      },
+      holdmusic: {
+        tag: time => `${time} · Ligne 0 · EN ATTENTE`,
+        h: "Vous êtes la musique d'attente",
+        body: `<p class="lede">Vous vous mettez en attente. Évidemment. C'est ce que vous savez faire.</p>
+      <p>Quelque part, une lampe que vous ne verrez jamais passe à l'orange. Les violons montent. L'air vient tout seul, maintenant ; trente-neuf ans d'entraînement.</p>
+      <p>Demain soir, quelqu'un de nouveau prendra la garde, et chaque appel qui patiente vous entendra : <span class="music">♪ Je voudrais me plaindre / de l'attente ♪</span></p>
+      <p class="small">Plusieurs trouveront ça plutôt entraînant. Une dame le demandera pour ses obsèques, qui ont déjà eu lieu.</p>`,
+      },
+    },
+  },
+};
+
+// French typography: a narrow no-break space before ? ! : ; » and after «, applied once to every
+// French string (and to whatever a French string function returns) so no line starts with "?".
+// It only fires after a space, so 23:00 and 05:00 are left alone.
+(function frenchSpacing() {
+  const fix = s => s.replace(/ ([?!:;»])/g, '\u202f$1').replace(/« /g, '«\u202f');
+  const deep = v => typeof v === 'string' ? fix(v)
+    : typeof v === 'function' ? (...a) => fix(v(...a))
+    : Array.isArray(v) ? v.map(deep)
+    : v && typeof v === 'object' ? Object.fromEntries(Object.entries(v).map(([k, x]) => [k, deep(x)]))
+    : v;
+  I18N.fr = deep(I18N.fr);
+})();
+
+let lang = 'en';
+const t = k => I18N[lang][k] ?? I18N.en[k];
+const caller = c => t('callers')[c.id];
+const dept = p => t('depts')[p];
+// A wrong-jack reply is stored as [table, index] and worded at render time.
+const replyText = r => (r[1] == null ? t(r[0]) : t(r[0])[r[1]]);
+const quote = s => t('quote')(s);
+
+// Index-matched tables must stay the same length in both languages.
+for (const k of ['callers', 'hops', 'wrongDecade', 'wrongDept', 'survey', 'drop', 'quips', 'lyrics', 'memos', 'depts', 'fade']) {
+  if (I18N.en[k].length !== I18N.fr[k].length) console.error(`i18n: ${k} differs in length`);
+}
+
+// Per shift: callers, most on the board at once, seconds between arrivals, patience in seconds.
+const SHIFTS = [
+  { calls: 5, conc: 2, gap: 6, pat: 28, clock: 0 },
+  { calls: 7, conc: 3, gap: 5, pat: 24, clock: 95 },
+  { calls: 9, conc: 3, gap: 4.2, pat: 21, clock: 200 },
+];
+const MISROUTE = 0.4;  // share of a caller's patience a wrong jack costs
+const FINAL = { pat: 64, bonus: 5, miss: 9, clock: 330 };
+const HOLD_SECS = 8;
+const MAX_DROPS = 5;
+
+const C = Kit.tokens(['cord', 'brass', 'hole', 'ink', 'ecto', 'accent']);
+let S = null;
+let best = 0;
+
+const shuffle = a => { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+// Deterministic per-letter noise so a fading complaint decays steadily instead of flickering.
+const hash = n => { const x = Math.sin(n * 127.1 + 311.7) * 43758.5453; return x - Math.floor(x); };
+const GHOST = 'oOoouU~';
+
+function fresh(sim = false) {
+  const deck = shuffle(CALLERS.map((c, i) => ({ ...c, id: i })));
+  return {
+    phase: 'title', sim, shift: 0, t: 0, total: 0, clock: 0,
+    deck, queue: [], spawnT: 0,
+    lines: [null, null, null, null], sel: null, cur: { d: 0, p: 0 },
+    drops: 0, conn: 0, miss: 0, surveys: 0, held: 0,
+    log: [], cords: [], fin: null, ending: null, endT: 0, surveyI: Math.floor(Math.random() * I18N.en.survey.length),
+    dropI: 0, quipI: 0,
+  };
+}
+
+const hhmm = m => { const tot = (23 * 60 + Math.floor(m)) % 1440; return `${String(Math.floor(tot / 60)).padStart(2, '0')}:${String(tot % 60).padStart(2, '0')}`; };
+function note(text, bad = false) {
+  S.log.unshift({ text: `${hhmm(S.clock)}  ${text}`, bad, lang });
+  if (S.log.length > 30) S.log.length = 30;
+}
+
+function beginShift(n) {
+  const sh = SHIFTS[n];
+  S.phase = 'play'; S.shift = n; S.t = 0;
+  S.clock = Math.max(S.clock, sh.clock);
+  S.queue = S.deck.splice(0, sh.calls);
+  S.spawnT = 1.2; S.sel = null;
+  note(t('nShiftOpens')(n + 1, sh.calls));
+}
+
+function spawn() {
+  const sh = SHIFTS[S.shift];
+  const free = S.lines.findIndex(l => !l);
+  const live = S.lines.filter(Boolean).length;
+  if (free < 0 || live >= sh.conc || !S.queue.length) return false;
+  const c = S.queue.shift();
+  const pat = sh.pat + Kit.rnd(-2, 2);
+  S.lines[free] = { ...c, pat, max: pat, hold: 0, heldOnce: false, reply: '', replyT: 0, born: S.t };
+  note(t('nLamp')(free + 1, caller(c).n));
+  return true;
+}
+
+function beginFinal() {
+  S.phase = 'final'; S.t = 0; S.sel = null;
+  S.clock = Math.max(S.clock, FINAL.clock);
+  S.lines = [null, null, null, null];
+  S.fin = { hop: 0, pat: FINAL.pat, max: FINAL.pat, reply: '', replyT: 0 };
+  note(t('nFinal'));
+}
+
+function finish(kind, delay = 1.4) {
+  if (S.ending) return;
+  S.ending = kind; S.phase = 'ending'; S.endT = delay; S.sel = null;
+}
+
+function dropCall(i) {
+  const c = S.lines[i];
+  S.lines[i] = null;
+  if (S.sel === i) S.sel = null;
+  S.drops++;
+  const drops = t('drop');
+  note(t('nDropped')(i + 1, caller(c).n, drops[S.dropI++ % drops.length]), true);
+  if (S.drops >= MAX_DROPS) finish('fired', 1.2);
+}
+
+function select(i) {
+  if (S.phase === 'final') {
+    if (i === 'hold') S.sel = 'hold';
+    return;
+  }
+  if (S.phase !== 'play') return;
+  if (i === 'hold') { const q = t('quips'); note(q[S.quipI++ % q.length]); return; }
+  if (!S.lines[i]) return;
+  S.sel = S.sel === i ? null : i;
+}
+
+function putOnHold(i) {
+  if (S.phase === 'final' && i === 'hold') {
+    note(t('nSelfHold'), true);
+    finish('holdmusic', 1.6);
+    return;
+  }
+  const c = S.lines[i];
+  if (!c || c.heldOnce || S.phase !== 'play') return;
+  c.heldOnce = true; c.hold = HOLD_SECS; S.held++;
+  if (S.sel === i) S.sel = null;
+  note(t('nHeld')(i + 1, caller(c).n.split(',')[0]));
+}
+
+// Plug the selected line into jack (d, p). Returns 'ok', 'wrong' or null when nothing is selected.
+function plug(i, d, p) {
+  if (S.phase === 'final' && i === 'hold') {
+    const f = S.fin, h = HOPS[f.hop];
+    if (d === h.d && p === h.p) {
+      S.cords.push({ from: 'hold', d, p, life: 1.6, ok: true });
+      note(t('nRelayed')(jackNo(d, p), dept(p).code, t('dec')(DECADES[d])));
+      f.hop++; f.pat = Math.min(f.max, f.pat + FINAL.bonus); f.reply = ''; S.sel = null;
+      if (f.hop >= HOPS.length) finish('connected', 1.8);
+      return 'ok';
+    }
+    S.cords.push({ from: 'hold', d, p, life: 0.8, ok: false });
+    f.pat -= FINAL.miss; S.miss++;
+    f.reply = d === 5 ? ['nineties'] : d !== h.d ? ['wrongDecade', d] : ['wrongDept', p];
+    f.replyT = 3.2; S.sel = null;
+    note(t('nMisrouted')(0, jackNo(d, p)), true);
+    return 'wrong';
+  }
+  if (S.phase !== 'play' || i == null || i === 'hold') return null;
+  const c = S.lines[i];
+  if (!c) return null;
+  S.sel = null;
+  if (d === c.d && p === c.p) {
+    S.lines[i] = null;
+    S.conn++; S.surveys++;
+    S.cords.push({ from: i, d, p, life: 1.6, ok: true });
+    const sv = t('survey');
+    note(t('nConnected')(i + 1, jackNo(d, p), dept(p).code, t('dec')(DECADES[d]), sv[S.surveyI++ % sv.length]));
+    return 'ok';
+  }
+  S.cords.push({ from: i, d, p, life: 0.8, ok: false });
+  S.miss++;
+  c.pat -= c.max * MISROUTE;
+  c.reply = d !== c.d ? ['wrongDecade', d] : ['wrongDept', p];
+  c.replyT = 3.2;
+  note(t('nMisrouted')(i + 1, jackNo(d, p)), true);
+  return 'wrong';
+}
+
+function afterShift() {
+  if (S.shift < SHIFTS.length - 1) {
+    S.phase = 'memo';
+    if (S.sim) { beginShift(S.shift + 1); return; }
+    fillMemo();
+    Kit.show($('#memo'));
+  } else {
+    S.phase = 'twist';
+    if (S.sim) { beginFinal(); return; }
+    fillTwist();
+    Kit.show($('#twist'));
+  }
+}
+
+function tick(dt) {
+  S.t += dt; S.total += dt;
+  for (const k of S.cords) k.life -= dt;
+  S.cords = S.cords.filter(k => k.life > 0);
+  if (S.phase === 'ending') {
+    S.endT -= dt;
+    if (S.endT <= 0 && S.phase === 'ending') { S.phase = 'end'; if (!S.sim) showEnd(); }
+    return;
+  }
+  if (S.phase === 'play') {
+    S.clock += dt * 1.6;
+    S.spawnT -= dt;
+    if (S.spawnT <= 0 && spawn()) S.spawnT = SHIFTS[S.shift].gap;
+    else if (S.spawnT <= 0) S.spawnT = 0.3;
+    S.lines.forEach((c, i) => {
+      if (!c) return;
+      if (c.replyT > 0) c.replyT -= dt;
+      if (c.hold > 0) { c.hold -= dt; return; }
+      c.pat -= dt;
+      if (c.pat <= 0 && S.phase === 'play') dropCall(i);
+    });
+    if (S.phase === 'play' && !S.queue.length && S.lines.every(l => !l) && S.t > 1) afterShift();
+  } else if (S.phase === 'final') {
+    S.clock += dt * 0.6;
+    const f = S.fin;
+    if (f.replyT > 0) f.replyT -= dt;
+    f.pat -= dt;
+    if (f.pat <= 0) { note(t('nBackOnHold'), true); finish('holdmusic', 1.4); }
+  }
+}
+
+// Rendering: everything below reads S and touches the DOM; the simulation never calls it.
+const linesEl = $('#lines'), gridEl = $('#grid'), deskEl = $('#desk');
+const slotEls = [];
+const jackEls = [];
+function build() {
+  linesEl.innerHTML = '';
+  for (let i = 0; i < 5; i++) {
+    const hold = i === 4;
+    const el = document.createElement('div');
+    el.className = 'slot' + (hold ? ' holdslot' : '');
+    el.dataset.line = hold ? 'hold' : i;
+    el.innerHTML = `<button class="pick"><span class="lamp"></span><span class="jackhole"></span><span class="no">L${hold ? 0 : i + 1}</span></button>
+      <div class="who"><strong></strong><em></em></div><p class="say"></p>
+      ${hold ? '<div class="relay"></div>' : ''}
+      <div class="meter-row"><div class="bar"><i></i></div><button class="hold" type="button"></button></div>`;
+    linesEl.append(el);
+    slotEls.push({ el, who: el.querySelector('.who strong'), tag: el.querySelector('.who em'), say: el.querySelector('.say'),
+      bar: el.querySelector('.bar i'), hold: el.querySelector('.hold'), relay: el.querySelector('.relay'), hole: el.querySelector('.jackhole'), cache: '' });
+  }
+  gridEl.innerHTML = '<span></span>' + DECADES.map(() => '<span class="dec"></span>').join('');
+  for (let p = 0; p < DEPTS; p++) {
+    gridEl.insertAdjacentHTML('beforeend', '<span class="dept"></span>');
+    for (let d = 0; d < 6; d++) {
+      const b = document.createElement('button');
+      b.className = 'jk'; b.type = 'button';
+      b.dataset.d = d; b.dataset.p = p;
+      b.innerHTML = `<span>${jackNo(d, p)}</span>`;
+      gridEl.append(b);
+      jackEls[p * 6 + d] = b;
+    }
+  }
+}
+build();
+// Every label on the board that depends on the language; run at boot and on every switch.
+function labelBoard() {
+  slotEls.forEach((s, i) => s.el.querySelector('.pick').setAttribute('aria-label', i === 4 ? t('holdAria') : t('lineAria')(i + 1)));
+  gridEl.querySelectorAll('.dec').forEach((el, d) => { el.textContent = t('dec')(DECADES[d]); });
+  gridEl.querySelectorAll('.dept').forEach((el, p) => { el.innerHTML = `${dept(p).code}<small>${dept(p).name}</small>`; });
+  jackEls.forEach((b, k) => {
+    const d = k % 6, p = Math.floor(k / 6);
+    b.setAttribute('aria-label', t('jackAria')(dept(p).name, t('decade')(DECADES[d]), jackNo(d, p)));
+  });
+}
+const jackEl = (d, p) => jackEls[p * 6 + d];
+const lineKey = i => (i === 'hold' ? 4 : i);
+
+function garble(text, f, seed) {
+  if (f > 0.6) return text;
+  const p = Math.min(0.75, ((0.6 - f) / 0.6) * 0.85);
+  let out = '';
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    out += /[A-Za-zÀ-ÖØ-öø-ÿ]/.test(ch) && hash(seed * 97 + i) < p ? GHOST[Math.floor(hash(seed + i * 13) * GHOST.length)] : ch;
+  }
+  return out;
+}
+const fade = f => t('fade')[f > 0.6 ? 0 : f > 0.3 ? 1 : 2];
+
+function renderSlot(i) {
+  const s = slotEls[i];
+  let key, cls = 'slot' + (i === 4 ? ' holdslot' : '');
+  if (i < 4) {
+    const c = S.lines[i];
+    if (!c) {
+      key = lang + '|empty';
+      if (s.cache !== key) {
+        s.who.textContent = t('quiet'); s.tag.textContent = ''; s.say.textContent = t('quietSay');
+        s.say.className = 'say'; s.hold.disabled = true; s.hold.hidden = true; s.bar.style.width = '0%';
+      }
+      cls += ' empty';
+    } else {
+      const f = c.pat / c.max;
+      const showReply = c.replyT > 0;
+      const bucket = Math.round(f * 30);
+      key = `${lang}|${c.id}|${bucket}|${showReply}|${c.hold > 0}|${c.heldOnce}`;
+      if (s.cache !== key) {
+        s.who.textContent = caller(c).n;
+        s.tag.textContent = c.hold > 0 ? t('onHoldTag') : fade(f);
+        s.say.textContent = showReply ? replyText(c.reply) : quote(garble(caller(c).t, f, c.id + 1));
+        s.say.className = 'say' + (showReply ? ' reply' : '');
+        s.hold.hidden = false; s.hold.disabled = c.heldOnce;
+        s.hold.textContent = c.heldOnce ? (c.hold > 0 ? t('holding') : t('heldOnce')) : t('pleaseHold');
+      }
+      s.bar.style.width = `${Math.max(0, f) * 100}%`;
+      s.el.style.opacity = String(0.45 + 0.55 * Math.max(0, Math.min(1, f / 0.5)));
+      cls += ' live';
+      if (c.hold > 0) cls += ' held';
+      else if (f < 0.3) cls += ' urgent';
+    }
+    if (!c) s.el.style.opacity = '';
+  } else {
+    const f = S.fin;
+    if (S.phase === 'final' || (S.ending && f)) {
+      const fr = Math.max(0, f.pat / f.max);
+      const showReply = f.replyT > 0;
+      key = `${lang}|fin|${f.hop}|${showReply}|${Math.round(fr * 30)}`;
+      if (s.cache !== key) {
+        s.who.textContent = t('you');
+        s.tag.textContent = t('relayOf')(Math.min(f.hop + 1, HOPS.length), HOPS.length);
+        s.say.textContent = showReply ? replyText(f.reply) : f.hop < HOPS.length ? quote(t('hops')[f.hop]) : t('ringing');
+        s.say.className = 'say' + (showReply ? ' reply' : '');
+        s.relay.innerHTML = HOPS.map((h, k) => k < f.hop ? `<b>${t('dec')(DECADES[h.d])} ✓</b>` : k === f.hop ? t('relayNext') : '·').join(' → ');
+        s.hold.hidden = false; s.hold.disabled = false; s.hold.textContent = t('pleaseHold');
+      }
+      s.bar.style.width = `${fr * 100}%`;
+      cls += ' live';
+      if (fr < 0.3) cls += ' urgent';
+    } else {
+      key = lang + '|idle';
+      if (s.cache !== key) {
+        s.who.textContent = t('holdName'); s.tag.textContent = t('holdSince');
+        s.say.textContent = t('holdSay');
+        s.say.className = 'say'; s.relay.textContent = ''; s.hold.hidden = true; s.bar.style.width = '0%';
+      }
+    }
+  }
+  if (S.sel != null && lineKey(S.sel) === i) cls += ' sel';
+  if (s.el.className !== cls) s.el.className = cls;
+  s.cache = key;
+}
+
+let lastLog = null;
+function render() {
+  $('#clock').textContent = hhmm(S.clock);
+  $('#shiftno').textContent = S.phase === 'final' || S.fin ? t('lastShift') : String(S.shift + 1);
+  $('#conn').textContent = String(S.conn + (S.ending === 'connected' ? 1 : 0));
+  $('#surv').textContent = S.ending === 'connected' && S.phase === 'end' ? '1' : '0';
+  document.querySelectorAll('#fuses i').forEach((f, k) => f.classList.toggle('blown', k < S.drops));
+  for (let i = 0; i < 5; i++) renderSlot(i);
+  const lyric = S.phase === 'final' || S.fin ? 3 : S.shift;
+  const ht = $('#holdtext');
+  if (ht.dataset.k !== lang + lyric) { ht.textContent = t('lyrics')[lyric]; ht.dataset.k = lang + lyric; }
+  if (lastLog !== S.log[0]) {
+    lastLog = S.log[0];
+    $('#log').innerHTML = S.log.slice(0, 5).map(l => `<li class="${l.bad ? 'bad' : ''}" lang="${l.lang}">${l.text.replace(/&/g, '&amp;').replace(/</g, '&lt;')}</li>`).join('');
+  }
+  const flash = new Map();
+  for (const k of S.cords) flash.set(k.p * 6 + k.d, k.ok ? 'flash-ok' : 'flash-bad');
+  jackEls.forEach((b, k) => {
+    const want = 'jk' + (flash.has(k) ? ' ' + flash.get(k) : '') + (S.sel != null && S.cur.d === k % 6 && S.cur.p === Math.floor(k / 6) ? ' cur' : '');
+    if (b.className !== want) b.className = want;
+  });
+  $('#hint').textContent = S.sel != null ? t('hintCord')(S.sel === 'hold' ? 0 : S.sel + 1) : S.phase === 'final' ? t('hintFinal') : t('hintPlay');
+  drawCords();
+}
+
+// Cords: a sagging curve from the line's jack to the target, brass plugs at both ends.
+const view = Kit.canvas($('#cords'));
+const drag = { on: false, x: 0, y: 0, from: null, moved: false };
+function anchor(el) {
+  const r = el.getBoundingClientRect(), c = view.el.getBoundingClientRect();
+  return { x: r.left + r.width / 2 - c.left, y: r.top + r.height / 2 - c.top };
+}
+function jackCentre(d, p) {
+  const b = jackEl(d, p), r = b.getBoundingClientRect(), c = view.el.getBoundingClientRect();
+  return { x: r.left + r.width / 2 - c.left, y: r.top + 6 + 13 - c.top };
+}
+function cord(a, b, alpha, colour) {
+  const { cx } = view;
+  const dist = Math.hypot(b.x - a.x, b.y - a.y);
+  const sag = Kit.reduce ? 20 : 26 + dist * 0.22;
+  cx.globalAlpha = alpha;
+  cx.strokeStyle = colour; cx.lineWidth = 4; cx.lineCap = 'round';
+  cx.beginPath(); cx.moveTo(a.x, a.y);
+  cx.quadraticCurveTo((a.x + b.x) / 2, Math.max(a.y, b.y) + sag, b.x, b.y);
+  cx.stroke();
+  for (const q of [a, b]) {
+    cx.fillStyle = C.brass; cx.beginPath(); cx.arc(q.x, q.y, 6, 0, Math.PI * 2); cx.fill();
+    cx.fillStyle = C.hole; cx.beginPath(); cx.arc(q.x, q.y, 2, 0, Math.PI * 2); cx.fill();
+  }
+  cx.globalAlpha = 1;
+}
+function drawCords() {
+  const { cx, W, H } = view;
+  cx.clearRect(0, 0, W, H);
+  for (const k of S.cords) {
+    const from = anchor(slotEls[lineKey(k.from)].hole);
+    cord(from, jackCentre(k.d, k.p), Math.min(1, k.life / 0.5), k.ok ? C.cord : C.ink);
+  }
+  if (S.sel != null) {
+    const from = anchor(slotEls[lineKey(S.sel)].hole);
+    const to = drag.on && drag.moved ? { x: drag.x, y: drag.y } : jackCentre(S.cur.d, S.cur.p);
+    cord(from, to, drag.on && drag.moved ? 1 : 0.55, C.cord);
+  }
+}
+
+function fillEnd() {
+  const k = S.ending, st = t('stats'), e = t('end')[k], time = hhmm(S.clock);
+  const stats = [
+    [st.conn, k === 'connected' ? st.connPlus(S.conn) : S.conn], [st.dropped, S.drops], [st.miss, S.miss], [st.held, S.held],
+    [st.sent, S.surveys + (k === 'connected' ? 1 : 0)], [st.returned, k === 'connected' ? st.yours : '0'],
+  ];
+  $('#end-tag').textContent = k === 'connected' ? e.tag(time, jackNo(4, 0), dept(0).code, t('dec')(DECADES[4])) : e.tag(time);
+  $('#end-h').textContent = e.h;
+  $('#end-body').innerHTML = k === 'fired' ? e.body(S.drops) : e.body;
+  $('#end-stats').innerHTML = stats.map(([a, b]) => `<dt>${a}</dt><dd>${b}</dd>`).join('');
+}
+function showEnd() {
+  fillEnd();
+  best = Math.max(best, S.conn);
+  Kit.show($('#end'));
+}
+function fillMemo() {
+  const m = t('memos')[S.shift];
+  $('#memo-tag').textContent = m.tag;
+  $('#memo-h').textContent = m.h;
+  $('#memo-body').textContent = m.body;
+  $('#memo-btn').textContent = t('memoBtn')(S.shift + 2);
+}
+function fillTwist() { $('#twist-tag').textContent = t('twistTag')(hhmm(FINAL.clock)); }
+function fillBest() {
+  $('#best').hidden = !best;
+  if (best) $('#best').textContent = t('best')(best);
+}
+
+// Input: drag from a line to a jack, tap a line then a jack, or keys.
+function lineOf(el) {
+  const s = el.closest('.slot');
+  if (!s) return null;
+  return s.dataset.line === 'hold' ? 'hold' : Number(s.dataset.line);
+}
+linesEl.addEventListener('pointerdown', e => {
+  if (e.target.closest('.hold')) return;
+  const i = lineOf(e.target);
+  if (i == null) return;
+  const was = S.sel;
+  if (was !== i) select(i);
+  if (S.sel === i) {
+    drag.on = true; drag.moved = false; drag.from = i; drag.toggleOff = was === i;
+    const c = view.el.getBoundingClientRect();
+    drag.x = e.clientX - c.left; drag.y = e.clientY - c.top; drag.sx = e.clientX; drag.sy = e.clientY;
+  }
+});
+addEventListener('pointermove', e => {
+  if (!drag.on) return;
+  const c = view.el.getBoundingClientRect();
+  drag.x = e.clientX - c.left; drag.y = e.clientY - c.top;
+  if (Math.hypot(e.clientX - drag.sx, e.clientY - drag.sy) > 8) drag.moved = true;
+  const j = document.elementFromPoint(e.clientX, e.clientY)?.closest('.jk');
+  if (j) S.cur = { d: Number(j.dataset.d), p: Number(j.dataset.p) };
+});
+addEventListener('pointerup', e => {
+  if (!drag.on) return;
+  drag.on = false;
+  if (!drag.moved) { if (drag.toggleOff) S.sel = null; return; }
+  const j = document.elementFromPoint(e.clientX, e.clientY)?.closest('.jk');
+  if (j && S.sel === drag.from) plug(drag.from, Number(j.dataset.d), Number(j.dataset.p));
+});
+addEventListener('pointercancel', () => { drag.on = false; });
+linesEl.addEventListener('click', e => {
+  const b = e.target.closest('.hold');
+  if (b) putOnHold(lineOf(b));
+});
+// A keyboard click on the line's own button (Enter/Space with focus) selects it too.
+linesEl.addEventListener('keydown', e => {
+  if ((e.key === 'Enter' || e.key === ' ') && e.target.classList.contains('pick')) { e.preventDefault(); select(lineOf(e.target)); }
+});
+gridEl.addEventListener('click', e => {
+  const j = e.target.closest('.jk');
+  if (!j) return;
+  S.cur = { d: Number(j.dataset.d), p: Number(j.dataset.p) };
+  if (S.sel != null) plug(S.sel, S.cur.d, S.cur.p);
+});
+gridEl.addEventListener('pointerover', e => {
+  const j = e.target.closest('.jk');
+  if (j && S.sel != null) S.cur = { d: Number(j.dataset.d), p: Number(j.dataset.p) };
+});
+
+Kit.keys.onPress((k, down) => {
+  if (!down || !S || (S.phase !== 'play' && S.phase !== 'final')) return;
+  if (k >= '1' && k <= '4') { select(Number(k) - 1); focusCur(); return; }
+  if (k === '0') { select('hold'); focusCur(); return; }
+  if (k === 'h' && S.sel != null) { putOnHold(S.sel); return; }
+  if (k === 'Escape') { S.sel = null; return; }
+  const mv = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] }[k];
+  if (mv) {
+    S.cur = { d: (S.cur.d + mv[0] + 6) % 6, p: (S.cur.p + mv[1] + 3) % 3 };
+    focusCur();
+    return;
+  }
+  // Enter / Space on a focused jack is the button's own click; only plug here when nothing has focus.
+  if ((k === 'Enter' || k === ' ') && S.sel != null && !document.activeElement?.closest('button')) plug(S.sel, S.cur.d, S.cur.p);
+});
+function focusCur() { if (S.sel != null) jackEl(S.cur.d, S.cur.p).focus({ preventScroll: true }); }
+
+const loop = Kit.loop(dt => { tick(dt); render(); });
+
+function startNight() {
+  S = fresh();
+  beginShift(0);
+  Kit.show(null);
+  loop.start();
+}
+$('#startbtn').onclick = startNight;
+$('#end-btn').onclick = startNight;
+$('#memo-btn').onclick = () => { beginShift(S.shift + 1); Kit.show(null); };
+$('#twist-btn').onclick = () => { beginFinal(); Kit.show(null); };
+
+// Headless model of a whole night, used to measure difficulty (smoke/jumps/…-measure.js).
+// A bot reads one caller at a time; read time and accuracy are its skill.
+function simulate(bot, runs = 100) {
+  const out = { connected: 0, fired: 0, holdmusic: 0, drops: 0, secs: 0 };
+  const keep = S;
+  for (let r = 0; r < runs; r++) {
+    S = fresh(true);
+    beginShift(0);
+    const me = { busy: 0, target: null };
+    let guard = 0;
+    while (S.phase !== 'end' && guard++ < 40000) {
+      const dt = 0.05;
+      tick(dt);
+      botStep(bot, me, dt);
+    }
+    out[S.ending]++; out.drops += S.drops; out.secs += S.total;
+  }
+  out.secs = Math.round(out.secs / runs);
+  S = keep;
+  return out;
+}
+function botStep(bot, me, dt) {
+  if (S.phase !== 'play' && S.phase !== 'final') return;
+  if (me.busy > 0) {
+    me.busy -= dt;
+    // A careful operator glances up and puts a fading caller on hold.
+    if (bot.useHold && S.phase === 'play') S.lines.forEach((c, i) => { if (c && i !== me.target && !c.heldOnce && c.pat < 5) { putOnHold(i); me.busy += 0.6; } });
+    if (me.busy > 0) return;
+    const t = me.target;
+    if (S.phase === 'final') {
+      if (!S.fin || S.fin.hop >= HOPS.length) return;
+      const h = HOPS[S.fin.hop];
+      const ok = Math.random() < bot.acc;
+      S.sel = 'hold';
+      plug('hold', ok ? h.d : (h.d + 1 + Math.floor(Math.random() * 4)) % 5, h.p);
+      me.target = null;
+      return;
+    }
+    const c = S.lines[t];
+    if (!c || c.id !== me.id) { me.target = null; return; }
+    const legible = c.pat / c.max > 0.35 || me.readF > 0.35;
+    const ok = Math.random() < (legible ? bot.acc : bot.acc - 0.2);
+    const d = ok ? c.d : Math.random() < 0.6 ? (c.d + 1 + Math.floor(Math.random() * 5)) % 6 : c.d;
+    const p = ok ? c.p : d === c.d ? (c.p + 1 + Math.floor(Math.random() * 2)) % 3 : c.p;
+    S.sel = t; plug(t, d, p);
+    me.target = null;
+    return;
+  }
+  if (S.phase === 'final') { me.target = 'hold'; me.busy = bot.react + Kit.rnd(...bot.read) * 0.9; return; }
+  const live = S.lines.map((c, i) => (c ? i : -1)).filter(i => i >= 0);
+  if (!live.length) return;
+  const i = bot.urgentFirst ? live.reduce((a, b) => (S.lines[a].pat < S.lines[b].pat ? a : b)) : Kit.pick(live);
+  const c = S.lines[i];
+  me.target = i; me.id = c.id; me.readF = c.pat / c.max;
+  // Re-reading after a misroute is quicker: the clue is already half-parsed.
+  me.busy = bot.react + (c.replyT > 0 ? Kit.rnd(1, 2) : Kit.rnd(...bot.read));
+}
+
+Kit.expose({
+  state: () => S,
+  endings: {
+    connected: {
+      seconds: 9,
+      jump() {
+        S = fresh(); beginShift(2); S.conn = 14; beginFinal();
+        S.fin.hop = HOPS.length - 1; Kit.show(null); loop.start();
+        // The last relay goes through the real input path: pick up line 0, plug 41.
+        setTimeout(() => { select('hold'); plug('hold', 4, 0); }, 1500);
+      },
+      reached: () => S.ending === 'connected' && !$('#end').hidden,
+    },
+    fired: {
+      seconds: 9,
+      jump() {
+        S = fresh(); beginShift(2); S.drops = MAX_DROPS - 1; S.queue = S.queue.slice(0, 1); spawn();
+        S.lines[0].pat = 2.5; Kit.show(null); loop.start();
+      },
+      reached: () => S.ending === 'fired' && !$('#end').hidden,
+    },
+    holdmusic: {
+      seconds: 10,
+      jump() {
+        S = fresh(); beginShift(2); beginFinal();
+        S.fin.pat = 3; Kit.show(null); loop.start();
+      },
+      reached: () => S.ending === 'holdmusic' && !$('#end').hidden,
+    },
+  },
+});
+
+// ---- language -------------------------------------------------------------------------------
+// Static markup carries data-t (text), data-th (trusted markup from I18N) and data-ta
+// (aria-label). Slots re-word themselves (their render cache keys on lang); overlays that are
+// showing are refilled here. Call-log lines stay in the language they were said in.
+function applyLang() {
+  document.documentElement.lang = lang;
+  document.title = t('docTitle');
+  for (const el of document.querySelectorAll('[data-t]')) el.textContent = t(el.dataset.t);
+  for (const el of document.querySelectorAll('[data-th]')) el.innerHTML = t(el.dataset.th);
+  for (const el of document.querySelectorAll('[data-ta]')) el.setAttribute('aria-label', t(el.dataset.ta));
+  for (const box of document.querySelectorAll('.lang')) {
+    if (!box.children.length) box.innerHTML = '<button type="button" data-lang="fr" lang="fr">FR</button><button type="button" data-lang="en" lang="en">EN</button>';
+    for (const b of box.children) b.setAttribute('aria-pressed', String(b.dataset.lang === lang));
+  }
+  labelBoard();
+  fillBest();
+  if (!S) return;
+  if (!$('#memo').hidden) fillMemo();
+  if (!$('#twist').hidden) fillTwist();
+  if (!$('#end').hidden && S.ending) fillEnd();
+  render();
+}
+function setLang(l) {
+  if (!(l in I18N) || l === lang) return;
+  lang = l;
+  applyLang();
+}
+document.addEventListener('click', e => {
+  const b = e.target.closest('[data-lang]');
+  if (b) setLang(b.dataset.lang);
+});
+
+Kit.boot(data => {
+  best = data.best || 0;
+  lang = data?.lang in I18N ? data.lang : (navigator.language || '').toLowerCase().startsWith('fr') ? 'fr' : 'en';
+  S = fresh();
+  applyLang();
+  Kit.show($('#title'));
+}, () => ({ best: Math.max(best, S?.conn || 0), lang }));
+</script>
+</body>
+</html>

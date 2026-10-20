@@ -1,0 +1,10 @@
+# Allowlist: this repo holds the published pages and nothing else. Anything not named below is
+# ignored, so a stray file dropped into a checkout cannot be committed by accident.
+*
+!*/
+!.gitignore
+!.nojekyll
+!README.md
+!404.html
+!index.html
+!*/index.html

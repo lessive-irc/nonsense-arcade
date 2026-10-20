@@ -1,0 +1,1579 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Unpaid Intern at the Volcano</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@500;700&family=Public+Sans:ital,wght@0,400;0,600;0,700;1,400&family=Red+Hat+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: the intranet of a volcano observatory. A helicorder strip runs across the top (the one
+   loud thing: sulphur on basalt), memos sit on the left like paper, and the mountain's state
+   (pressure, villages, calendar, survey map) is pinned on the right. */
+:root {
+  --bg: #e7e9e3;          /* survey paper, faintly green */
+  --ink: #1d2321;         /* basalt */
+  --muted: #5c6662;
+  --accent: #b8401b;      /* lava: stamps, warnings, the approve button */
+  --panel: #f7f8f4;       /* memo paper */
+  --line: #1d232126;
+  --strip: #232927;       /* helicorder housing */
+  --sulphur: #e6bf1c;
+  --ash: #8a908c;
+  --moss: #4d7a46;
+  --sea: #3d6c84;
+  --f-head: "Zilla Slab", Rockwell, "Courier New", serif;
+  --f-body: "Public Sans", "Segoe UI", system-ui, sans-serif;
+  --f-mono: "Red Hat Mono", ui-monospace, Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #111513; --ink: #e1e6e2; --muted: #929c97; --accent: #ef6c3b; --panel: #1a1f1d;
+    --line: #e1e6e221; --strip: #070908; --sulphur: #f0cd3c; --ash: #6e7571; --moss: #82b273; --sea: #6aa4c2;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #111513; --ink: #e1e6e2; --muted: #929c97; --accent: #ef6c3b; --panel: #1a1f1d;
+  --line: #e1e6e221; --strip: #070908; --sulphur: #f0cd3c; --ash: #6e7571; --moss: #82b273; --sea: #6aa4c2;
+  color-scheme: dark;
+}
+/* kit:css:begin */
+/* Arcade kit: structure only, never a look. Inlined between kit:css markers by kit/inline.mjs.
+   The game's own :root must define --bg --ink --muted --accent --panel --line (light), and
+   redefine them in both dark blocks; everything here reads those tokens. */
+*, *::before, *::after { box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  -webkit-tap-highlight-color: transparent;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+button { font: inherit; color: inherit; cursor: pointer; }
+button:disabled { cursor: default; }
+:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+canvas { display: block; max-width: 100%; touch-action: none; }
+
+/* Full-stage screens (title, twist, end). Sit inside a position:relative stage. */
+.kit-overlay {
+  position: absolute; inset: 0; z-index: 5;
+  display: grid; place-items: center; padding: 24px;
+  background: color-mix(in srgb, var(--bg) 88%, transparent);
+  overflow-y: auto;
+}
+.kit-overlay[hidden] { display: none; }
+
+/* Touch pad: shown only on coarse pointers; buttons carry data-key (see Kit.keys). */
+.kit-pad { display: none; gap: 10px; justify-content: center; padding-block: 10px; user-select: none; }
+.kit-pad [data-key] { min-width: 56px; min-height: 56px; touch-action: none; border: 1px solid var(--line); background: var(--panel); }
+@media (pointer: coarse) { .kit-pad { display: flex; } }
+
+.kit-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+
+@media (prefers-reduced-motion: reduce) {
+  .kit-deco, .kit-deco * { animation: none !important; transition: none !important; }
+}
+/* kit:css:end */
+[hidden] { display: none !important; }
+body { font-family: var(--f-body); font-size: 15px; line-height: 1.4; height: 100dvh; padding-block: 10px; overflow: hidden; }
+.desk { position: relative; height: 100%; max-width: 1180px; margin: 0 auto; display: grid; grid-template-rows: auto auto minmax(0, 1fr); gap: 8px; }
+.mono { font-family: var(--f-mono); }
+.bar-top { display: flex; justify-content: space-between; align-items: baseline; gap: 4px 14px; flex-wrap: wrap; }
+.bar-top h1 { margin: 0; font-family: var(--f-head); font-weight: 700; font-size: 20px; letter-spacing: .01em; }
+.bar-top h1 small { font-family: var(--f-mono); font-weight: 400; font-size: 11px; letter-spacing: .08em; color: var(--muted); text-transform: uppercase; margin-left: 6px; }
+.bar-top .who { font-family: var(--f-mono); font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.bar-top .who b { color: var(--ink); font-weight: 600; }
+.seis { position: relative; height: 66px; background: var(--strip); border-radius: 2px; overflow: hidden; }
+.seis canvas { width: 100%; height: 100%; }
+.seis .tag { position: absolute; top: 5px; font-family: var(--f-mono); font-size: 10px; letter-spacing: .08em; color: #c9cfcb; pointer-events: none; }
+.seis .tag.l { left: 8px; } .seis .tag.r { right: 8px; text-align: right; }
+.seis .tag b { color: var(--sulphur); font-weight: 600; }
+
+.main { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); gap: 14px; min-height: 0; }
+.col-in { display: grid; grid-template-rows: auto auto minmax(0, 1fr); gap: 8px; min-height: 0; }
+.col-in h2, .side h2 { margin: 0; font-family: var(--f-mono); font-weight: 600; font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); display: flex; justify-content: space-between; gap: 8px; }
+.inbox { overflow-y: auto; min-height: 0; display: grid; gap: 10px; align-content: start; padding: 2px 4px 12px 2px; }
+.empty { color: var(--muted); font-style: italic; padding: 18px 4px; }
+.memo {
+  background: var(--panel); border: 1px solid var(--line); border-left: 4px solid var(--ash);
+  padding: 10px 12px 10px; display: grid; gap: 6px; position: relative;
+}
+.memo.sel { outline: 2px solid var(--ink); outline-offset: 1px; }
+.memo[data-kind="erupt"] { border-left-color: var(--accent); }
+.memo[data-kind="magma"] { border-left-color: var(--sulphur); }
+.memo[data-kind="letter"], .memo[data-kind="complaint"] { border-left-color: var(--moss); }
+.memo[data-kind="pip"] { border-left-color: var(--sea); }
+.memo .hdr { display: grid; grid-template-columns: 4.2ch minmax(0, 1fr); column-gap: 8px; padding-right: 84px; font-family: var(--f-mono); font-size: 11px; color: var(--muted); }
+.memo .hdr b { font-weight: 600; color: var(--ink); overflow-wrap: anywhere; }
+.memo p { margin: 0; font-size: 14.5px; }
+.memo .fc { font-family: var(--f-mono); font-size: 11.5px; color: var(--ink); background: var(--line); padding: 3px 6px; justify-self: start; }
+.memo .fc.risk { color: var(--accent); }
+.memo .acts { display: flex; flex-wrap: wrap; gap: 6px; }
+.memo .due { font-family: var(--f-mono); font-size: 10.5px; color: var(--muted); }
+.memo .due.soon { color: var(--accent); }
+.memo .stamp { position: absolute; right: 10px; top: 8px; font-family: var(--f-head); font-weight: 700; font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--accent); border: 1.5px solid var(--accent); padding: 1px 5px; transform: rotate(4deg); opacity: .85; }
+button.act {
+  font-family: var(--f-body); font-size: 13.5px; font-weight: 600; padding: 7px 11px; min-height: 36px;
+  background: var(--panel); color: var(--ink); border: 1.5px solid var(--ink); border-radius: 2px;
+}
+button.act kbd { font-family: var(--f-mono); font-size: 10.5px; font-weight: 400; color: var(--muted); margin-right: 5px; }
+button.act.go { background: var(--ink); color: var(--panel); }
+button.act.go kbd { color: var(--panel); opacity: .7; }
+button.act:hover { background: var(--line); }
+button.act:disabled { opacity: .38; }
+button.act:disabled:hover { background: var(--panel); }
+button.act.go:hover { background: var(--ink); filter: brightness(1.15); }
+
+.compose { background: var(--panel); border: 1.5px dashed var(--ink); padding: 10px 12px; display: grid; gap: 7px; }
+.compose p { margin: 0; font-size: 14px; }
+.compose .acts { display: flex; flex-wrap: wrap; gap: 6px; }
+
+.side { overflow-y: auto; min-height: 0; display: grid; gap: 12px; align-content: start; padding-right: 2px; }
+.box { display: grid; gap: 6px; }
+.gauge { position: relative; height: 22px; background: var(--panel); border: 1.5px solid var(--ink); }
+.gauge i { position: absolute; inset: 0 auto 0 0; width: 0; background: var(--sulphur); }
+.gauge .red { position: absolute; top: 0; bottom: 0; left: 85%; right: 0; background: repeating-linear-gradient(135deg, var(--accent) 0 4px, transparent 4px 8px); opacity: .55; }
+.gauge .tk { position: absolute; top: 0; bottom: 0; width: 1px; background: var(--ink); opacity: .4; }
+.ptext { display: flex; justify-content: space-between; gap: 8px; font-family: var(--f-mono); font-size: 11.5px; color: var(--muted); }
+.ptext b { font-size: 18px; color: var(--ink); font-variant-numeric: tabular-nums; }
+.ptext b.hot { color: var(--accent); }
+.vills { display: grid; gap: 4px; }
+.vill { display: grid; grid-template-columns: minmax(0, 16ch) 2.5ch minmax(0, 1fr) 13ch; gap: 8px; align-items: center; font-size: 13px; }
+.vill .d { font-family: var(--f-mono); font-size: 11px; color: var(--muted); }
+.vill i { display: block; height: 7px; background: var(--line); }
+.vill i b { display: block; height: 100%; background: var(--moss); }
+.vill i b.low { background: var(--accent); }
+.vill em { font-size: 12px; color: var(--muted); text-align: right; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cal { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); border: 1.5px solid var(--ink); background: var(--panel); }
+.cal > div { border-left: 1px solid var(--line); padding: 5px 5px 7px; display: grid; gap: 4px; align-content: start; min-height: 96px; min-width: 0; }
+.cal > div:first-child { border-left: 0; background: color-mix(in srgb, var(--sulphur) 16%, var(--panel)); }
+.cal .dh { font-family: var(--f-mono); font-size: 11px; font-weight: 600; }
+.cal .dh small { display: block; font-weight: 400; color: var(--muted); }
+.cal .wind { font-family: var(--f-mono); font-size: 11px; color: var(--muted); }
+.cal .wind.risk { color: var(--accent); font-weight: 600; }
+.cal .chip { font-size: 11px; line-height: 1.2; padding: 2px 4px; border: 1px solid var(--line); background: var(--bg); overflow-wrap: anywhere; }
+.cal .chip.ev { border-color: var(--moss); }
+.cal .chip.er { border-color: var(--accent); color: var(--accent); font-family: var(--f-mono); font-weight: 600; }
+.cal .tbar { height: 3px; background: var(--line); }
+.cal .tbar b { display: block; height: 100%; background: var(--ink); width: 0; }
+.map { height: 170px; border: 1.5px solid var(--ink); background: var(--panel); }
+.map canvas { width: 100%; height: 100%; }
+.log { margin: 0; padding: 0; list-style: none; display: grid; gap: 3px; font-family: var(--f-mono); font-size: 11px; color: var(--muted); }
+.log li:first-child { color: var(--ink); }
+
+/* Overlays are documents. */
+.doc {
+  width: min(620px, 100%); background: var(--panel); color: var(--ink); border: 1.5px solid var(--ink);
+  padding: 22px 24px 20px; display: grid; gap: 11px; box-shadow: 6px 6px 0 var(--line);
+}
+.doc .kick { margin: 0; font-family: var(--f-mono); font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
+.doc h2 { margin: 0; font-family: var(--f-head); font-weight: 700; font-size: clamp(28px, 7vw, 40px); line-height: 1.02; }
+.doc h2 em { font-style: normal; color: var(--accent); }
+.doc p { margin: 0; }
+.doc .lede { font-size: 16.5px; }
+.clauses { margin: 0; padding: 0; list-style: none; display: grid; gap: 5px; border-block: 1px solid var(--line); padding-block: 10px; }
+.clauses li { display: grid; grid-template-columns: 4ch minmax(0, 1fr); gap: 8px; font-size: 14px; }
+.clauses li b { font-family: var(--f-mono); font-weight: 600; font-size: 12px; padding-top: 2px; }
+.clauses li.hl { color: var(--ink); }
+.clauses li.hl span { background: color-mix(in srgb, var(--sulphur) 35%, transparent); }
+.doc ul.how { margin: 0; padding-left: 1.1em; display: grid; gap: 3px; font-size: 14px; }
+.sig { display: flex; flex-wrap: wrap; gap: 8px 24px; font-family: var(--f-mono); font-size: 11.5px; color: var(--muted); }
+.sig span { border-top: 1px solid var(--ink); padding-top: 3px; min-width: 150px; }
+.doc .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+.doc button.big { font-family: var(--f-head); font-weight: 700; font-size: 18px; padding: 11px 20px; background: var(--accent); color: #fff; border: 0; border-radius: 2px; }
+.doc .small { font-family: var(--f-mono); font-size: 11px; color: var(--muted); }
+.review { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 3px 16px; font-size: 14px; border-block: 1px solid var(--line); padding-block: 9px; }
+.review b { font-family: var(--f-mono); font-variant-numeric: tabular-nums; text-align: right; }
+.review .tot { font-weight: 700; border-top: 1px solid var(--line); padding-top: 4px; }
+.vei { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+.vei th, .vei td { text-align: left; padding: 3px 6px; border-bottom: 1px solid var(--line); }
+.vei th { font-family: var(--f-mono); font-weight: 600; font-size: 10.5px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.vei td:first-child { font-family: var(--f-mono); font-weight: 600; }
+.vei-wrap { overflow-x: auto; }
+
+.lang { display: inline-flex; align-items: stretch; flex: 0 0 auto; border: 1.5px solid var(--ink); border-radius: 2px; background: var(--panel); overflow: hidden; align-self: center; }
+.lang button { border: 0; background: transparent; padding: 3px 9px; font: 600 11px var(--f-mono); letter-spacing: .08em; color: var(--muted); min-height: 26px; }
+.lang button + button { border-left: 1px solid var(--line); }
+.lang button:hover { color: var(--ink); }
+.lang button[aria-pressed="true"] { background: var(--ink); color: var(--panel); }
+.doc .row .lang { margin-left: auto; }
+.bar-top .right { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+
+@media (max-width: 760px) {
+  body { font-size: 14px; }
+  .main { grid-template-columns: 1fr; grid-template-rows: auto minmax(0, 1fr); gap: 10px; }
+  .side { overflow: visible; gap: 8px; order: -1; }
+  .map, .side .logbox { display: none; }
+  .seis { height: 52px; }
+  .seis .meta { display: none; }
+  .vills { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+  .vill { grid-template-columns: 1fr; gap: 2px; }
+  .vill .d, .vill em { display: none; }
+  .vill span { font-size: 11.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .cal > div { min-height: 74px; padding: 4px 3px 5px; }
+  .cal .chip { font-size: 10px; }
+  .doc { padding: 18px 16px 16px; }
+  .bar-top h1 small { display: none; }
+}
+</style>
+</head>
+<body>
+<div class="desk" id="desk">
+  <header class="bar-top">
+    <h1 id="hd">Magma Management System <small>Mt Gorrow · stratovolcano · 2,340 m</small></h1>
+    <span class="right"><span class="who" id="whoami"><b>Intern</b> · Mon 2 Mar · 09:00</span><span class="lang" role="group" data-ta="langGroup" aria-label="Language"></span></span>
+  </header>
+
+  <div class="seis">
+    <canvas id="seis" data-ta="seisAria" aria-label="Seismograph trace from station GRW1. It gets busier as pressure builds."></canvas>
+    <span class="tag l">GRW1<span class="meta"> · HHZ · 100 sps</span> · <b id="seis-kind">background noise</b></span>
+    <span class="tag r">RSAM <b id="rsam">0</b></span>
+  </div>
+
+  <div class="main">
+    <section class="col-in">
+      <h2><span id="inbox-title">Inbox</span><span id="inbox-count">0 memos</span></h2>
+      <div class="compose" id="compose" hidden>
+        <p id="compose-text" data-t="composeIdle">Request an eruption for tomorrow.</p>
+        <div class="acts" id="compose-acts">
+          <button class="act" data-vei="1"><kbd>7</kbd>VEI 1 · −3 MPa</button>
+          <button class="act" data-vei="2"><kbd>8</kbd>VEI 2 · −5 MPa</button>
+          <button class="act" data-vei="3"><kbd>9</kbd>VEI 3 · −8 MPa</button>
+        </div>
+      </div>
+      <div class="inbox" id="inbox" aria-live="polite"></div>
+    </section>
+
+    <aside class="side">
+      <div class="box">
+        <h2><span data-t="chamberH">Chamber overpressure</span><span data-t="ruptureAt">rupture at 20 MPa</span></h2>
+        <div class="gauge"><i id="pfill"></i><div class="red"></div><div class="tk" style="left:25%"></div><div class="tk" style="left:50%"></div><div class="tk" style="left:75%"></div></div>
+        <div class="ptext"><span><b id="pval">6.0</b> MPa</span><span id="prate">+1.8 MPa a day</span></div>
+      </div>
+      <div class="box">
+        <h2><span data-t="villagesH">Villages</span><span data-t="goodwillH">goodwill</span></h2>
+        <div class="vills" id="vills"></div>
+      </div>
+      <div class="box">
+        <h2><span data-t="calH">Next five working days</span><span data-t="calSub">ash drifts</span></h2>
+        <div class="cal" id="cal"></div>
+      </div>
+      <div class="map" id="mapbox"><canvas id="map" data-ta="mapAria" aria-label="Survey map: the summit, its contours, three villages and today's wind"></canvas></div>
+      <div class="box logbox">
+        <h2><span data-t="logH">Activity log</span></h2>
+        <ul class="log" id="log"></ul>
+      </div>
+    </aside>
+  </div>
+
+  <div class="kit-overlay" id="title">
+    <article class="doc">
+      <p class="kick" data-t="titleKick">Mt Gorrow Volcano Observatory · Human Resources</p>
+      <h2 data-t="titleH">Internship Agreement</h2>
+      <p class="lede" data-t="titleLede">Between Mount Gorrow, stratovolcano, 2,340 m (“the Volcano”), and the undersigned (“the Intern”). Three weeks, then a performance review.</p>
+      <div class="row"><button class="big" id="go" data-t="goBtn">Sign and report for duty</button><div class="lang" role="group" data-ta="langGroup" aria-label="Language"></div></div>
+      <ol class="clauses">
+        <li><b>1.1</b><span data-tl="clauses.0">The Intern shall receive no remuneration, monetary, geothermal or otherwise.</span></li>
+        <li><b>4.1</b><span data-tl="clauses.1">Hours shall be recorded to the nearest half hour and paid to the nearest £0.00.</span></li>
+        <li><b>7(b)</b><span data-tl="clauses.2">An eruption request not answered by 09:00 on its requested date is deemed approved.</span></li>
+        <li><b>9.1</b><span data-tl="clauses.3">Magma not routed within two working days shall be stored in the chamber.</span></li>
+        <li><b>9.3</b><span data-tl="clauses.4">The Intern is not liable for lahars occurring outside office hours.</span></li>
+        <li><b>11</b><span data-tl="clauses.5">The Intern may take lunch from 12:00 to 12:20, provided nothing is erupting.</span></li>
+        <li class="hl"><b>14.2</b><span data-tl="clauses.6">On the retirement of the Volcano, the Mountain, its pension and any outstanding interns pass to the Intern.</span></li>
+      </ol>
+      <ul class="how">
+        <li data-tl="how.0">Memos arrive in the inbox. Click their buttons, or select with <b>↑ ↓</b> and answer with <b>1 2 3</b>.</li>
+        <li data-tl="how.1">Overpressure rises about 1.8 MPa a working day. Approved eruptions vent it. At 20 MPa the chamber ruptures.</li>
+        <li data-tl="how.2">Ash drifts with the wind onto whichever village is downwind. Villages write in about their events; put those in the calendar.</li>
+        <li data-tl="how.3">A working day lasts eleven seconds. The Volcano does not wait for you to finish reading.</li>
+      </ul>
+      <div class="sig"><span data-t="sig1">the Intern</span><span data-t="sig2">G., for the Volcano (by its Summit Crater)</span></div>
+    </article>
+  </div>
+
+  <div class="kit-overlay" id="retire" hidden>
+    <article class="doc">
+      <p class="kick" data-t="retireKick">Friday, 17:00 · Performance review and a letter</p>
+      <h2 data-th="retireH">Re: my <em>retirement</em></h2>
+      <div class="review" id="retire-review"></div>
+      <p class="lede" data-th="retireLede">Dear Intern. You have been excellent. I am 190,000 years old and I have decided to go dormant. Under Clause 14.2 I leave you the mountain (2,340&nbsp;m, some of it loose), my pension (0.3&nbsp;°C a year, index-linked to the mantle), and the outstanding interns, of whom there is one.</p>
+      <p data-t="retireP">Her name is Pip. She starts on Monday. She is unpaid. You will feel the pressure now, in your own chest. File your eruption requests with her one working day ahead (Clause 7(c): one a day), and teach her what she asks. Be kind. Be dormant when you can. G.</p>
+      <div class="row"><button class="big" id="become" data-t="becomeBtn">Become the volcano</button><span class="small" data-th="becomeSmall">One working week. Pressure +2.6&nbsp;MPa a day.</span><div class="lang" role="group" data-ta="langGroup" aria-label="Language"></div></div>
+    </article>
+  </div>
+
+  <div class="kit-overlay" id="end" hidden>
+    <article class="doc">
+      <p class="kick" id="end-kick"></p>
+      <h2 id="end-title"></h2>
+      <div class="review" id="end-review"></div>
+      <p class="lede" id="end-body"></p>
+      <p id="end-body2"></p>
+      <div class="vei-wrap" id="end-vei"></div>
+      <div class="row"><button class="big" id="again" data-t="againBtn">Sign another agreement and start again</button><span class="small" id="end-best"></span><div class="lang" role="group" data-ta="langGroup" aria-label="Language"></div></div>
+    </article>
+  </div>
+</div>
+
+<script>
+/* kit:js:begin */
+// Arcade kit: the plumbing every game re-wrote by hand. Inlined between kit:js markers by
+// kit/inline.mjs, so a game stays one standalone file. Defines exactly two globals, `Kit` and
+// (once a game calls Kit.expose) `__arcade`; nothing else, because a bare top-level name can
+// collide with a window property (sandwich-diplomacy's `top()` shadowed by window.top).
+const Kit = (() => {
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const themeWatchers = [];
+  const onTheme = () => themeWatchers.forEach(f => f());
+  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', onTheme);
+  new MutationObserver(onTheme).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+
+  // Canvas code cannot read CSS variables, so mirror the named tokens into an object and
+  // re-read it whenever the theme flips: the viewer's toggle sets data-theme, the OS sets the media query.
+  function tokens(names, onChange) {
+    const C = {};
+    const read = () => {
+      const cs = getComputedStyle(document.documentElement);
+      for (const n of names) C[n] = cs.getPropertyValue('--' + n).trim();
+      onChange?.(C);
+    };
+    read();
+    themeWatchers.push(read);
+    return C;
+  }
+
+  // Keeps a canvas sharp at the device pixel ratio (capped at 2) and sized to its CSS box.
+  function canvas(el, onResize) {
+    const view = { el, cx: el.getContext('2d'), W: 0, H: 0 };
+    const fit = () => {
+      const r = el.getBoundingClientRect(), d = Math.min(2, devicePixelRatio || 1);
+      view.W = r.width; view.H = r.height;
+      el.width = Math.round(r.width * d); el.height = Math.round(r.height * d);
+      view.cx.setTransform(d, 0, 0, d, 0, 0);
+      onResize?.(view);
+    };
+    new ResizeObserver(fit).observe(el);
+    fit();
+    return view;
+  }
+
+  // step(dt) gets seconds, capped at 50 ms so a background tab or a stalled frame cannot
+  // teleport the game; the loop stops while the tab is hidden and resumes without a jump.
+  function loop(step) {
+    let last = 0, raf = 0, on = false;
+    const frame = t => {
+      const dt = last ? Math.min(0.05, (t - last) / 1000) : 0;
+      last = t;
+      step(dt);
+      if (on) raf = requestAnimationFrame(frame);
+    };
+    const ctl = {
+      start() { if (on) return; on = true; last = 0; raf = requestAnimationFrame(frame); },
+      stop() { on = false; cancelAnimationFrame(raf); },
+      get running() { return on; },
+    };
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden && on) { ctl.stop(); ctl.paused = true; }
+      else if (!document.hidden && ctl.paused) { ctl.paused = false; ctl.start(); }
+    });
+    return ctl;
+  }
+
+  // Held keys by KeyboardEvent.key, lower-cased (' ' for Space). Touch pads feed the same set:
+  // any element with data-key="<key>" inside a .kit-pad holds that key while pressed.
+  const held = new Set();
+  const pressFns = [];
+  const norm = k => (k.length === 1 ? k.toLowerCase() : k);
+  const press = (k, down) => {
+    k = norm(k);
+    if (down === held.has(k)) return;
+    down ? held.add(k) : held.delete(k);
+    pressFns.forEach(f => f(k, down));
+  };
+  const GAME_KEYS = new Set([' ', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight']);
+  addEventListener('keydown', e => {
+    if (e.target.closest?.('input, textarea, select, [contenteditable]')) return;
+    if (GAME_KEYS.has(e.key) && !e.target.closest?.('button')) e.preventDefault();
+    if (!e.repeat) press(e.key, true);
+  });
+  addEventListener('keyup', e => press(e.key, false));
+  addEventListener('blur', () => [...held].forEach(k => press(k, false)));
+  document.addEventListener('pointerdown', e => {
+    const b = e.target.closest?.('.kit-pad [data-key]');
+    if (!b) return;
+    e.preventDefault();
+    b.setPointerCapture?.(e.pointerId);
+    press(b.dataset.key, true);
+    const up = () => { press(b.dataset.key, false); b.removeEventListener('pointerup', up); b.removeEventListener('pointercancel', up); };
+    b.addEventListener('pointerup', up);
+    b.addEventListener('pointercancel', up);
+  });
+  const keys = {
+    down: k => held.has(norm(k)),
+    any: (...ks) => ks.some(k => held.has(norm(k))),
+    onPress(fn) { pressFns.push(fn); },
+  };
+
+  // The claude.ai viewer's hot-update hook: keeps `snapshot()` across a republish. Absent when
+  // self-hosted, so start() then receives {}.
+  function boot(start, snapshot) {
+    if (snapshot) window.claude?.hot?.snapshot?.(snapshot);
+    window.claude?.hot?.ready ? window.claude.hot.ready(start) : start(window.claude?.hot?.data ?? {});
+  }
+
+  // The test hook smoke.mjs drives. endings: { name: { jump(), reached(), seconds? } } where
+  // jump() may shortcut the set-up but must leave the ending's final stretch to real game
+  // logic, and reached() is true only once that ending's screen is actually showing.
+  function expose({ state, endings }) {
+    window.__arcade = {
+      get state() { return state(); },
+      endings: Object.fromEntries(Object.entries(endings).map(([k, v]) => [k, { seconds: v.seconds ?? 8 }])),
+      jump: name => endings[name].jump(),
+      reached: name => !!endings[name].reached(),
+    };
+  }
+
+  // Show one overlay and hide the others; focus its first button so Enter/Space continue.
+  function show(el) {
+    document.querySelectorAll('.kit-overlay').forEach(o => { o.hidden = o !== el; });
+    el?.querySelector('button')?.focus({ preventScroll: true });
+  }
+
+  const rnd = (a, b) => a + Math.random() * (b - a);
+  const pick = a => a[Math.floor(Math.random() * a.length)];
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+
+  return { reduce, tokens, canvas, loop, keys, boot, expose, show, rnd, pick, clamp };
+})();
+/* kit:js:end */
+const $ = s => document.querySelector(s);
+const DAY = 11;                 // seconds per working day
+const P1_DAYS = 15, P2_DAYS = 5, RUPTURE = 20;
+const RATE1 = 1.8, RATE2 = 2.6;  // MPa per working day
+const TWIST_AT = 65;            // review rating needed for the Volcano to retire on you
+
+// Numbers only; every word for a VEI lives in I18N (veiWord, veiStyle, …) under the same index.
+const VEI = [
+  { vent: 1.5, ash: 0, mm: 0, km: .1 },
+  { vent: 3, ash: 6, mm: .5, km: .8 },
+  { vent: 5, ash: 12, mm: 4, km: 3.2 },
+  { vent: 8, ash: 18, mm: 20, km: 9 },
+];
+const VILL = { tuff: { dir: 'W' }, lap: { dir: 'E' }, sco: { dir: 'S' } };
+const DIR_VILL = { W: 'tuff', E: 'lap', S: 'sco', N: null };
+const ARROW = { N: '↑', E: '→', S: '↓', W: '←' };
+const DEPTS = [
+  { vei: () => Kit.pick([1, 2, 2, 3]) },
+  { vei: () => Kit.pick([1, 1, 2, 2]) },
+  { vei: () => 0 },
+  { vei: () => Kit.pick([1, 2, 3]) },
+];
+
+// ---------- language ----------
+// Game logic holds ids and indexes only; every player-visible word comes through t(), so a
+// switch mid-game re-renders memos, calendar, gauges and overlays without touching a score.
+// Pools (hr, gmemo, complaints, …) must be the same length in both languages.
+const I18N = {
+  en: {
+    docTitle: 'Unpaid Intern at the Volcano',
+    langGroup: 'Language',
+    hdTitle: 'Magma Management System',
+    hdSub1: 'Mt Gorrow · stratovolcano · 2,340 m',
+    hdSub2: 'Mt Gorrow · under new management: you',
+    roleIntern: 'Intern', roleVolcano: 'Volcano',
+    seisAria: 'Seismograph trace from station GRW1. It gets busier as pressure builds.',
+    seisKind: { erupt: 'eruption signal', strong: 'harmonic tremor, strong', tremor: 'harmonic tremor', swarm: 'volcano-tectonic swarm', bg: 'background noise' },
+    inbox: 'Inbox', inboxPip: 'Inbox: from Pip',
+    memoCount: n => `${n} memo${n === 1 ? '' : 's'}`,
+    composeIdle: 'Request an eruption for tomorrow.',
+    composeReading: 'Pip is reading your request. She is moving her lips.',
+    composeFiled: 'Filed for today. Clause 7(c): one eruption request per working day.',
+    composeAsk: f => `Request an eruption for ${f}.`,
+    chamberH: 'Chamber overpressure', ruptureAt: 'rupture at 20 MPa',
+    rate: r => `+${r} MPa a working day`,
+    villagesH: 'Villages', goodwillH: 'goodwill',
+    calH: 'Next five working days', calSub: 'ash drifts',
+    mapAria: "Survey map: the summit, its contours, three villages and today's wind",
+    logH: 'Activity log',
+    titleKick: 'Mt Gorrow Volcano Observatory · Human Resources',
+    titleH: 'Internship Agreement',
+    titleLede: 'Between Mount Gorrow, stratovolcano, 2,340 m (“the Volcano”), and the undersigned (“the Intern”). Three weeks, then a performance review.',
+    goBtn: 'Sign and report for duty',
+    clauses: [
+      'The Intern shall receive no remuneration, monetary, geothermal or otherwise.',
+      'Hours shall be recorded to the nearest half hour and paid to the nearest £0.00.',
+      'An eruption request not answered by 09:00 on its requested date is deemed approved.',
+      'Magma not routed within two working days shall be stored in the chamber.',
+      'The Intern is not liable for lahars occurring outside office hours.',
+      'The Intern may take lunch from 12:00 to 12:20, provided nothing is erupting.',
+      'On the retirement of the Volcano, the Mountain, its pension and any outstanding interns pass to the Intern.',
+    ],
+    how: [
+      'Memos arrive in the inbox. Click their buttons, or select with <b>↑ ↓</b> and answer with <b>1 2 3</b>.',
+      'Overpressure rises about 1.8 MPa a working day. Approved eruptions vent it. At 20 MPa the chamber ruptures.',
+      'Ash drifts with the wind onto whichever village is downwind. Villages write in about their events; put those in the calendar.',
+      'A working day lasts eleven seconds. The Volcano does not wait for you to finish reading.',
+    ],
+    sig1: 'the Intern', sig2: 'G., for the Volcano (by its Summit Crater)',
+    retireKick: 'Friday, 17:00 · Performance review and a letter',
+    retireH: 'Re: my <em>retirement</em>',
+    retireLede: 'Dear Intern. You have been excellent. I am 190,000 years old and I have decided to go dormant. Under Clause 14.2 I leave you the mountain (2,340&nbsp;m, some of it loose), my pension (0.3&nbsp;°C a year, index-linked to the mantle), and the outstanding interns, of whom there is one.',
+    retireP: 'Her name is Pip. She starts on Monday. She is unpaid. You will feel the pressure now, in your own chest. File your eruption requests with her one working day ahead (Clause 7(c): one a day), and teach her what she asks. Be kind. Be dormant when you can. G.',
+    becomeBtn: 'Become the volcano',
+    becomeSmall: 'One working week. Pressure +2.6&nbsp;MPa a day.',
+    againBtn: 'Sign another agreement and start again',
+    dow: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
+    dowLong: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
+    mon: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+    dayLabel: (dow, d, mon) => `${dow} ${d} ${mon}`,
+    dir: { N: 'N', E: 'E', S: 'S', W: 'W' },
+    veiWord: ['non-explosive', 'gentle', 'explosive', 'severe', 'cataclysmic', 'paroxysmal', 'colossal'],
+    veiStyle: ['Hawaiian', 'Hawaiian–Strombolian', 'Strombolian–Vulcanian', 'Vulcanian–Peléan'],
+    veiVol: ['under 10⁴ m³', '10⁴–10⁶ m³', '10⁶–10⁷ m³', '10⁷–10⁸ m³'],
+    veiPlume: ['under 100 m', '0.1–1 km', '1–5 km', '3–15 km'],
+    veiTable: [
+      ['under 10⁴ m³', 'under 100 m', 'Kīlauea, most days'],
+      ['10⁴ m³', '0.1–1 km', 'Stromboli, hourly'],
+      ['10⁶ m³', '1–5 km', 'Etna, often'],
+      ['10⁷ m³', '3–15 km', 'Nevado del Ruiz, 1985'],
+      ['0.1 km³', '10–25 km', 'Eyjafjallajökull, 2010'],
+      ['1 km³', 'over 25 km', 'Mount St Helens, 1980'],
+      ['10 km³', 'over 25 km', 'Pinatubo, 1991 · and you'],
+    ],
+    veiHead: ['VEI', 'Word', 'Ejecta', 'Plume', 'For example'],
+    vill: {
+      tuff: { name: 'Tuffington', short: 'Tuff.', events: ['Cheese Rolling', 'the Tuff Fair', 'Brass Band Contest', 'a wedding (Sharon and Dev)', 'Under-11s Cup Final'], clerk: ['M. Pellow, Parish Clerk', 'Mrs K. Vane, Brass Band'] },
+      lap: { name: 'Lapilli Parva', short: 'Lapilli', events: ['the Pumice Festival', 'the Flower Show', 'Open Gardens Day', 'Laundry Day (the big one)', 'the Parish AGM'], clerk: ['B. Strand, Flower Show Committee', 'Rev. A. Quill'] },
+      sco: { name: 'Scoria Bay', short: 'Scoria', events: ['the Regatta', 'the Fish Market', 'the Sandcastle Contest', 'Lifeboat Day', 'the Seafront Cream Tea'], clerk: ['D. Okafor, Regatta Secretary', 'J. Penhale, Harbourmaster'] },
+    },
+    evShort: s => s.replace(/^the /, ''),
+    evCap: s => s.replace(/^the /, 'The '),
+    sheep: 'sheep', fell: 'Upper Fell (sheep)',
+    depts: ['Summit Crater', 'North Flank Vent', 'Fumarole Relations', 'Parasitic Cone (Unit 4)'],
+    fromDelivery: 'Summit Crater (delivery)', fromPip: 'you, via Pip',
+    reasons: [
+      'routine degassing', 'it is the anniversary of the 1783 eruption and I would like to mark it',
+      'a university field trip is visiting and I would like to give them something to write down',
+      'I have had a lot of magma this week', 'the sunset needs aerosols', 'a postcard photographer is in the area',
+      'to remove a duck from the crater lake. The duck will not leave', 'team-building',
+      'I sneezed on Tuesday and would like it recorded as planned', 'the Summit Crater says its Strombolian is rusty',
+      'the new seismometer needs calibrating against something real', 'to show Etna', 'it has been a difficult week',
+    ],
+    hr: [
+      { from: 'Human Resources', re: 'Mandatory e-learning', body: '“Lahars and You” (40 minutes). A lahar is a volcanic mudflow. That was the course.', opts: ['Mark complete', 'Request the long version'] },
+      { from: 'Human Resources', re: 'ID badge', body: 'Your badge photo shows you squinting into an ash cloud. Would you like a retake?', opts: ['Retake', 'It is a good likeness'] },
+      { from: 'Facilities', re: 'Fire drill, 14:00', body: 'Please note that in this building, the fire is the Volcano. Assemble on the car park, which is basalt.', opts: ['Acknowledge'] },
+      { from: 'Social Committee', re: 'Free pizza, 13:00', body: 'Free pizza in the magma chamber. Please bring your own heat-resistant plate. There will be no plates.', opts: ['Attend', 'Decline: it is 1,150 °C'] },
+      { from: 'Facilities', re: 'Stationery cupboard', body: 'Reminder: the stationery cupboard is not a vent. Whoever has been venting in the stationery cupboard, please stop.', opts: ['Acknowledge', 'It was the Fumarole'] },
+      { from: 'Social Committee', re: 'Birthday card', body: 'Please sign the Volcano’s card. It is 190,000. We have bought one candle and it is not needed.', opts: ['Sign: “Many happy eruptions”'] },
+      { from: 'Facilities', re: 'Your bicycle', body: 'Your bicycle is parked in the lava channel. It has been there since Tuesday. It is fine, for now.', opts: ['Move it', 'Leave it'] },
+      { from: 'Facilities', re: 'Coffee machine', body: 'The coffee machine has been replaced by a fumarole. Please do not put cups on the fumarole. It is not the same.', opts: ['Noted'] },
+      { from: 'Human Resources', re: 'Annual leave', body: 'Our records show 0 days of leave remaining. Would you like to request 0 days?', opts: ['Request 0 days', 'Decline'] },
+    ],
+    gmemo: [
+      { re: 'My 3 o’clock', body: 'Could you move my 3 o’clock tremor to 4? I have a call with the mantle.', opts: ['Moved it'] },
+      { re: 'Feelings', body: 'I have been feeling a pressure lately. Not the magma. Well. Also the magma.', opts: ['There, there', 'Have you tried venting'] },
+      { re: 'The villages', body: 'Did the villages say anything about me? You can tell me.', opts: ['Only nice things', 'They sent a leaflet'] },
+      { re: 'Be honest', body: 'Do you think I am dormant? Be honest. Lapilli Parva called me “resting”.', opts: ['You are very active', 'Define dormant'] },
+    ],
+    gWelcome: { re: 'Welcome', body: 'Welcome to the team. Your desk is the flat rock by the fumarole. Your first request will be along shortly. Please read Clause 7(b) twice.', opts: ['Read it twice'] },
+    gChat: { re: 'A chat', body: 'Could we have a chat on Friday at 17:00? Nothing bad. It is about the future. Bring the agreement.', opts: ['Of course'] },
+    complaints: [
+      'Ash in the laundry again. I have hung out the same sheet four times. It was white. It was a wedding sheet.',
+      'Our cat came in with a pumice. We would like to know whose pumice it is.',
+      'There were {mm} mm of tephra on the bowling green. Play was suspended. The bowls were not.',
+      'The church roof is now, in the vicar’s word, “sedimentary”. The vicar would like a word.',
+      'The scones at the café were found to contain lapilli. The café would like to state that the lapilli were not on the menu.',
+      'Visibility on the high street fell to 40 metres. Two people bought the wrong newspaper.',
+    ],
+    pipQ: [
+      { q: 'Is tephra a kind of fish?', a: ['No. It is everything a volcano throws into the air, from ash to blocks.', 'Yes, a deep-sea one.'] },
+      { q: 'If the VEI goes up by one, is that one more eruption?', a: ['It is about ten times the ejecta.', 'Yes, one more.'] },
+      { q: 'What is a lahar? Asking for the e-learning.', a: ['A Scandinavian dessert.', 'A volcanic mudflow.'] },
+      { q: 'The seismograph is doing a long smooth wobble. Is that the printer?', a: ['Harmonic tremor: magma moving. Tell me straight away.', 'Yes, the printer.'] },
+      { q: 'Should I approve ash on a day the wind blows toward the Regatta?', a: ['Yes. Boats float.', 'No. Check the wind against the calendar.'] },
+      { q: 'Is a pyroclastic flow faster than a bicycle?', a: ['Much faster: well over 100 km/h.', 'Depends on the bicycle.'] },
+      { q: 'What does Clause 7(b) mean?', a: ['Nothing. It is decorative.', 'An unanswered request is approved.'] },
+      { q: 'Can a volcano retire?', a: ['Yes. It is called going dormant.', 'No, they are salaried.'] },
+      { q: 'Do I get paid?', a: ['See Clause 1.1.', 'Yes.'] },
+    ],
+    pipNo: [
+      'Rejected: it is my lunch (Clause 11).', 'Rejected: the form was in the wrong font.',
+      'Rejected: I did not understand the form, so I said no to be safe.', 'Rejected: I thought VEI was a cheese.',
+      'Rejected: my mum says no eruptions on a school night.', 'Rejected: I have put it in a folder called Later.',
+    ],
+    pipYes: ['Approved! I checked the wind. I think.', 'Approved. I have drawn a little volcano next to it.', 'Approved, and filed under V.', 'Approved. Please erupt responsibly.'],
+    pipWind: (vill, day, ev) => `Rejected: the wind goes toward ${vill} on ${day} and it is ${ev}. Sorry, Volcano. (I checked!)`,
+    postcards: [
+      'Greetings from the Azores. I am a seamount now. The water is lovely and nobody asks me for anything. G.',
+      'The pension arrived: 0.3 °C, as promised. I have spent it on a hydrothermal vent. Do not let Pip near the stationery cupboard. G.',
+    ],
+    stampRequest: 'Request', stampDelivery: 'Delivery', hdrFrom: 'FROM', hdrRe: 'RE',
+    emptyPip: 'Nothing from Pip. You rumble quietly to yourself.',
+    emptyInbox: 'Inbox zero. The Volcano notices, and sends something.',
+    left: (due, x) => `${due} · ${x} left`, leftDays: d => `${d} days`, leftHours: h => `${h} h`,
+    calReview: 'review', calRetired: 'retired', calToday: 'today',
+    chip: (v, e) => `${v}: ${e}`,
+    moods: ['baking for you', 'content', 'grumbling', 'drafting a petition', 'buying gas masks'],
+    // memos
+    eruptRe: v => `Eruption request, VEI ${v}`,
+    eruptBody: (v, word, style, day, vol, plume, why) => `Requesting permission to erupt at VEI ${v} (${word}, ${style}) on ${day} at about 11:00. Ejecta ${vol}, plume ${plume}. Reason: ${why}.`,
+    approve: 'Approve', reject: 'Reject',
+    eruptDue: d => `Deemed approved ${d} 09:00 (Clause 7(b))`,
+    logApproved: (c, v, from, d) => `${c} Approved VEI ${v} from ${from} for ${d}.`,
+    logRejected: (c, v, from) => `${c} Rejected VEI ${v} from ${from}. It sulks audibly.`,
+    logDeemed: (v, from) => `09:00 VEI ${v} from ${from} deemed approved under Clause 7(b).`,
+    fcSheep: (d, a) => `${d}: ash drifts ${a} N, onto Upper Fell (sheep)`,
+    fcVill: (d, a, w, vill, ev) => `${d}: ash drifts ${a} ${w}, onto ${vill}` + (ev ? `: ${ev}` : ''),
+    fcToday: (a, w, vill) => `Today: ash drifts ${a} ${w}` + (vill ? `, onto ${vill}` : ', onto the sheep'),
+    mantle: 'The Mantle, Dept. of Upwelling', reP: 'RE: ', deliveryNote: 'Delivery note',
+    magmaBody: (vol, re) => `Contents: ${vol} km³ basaltic andesite, 1,150 °C, slightly fizzy. Please route.` + (re ? ' This is a redelivery. We did try.' : ''),
+    magmaStore: 'Store in chamber (+2 MPa)', magmaOut: 'Out of the summit now (VEI 1)', magmaReturn: 'Return to sender',
+    magmaDue: 'Stored automatically in two working days (Clause 9.1)',
+    logStored: c => `${c} Magma stored. Chamber +2.0 MPa.`,
+    logReturned: c => `${c} Delivery returned to the Mantle.`,
+    logAutoStored: 'Unrouted magma stored under Clause 9.1. +2.0 MPa.',
+    letterRe: (ev, day) => `${ev}, ${day}`,
+    letterBody: (ev, day) => `Dear Volcano, ${ev} is on ${day}. Last time, we found ash in the scones. Please erupt elsewhere, or later, or not at all. Yours faithfully.`,
+    addCal: 'Add to calendar', fileGeo: 'File under “Geology”',
+    letterDue: 'They will assume you did not read it in two days',
+    logUnheard: v => `${v} feels unheard. −4 goodwill.`,
+    complaintRe: ev => ev ? `Ash on ${ev}` : 'Ash',
+    apology: 'Send an apology (+8)', leaflet: 'Send the soil-fertility leaflet (+3)',
+    logLeaflet: v => `Leaflet sent to ${v}: “Volcanic soils are among the most fertile on Earth.”`,
+    complaintDue: 'Unanswered complaints curdle in two days',
+    logUnanswered: v => `${v}’s complaint went unanswered. −4 goodwill.`,
+    hrDue: 'Filed for you in a while',
+    theVolcano: 'The Volcano (G.)', gDue: 'G. will take silence personally',
+    payroll: 'Payroll', tsRe: n => `Timesheet, week ${n}`,
+    tsBody: 'Hours worked: 41.5. Rate: £0.00 an hour. Total: £0.00. Please sign.',
+    sign: 'Sign', queryRate: 'Query the rate', queryRe: 'RE: Your query',
+    queryBody: 'The rate is set out in Clause 1.1. The rate is zero. It has always been zero. Please sign.',
+    queryDue: 'Payroll will sign it for you', tsDue: 'Signed on your behalf in two days',
+    pipFrom: 'Pip (Intern, unpaid)', pipQRe: 'Quick question', pipQDue: 'Pip will guess in two days',
+    logPipRight: c => `Pip writes that down. Competence ${c}%.`,
+    logPipWrong: c => `Pip writes that down, carefully. Competence ${c}%.`,
+    logPipGuess: 'Pip guessed. Competence −3%.',
+    pipOk: 'Your request: approved', pipBad: 'Your request: rejected',
+    thankPip: 'Thank Pip', file: 'File', selfFiling: 'Self-filing',
+    pcFrom: 'G., a seamount off the Azores', pcRe: 'Postcard', pcPin: 'Pin it to the fridge', pcDue: 'Will fall behind the fridge',
+    pipHelloRe: 'Hello!', pipHelloBody: 'Hi! I am Pip, your new intern. I have read the agreement. I have questions about Clause 1.1. I am ready to approve things. Or not approve them. Whichever is right.', pipWelcome: 'Welcome, Pip',
+    logSignIn: '09:00 You sign in. The Volcano is at 6.0 MPa and in a reasonable mood.',
+    logErupt: (c, v, from, km, a, w) => `${c} VEI ${v} from ${from}. Plume ${km} km, ash ${a} ${w}.`,
+    logVent: v => ` −${v} MPa.`,
+    logTephra: (mm, vill, ev) => ` ${mm} mm of tephra on ${vill}${ev ? ', during ' + ev : ''}.`,
+    logFell: ' Tephra on Upper Fell. The sheep have been informed.',
+    logBecome: 'Monday, 09:00. You are the Volcano. Pip has added the villages’ events to the calendar.',
+    logFiled: (c, v, d) => `${c} You file a request with Pip: VEI ${v} for ${d}.`,
+    logPipDecided: (c, ok, v) => `${c} Pip ${ok ? 'approved' : 'rejected'} your VEI ${v}.`,
+    reviewRows: ['Villages’ goodwill, average', 'Peak overpressure', 'Memos answered before Clause 7(b) or 9.1 got them', 'Rating (half goodwill, a quarter each for pressure and inbox)'],
+    endErupt: {
+      kick: (d, c) => `${d}, ${c} · Incident report`, title: 'VEI 6: <em>colossal</em>',
+      body: `The chamber ruptures at ${RUPTURE} MPa. Ejecta 11 km³, plume 31 km, which puts it in the same row of the table as Pinatubo. Every village receives tephra, evenly, which Lapilli Parva notes is the first time anything round here has been fair.`,
+      body2: c => 'The internship agreement is found two valleys away, intact, with Clause 9.3 underlined: the Intern is not liable for lahars outside office hours. It is ' + c + '. You are liable.',
+      rows: ['Phase', 'Day', 'Eruptions this run', 'Overpressure'],
+    },
+    endPerm: {
+      kick: 'Friday, 17:00 · Performance review', title: 'Permanent position offered <em>(still unpaid)</em>',
+      body: r => `Your rating was ${r}. Adequate. The Volcano would like to keep you. “Forever, if possible,” it says, “and geologically speaking, that is a while.”`,
+      body2: 'Clause 1.1 (remuneration: none) is now permanent. Clause 14.2 has been crossed out in biro and initialled “G.” Your new title is Intern (Permanent). There is a cake. It is basalt.',
+    },
+    endHand: {
+      kick: 'Friday, 17:00 · Handover', title: 'The retirement <em>handover</em>',
+      body: (a, r, c) => `You have been a volcano for a week. Pip approved ${a} of your requests and rejected ${r}; her competence is ${c}%. She files the week’s timesheet: 41.5 hours at £0.00. You sign it. It is the first thing you have ever signed as a mountain.`,
+      body2: 'Pip asks whether, when you retire, she gets the mountain. You consult the agreement. It is very specific. Somewhere off the Azores, a seamount is not answering its emails.',
+      rows: ['Pip’s competence', 'Questions answered right', 'Villages’ goodwill, average', 'Peak overpressure as the Volcano'],
+    },
+    endBest: b => `Best review this session: ${b}`,
+    mapPeak: 'Mt Gorrow 2,340', map1000: '1,000 m', mapContours: 'contours 200 m',
+    mapWind: (a, w) => `ash today ${a} ${w}`,
+  },
+  fr: {
+    docTitle: 'Stage non rémunéré au volcan',
+    langGroup: 'Langue',
+    hdTitle: 'Système de gestion du magma',
+    hdSub1: 'mont Gorrow · stratovolcan · 2 340 m',
+    hdSub2: 'mont Gorrow · sous nouvelle direction : vous',
+    roleIntern: 'Stagiaire', roleVolcano: 'Volcan',
+    seisAria: 'Tracé sismographique de la station GRW1. Il s’agite à mesure que la pression monte.',
+    seisKind: { erupt: 'signal éruptif', strong: 'trémor harmonique, fort', tremor: 'trémor harmonique', swarm: 'essaim volcano-tectonique', bg: 'bruit de fond' },
+    inbox: 'Boîte de réception', inboxPip: 'Boîte de réception : de Pip',
+    memoCount: n => `${n} mémo${n > 1 ? 's' : ''}`,
+    composeIdle: 'Demander une éruption pour demain.',
+    composeReading: 'Pip lit votre demande. Elle remue les lèvres.',
+    composeFiled: 'Déposée pour aujourd’hui. Article 7(c) : une demande d’éruption par jour ouvré.',
+    composeAsk: f => `Demander une éruption — ${f}.`,
+    chamberH: 'Surpression de la chambre', ruptureAt: 'rupture à 20 MPa',
+    rate: r => `+${r} MPa par jour ouvré`,
+    villagesH: 'Villages', goodwillH: 'capital sympathie',
+    calH: 'Cinq prochains jours ouvrés', calSub: 'vers où vont les cendres',
+    mapAria: 'Carte d’état-major : le sommet, ses courbes de niveau, trois villages et le vent du jour',
+    logH: 'Journal d’activité',
+    titleKick: 'Observatoire volcanologique du mont Gorrow · Ressources humaines',
+    titleH: 'Convention de stage',
+    titleLede: 'Entre le mont Gorrow, stratovolcan, 2 340 m (« le Volcan »), et la personne soussignée (« la Personne stagiaire »). Trois semaines, puis un entretien d’évaluation.',
+    goBtn: 'Signer et prendre son poste',
+    clauses: [
+      'La Personne stagiaire ne perçoit aucune rémunération, monétaire, géothermique ou autre.',
+      'Les heures sont décomptées à la demi-heure près et payées à 0,00 € près.',
+      'Toute demande d’éruption restée sans réponse à 09:00 le jour demandé est réputée approuvée.',
+      'Le magma non acheminé sous deux jours ouvrés est stocké dans la chambre.',
+      'La Personne stagiaire n’est pas responsable des lahars survenant hors des heures de bureau.',
+      'La Personne stagiaire peut déjeuner de 12:00 à 12:20, sous réserve que rien ne soit en éruption.',
+      'Au départ à la retraite du Volcan, la Montagne, sa pension et toute personne stagiaire encore en poste reviennent à la Personne stagiaire.',
+    ],
+    how: [
+      'Les mémos arrivent dans la boîte de réception. Cliquez sur leurs boutons, ou sélectionnez avec <b>↑ ↓</b> et répondez avec <b>1 2 3</b>.',
+      'La surpression monte d’environ 1,8 MPa par jour ouvré. Les éruptions approuvées la font retomber. À 20 MPa, la chambre se rompt.',
+      'Les cendres suivent le vent jusqu’au village qui se trouve dessous. Les villages écrivent pour annoncer leurs fêtes ; inscrivez-les au calendrier.',
+      'Un jour ouvré dure onze secondes. Le Volcan n’attend pas que vous ayez fini de lire.',
+    ],
+    sig1: 'la Personne stagiaire', sig2: 'G., pour le Volcan (par son Cratère sommital)',
+    retireKick: 'Vendredi, 17:00 · Entretien d’évaluation et une lettre',
+    retireH: 'Objet : mon <em>départ à la retraite</em>',
+    retireLede: 'Chère personne stagiaire, votre travail a été excellent. J’ai 190 000 ans et j’ai décidé de m’endormir. En vertu de l’article 14.2, je vous lègue la montagne (2 340&nbsp;m, dont une partie instable), ma pension (0,3&nbsp;°C par an, indexée sur le manteau) et les stagiaires encore en poste. Il y en a une.',
+    retireP: 'Elle s’appelle Pip. Elle commence lundi. Elle n’est pas payée. C’est vous qui allez sentir la pression, désormais, dans votre propre poitrine. Déposez vos demandes d’éruption auprès d’elle un jour ouvré à l’avance (article 7(c) : une par jour), et apprenez-lui ce qu’elle demande. Faites preuve de gentillesse. Dormez quand vous pouvez. G.',
+    becomeBtn: 'Devenir le volcan',
+    becomeSmall: 'Une semaine ouvrée. Pression +2,6&nbsp;MPa par jour.',
+    againBtn: 'Signer une autre convention et recommencer',
+    dow: ['dim', 'lun', 'mar', 'mer', 'jeu', 'ven', 'sam'],
+    dowLong: ['dimanche', 'lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi'],
+    mon: ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'],
+    dayLabel: (dow, d, mon) => `${dow} ${d} ${mon}`,
+    dir: { N: 'N', E: 'E', S: 'S', W: 'O' },
+    veiWord: ['non explosive', 'modérée', 'explosive', 'violente', 'cataclysmique', 'paroxysmale', 'colossale'],
+    veiStyle: ['hawaïenne', 'hawaïenne–strombolienne', 'strombolienne–vulcanienne', 'vulcanienne–péléenne'],
+    veiVol: ['moins de 10⁴ m³', '10⁴–10⁶ m³', '10⁶–10⁷ m³', '10⁷–10⁸ m³'],
+    veiPlume: ['moins de 100 m', '0,1–1 km', '1–5 km', '3–15 km'],
+    veiTable: [
+      ['moins de 10⁴ m³', 'moins de 100 m', 'Kīlauea, presque tous les jours'],
+      ['10⁴ m³', '0,1–1 km', 'Stromboli, toutes les heures'],
+      ['10⁶ m³', '1–5 km', 'Etna, souvent'],
+      ['10⁷ m³', '3–15 km', 'Nevado del Ruiz, 1985'],
+      ['0,1 km³', '10–25 km', 'Eyjafjallajökull, 2010'],
+      ['1 km³', 'plus de 25 km', 'mont Saint Helens, 1980'],
+      ['10 km³', 'plus de 25 km', 'Pinatubo, 1991 · et vous'],
+    ],
+    veiHead: ['VEI', 'Qualificatif', 'Éjectas', 'Panache', 'Par exemple'],
+    vill: {
+      tuff: { name: 'Saint-Tuf', short: 'St-Tuf', events: ['la Course au fromage', 'la Foire au tuf', 'le Concours de fanfares', 'un mariage (Sandrine et Dev)', 'la Finale des moins de 11 ans'], clerk: ['M. Pellow, secrétaire de mairie', 'Mme K. Vane, fanfare municipale'] },
+      lap: { name: 'Lapilli-la-Petite', short: 'Lapilli', events: ['la Fête de la ponce', 'le Concours floral', 'la Journée jardins ouverts', 'la Grande Lessive (la vraie)', 'l’AG de la paroisse'], clerk: ['B. Strand, comité du concours floral', 'le père A. Quill'] },
+      sco: { name: 'Scories-sur-Mer', short: 'Scories', events: ['la Régate', 'le Marché aux poissons', 'le Concours de châteaux de sable', 'la Journée du canot de sauvetage', 'le Goûter du front de mer'], clerk: ['D. Okafor, secrétaire de la régate', 'J. Penhale, capitaine du port'] },
+    },
+    evShort: s => s.replace(/^(la |le |les |l’)/, ''),
+    evCap: s => s,   // mid-sentence after « Cher Volcan, »: the article stays lower-case
+    sheep: 'moutons', fell: 'Hauts-Pâturages (moutons)',
+    depts: ['Cratère sommital', 'Évent du flanc nord', 'Relations fumerolliennes', 'Cône parasite (unité 4)'],
+    fromDelivery: 'Cratère sommital, livraison', fromPip: 'vous, via Pip',
+    reasons: [
+      'dégazage de routine', 'c’est l’anniversaire de l’éruption de 1783 et je voudrais marquer le coup',
+      'une sortie universitaire passe par ici et je voudrais leur donner de quoi prendre des notes',
+      'j’ai reçu beaucoup de magma cette semaine', 'le coucher de soleil a besoin d’aérosols', 'un photographe de cartes postales est dans le coin',
+      'déloger un canard du lac de cratère. Le canard ne veut pas partir', 'séminaire de cohésion d’équipe',
+      'j’ai éternué mardi et je voudrais que ce soit enregistré comme prévu', 'le Cratère sommital dit que son strombolien est rouillé',
+      'le nouveau sismomètre doit être étalonné sur quelque chose de réel', 'pour montrer à l’Etna', 'la semaine a été difficile',
+    ],
+    hr: [
+      { from: 'Ressources humaines', re: 'E-formation obligatoire', body: '« Les lahars et vous » (40 minutes). Un lahar est une coulée de boue volcanique. C’était la formation.', opts: ['Marquer comme suivie', 'Demander la version longue'] },
+      { from: 'Ressources humaines', re: 'Badge', body: 'Sur la photo de votre badge, vous plissez les yeux face à un nuage de cendres. Voulez-vous la refaire ?', opts: ['La refaire', 'C’est ressemblant'] },
+      { from: 'Services généraux', re: 'Exercice incendie, 14:00', body: 'Rappel : dans ce bâtiment, l’incendie, c’est le Volcan. Rassemblement sur le parking, qui est en basalte.', opts: ['Pris connaissance'] },
+      { from: 'Le CSE', re: 'Pizza offerte, 13:00', body: 'Pizza offerte dans la chambre magmatique. Merci d’apporter votre propre assiette résistante à la chaleur. Il n’y aura pas d’assiettes.', opts: ['J’y serai', 'Décliner : il fait 1 150 °C'] },
+      { from: 'Services généraux', re: 'Placard à fournitures', body: 'Rappel : le placard à fournitures n’est pas une cheminée volcanique. La personne qui vient s’y épancher est priée d’arrêter.', opts: ['Pris connaissance', 'C’était la Fumerolle'] },
+      { from: 'Le CSE', re: 'Carte d’anniversaire', body: 'Merci de signer la carte du Volcan. Il a 190 000 ans. Nous avons acheté une bougie et elle ne sert à rien.', opts: ['Signer : « Joyeuses éruptions »'] },
+      { from: 'Services généraux', re: 'Votre vélo', body: 'Votre vélo est garé dans le chenal de lave. Il y est depuis mardi. Tout va bien, pour l’instant.', opts: ['Le déplacer', 'Le laisser'] },
+      { from: 'Services généraux', re: 'Machine à café', body: 'La machine à café a été remplacée par une fumerolle. Merci de ne pas poser de tasses sur la fumerolle. Ce n’est pas pareil.', opts: ['Noté'] },
+      { from: 'Ressources humaines', re: 'Congés payés', body: 'D’après nos registres, il vous reste 0 jour de congé. Souhaitez-vous poser 0 jour ?', opts: ['Poser 0 jour', 'Refuser'] },
+    ],
+    gmemo: [
+      { re: 'Mon rendez-vous de 15 h', body: 'Pourriez-vous décaler mon tremblement de 15 h à 16 h ? J’ai un appel avec le manteau.', opts: ['C’est décalé'] },
+      { re: 'Ressenti', body: 'Je ressens comme une pression, ces temps-ci. Pas le magma. Enfin. Le magma aussi.', opts: ['Allons, allons', 'Avez-vous essayé de vider votre sac'] },
+      { re: 'Les villages', body: 'Les villages ont dit quelque chose sur moi ? Vous pouvez me le dire.', opts: ['Que du bien', 'Ils ont envoyé un tract'] },
+      { re: 'En toute franchise', body: 'Vous trouvez que je suis endormi ? En toute franchise. Lapilli-la-Petite a dit que j’étais « en sommeil ».', opts: ['Vous êtes très actif', 'Définissez « endormi »'] },
+    ],
+    gWelcome: { re: 'Bienvenue', body: 'Bienvenue dans l’équipe. Votre bureau est le rocher plat à côté de la fumerolle. Votre première demande arrive bientôt. Merci de lire l’article 7(b) deux fois.', opts: ['Lu deux fois'] },
+    gChat: { re: 'Un petit point', body: 'Pourrions-nous faire un petit point vendredi à 17:00 ? Rien de grave. C’est au sujet de l’avenir. Apportez la convention.', opts: ['Bien sûr'] },
+    complaints: [
+      'Encore de la cendre dans le linge. J’ai étendu le même drap quatre fois. Il était blanc. C’était un drap de mariage.',
+      'Notre chat est rentré avec une pierre ponce. Nous aimerions savoir à qui est cette ponce.',
+      'Il y avait {mm} mm de téphras sur le terrain de pétanque. La partie a été suspendue. Les boules, non.',
+      'Le toit de l’église est désormais, selon le mot de monsieur le curé, « sédimentaire ». Monsieur le curé aimerait vous dire un mot.',
+      'Des lapilli ont été trouvés dans les madeleines de la boulangerie. La boulangerie tient à préciser que les lapilli n’étaient pas à la carte.',
+      'La visibilité dans la Grand-Rue est tombée à 40 mètres. Deux personnes ont acheté le mauvais journal.',
+    ],
+    pipQ: [
+      { q: 'Le téphra, c’est un poisson ?', a: ['Non. C’est tout ce qu’un volcan projette en l’air, des cendres aux blocs.', 'Oui, un poisson des abysses.'] },
+      { q: 'Si le VEI augmente de un, ça fait une éruption de plus ?', a: ['Ça fait environ dix fois plus d’éjectas.', 'Oui, une de plus.'] },
+      { q: 'C’est quoi, un lahar ? C’est pour l’e-formation.', a: ['Un dessert scandinave.', 'Une coulée de boue volcanique.'] },
+      { q: 'Le sismographe fait une longue ondulation bien régulière. C’est l’imprimante ?', a: ['Trémor harmonique : du magma qui bouge. Prévenez-moi tout de suite.', 'Oui, l’imprimante.'] },
+      { q: 'Je dois approuver des cendres un jour où le vent souffle vers la Régate ?', a: ['Oui. Les bateaux flottent.', 'Non. Croisez le vent avec le calendrier.'] },
+      { q: 'Une nuée ardente, ça va plus vite qu’un vélo ?', a: ['Bien plus vite : largement plus de 100 km/h.', 'Ça dépend du vélo.'] },
+      { q: 'Que veut dire l’article 7(b) ?', a: ['Rien. Il est décoratif.', 'Une demande sans réponse est approuvée.'] },
+      { q: 'Un volcan peut partir à la retraite ?', a: ['Oui. On dit qu’il s’endort.', 'Non, ils sont salariés.'] },
+      { q: 'Est-ce que je suis payée ?', a: ['Voir l’article 1.1.', 'Oui.'] },
+    ],
+    pipNo: [
+      'Rejetée : c’est ma pause déjeuner (article 11).', 'Rejetée : le formulaire n’était pas dans la bonne police.',
+      'Rejetée : je n’ai pas compris le formulaire, alors j’ai dit non par précaution.', 'Rejetée : je croyais que le VEI était un fromage AOP.',
+      'Rejetée : ma mère dit pas d’éruption la veille d’école.', 'Rejetée : je l’ai rangée dans un dossier « Plus tard ».',
+    ],
+    pipYes: ['Approuvée ! J’ai vérifié le vent. Je crois.', 'Approuvée. J’ai dessiné un petit volcan à côté.', 'Approuvée, et classée à V.', 'Approuvée. Merci d’entrer en éruption de manière responsable.'],
+    pipWind: (vill, day, ev) => `Rejetée : ${day}, le vent souffle vers ${vill} et c’est ${ev}. Désolée, Volcan. (J’ai vérifié !)`,
+    postcards: [
+      'Bons baisers des Açores. Je suis un mont sous-marin, maintenant. L’eau est délicieuse et personne ne me demande rien. G.',
+      'La pension est arrivée : 0,3 °C, comme promis. Je l’ai dépensée dans une source hydrothermale. Ne laissez pas Pip approcher du placard à fournitures. G.',
+    ],
+    stampRequest: 'Demande', stampDelivery: 'Livraison', hdrFrom: 'DE', hdrRe: 'OBJ.',
+    emptyPip: 'Rien de Pip. Vous grondez doucement, pour vous-même.',
+    emptyInbox: 'Boîte vide. Le Volcan le remarque et vous envoie quelque chose.',
+    left: (due, x) => `${due} · reste ${x}`, leftDays: d => `${d} jours`, leftHours: h => `${h} h`,
+    calReview: 'bilan', calRetired: 'retraite', calToday: 'auj.',
+    chip: (v, e) => `${v} : ${e}`,
+    moods: ['vous fait des gâteaux', 'satisfait', 'grogne', 'rédige une pétition', 'achète des masques à gaz'],
+    eruptRe: v => `Demande d’éruption, VEI ${v}`,
+    eruptBody: (v, word, style, day, vol, plume, why) => `Je sollicite l’autorisation d’entrer en éruption au VEI ${v} (${word}, ${style}) le ${day} vers 11:00. Éjectas ${vol}, panache ${plume}. Motif : ${why}.`,
+    approve: 'Approuver', reject: 'Rejeter',
+    eruptDue: d => `Réputée approuvée ${d} 09:00 (art. 7(b))`,
+    logApproved: (c, v, from, d) => `${c} Demande VEI ${v} (${from}) approuvée pour ${d}.`,
+    logRejected: (c, v, from) => `${c} Demande VEI ${v} (${from}) rejetée. On l’entend bouder.`,
+    logDeemed: (v, from) => `09:00 Demande VEI ${v} (${from}) réputée approuvée, art. 7(b).`,
+    fcSheep: (d, a) => `${d} : cendres ${a} N, sur les Hauts-Pâturages (moutons)`,
+    fcVill: (d, a, w, vill, ev) => `${d} : cendres ${a} ${w}, sur ${vill}` + (ev ? ` — ${ev}` : ''),
+    fcToday: (a, w, vill) => `Aujourd’hui : cendres ${a} ${w}` + (vill ? `, sur ${vill}` : ', sur les moutons'),
+    mantle: 'Le Manteau, service des Remontées', reP: 'RE : ', deliveryNote: 'Bon de livraison',
+    magmaBody: (vol, re) => `Contenu : ${vol} km³ d’andésite basaltique, 1 150 °C, légèrement pétillante. Merci d’acheminer.` + (re ? ' Deuxième présentation. Nous sommes passés, personne n’a ouvert.' : ''),
+    magmaStore: 'Stocker en chambre (+2 MPa)', magmaOut: 'Par le sommet, tout de suite (VEI 1)', magmaReturn: 'Retour à l’expéditeur',
+    magmaDue: 'Stocké d’office sous deux jours ouvrés (art. 9.1)',
+    logStored: c => `${c} Magma stocké. Chambre +2,0 MPa.`,
+    logReturned: c => `${c} Livraison retournée au Manteau.`,
+    logAutoStored: 'Magma non acheminé stocké, art. 9.1. +2,0 MPa.',
+    letterRe: (ev, day) => `${ev[0].toUpperCase() + ev.slice(1)}, ${day}`,
+    letterBody: (ev, day) => `Cher Volcan, ${ev} a lieu le ${day}. La dernière fois, nous avons trouvé de la cendre dans les madeleines. Merci d’entrer en éruption ailleurs, ou plus tard, ou pas du tout. Veuillez agréer, cher Volcan, l’expression de nos salutations distinguées.`,
+    addCal: 'Ajouter au calendrier', fileGeo: 'Classer dans « Géologie »',
+    letterDue: 'Sans réponse sous deux jours, on supposera que vous ne l’avez pas lue',
+    logUnheard: v => `${v} ne se sent pas écouté. −4 de capital sympathie.`,
+    complaintRe: ev => ev ? `Cendres sur ${ev}` : 'Cendres',
+    apology: 'Envoyer des excuses (+8)', leaflet: 'Envoyer le dépliant sur la fertilité des sols (+3)',
+    logLeaflet: v => `Dépliant envoyé à ${v} : « Les sols volcaniques comptent parmi les plus fertiles au monde. »`,
+    complaintDue: 'Les plaintes sans réponse tournent au vinaigre en deux jours',
+    logUnanswered: v => `La plainte de ${v} est restée sans réponse. −4 de capital sympathie.`,
+    hrDue: 'Sera classé pour vous d’ici peu',
+    theVolcano: 'Le Volcan (G.)', gDue: 'G. prendra le silence pour lui',
+    payroll: 'Service paie', tsRe: n => `Feuille de temps, semaine ${n}`,
+    tsBody: 'Heures travaillées : 41,5. Taux horaire : 0,00 €. Total : 0,00 €. Merci de signer.',
+    sign: 'Signer', queryRate: 'Contester le taux', queryRe: 'RE : Votre réclamation',
+    queryBody: 'Le taux est fixé par l’article 1.1. Le taux est zéro. Il a toujours été zéro. Merci de signer.',
+    queryDue: 'Le service paie signera pour vous', tsDue: 'Signée en votre nom sous deux jours',
+    pipFrom: 'Pip (stagiaire, non rémunérée)', pipQRe: 'Petite question', pipQDue: 'Pip devinera dans deux jours',
+    logPipRight: c => `Pip le note. Compétence ${c} %.`,
+    logPipWrong: c => `Pip le note, soigneusement. Compétence ${c} %.`,
+    logPipGuess: 'Pip a deviné. Compétence −3 %.',
+    pipOk: 'Votre demande : approuvée', pipBad: 'Votre demande : rejetée',
+    thankPip: 'Remercier Pip', file: 'Classer', selfFiling: 'Classement automatique',
+    pcFrom: 'G., mont sous-marin au large des Açores', pcRe: 'Carte postale', pcPin: 'L’aimanter sur le frigo', pcDue: 'Finira derrière le frigo',
+    pipHelloRe: 'Bonjour !', pipHelloBody: 'Salut ! Je suis Pip, votre nouvelle stagiaire. J’ai lu la convention. J’ai des questions sur l’article 1.1. Je suis prête à approuver des choses. Ou à ne pas les approuver. Selon ce qui est juste.', pipWelcome: 'Bienvenue, Pip',
+    logSignIn: '09:00 Vous pointez. Le Volcan est à 6,0 MPa et d’humeur raisonnable.',
+    logErupt: (c, v, from, km, a, w) => `${c} VEI ${v} (${from}). Panache ${km} km, cendres ${a} ${w}.`,
+    logVent: v => ` −${v} MPa.`,
+    logTephra: (mm, vill, ev) => ` ${mm} mm de téphras sur ${vill}${ev ? ', pendant ' + ev : ''}.`,
+    logFell: ' Téphras sur les Hauts-Pâturages. Les moutons ont été prévenus.',
+    logBecome: 'Lundi, 09:00. Vous êtes le Volcan. Pip a inscrit les fêtes des villages au calendrier.',
+    logFiled: (c, v, d) => `${c} Vous déposez une demande auprès de Pip : VEI ${v} pour ${d}.`,
+    logPipDecided: (c, ok, v) => `${c} Pip a ${ok ? 'approuvé' : 'rejeté'} votre demande VEI ${v}.`,
+    reviewRows: ['Capital sympathie des villages, moyenne', 'Surpression maximale', 'Mémos traités avant que l’art. 7(b) ou 9.1 ne s’en charge', 'Note (moitié sympathie, un quart pression, un quart boîte de réception)'],
+    endErupt: {
+      kick: (d, c) => `${d}, ${c} · Rapport d’incident`, title: 'VEI 6 : <em>colossale</em>',
+      body: `La chambre se rompt à ${RUPTURE} MPa. Éjectas 11 km³, panache 31 km, ce qui la range sur la même ligne du tableau que le Pinatubo. Chaque village reçoit des téphras, à parts égales, ce qui, note Lapilli-la-Petite, est bien la première chose équitable dans le coin.`,
+      body2: c => 'La convention de stage est retrouvée deux vallées plus loin, intacte, l’article 9.3 souligné : la Personne stagiaire n’est pas responsable des lahars hors des heures de bureau. Il est ' + c + '. Vous êtes responsable.',
+      rows: ['Phase', 'Jour', 'Éruptions cette partie', 'Surpression'],
+    },
+    endPerm: {
+      kick: 'Vendredi, 17:00 · Entretien d’évaluation', title: 'CDI proposé <em>(toujours non rémunéré)</em>',
+      body: r => `Votre note : ${r}. Correct. Le Volcan aimerait vous garder. « Pour toujours, si possible, dit-il, et à l’échelle géologique, ça fait un moment. »`,
+      body2: 'L’article 1.1 (rémunération : aucune) devient permanent. L’article 14.2 a été barré au stylo bille et paraphé « G. ». Votre nouveau titre : Stagiaire (CDI). Il y a un gâteau. Il est en basalte.',
+    },
+    endHand: {
+      kick: 'Vendredi, 17:00 · Passation', title: 'La <em>passation</em> de retraite',
+      body: (a, r, c) => `Cela fait une semaine que vous êtes un volcan. Pip a approuvé ${a} de vos demandes et en a rejeté ${r} ; sa compétence est de ${c} %. Elle remplit la feuille de temps de la semaine : 41,5 heures à 0,00 €. Vous la signez. C’est la première chose que vous signez en tant que montagne.`,
+      body2: 'Pip demande si, quand vous partirez à la retraite, elle aura la montagne. Vous consultez la convention. Elle est très précise. Quelque part au large des Açores, un mont sous-marin ne répond pas à ses e-mails.',
+      rows: ['Compétence de Pip', 'Bonnes réponses', 'Capital sympathie des villages, moyenne', 'Surpression maximale en tant que Volcan'],
+    },
+    endBest: b => `Meilleure note de la session : ${b}`,
+    mapPeak: 'mont Gorrow 2 340', map1000: '1 000 m', mapContours: 'courbes 200 m',
+    mapWind: (a, w) => `cendres auj. ${a} ${w}`,
+  },
+};
+
+// French typography: a narrow no-break space before ? ! : ; » and after «, applied once to every
+// French string (and to whatever a French string function returns) so no line starts with "?".
+(function frenchSpacing() {
+  const fix = s => s.replace(/ ([?!:;»])/g, ' $1').replace(/« /g, '« ');
+  const deep = v => typeof v === 'string' ? fix(v)
+    : typeof v === 'function' ? (...a) => fix(v(...a))
+    : Array.isArray(v) ? v.map(deep)
+    : v && typeof v === 'object' ? Object.fromEntries(Object.entries(v).map(([k, x]) => [k, deep(x)]))
+    : v;
+  I18N.fr = deep(I18N.fr);
+})();
+
+let lang = 'en';
+const t = k => I18N[lang][k] ?? I18N.en[k];
+// Decimal comma in French; the value itself never changes.
+const num = (x, d) => { const s = x.toFixed(d); return lang === 'fr' ? s.replace('.', ',') : s; };
+const nn = x => num(x, x % 1 ? 1 : 0);   // 0.5 and 9, as the English always printed them
+const villName = vid => t('vill')[vid].name;
+const evName = e => t('vill')[e.v].events[e.ei];
+const dirName = w => t('dir')[w];
+
+for (const k of ['clauses', 'how', 'veiWord', 'veiStyle', 'veiVol', 'veiPlume', 'veiTable', 'depts', 'reasons', 'hr', 'gmemo', 'complaints', 'pipQ', 'pipNo', 'pipYes', 'postcards', 'moods', 'reviewRows']) {
+  if (I18N.en[k].length !== I18N.fr[k].length) console.error(`i18n: ${k} differs in length`);
+}
+for (const k of ['hr', 'gmemo']) I18N.en[k].forEach((m, i) => { if (m.opts.length !== I18N.fr[k][i].opts.length) console.error(`i18n: ${k}[${i}] opts differ`); });
+
+// Which answer is right is logic, not text, so it stays out of the language table.
+const PIP_OK = [0, 0, 1, 0, 1, 0, 1, 0, 0];
+
+const START = new Date(2026, 2, 2);  // Monday 2 March 2026
+function dateOf(d) { const x = new Date(START); x.setDate(START.getDate() + Math.floor(d / 5) * 7 + d % 5); return x; }
+const dayName = d => t('dow')[dateOf(d).getDay()];
+const dayLong = d => t('dowLong')[dateOf(d).getDay()];
+const dayLabel = d => { const x = dateOf(d); return t('dayLabel')(t('dowLong')[x.getDay()], x.getDate(), t('mon')[x.getMonth()]); };
+const cap = s => s[0].toUpperCase() + s.slice(1);
+const clockOf = f => { const m = Math.floor(Kit.clamp(f, 0, .999) * 480); return `${String(9 + Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`; };
+
+const S = { mode: 'title', best: 0, P: 6, clock: 0, vill: { tuff: 70, lap: 70, sco: 70 }, memos: [], day: 0, dayT: 0, phase: 1, events: [], erupts: [], logs: [], plan: [], later: [], pip: { c: 30, filed: -1 } };
+// Shuffle bags hand out indexes, keyed by pool name, so a language switch cannot reset them.
+const bagOf = new Map();
+function draw(key, n) {
+  let b = bagOf.get(key);
+  if (!b || !b.length) { b = Array.from({ length: n }, (_, i) => i).sort(() => Math.random() - .5); bagOf.set(key, b); }
+  return b.pop();
+}
+const drawI = k => draw(k, I18N.en[k].length);
+const now = () => S.day + S.dayT / DAY;
+// The selection follows a memo, not a position, so a memo arriving on top does not steal the keys.
+const selIdx = () => Math.max(0, S.memos.findIndex(m => m.id === S.selId));
+const eventOn = (vid, d) => S.events.find(e => e.v === vid && e.day === d);
+
+function newGame() {
+  bagOf.clear();
+  Object.assign(S, {
+    mode: 'play', phase: 1, day: 0, dayT: 0, P: 6, peakP: 6, rate: RATE1,
+    vill: { tuff: 70, lap: 70, sco: 70 },
+    winds: Array.from({ length: P1_DAYS + P2_DAYS + 6 }, () => { const r = Math.random(); return r < .35 ? 'E' : r < .55 ? 'W' : r < .75 ? 'S' : 'N'; }),
+    events: [], memos: [], selId: null, erupts: [], logs: [], answered: 0, expired: 0, nextId: 1, plan: [], later: [], p1peak: 6,
+    burst: 0, plume: null, ending: null, rating: null, ashed: [], eruptCount: 0,
+    pip: { c: 30, filed: -1, pending: null, approved: 0, rejected: 0, right: 0, wrong: 0 },
+    dirty: true,
+  });
+  for (let w = 0; w < 5; w++) for (const v of Object.keys(VILL)) {
+    const day = w * 5 + Math.floor(Kit.rnd(w === 0 ? 2 : 0, 5));
+    S.events.push({ v, day, ei: draw('ev-' + v, 5), known: false, letter: Math.max(0, day - 2 - Math.floor(Math.random() * 2)) });
+  }
+  log(t('logSignIn'));
+  planDay();
+  Kit.show(null);
+  setPhaseUI();
+}
+
+function log(line) { S.logs.unshift(line); S.logs.length = Math.min(S.logs.length, 6); S.dirtyLog = true; }
+
+// ---------- memos ----------
+// A memo's words are functions (tx, opts[].label, due) read at render time, so the inbox
+// follows a language switch; only its logic (opts[].act, expiry) is fixed when it arrives.
+const opt = (key, act, go) => ({ label: () => t(key), act, go });
+function push(m) {
+  m.id = S.nextId++; m.made = now();
+  S.memos.unshift(m);
+  S.dirty = true;
+}
+function eruptMemo() {
+  const dept = Math.floor(Math.random() * DEPTS.length), vei = DEPTS[dept].vei(), target = S.day + 1 + Math.floor(Math.random() * 3);
+  if (target >= P1_DAYS) return;
+  const why = drawI('reasons');
+  const from = () => t('depts')[dept];
+  push({
+    kind: 'erupt', vei, target, from,
+    tx: () => ({ from: from(), re: t('eruptRe')(vei),
+      body: t('eruptBody')(vei, t('veiWord')[vei], t('veiStyle')[vei], dayLabel(target), t('veiVol')[vei], t('veiPlume')[vei], t('reasons')[why]) }),
+    fc: () => forecast(target, vei),
+    opts: [opt('approve', m => { schedule(m.target, m.vei, m.from); log(t('logApproved')(clockOf(S.dayT / DAY), m.vei, m.from(), dayLong(m.target))); }, true),
+      opt('reject', m => log(t('logRejected')(clockOf(S.dayT / DAY), m.vei, m.from())))],
+    expires: target, due: () => t('eruptDue')(dayName(target)),
+    onExpire: m => { schedule(m.target, m.vei, m.from); log(t('logDeemed')(m.vei, m.from())); },
+  });
+}
+function forecast(d, vei) {
+  const w = S.winds[d], vid = DIR_VILL[w];
+  if (!vid) return { text: t('fcSheep')(cap(dayName(d)), ARROW[w]), risk: false };
+  const ev = eventOn(vid, d);
+  return { text: t('fcVill')(cap(dayName(d)), ARROW[w], dirName(w), villName(vid), ev && ev.known ? evName(ev) : null), risk: vei > 0 };
+}
+function magmaMemo(re = 0) {
+  const vol = 0.003 + re * .002 + Math.random() * .003;
+  push({
+    kind: 'magma', re2: re,
+    tx: () => ({ from: t('mantle'), re: t('reP').repeat(re) + t('deliveryNote'), body: t('magmaBody')(num(vol, 3), re) }),
+    fc: () => { const w = S.winds[S.day], vid = DIR_VILL[w]; return { text: t('fcToday')(ARROW[w], dirName(w), vid ? villName(vid) : null), risk: !!vid }; },
+    opts: [
+      opt('magmaStore', () => { S.P += 2; log(t('logStored')(clockOf(S.dayT / DAY))); }),
+      opt('magmaOut', () => { erupt({ vei: 1, from: () => t('fromDelivery'), vent: 0 }); }),
+      opt('magmaReturn', m => { S.later.push({ at: now() + 2, fn: () => magmaMemo(m.re2 + 1) }); log(t('logReturned')(clockOf(S.dayT / DAY))); }),
+    ],
+    expires: now() + 2, due: () => t('magmaDue'),
+    onExpire: () => { S.P += 2; log(t('logAutoStored')); },
+  });
+}
+function letterMemo(ev) {
+  const clerk = Math.floor(Math.random() * 2);
+  push({
+    kind: 'letter',
+    tx: () => ({ from: t('vill')[ev.v].clerk[clerk] + ', ' + villName(ev.v), re: t('letterRe')(evName(ev), dayLabel(ev.day)),
+      body: t('letterBody')(t('evCap')(evName(ev)), dayLabel(ev.day)) }),
+    opts: [opt('addCal', () => { ev.known = true; S.vill[ev.v] = Math.min(100, S.vill[ev.v] + 3); S.dirtyCal = true; }, true),
+      opt('fileGeo', () => {})],
+    expires: now() + 2, due: () => t('letterDue'),
+    onExpire: () => { S.vill[ev.v] -= 4; log(t('logUnheard')(villName(ev.v))); },
+  });
+}
+function complaintMemo(a) {
+  const clerk = Math.floor(Math.random() * 2), which = drawI('complaints');
+  push({
+    kind: 'complaint',
+    tx: () => ({ from: t('vill')[a.vid].clerk[clerk] + ', ' + villName(a.vid), re: t('complaintRe')(a.ev ? evName(a.ev) : null),
+      body: t('complaints')[which].replace('{mm}', nn(VEI[a.vei].mm)) }),
+    opts: [opt('apology', () => { S.vill[a.vid] = Math.min(100, S.vill[a.vid] + 8); }, true),
+      opt('leaflet', () => { S.vill[a.vid] = Math.min(100, S.vill[a.vid] + 3); log(t('logLeaflet')(villName(a.vid))); })],
+    expires: now() + 2, due: () => t('complaintDue'),
+    onExpire: () => { S.vill[a.vid] -= 4; log(t('logUnanswered')(villName(a.vid))); },
+  });
+}
+// Fixed text memos whose answers do nothing: pick by pool + index, read the words at render time.
+const plainOpts = get => get().opts.map((_, k) => ({ label: () => get().opts[k], act: () => {} }));
+function hrMemo() {
+  const i = drawI('hr'), get = () => t('hr')[i];
+  push({ kind: 'hr', tx: () => ({ from: get().from, re: get().re, body: get().body }), opts: plainOpts(get), expires: now() + 2.5, due: () => t('hrDue'), onExpire: () => {} });
+}
+function gMemo(get) {
+  push({ kind: 'g', tx: () => ({ from: t('theVolcano'), re: get().re, body: get().body }), opts: plainOpts(get), expires: now() + 2, due: () => t('gDue'), onExpire: () => {} });
+}
+function timesheetMemo() {
+  const week = Math.floor(S.day / 5) + 1;
+  push({
+    kind: 'hr', tx: () => ({ from: t('payroll'), re: t('tsRe')(week), body: t('tsBody') }),
+    opts: [opt('sign', () => {}), opt('queryRate', () => S.later.push({ at: now() + .3, fn: () => push({ kind: 'hr', tx: () => ({ from: t('payroll'), re: t('queryRe'), body: t('queryBody') }), opts: [opt('sign', () => {})], expires: now() + 2, due: () => t('queryDue'), onExpire: () => {} }) }))],
+    expires: now() + 2, due: () => t('tsDue'), onExpire: () => {},
+  });
+}
+function pipQuestion() {
+  const qi = drawI('pipQ'), ok = PIP_OK[qi];
+  push({
+    kind: 'pip', ok, tx: () => ({ from: t('pipFrom'), re: t('pipQRe'), body: t('pipQ')[qi].q }),
+    opts: [0, 1].map(i => ({ label: () => t('pipQ')[qi].a[i], act: () => {
+      if (i === ok) { S.pip.c = Math.min(100, S.pip.c + 18); S.pip.right++; log(t('logPipRight')(S.pip.c)); }
+      else { S.pip.c = Math.max(0, S.pip.c - 6); S.pip.wrong++; log(t('logPipWrong')(S.pip.c)); }
+    } })),
+    expires: now() + 2, due: () => t('pipQDue'), onExpire: () => { S.pip.c = Math.max(0, S.pip.c - 3); log(t('logPipGuess')); },
+  });
+}
+function pipNote(text, ok) {
+  push({ kind: 'pip', tx: () => ({ from: t('pipFrom'), re: t(ok ? 'pipOk' : 'pipBad'), body: text() }),
+    opts: [opt('thankPip', () => { S.pip.c = Math.min(100, S.pip.c + 3); }, true), opt('file', () => {})],
+    expires: now() + 1.5, due: () => t('selfFiling'), onExpire: () => {} });
+}
+function postcard(i) {
+  push({ kind: 'g', tx: () => ({ from: t('pcFrom'), re: t('pcRe'), body: t('postcards')[i] }), opts: [opt('pcPin', () => {})], expires: now() + 2, due: () => t('pcDue'), onExpire: () => {} });
+}
+
+function resolve(id, i) {
+  const k = S.memos.findIndex(m => m.id === id);
+  if (k < 0 || S.mode !== 'play') return;
+  const m = S.memos[k], o = m.opts[i];
+  if (!o) return;
+  S.memos.splice(k, 1);
+  S.answered++;
+  o.act(m);
+  S.selId = S.memos[Math.min(k, S.memos.length - 1)]?.id;
+  S.dirty = true; S.dirtyCal = true;
+}
+
+// ---------- the day ----------
+function planDay() {
+  const d = S.day, p = [];
+  const at = () => Kit.rnd(.4, DAY * .85);
+  if (S.phase === 1) {
+    if (d === 0) {
+      p.push({ at: .5, fn: () => gMemo(() => t('gWelcome')) });
+      p.push({ at: 2.5, fn: eruptMemo });
+    }
+    if (Math.random() < .8) p.push({ at: at(), fn: eruptMemo });
+    if (Math.random() < .25) p.push({ at: at(), fn: eruptMemo });
+    if (Math.random() < .3) p.push({ at: at(), fn: () => magmaMemo(0) });
+    for (const ev of S.events) if (ev.letter === d && ev.day < P1_DAYS) p.push({ at: at(), fn: () => letterMemo(ev) });
+    for (const a of S.ashed.filter(a => a.day === d - 1)) if (Math.random() < .7) p.push({ at: at(), fn: () => complaintMemo(a) });
+    if (d % 5 === 4) p.push({ at: Kit.rnd(5, 9), fn: timesheetMemo });
+    else if (Math.random() < .45) p.push({ at: at(), fn: hrMemo });
+    if (d === 3 || d === 7 || d === 10) p.push({ at: at(), fn: () => { const g = drawI('gmemo'); gMemo(() => t('gmemo')[g]); } });
+    if (d === 12) p.push({ at: 2, fn: () => gMemo(() => t('gChat')) });
+  } else {
+    p.push({ at: at(), fn: pipQuestion });
+    if (Math.random() < .45) p.push({ at: at(), fn: pipQuestion });
+    if (d === P1_DAYS + 1) p.push({ at: 3, fn: () => postcard(0) });
+    if (d === P1_DAYS + 3) p.push({ at: 3, fn: () => postcard(1) });
+  }
+  S.plan = p;
+  S.dirtyCal = true;
+}
+function schedule(day, vei, from) { S.erupts.push({ day, vei, from }); S.dirtyCal = true; }
+
+function erupt(e) {
+  const V = VEI[e.vei];
+  const vent = e.vent ?? V.vent;
+  S.P = Math.max(0, S.P - vent);
+  S.burst = 1 + e.vei; S.eruptCount++;
+  const w = S.winds[S.day], vid = DIR_VILL[w];
+  S.plume = { dir: w, vei: e.vei, t: S.clock };
+  let txt = t('logErupt')(clockOf(S.dayT / DAY), e.vei, e.from(), nn(V.km), ARROW[w], dirName(w));
+  if (vent) txt += t('logVent')(num(vent, 1));
+  if (V.ash && vid) {
+    const ev = eventOn(vid, S.day), hit = V.ash * (ev ? 2 : 1);
+    S.vill[vid] -= hit;
+    txt += t('logTephra')(nn(V.mm), villName(vid), ev ? evName(ev) : null);
+    S.ashed.push({ vid, day: S.day, vei: e.vei, ev });
+  } else if (V.ash) txt += t('logFell');
+  log(txt);
+}
+
+function tick(dt) {
+  S.clock += dt;
+  S.burst = Math.max(0, (S.burst || 0) - dt * .5);
+  if (S.mode !== 'play') return;
+  S.dayT += dt;
+  S.P += S.rate * dt / DAY;
+  S.peakP = Math.max(S.peakP, S.P);
+  if (S.phase === 1) S.p1peak = S.peakP;
+  for (const v of Object.keys(S.vill)) S.vill[v] = Kit.clamp(S.vill[v], 0, 100);
+
+  for (const p of S.plan.filter(p => p.at <= S.dayT)) { S.plan.splice(S.plan.indexOf(p), 1); p.fn(); }
+  for (const l of S.later.filter(l => now() >= l.at)) { S.later.splice(S.later.indexOf(l), 1); l.fn(); }
+  for (const e of S.erupts.filter(e => e.day === S.day && S.dayT >= DAY * .25)) { S.erupts.splice(S.erupts.indexOf(e), 1); erupt(e); }
+  for (const m of S.memos.filter(m => m.expires != null && now() >= m.expires)) {
+    S.memos.splice(S.memos.indexOf(m), 1); S.expired++; m.onExpire(m); S.dirty = true;
+  }
+  if (S.pip.pending && S.clock >= S.pip.pending.at) pipDecides();
+
+  if (S.P >= RUPTURE) return finish('eruption');
+  if (S.dayT >= DAY) endDay();
+}
+
+function endDay() {
+  S.day++; S.dayT = 0;
+  for (const v of Object.keys(S.vill)) S.vill[v] = Math.min(100, S.vill[v] + 1);
+  if (S.phase === 1 && S.day >= P1_DAYS) return review();
+  if (S.phase === 2 && S.day >= P1_DAYS + P2_DAYS) return finish('handover');
+  planDay();
+  S.dirty = true; S.dirtyCompose = true;
+}
+
+function scores() {
+  const v = Object.values(S.vill), V = v.reduce((a, b) => a + b, 0) / 3;
+  const D = Kit.clamp(100 - ((S.p1peak ?? S.peakP) - 12) * 12.5, 0, 100);
+  const A = S.answered + S.expired ? 100 * S.answered / (S.answered + S.expired) : 100;
+  return { V, D, A, rating: Math.round(.5 * V + .25 * D + .25 * A), peak: S.p1peak ?? S.peakP };
+}
+const pct = x => lang === 'fr' ? `${x} %` : `${x}%`;
+function reviewRows(sc) {
+  const L = t('reviewRows');
+  return [
+    [L[0], pct(Math.round(sc.V))],
+    [L[1], num(sc.peak, 1) + ' MPa'],
+    [L[2], pct(Math.round(sc.A))],
+    [L[3], sc.rating + ' / 100'],
+  ].map(([k, v], i, a) => `<span${i === a.length - 1 ? ' class="tot"' : ''}>${k}</span><b${i === a.length - 1 ? ' class="tot"' : ''}>${v}</b>`).join('');
+}
+
+function review() {
+  const sc = scores();
+  S.rating = sc.rating;
+  S.best = Math.max(S.best, sc.rating);
+  S.sc = sc;
+  if (sc.rating < TWIST_AT) return finish('permanent', sc);
+  S.mode = 'retire';
+  $('#retire-review').innerHTML = reviewRows(sc);
+  Kit.show($('#retire'));
+}
+
+function becomeVolcano() {
+  if (S.mode !== 'retire') return;
+  Object.assign(S, { mode: 'play', phase: 2, P: 8, peakP: 8, rate: RATE2, memos: [], erupts: [], later: [], selId: null });
+  S.events.forEach(e => { if (e.day >= P1_DAYS) e.known = true; });
+  log(t('logBecome'));
+  push({ kind: 'pip', tx: () => ({ from: t('pipFrom'), re: t('pipHelloRe'), body: t('pipHelloBody') }), opts: [opt('pipWelcome', () => {}, true)], expires: now() + 1.5, due: null, onExpire: () => {} });
+  planDay();
+  setPhaseUI();
+  Kit.show(null);
+}
+
+function fileRequest(vei) {
+  if (S.mode !== 'play' || S.phase !== 2) return;
+  if (S.pip.filed === S.day || S.pip.pending) return;
+  const target = S.day + 1;
+  S.pip.filed = S.day;
+  S.pip.pending = { vei, target, at: S.clock + 2.5 };
+  log(t('logFiled')(clockOf(S.dayT / DAY), vei, dayLong(target)));
+  S.dirtyCompose = true;
+}
+function pipDecides() {
+  const r = S.pip.pending; S.pip.pending = null;
+  const w = S.winds[r.target], vid = DIR_VILL[w], ev = vid ? eventOn(vid, r.target) : null;
+  const c = S.pip.c / 100;
+  let ok, text;
+  if (ev && r.vei > 0 && Math.random() < c) { ok = false; text = () => t('pipWind')(villName(vid), dayLong(r.target), evName(ev)); }
+  else if (Math.random() < .3 + .6 * c) { ok = true; const i = Math.floor(Math.random() * I18N.en.pipYes.length); text = () => t('pipYes')[i]; }
+  else { ok = false; const i = Math.floor(Math.random() * I18N.en.pipNo.length); text = () => t('pipNo')[i]; }
+  if (ok) { schedule(r.target, r.vei, () => t('fromPip')); S.pip.approved++; } else S.pip.rejected++;
+  pipNote(text, ok);
+  log(t('logPipDecided')(clockOf(S.dayT / DAY), ok, r.vei));
+  S.dirtyCompose = true;
+}
+
+function finish(kind, sc) {
+  if (S.mode === 'end') return;
+  S.mode = 'end'; S.ending = kind;
+  S.sc = sc || scores();
+  S.endAt = { day: S.day, clock: clockOf(S.dayT / DAY), phase: S.phase };
+  fillEnd();
+  $('#end').dataset.ending = kind;
+  Kit.show($('#end'));
+}
+// Builds the end screen from saved numbers, so applyLang() can rebuild it in the other language.
+function fillEnd() {
+  const kind = S.ending, sc = S.sc, at = S.endAt;
+  let kick, title, body, body2, rows;
+  if (kind === 'eruption') {
+    const E = t('endErupt');
+    kick = E.kick(cap(dayLabel(at.day)), at.clock);
+    title = E.title;
+    body = E.body;
+    body2 = E.body2(at.clock);
+    rows = [[E.rows[0], at.phase === 1 ? t('roleIntern') : t('roleVolcano')], [E.rows[1], String(at.day + 1)], [E.rows[2], String(S.eruptCount)], [E.rows[3], num(RUPTURE, 1) + ' MPa']];
+    const H = t('veiHead');
+    $('#end-vei').innerHTML = `<table class="vei"><tr>${H.map(h => `<th>${h}</th>`).join('')}</tr>${t('veiTable').map((r, i) => `<tr><td>${i}</td><td>${t('veiWord')[i]}</td><td>${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td></tr>`).join('')}</table>`;
+  } else if (kind === 'permanent') {
+    const E = t('endPerm');
+    kick = E.kick; title = E.title; body = E.body(sc.rating); body2 = E.body2;
+    rows = null;
+    $('#end-vei').innerHTML = '';
+  } else {
+    const E = t('endHand');
+    kick = E.kick; title = E.title;
+    body = E.body(S.pip.approved, S.pip.rejected, S.pip.c);
+    body2 = E.body2;
+    rows = [[E.rows[0], pct(S.pip.c)], [E.rows[1], String(S.pip.right)], [E.rows[2], pct(Math.round(sc.V))], [E.rows[3], num(S.peakP, 1) + ' MPa']];
+    $('#end-vei').innerHTML = '';
+  }
+  $('#end-kick').textContent = kick;
+  $('#end-title').innerHTML = title;
+  $('#end-review').innerHTML = rows ? rows.map(([k, v]) => `<span>${k}</span><b>${v}</b>`).join('') : reviewRows(sc);
+  $('#end-body').textContent = body;
+  $('#end-body2').textContent = body2;
+  $('#end-best').textContent = S.best ? t('endBest')(S.best) : '';
+}
+
+// ---------- UI ----------
+function setPhaseUI() {
+  const two = S.phase === 2;
+  $('#hd').innerHTML = `${t('hdTitle')} <small>${t(two ? 'hdSub2' : 'hdSub1')}</small>`;
+  $('#compose').hidden = !two;
+  $('#inbox-title').textContent = t(two ? 'inboxPip' : 'inbox');
+  S.dirty = true; S.dirtyCal = true; S.dirtyCompose = true;
+}
+
+function esc(s) { return String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]); }
+function renderInbox() {
+  const box = $('#inbox');
+  const si = selIdx();
+  S.selId = S.memos[si]?.id ?? null;
+  if (!S.memos.length) box.innerHTML = `<p class="empty">${S.phase === 2 ? t('emptyPip') : t('emptyInbox')}</p>`;
+  else box.innerHTML = S.memos.map((m, i) => {
+    const fc = m.fc ? m.fc() : null, x = m.tx();
+    return `<article class="memo${i === si ? ' sel' : ''}" data-kind="${m.kind}" data-id="${m.id}">
+      ${m.kind === 'erupt' ? `<span class="stamp">${t('stampRequest')}</span>` : m.kind === 'magma' ? `<span class="stamp">${t('stampDelivery')}</span>` : ''}
+      <div class="hdr"><span>${t('hdrFrom')}</span><b>${esc(x.from)}</b><span>${t('hdrRe')}</span><b>${esc(x.re)}</b></div>
+      <p>${esc(x.body)}</p>
+      ${fc ? `<span class="fc${fc.risk ? ' risk' : ''}">${esc(fc.text)}</span>` : ''}
+      <div class="acts">${m.opts.map((o, k) => `<button class="act${o.go ? ' go' : ''}" data-opt="${k}"><kbd>${k + 1}</kbd>${esc(o.label())}</button>`).join('')}</div>
+      ${m.due ? `<span class="due" data-due="${m.id}"></span>` : ''}
+    </article>`;
+  }).join('');
+  $('#inbox-count').textContent = t('memoCount')(S.memos.length);
+  updateDue();
+}
+function updateDue() {
+  for (const el of document.querySelectorAll('[data-due]')) {
+    const m = S.memos.find(x => x.id === +el.dataset.due);
+    if (!m) continue;
+    const left = m.expires - now();
+    el.textContent = t('left')(m.due(), left > 1 ? t('leftDays')(num(left, 1)) : t('leftHours')(Math.max(0, Math.round(left * 8))));
+    el.classList.toggle('soon', left < .5);
+  }
+}
+function renderCal() {
+  const cal = $('#cal');
+  const end = S.phase === 1 ? P1_DAYS : P1_DAYS + P2_DAYS;
+  let html = '';
+  for (let d = S.day; d < S.day + 5; d++) {
+    if (d >= end) { html += `<div><span class="dh">${dayName(d)}<small>${S.phase === 1 ? t('calReview') : t('calRetired')}</small></span></div>`; continue; }
+    const w = S.winds[d], vid = DIR_VILL[w];
+    const evs = S.events.filter(e => e.day === d && e.known);
+    const ers = S.erupts.filter(e => e.day === d);
+    const risk = vid && evs.some(e => e.v === vid);
+    html += `<div><span class="dh">${dayName(d)} ${dateOf(d).getDate()}<small>${d === S.day ? t('calToday') : ''}</small></span>
+      ${d === S.day ? '<span class="tbar"><b id="tbar"></b></span>' : ''}
+      <span class="wind${risk ? ' risk' : ''}">${ARROW[w]} ${vid ? t('vill')[vid].short : t('sheep')}</span>
+      ${evs.map(e => `<span class="chip ev">${esc(t('chip')(t('vill')[e.v].short, t('evShort')(evName(e))))}</span>`).join('')}
+      ${ers.map(e => `<span class="chip er">VEI ${e.vei}</span>`).join('')}</div>`;
+  }
+  cal.innerHTML = html;
+}
+function renderVills() {
+  const moods = t('moods');
+  $('#vills').innerHTML = Object.entries(VILL).map(([id, v]) => {
+    const h = Math.round(S.vill[id]);
+    const mood = moods[h >= 80 ? 0 : h >= 60 ? 1 : h >= 40 ? 2 : h >= 20 ? 3 : 4];
+    return `<div class="vill"><span>${villName(id)}</span><span class="d">${ARROW[v.dir]}${dirName(v.dir)}</span><i><b class="${h < 40 ? 'low' : ''}" style="width:${h}%"></b></i><em>${pct(h)} · ${mood}</em></div>`;
+  }).join('');
+}
+function renderCompose() {
+  if (S.phase !== 2) return;
+  const target = S.day + 1, f = forecast(target, 1);
+  const filed = S.pip.filed === S.day;
+  $('#compose-text').textContent = S.pip.pending ? t('composeReading') : filed ? t('composeFiled') : t('composeAsk')(f.text);
+  for (const b of document.querySelectorAll('#compose-acts button')) b.disabled = filed || !!S.pip.pending || target >= P1_DAYS + P2_DAYS;
+}
+
+let uiT = 0, lastVill = '';
+function ui(dt) {
+  uiT += dt;
+  if (S.dirty) { S.dirty = false; renderInbox(); }
+  if (S.dirtyCal) { S.dirtyCal = false; renderCal(); }
+  if (S.dirtyCompose) { S.dirtyCompose = false; renderCompose(); }
+  if (S.dirtyLog) { S.dirtyLog = false; $('#log').innerHTML = S.logs.map(l => `<li>${esc(l)}</li>`).join(''); }
+  if (uiT < .1) return;
+  uiT = 0;
+  const vk = Object.values(S.vill).map(Math.round).join();
+  if (vk !== lastVill) { lastVill = vk; renderVills(); }
+  $('#pfill').style.width = Kit.clamp(S.P / RUPTURE * 100, 0, 100) + '%';
+  const pv = $('#pval'); pv.textContent = num(S.P, 1); pv.classList.toggle('hot', S.P > 15);
+  $('#prate').textContent = t('rate')(num(S.rate || RATE1, 1));
+  $('#whoami').innerHTML = `<b>${S.phase === 2 ? t('roleVolcano') : t('roleIntern')}</b> · ${dayLabel(S.day)} · ${clockOf(S.dayT / DAY)}`;
+  const tb = $('#tbar'); if (tb) tb.style.width = (S.dayT / DAY * 100) + '%';
+  updateDue();
+}
+
+// ---------- canvases ----------
+const C = Kit.tokens(['bg', 'ink', 'muted', 'accent', 'panel', 'line', 'strip', 'sulphur', 'ash', 'moss', 'sea']);
+const seis = Kit.canvas($('#seis'));
+const map = Kit.canvas($('#map'));
+const trace = [];
+let rsam = 0;
+function seisStep(dt) {
+  const P = S.P || 0;
+  const noise = .05 + .5 * (P / RUPTURE) ** 2;
+  const tremor = P > 12 ? Math.sin(S.clock * 2 * Math.PI * 2.1) * (P - 12) / 8 * .45 : 0;
+  const lp = Math.random() < dt * .25 ? 1 : 0;
+  let v = (Math.random() - .5) * noise + tremor + (Math.random() - .5) * (S.burst || 0) * .45 + (lp ? (Math.random() - .5) * .5 : 0);
+  if (S.mode === 'end' && S.ending === 'eruption') v = (Math.random() - .5) * 2;
+  trace.push(Kit.clamp(v, -1, 1));
+  rsam = rsam * .97 + Math.abs(v) * 100 * .03;
+  const max = Math.max(200, Math.ceil(seis.W / 1.5));
+  while (trace.length > max) trace.shift();
+}
+function drawSeis() {
+  const { cx, W, H } = seis;
+  if (!W) return;
+  cx.clearRect(0, 0, W, H);
+  cx.strokeStyle = '#ffffff14'; cx.lineWidth = 1;
+  for (let x = W - ((S.clock * 40) % 60); x > 0; x -= 60) { cx.beginPath(); cx.moveTo(x, 18); cx.lineTo(x, H); cx.stroke(); }
+  cx.beginPath(); cx.moveTo(0, H * .58); cx.lineTo(W, H * .58); cx.stroke();
+  const n = trace.length, step = 1.5, mid = H * .58, amp = H * .4;
+  cx.lineWidth = 1.2;
+  cx.strokeStyle = '#d6dcd8';
+  cx.beginPath();
+  for (let i = 0; i < n; i++) { const x = W - (n - 1 - i) * step, y = mid + trace[i] * amp; i ? cx.lineTo(x, y) : cx.moveTo(x, y); }
+  cx.stroke();
+  cx.strokeStyle = C.sulphur; cx.lineWidth = 1.8;
+  cx.beginPath();
+  for (let i = Math.max(0, n - 40); i < n; i++) { const x = W - (n - 1 - i) * step, y = mid + trace[i] * amp; i > n - 40 ? cx.lineTo(x, y) : cx.moveTo(x, y); }
+  cx.stroke();
+}
+function drawMap() {
+  const { cx, W, H } = map;
+  if (!W || !H) return;
+  cx.clearRect(0, 0, W, H);
+  const ox = W / 2, oy = H * .45;
+  // sea along the bottom, where Scoria Bay is
+  cx.fillStyle = C.sea; cx.globalAlpha = .18;
+  cx.beginPath(); cx.moveTo(0, H);
+  for (let x = 0; x <= W; x += 10) cx.lineTo(x, H * .84 + Math.sin(x / 26) * 3);
+  cx.lineTo(W, H); cx.closePath(); cx.fill(); cx.globalAlpha = 1;
+  // contours every 200 m
+  cx.strokeStyle = C.ink; cx.lineWidth = 1;
+  for (let k = 1; k <= 7; k++) {
+    const r = k * Math.min(W, H) * .06;
+    cx.globalAlpha = k === 5 ? .55 : .25;
+    cx.beginPath();
+    for (let a = 0; a <= Math.PI * 2 + .01; a += .1) {
+      const rr = r * (1 + .1 * Math.sin(a * 3 + k) + .05 * Math.sin(a * 7));
+      const x = ox + Math.cos(a) * rr * 1.35, y = oy + Math.sin(a) * rr;
+      a ? cx.lineTo(x, y) : cx.moveTo(x, y);
+    }
+    cx.stroke();
+  }
+  cx.globalAlpha = 1;
+  cx.font = `10px "Red Hat Mono", ui-monospace, monospace`; cx.fillStyle = C.muted; cx.textAlign = 'left';
+  cx.fillText(t('map1000'), ox + Math.min(W, H) * .3 * 1.35 + 2, oy - 2);
+  // the plume, if there is one
+  if (S.plume && S.clock - S.plume.t < 8) {
+    const age = (S.clock - S.plume.t) / 8, d = { N: [0, -1], E: [1, 0], S: [0, 1], W: [-1, 0] }[S.plume.dir];
+    const len = (40 + S.plume.vei * 35) * (Kit.reduce ? 1 : Math.min(1, age * 3));
+    cx.fillStyle = C.ash; cx.globalAlpha = .55 * (1 - age);
+    cx.beginPath(); cx.ellipse(ox + d[0] * len * .6, oy + d[1] * len * .45, Math.abs(d[0]) * len * .6 + 12 + S.plume.vei * 4, Math.abs(d[1]) * len * .45 + 10 + S.plume.vei * 3, 0, 0, Math.PI * 2); cx.fill();
+    cx.globalAlpha = 1;
+  }
+  // summit
+  cx.fillStyle = S.P > 15 ? C.accent : C.sulphur;
+  cx.beginPath(); cx.arc(ox, oy, 5, 0, Math.PI * 2); cx.fill();
+  cx.strokeStyle = C.ink; cx.lineWidth = 1.5; cx.stroke();
+  // French village names run longer: every label is capped at the room it has.
+  const room = W * .3;
+  cx.fillStyle = C.ink; cx.textAlign = 'center'; cx.fillText(t('mapPeak'), ox, oy - 10, room);
+  const spot = (x, y, label, col) => {
+    cx.fillStyle = col; cx.fillRect(x - 4, y - 4, 8, 8); cx.strokeStyle = C.ink; cx.strokeRect(x - 4, y - 4, 8, 8);
+    cx.fillStyle = C.ink; cx.fillText(label, x, y + 16, room);
+  };
+  spot(W * .09 + 18, oy + 4, villName('tuff'), C.moss);
+  spot(W * .91 - 22, oy - 6, villName('lap'), C.moss);
+  spot(ox + 10, H * .84, villName('sco'), C.moss);
+  cx.fillStyle = C.muted; cx.fillText(t('fell'), ox, 14, W * .6);
+  // today's wind
+  const w = S.winds ? S.winds[S.day] : 'E';
+  cx.textAlign = 'left'; cx.fillStyle = C.ink; cx.font = `600 11px "Red Hat Mono", ui-monospace, monospace`;
+  cx.fillText(t('mapWind')(ARROW[w], dirName(w)), 8, H - 8, W * .5);
+  cx.textAlign = 'right'; cx.fillStyle = C.muted; cx.font = `10px "Red Hat Mono", ui-monospace, monospace`;
+  cx.fillText(t('mapContours'), W - 8, H - 8, W * .4);
+}
+
+// ---------- input ----------
+$('#inbox').addEventListener('click', e => {
+  const b = e.target.closest('button[data-opt]');
+  if (!b) {
+    const card = e.target.closest('.memo');
+    if (card) { S.selId = +card.dataset.id; S.dirty = true; }
+    return;
+  }
+  resolve(+b.closest('.memo').dataset.id, +b.dataset.opt);
+});
+$('#compose-acts').addEventListener('click', e => { const b = e.target.closest('button[data-vei]'); if (b) fileRequest(+b.dataset.vei); });
+Kit.keys.onPress((k, down) => {
+  if (!down || S.mode !== 'play') return;
+  const i = selIdx();
+  if (k === 'ArrowDown' || k === 'j') { S.selId = S.memos[Math.min(S.memos.length - 1, i + 1)]?.id; S.dirty = true; scrollSel(); }
+  else if (k === 'ArrowUp' || k === 'k') { S.selId = S.memos[Math.max(0, i - 1)]?.id; S.dirty = true; scrollSel(); }
+  else if (/^[1-3]$/.test(k) && S.memos[i]) resolve(S.memos[i].id, +k - 1);
+  else if (/^[7-9]$/.test(k)) fileRequest(+k - 6);
+});
+function scrollSel() { requestAnimationFrame(() => document.querySelector('.memo.sel')?.scrollIntoView({ block: 'nearest' })); }
+$('#go').addEventListener('click', newGame);
+$('#again').addEventListener('click', newGame);
+$('#become').addEventListener('click', becomeVolcano);
+
+let seisT = 0;
+function seisLabel() {
+  const K = t('seisKind');
+  $('#seis-kind').textContent = S.burst > .3 ? K.erupt : S.P > 15 ? K.strong : S.P > 12 ? K.tremor : S.P > 8 ? K.swarm : K.bg;
+}
+const loop = Kit.loop(dt => {
+  tick(dt);
+  seisStep(dt);
+  ui(dt);
+  // Under reduced motion the helicorder jumps forward twice a second instead of scrolling.
+  seisT += dt;
+  if (!Kit.reduce || seisT >= .5) { seisT = 0; drawSeis(); }
+  drawMap();
+  if (S.mode === 'play' || S.mode === 'end') {
+    seisLabel();
+    $('#rsam').textContent = Math.round(rsam);
+  }
+});
+
+// ---- language -------------------------------------------------------------------------------
+// Static markup carries data-t (text), data-th (trusted markup from I18N) and data-ta
+// (aria-label). Memos, calendar, gauges and the open overlay are re-rendered; lines already in
+// the activity log stay in the language they were written in.
+function applyLang() {
+  document.documentElement.lang = lang;
+  document.title = t('docTitle');
+  for (const el of document.querySelectorAll('[data-t]')) el.textContent = t(el.dataset.t);
+  for (const el of document.querySelectorAll('[data-th]')) el.innerHTML = t(el.dataset.th);
+  for (const el of document.querySelectorAll('[data-ta]')) el.setAttribute('aria-label', t(el.dataset.ta));
+  for (const el of document.querySelectorAll('[data-tl]')) { const [k, i] = el.dataset.tl.split('.'); el.innerHTML = t(k)[+i]; }
+  for (const box of document.querySelectorAll('.lang')) {
+    if (!box.children.length) box.innerHTML = '<button data-lang="fr" lang="fr">FR</button><button data-lang="en" lang="en">EN</button>';
+    for (const b of box.children) b.setAttribute('aria-pressed', String(b.dataset.lang === lang));
+  }
+  setPhaseUI();
+  lastVill = '';
+  renderVills();
+  if (S.mode === 'retire') $('#retire-review').innerHTML = reviewRows(S.sc);
+  if (S.mode === 'end') fillEnd();
+  seisLabel();
+  drawMap();
+}
+function setLang(l) {
+  if (!(l in I18N) || l === lang) return;
+  lang = l;
+  applyLang();
+}
+document.addEventListener('click', e => {
+  const b = e.target.closest('[data-lang]');
+  if (b) setLang(b.dataset.lang);
+});
+
+// Endings for the smoke harness. Each jump sets up the last stretch and lets the game finish it.
+function jumpPhase1(dayT, setup) {
+  newGame();
+  S.day = P1_DAYS - 1; S.dayT = dayT; S.plan = []; S.memos = []; S.dirty = true; S.dirtyCal = true;
+  setup();
+}
+Kit.expose({
+  state: () => S,
+  endings: {
+    handover: { seconds: 20, jump() {
+      jumpPhase1(DAY - 1, () => { S.vill = { tuff: 85, lap: 80, sco: 82 }; S.answered = 30; S.expired = 1; S.P = 9; S.peakP = 13; S.p1peak = 13; });
+      setTimeout(() => { becomeVolcano(); S.day = P1_DAYS + P2_DAYS - 1; S.dayT = DAY - 2; S.plan = []; S.P = 8; S.dirtyCal = true; }, 2500);
+    }, reached: () => S.ending === 'handover' && !$('#end').hidden && $('#end').dataset.ending === 'handover' },
+    permanent: { seconds: 12, jump() {
+      jumpPhase1(DAY - 2, () => { S.vill = { tuff: 30, lap: 25, sco: 40 }; S.answered = 10; S.expired = 12; S.P = 10; S.peakP = 17; S.p1peak = 17; });
+    }, reached: () => S.ending === 'permanent' && !$('#end').hidden && $('#end').dataset.ending === 'permanent' },
+    eruption: { seconds: 12, jump() {
+      newGame(); S.day = 6; S.P = 19.2; S.erupts = []; planDay();
+    }, reached: () => S.ending === 'eruption' && !$('#end').hidden && $('#end').dataset.ending === 'eruption' },
+  },
+});
+
+Kit.boot(data => {
+  S.best = data.best ?? 0;
+  lang = data?.lang in I18N ? data.lang : (navigator.language || '').toLowerCase().startsWith('fr') ? 'fr' : 'en';
+  S.winds = ['E', 'E', 'N', 'S', 'W', 'E'];
+  applyLang();
+  renderCal(); renderInbox();
+  Kit.show($('#title'));
+  document.fonts?.ready.then(drawMap);
+  loop.start();
+}, () => ({ best: S.best, lang }));
+</script>
+</body>
+</html>

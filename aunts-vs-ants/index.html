@@ -1,0 +1,1016 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Aunts vs. Ants</title>
+<meta name="description" content="A tower defence on a gingham picnic blanket. Seat your aunts beside the crumb trail and keep the ants off the potato salad.">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Shrikhand&family=Karla:wght@400;500;700&family=Courier+Prime:wght@400;700&display=swap">
+<style>
+/* Layout: top-down picnic blanket as the board, a church-fete programme card down the side for the aunts, the rules and the gossip. */
+:root {
+  --page: #eaf1df;
+  --card: #ffffff;
+  --grass: #a7c47a;
+  --grass-deep: #86a65a;
+  --cloth: #3d69b0;
+  --cloth-white: #fbfbf7;
+  --crumb: #c7a464;
+  --ink: #1f2a1b;
+  --ink-soft: #586353;
+  --mustard: #d9a21c;
+  --ketchup: #c4342a;
+  --leaf: #3a8a4c;
+  --rule: #d3dcc6;
+  --f-display: "Shrikhand", "Cooper Black", Georgia, serif;
+  --f-body: "Karla", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-mono: "Courier Prime", "Courier New", ui-monospace, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --page: #121a13; --card: #1b251c; --grass: #2f4528; --grass-deep: #24361f;
+    --cloth: #4d74b8; --cloth-white: #c8ced8; --crumb: #8f784a;
+    --ink: #e5eddc; --ink-soft: #9fae98; --mustard: #e6b53a; --ketchup: #e2574a;
+    --leaf: #6bc07d; --rule: #2e3c2f;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --page: #121a13; --card: #1b251c; --grass: #2f4528; --grass-deep: #24361f;
+  --cloth: #4d74b8; --cloth-white: #c8ced8; --crumb: #8f784a;
+  --ink: #e5eddc; --ink-soft: #9fae98; --mustard: #e6b53a; --ketchup: #e2574a;
+  --leaf: #6bc07d; --rule: #2e3c2f;
+  color-scheme: dark;
+}
+[hidden] { display: none !important; }
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--page);
+  color: var(--ink);
+  font: 15px/1.5 var(--f-body);
+  padding-block: 16px 32px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.app { max-width: 1180px; margin: 0 auto; display: grid; gap: 14px; }
+.bar { display: flex; flex-wrap: wrap; gap: 10px 28px; align-items: end; justify-content: space-between; }
+.mark { font: 400 clamp(28px, 4.4vw, 42px)/1 var(--f-display); color: var(--ketchup); margin: 0; }
+.mark span { color: var(--cloth); font-size: .7em; }
+.stats { display: flex; flex-wrap: wrap; gap: 8px 22px; margin: 0; }
+.stats div { display: grid; }
+dt { font: 700 10px var(--f-mono); letter-spacing: .12em; text-transform: uppercase; color: var(--ink-soft); }
+dd { margin: 0; font: 700 18px var(--f-body); font-variant-numeric: tabular-nums; }
+.play { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 18px; align-items: start; }
+@media (max-width: 880px) { .play { grid-template-columns: 1fr; } }
+.board { position: relative; border-radius: 14px; overflow: hidden; background: var(--grass); box-shadow: 0 12px 30px -20px #00000088; }
+canvas { display: block; width: 100%; aspect-ratio: 13 / 9; touch-action: manipulation; cursor: pointer; }
+.banner {
+  position: absolute; left: 50%; top: 10px; transform: translateX(-50%);
+  max-width: calc(100% - 24px); width: max-content;
+  padding: 7px 14px; border-radius: 99px; background: var(--card); color: var(--ink);
+  font: 500 13px/1.35 var(--f-body); text-align: center; text-wrap: balance;
+  box-shadow: 0 6px 18px -10px #00000099; pointer-events: none;
+}
+.side { display: grid; gap: 12px; }
+.panel { background: var(--card); border-radius: 12px; padding: 14px; display: grid; gap: 10px; }
+.panel h3 { margin: 0; font: 700 11px var(--f-mono); letter-spacing: .12em; text-transform: uppercase; color: var(--ink-soft); }
+.tray { display: grid; gap: 8px; }
+.tool {
+  display: grid; grid-template-columns: 22px 1fr auto; gap: 2px 10px; align-items: center;
+  width: 100%; text-align: left; padding: 9px 10px; border-radius: 10px; cursor: pointer;
+  background: transparent; color: var(--ink); border: 2px solid var(--rule); font: inherit;
+}
+.tool:hover { border-color: var(--ink-soft); }
+.tool[aria-pressed="true"] { border-color: var(--mustard); background: color-mix(in srgb, var(--mustard) 12%, transparent); }
+.tool:disabled { opacity: .45; cursor: not-allowed; }
+.tool .dot { width: 18px; height: 18px; border-radius: 50%; grid-row: span 2; }
+.tool b { font-weight: 700; }
+.tool .cost { font: 700 12px var(--f-mono); color: var(--ink-soft); font-variant-numeric: tabular-nums; }
+.tool small { grid-column: 2 / 4; font-size: 12.5px; color: var(--ink-soft); line-height: 1.35; }
+.kbd { font: 700 10px var(--f-mono); color: var(--ink-soft); border: 1px solid var(--rule); border-radius: 4px; padding: 0 4px; }
+.sel p { margin: 0; font-size: 13.5px; color: var(--ink-soft); }
+.sel .name { font: 400 20px/1.1 var(--f-display); color: var(--ink); }
+.sel ul { margin: 0; padding-left: 18px; font-size: 13.5px; }
+.row { display: flex; gap: 8px; flex-wrap: wrap; }
+button.btn {
+  font: 700 14px var(--f-body); padding: 10px 16px; border-radius: 99px; border: 0; cursor: pointer;
+  background: var(--mustard); color: #20190a; transition: transform .12s;
+}
+button.btn:hover { transform: translateY(-1px); }
+button.btn.ghost { background: transparent; color: var(--ink); box-shadow: inset 0 0 0 2px var(--rule); }
+button.btn.red { background: var(--ketchup); color: #fff; }
+button:focus-visible { outline: 3px solid var(--cloth); outline-offset: 2px; }
+button.btn:disabled { opacity: .5; cursor: not-allowed; transform: none; }
+.rules { margin: 0; padding: 0; list-style: none; display: grid; gap: 6px; font-size: 13px; }
+.rules li { display: grid; grid-template-columns: 14px 1fr; gap: 8px; align-items: start; }
+.rules i { width: 14px; height: 4px; margin-top: 8px; border-radius: 2px; background: var(--leaf); }
+.rules i.bad { background: var(--ketchup); }
+.rules b { font-weight: 700; }
+.log { margin: 0; padding: 0; list-style: none; display: grid; gap: 6px; font: 400 12.5px/1.4 var(--f-mono); color: var(--ink-soft); max-height: 180px; overflow-y: auto; }
+.log li:first-child { color: var(--ink); }
+.next { font-size: 13px; color: var(--ink-soft); margin: 0; }
+.overlay { position: fixed; inset: 0; z-index: 20; display: grid; place-items: center; padding: 20px; background: color-mix(in srgb, var(--page) 78%, transparent); backdrop-filter: blur(3px); }
+.card {
+  position: relative; max-width: 520px; width: 100%; background: var(--card); border-radius: 16px; overflow: hidden;
+  padding: 34px 26px 24px; display: grid; gap: 14px; box-shadow: 0 24px 60px -30px #000000aa;
+}
+/* the gingham hem along the top of every card */
+.card::before {
+  content: ""; position: absolute; inset: 0 0 auto; height: 14px;
+  background:
+    repeating-linear-gradient(90deg, color-mix(in srgb, var(--cloth) 55%, transparent) 0 10px, transparent 10px 20px),
+    repeating-linear-gradient(0deg, color-mix(in srgb, var(--cloth) 55%, transparent) 0 7px, transparent 7px 14px),
+    var(--cloth-white);
+}
+.card .eyebrow { font: 700 11px var(--f-mono); letter-spacing: .14em; text-transform: uppercase; color: var(--ketchup); }
+.card h1 { margin: 0; font: 400 clamp(44px, 9vw, 72px)/.95 var(--f-display); color: var(--ketchup); text-wrap: balance; }
+.card h1 span { color: var(--cloth); }
+.card h2 { margin: 0; font: 400 clamp(26px, 5vw, 34px)/1.05 var(--f-display); color: var(--ink); text-wrap: balance; }
+.card p { margin: 0; color: var(--ink-soft); max-width: 60ch; }
+.card .stat { font: 700 13px var(--f-mono); color: var(--ink); font-variant-numeric: tabular-nums; }
+.keys { font: 400 12px var(--f-mono); color: var(--ink-soft); }
+@media (prefers-reduced-motion: reduce) { button.btn, button.btn:hover { transition: none; transform: none; } .overlay { backdrop-filter: none; } }
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="bar">
+    <h1 class="mark">Aunts <span>vs.</span> Ants</h1>
+    <dl class="stats" aria-live="polite">
+      <div><dt>Wave</dt><dd id="s-wave">0 / 10</dd></div>
+      <div><dt>Sandwiches</dt><dd id="s-sand">14</dd></div>
+      <div><dt id="s-salad-l">Potato salad</dt><dd id="s-salad">20 scoops</dd></div>
+      <div><dt>Turned away</dt><dd id="s-score">0 ants</dd></div>
+    </dl>
+  </header>
+
+  <main class="play">
+    <section class="board">
+      <canvas id="cv" aria-label="Picnic blanket: the crumb trail runs from the anthill on the left to the potato salad"></canvas>
+      <div class="banner" id="banner" hidden></div>
+    </section>
+
+    <aside class="side">
+      <div class="panel" id="build-panel">
+        <h3>Seat an aunt</h3>
+        <div class="tray" id="tray">
+          <button class="tool" id="t-margaret" data-tool="margaret" aria-pressed="true">
+            <span class="dot" style="background:#8e6bb8"></span><b>Aunt Margaret</b><span class="cost">6 <span class="kbd">1</span></span>
+            <small>Swats every ant within reach with the Sunday paper.</small>
+          </button>
+          <button class="tool" id="t-doreen" data-tool="doreen" aria-pressed="false">
+            <span class="dot" style="background:#2f9a8f"></span><b>Aunt Doreen</b><span class="cost">5 <span class="kbd">2</span></span>
+            <small>Asks one ant a personal question. It stops to answer.</small>
+          </button>
+          <button class="tool" id="t-ilse" data-tool="ilse" aria-pressed="false">
+            <span class="dot" style="background:#2e2e2e"></span><b>Great-Aunt Ilse</b><span class="cost">14 <span class="kbd">3</span></span>
+            <small>Devastating, then naps. Only one Ilse per picnic.</small>
+          </button>
+          <button class="tool" id="t-ketchup" data-tool="ketchup" aria-pressed="false">
+            <span class="dot" style="background:#c4342a"></span><b>Ketchup</b><span class="cost">3 <span class="kbd">4</span></span>
+            <small>A puddle on the trail. Ants wade at 40% speed for 20 s.</small>
+          </button>
+        </div>
+        <p class="next" id="next"></p>
+        <div class="row">
+          <button class="btn" id="go">Send in the ants</button>
+          <button class="btn ghost" id="fast">Speed ×1</button>
+        </div>
+      </div>
+
+      <div class="panel" id="plan-panel" hidden>
+        <h3>You lead the ants</h3>
+        <p class="next">Lay up to three crumbs on the blanket. The ants walk the shortest way through them in order, around the aunts. Red squares are within an aunt's reach. If Doreen can see Pauline, she questions Pauline instead of the ants.</p>
+        <p class="next" id="plan-status"></p>
+        <div class="row">
+          <button class="btn red" id="march">March</button>
+          <button class="btn ghost" id="clear">Clear crumbs</button>
+        </div>
+      </div>
+
+      <div class="panel sel" id="sel"></div>
+
+      <div class="panel">
+        <h3>Gossip rules</h3>
+        <ul class="rules">
+          <li><i></i><span><b>Margaret + Margaret</b> agree about everything. Both swat 25% harder.</span></li>
+          <li><i></i><span><b>Doreen + Doreen</b> compare notes. Their questions last 50% longer.</span></li>
+          <li><i class="bad"></i><span><b>Margaret + Doreen</b> bicker about the coleslaw. Both are 30% slower.</span></li>
+          <li><i></i><span><b>Anyone + Ilse</b> is on best behaviour, 20% faster. Ilse finds it dull and naps 2 s longer.</span></li>
+        </ul>
+        <p class="next">Only aunts side by side gossip, never diagonally.</p>
+      </div>
+
+      <div class="panel">
+        <h3>Picnic gossip</h3>
+        <ol class="log" id="log"></ol>
+      </div>
+    </aside>
+  </main>
+</div>
+
+<div class="overlay" id="title">
+  <div class="card">
+    <div class="eyebrow">a picnic in ten waves</div>
+    <h1>Aunts <span>vs.</span> Ants</h1>
+    <p>The ants want the potato salad. All you have is a picnic blanket and your aunts. Seat them beside the crumb trail. Aunts sitting next to each other gossip, and the gossip changes how they swat.</p>
+    <p class="keys">tap or click a square to seat an aunt · tap an aunt to upgrade her · keys 1–4 pick, arrows + Enter place, U upgrade, Space starts a wave, F speed</p>
+    <div class="row"><button class="btn" id="start">Lay out the blanket</button></div>
+  </div>
+</div>
+
+<div class="overlay" id="story" hidden>
+  <div class="card">
+    <div class="eyebrow" id="st-eye"></div>
+    <h2 id="st-title"></h2>
+    <p id="st-body"></p>
+    <div class="stat" id="st-stat"></div>
+    <div class="row"><button class="btn" id="st-btn"></button></div>
+  </div>
+</div>
+
+<script>
+const $ = s => document.querySelector(s);
+const cv = $('#cv'), ctx = cv.getContext('2d');
+const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const COLS = 12, ROWS = 8, OX = .5, OY = .5, NEED = 6, FINAL_ANTS = 16;
+
+// The crumb trail: anthill (left) to potato salad, as cell waypoints.
+const WAYPTS = [[-0.6, 1], [3, 1], [3, 6], [7, 6], [7, 2], [10, 2], [10, 5], [11, 5]];
+const SALAD = { c: 11, r: 5 }, START = { c: 0, r: 1 };
+const PATH_CELLS = new Set();
+for (let i = 1; i < WAYPTS.length; i++) {
+  let [c0, r0] = WAYPTS[i - 1]; const [c1, r1] = WAYPTS[i];
+  c0 = Math.max(0, Math.round(c0));
+  for (let c = Math.min(c0, c1); c <= Math.max(c0, c1); c++) for (let r = Math.min(r0, r1); r <= Math.max(r0, r1); r++) PATH_CELLS.add(c + ',' + r);
+}
+const TRAIL = WAYPTS.map(([c, r]) => ({ x: c + .5, y: r + .5 }));
+
+const AUNTS = {
+  margaret: { cost: 6, name: 'Aunt Margaret', range: 1.6, rate: 1.6, dmg: 3, dress: '#8e6bb8', hair: '#c9c3bc' },
+  doreen: { cost: 5, name: 'Aunt Doreen', range: 2.2, rate: 2.0, dmg: 1, stun: 1.4, dress: '#2f9a8f', hair: '#6b4a2f' },
+  ilse: { cost: 14, name: 'Great-Aunt Ilse', range: 2.6, rate: .9, dmg: 9, awake: 6, nap: 6, dress: '#3a3a3a', hair: '#1c1c1c' },
+  ketchup: { cost: 3, name: 'Ketchup' },
+};
+const ANTS = {
+  worker: { hp: 6, speed: 1.0, reward: 1, harm: 1, size: .15, body: '#4a2e1c' },
+  soldier: { hp: 16, speed: .75, reward: 2, harm: 2, size: .2, body: '#1f1612' },
+  hat: { hp: 9, speed: 1.1, reward: 2, harm: 1, size: .16, body: '#5a3622', hat: true },
+  queen: { hp: 60, speed: .45, reward: 10, harm: 5, size: .28, body: '#3b1f14' },
+  lawyer: { hp: 12, speed: .45, reward: 3, harm: 1, size: .17, body: '#2b211b' },
+  pauline: { hp: 1, speed: 1.0, reward: 0, harm: 0, size: .2 },
+};
+const WAVES = [
+  { g: [['worker', 8, .9]], note: 'Worker ants. Polite, numerous, and after the potato salad.' },
+  { g: [['worker', 12, .75]], note: 'More worker ants. Someone has told the colony.' },
+  { g: [['worker', 8, .8], ['soldier', 4, 1.2]], note: 'Soldier ants. Tougher, slower, and they eat two scoops each.' },
+  { g: [['worker', 6, .8], ['hat', 6, .9]], note: 'Ants in tiny hats. It is rude to answer questions in a hat, so Doreen cannot stop them.' },
+  { g: [['soldier', 10, 1.1]], note: 'A column of soldiers. Margaret has rolled up the Sunday paper.' },
+  { g: [['hat', 10, .8], ['soldier', 6, 1.1]], note: 'Hats and soldiers. The hats were a gift from the soldiers.' },
+  { g: [['worker', 8, .7], ['queen', 1, 1.5], ['worker', 4, .7]], note: 'The queen, with her lawyer. While the lawyer lives, the queen takes half damage.' },
+  { g: [['worker', 6, .6], ['hat', 5, .7], ['soldier', 5, 1]], note: 'Everyone, quickly.' },
+  { g: [['soldier', 8, .9], ['hat', 8, .7], ['worker', 8, .6]], note: 'A great many ants. Ilse has woken up specially.' },
+  { g: [['queen', 1, 2], ['soldier', 10, .9], ['queen', 1, 2]], note: 'Two queens, each with her own lawyer. Lawyers are cheap this time of year.' },
+];
+const GOSSIP = {
+  agree: 'Two Margarets agree about everything. Both swat 25% harder.',
+  notes: 'Two Doreens are comparing notes. Their questions last 50% longer.',
+  bicker: 'Margaret and Doreen are bickering about the coleslaw. Both are 30% slower.',
+  behave: 'Someone is on best behaviour next to Ilse: 20% faster. Ilse naps 2 s longer.',
+};
+const QUESTIONS = [
+  'Doreen asks an ant whether it is seeing anyone.',
+  'Doreen asks an ant what it actually does, for work.',
+  'Doreen asks an ant when it will settle down in a nicer anthill.',
+  'Doreen asks an ant if that is what it is wearing.',
+  'Doreen asks an ant whether its mother knows it is here.',
+  'Doreen tells an ant it looks thinner, and asks if it is eating.',
+  'Doreen asks an ant why there are so many of them.',
+];
+
+let cs = 40, DPR = 1, T = {};
+function readTokens() {
+  const g = getComputedStyle(document.documentElement);
+  for (const k of ['grass', 'grass-deep', 'cloth', 'cloth-white', 'crumb', 'ink', 'ink-soft', 'mustard', 'ketchup', 'leaf', 'card']) T[k] = g.getPropertyValue('--' + k).trim();
+}
+function resize() {
+  const w = cv.clientWidth;
+  if (!w) return;
+  cs = w / (COLS + 1);
+  DPR = Math.min(2, devicePixelRatio || 1);
+  cv.width = Math.round(w * DPR); cv.height = Math.round(cs * (ROWS + 1) * DPR);
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  readTokens();
+}
+new ResizeObserver(resize).observe(cv);
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', readTokens);
+new MutationObserver(readTokens).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+
+let S, best = 0;
+function fresh() {
+  return {
+    mode: 'title', t: 0, wave: 0, sand: 14, scoops: 20, score: 0, made: 14,
+    aunts: [], ants: [], puddles: [], links: [], pops: [], spawnQ: [], spawnT: 0, nid: 0,
+    tool: 'margaret', sel: null, cur: { c: 5, r: 3 }, kbd: false, hover: null, speed: 1,
+    crumbs: [], route: null, danger: null, attempts: 0, delivered: 0, lost: 0,
+    pts: TRAIL, cum: [0], total: 0,
+  };
+}
+
+function setPath(pts) {
+  S.pts = pts; S.cum = [0];
+  for (let i = 1; i < pts.length; i++) S.cum.push(S.cum[i - 1] + Math.hypot(pts[i].x - pts[i - 1].x, pts[i].y - pts[i - 1].y));
+  S.total = S.cum[S.cum.length - 1];
+}
+function posAt(d) {
+  d = Math.max(0, Math.min(d, S.total));
+  let i = 1;
+  while (i < S.cum.length - 1 && S.cum[i] < d) i++;
+  const a = S.pts[i - 1], b = S.pts[i], seg = S.cum[i] - S.cum[i - 1];
+  const t = seg ? (d - S.cum[i - 1]) / seg : 0;
+  return { x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t };
+}
+
+const isPath = (c, r) => PATH_CELLS.has(c + ',' + r);
+const auntAt = (c, r) => S.aunts.find(a => a.c === c && a.r === r);
+const puddleAt = (c, r) => S.puddles.find(p => p.c === c && p.r === r);
+// Final march: the family's attack interval multiplier (and its growth per failed march), and ant health.
+const MARCH = { slow: 2.5, step: 1, hp: 3.5 };
+const fam = () => S.mode === 'march' ? MARCH.slow + MARCH.step * S.attempts : 1;
+
+function st(a) {
+  const b = AUNTS[a.type], L = a.lvl - 1, m = a.mods;
+  return {
+    range: b.range + .35 * L, dmg: b.dmg * Math.pow(1.5, L) * m.dmg, rate: b.rate * m.rate * fam(),
+    stun: ((b.stun || 0) + .4 * L) * m.stun, awake: (b.awake || 0) + 1.5 * L, nap: (b.nap || 0) + m.nap,
+  };
+}
+function upCost(a) { const c = AUNTS[a.type].cost; return a.lvl === 1 ? c : Math.round(c * 1.5); }
+
+function gossip() {
+  for (const a of S.aunts) a.mods = { dmg: 1, rate: 1, stun: 1, nap: 0 };
+  const links = [];
+  for (const a of S.aunts) for (const b of S.aunts) {
+    if (!((b.c === a.c + 1 && b.r === a.r) || (b.r === a.r + 1 && b.c === a.c))) continue;
+    const k = [a.type, b.type].sort().join('+');
+    let kind = null;
+    if (k === 'margaret+margaret') { kind = 'agree'; a.mods.dmg *= 1.25; b.mods.dmg *= 1.25; }
+    else if (k === 'doreen+doreen') { kind = 'notes'; a.mods.stun *= 1.5; b.mods.stun *= 1.5; }
+    else if (k === 'doreen+margaret') { kind = 'bicker'; a.mods.rate *= 1.3; b.mods.rate *= 1.3; }
+    else if (a.type === 'ilse' || b.type === 'ilse') {
+      kind = 'behave';
+      const il = a.type === 'ilse' ? a : b, o = il === a ? b : a;
+      o.mods.rate *= .8; il.mods.nap += 2;
+    }
+    if (kind) links.push({ a, b, kind, key: `${a.c},${a.r}-${b.c},${b.r}-${kind}` });
+  }
+  const old = new Set(S.links.map(l => l.key));
+  for (const l of links) if (!old.has(l.key)) log(GOSSIP[l.kind]);
+  S.links = links;
+}
+
+function log(msg) {
+  const li = document.createElement('li');
+  li.textContent = msg;
+  const ol = $('#log');
+  ol.prepend(li);
+  while (ol.children.length > 12) ol.lastChild.remove();
+}
+let bannerT = 0;
+function flash(msg, secs = 3.2) { const b = $('#banner'); b.textContent = msg; b.hidden = false; bannerT = secs; }
+function pop(x, y, text, col) { S.pops.push({ x, y, text, col, t: 1 }); }
+
+function hud() {
+  const plan = S.mode === 'plan' || S.mode === 'march';
+  $('#s-wave').textContent = plan ? '11 / 10' : `${S.wave} / 10`;
+  $('#s-sand').textContent = S.sand;
+  $('#s-salad-l').textContent = plan ? 'Ants delivered' : 'Potato salad';
+  $('#s-salad').textContent = plan ? `${S.delivered} of ${NEED} needed` : `${Math.max(0, S.scoops)} scoop${S.scoops === 1 ? '' : 's'}`;
+  $('#s-score').textContent = `${S.score} ant${S.score === 1 ? '' : 's'}`;
+  for (const k of Object.keys(AUNTS)) {
+    const b = $('#t-' + k);
+    b.setAttribute('aria-pressed', String(S.tool === k));
+    b.disabled = k === 'ilse' && S.aunts.some(a => a.type === 'ilse');
+  }
+  $('#go').disabled = S.mode !== 'build';
+  $('#go').textContent = S.mode === 'wave' ? `Wave ${S.wave} under way` : S.wave >= 10 ? 'Something is coming' : 'Send in the ants';
+  $('#fast').textContent = `Speed ×${S.speed}`;
+  $('#next').textContent = S.mode === 'build' && S.wave < 10 ? `Next, wave ${S.wave + 1}: ${WAVES[S.wave].note}` : S.mode === 'wave' ? WAVES[S.wave - 1].note : '';
+  $('#build-panel').hidden = plan;
+  $('#plan-panel').hidden = !plan;
+  if (plan) {
+    $('#plan-status').textContent = S.mode === 'march' ? `Marching. ${S.delivered} delivered, ${S.lost} squashed. ${NEED} of ${FINAL_ANTS} must reach the salad.`
+      : `Crumbs laid: ${S.crumbs.length} of 3. ${S.route ? `Route: ${S.route.length} squares.` : 'No way through. Move a crumb.'} Pauline's stories slow your family by ${Math.round((MARCH.slow - 1 + MARCH.step * S.attempts) * 100)}%.`;
+    $('#march').disabled = S.mode !== 'plan' || !S.route;
+    $('#clear').disabled = S.mode !== 'plan';
+  }
+}
+
+function renderSel() {
+  const el = $('#sel'), a = S.sel;
+  if (!a || !S.aunts.includes(a) || S.mode === 'plan' || S.mode === 'march') {
+    el.innerHTML = '<h3>Selected aunt</h3><p>Tap an aunt on the blanket to upgrade her or send her home. Upgrades add 50% punch and a little more reach, up to level 3.</p>';
+    return;
+  }
+  const s = st(a), b = AUNTS[a.type], lines = [`Reach: ${s.range.toFixed(2)} squares`];
+  if (a.type === 'margaret') lines.push(`Swats every ant in reach for ${s.dmg.toFixed(1)}, every ${s.rate.toFixed(2)} s`);
+  if (a.type === 'doreen') lines.push(`Questions last ${s.stun.toFixed(1)} s, one every ${s.rate.toFixed(2)} s`);
+  if (a.type === 'ilse') lines.push(`Hits for ${s.dmg.toFixed(1)} every ${s.rate.toFixed(2)} s`, `Awake ${s.awake.toFixed(1)} s, naps ${s.nap.toFixed(1)} s`);
+  const g = S.links.filter(l => l.a === a || l.b === a).map(l => ({ agree: 'Agreeing with a Margaret', notes: 'Comparing notes with a Doreen', bicker: 'Bickering about the coleslaw', behave: a.type === 'ilse' ? 'Bored by good behaviour' : 'On best behaviour near Ilse' })[l.kind]);
+  if (g.length) lines.push('Gossip: ' + g.join('; '));
+  const cost = upCost(a), refund = Math.floor(a.spent / 2);
+  el.innerHTML = `<h3>Selected aunt</h3><div class="name">${b.name}</div><p>Level ${a.lvl} of 3</p><ul>${lines.map(l => `<li>${l}</li>`).join('')}</ul>
+    <div class="row">${a.lvl < 3 ? `<button class="btn" id="up">Upgrade · ${cost} <span class="kbd">U</span></button>` : '<p>Fully upgraded.</p>'}
+    <button class="btn ghost" id="home">Send home · +${refund}</button></div>`;
+  $('#up')?.addEventListener('click', () => upgrade(a));
+  $('#home').addEventListener('click', () => sendHome(a));
+}
+
+function upgrade(a) {
+  if (!a || a.lvl >= 3) return;
+  const c = upCost(a);
+  if (S.sand < c) return flash(`That upgrade costs ${c} sandwiches. You have ${S.sand}.`);
+  S.sand -= c; a.spent += c; a.lvl++;
+  log(`${AUNTS[a.type].name} is now level ${a.lvl}.`);
+  renderSel(); hud();
+}
+function sendHome(a) {
+  if (!a) return;
+  const refund = Math.floor(a.spent / 2);
+  S.sand += refund;
+  S.aunts = S.aunts.filter(x => x !== a);
+  S.sel = null;
+  log(`${AUNTS[a.type].name} goes home early and leaves ${refund} sandwiches.`);
+  gossip(); renderSel(); hud();
+}
+
+function clickCell(c, r) {
+  if (c < 0 || r < 0 || c >= COLS || r >= ROWS) return;
+  S.cur = { c, r };
+  if (S.mode === 'plan') return toggleCrumb(c, r);
+  if (S.mode !== 'build' && S.mode !== 'wave') return;
+  const a = auntAt(c, r);
+  if (a) { S.sel = a; renderSel(); return; }
+  const tool = S.tool, def = AUNTS[tool];
+  if (tool === 'ketchup') {
+    if (!isPath(c, r) || (c === SALAD.c && r === SALAD.r)) return flash('Ketchup goes on the crumb trail.');
+    if (puddleAt(c, r)) return flash('There is already ketchup there.');
+    if (S.sand < def.cost) return flash(`Ketchup costs ${def.cost} sandwiches. You have ${S.sand}.`);
+    S.sand -= def.cost; S.puddles.push({ c, r, t: 20 }); hud();
+    return;
+  }
+  if (isPath(c, r)) return flash('Aunts will not sit on the crumb trail. They have standards.');
+  if (tool === 'ilse' && S.aunts.some(x => x.type === 'ilse')) return flash('There is only one Great-Aunt Ilse.');
+  if (S.sand < def.cost) return flash(`${def.name} costs ${def.cost} sandwiches. You have ${S.sand}.`);
+  S.sand -= def.cost;
+  const n = { type: tool, c, r, lvl: 1, spent: def.cost, cd: 0, swing: 0, bubble: 0, awake: true, phaseT: 0, shot: null, mods: { dmg: 1, rate: 1, stun: 1, nap: 0 } };
+  S.aunts.push(n); S.sel = n;
+  gossip(); renderSel(); hud();
+}
+
+function startWave() {
+  if (S.mode !== 'build' || S.wave >= 10) return;
+  const w = WAVES[S.wave];
+  S.wave++;
+  S.spawnQ = [];
+  for (const [kind, count, gap] of w.g) for (let i = 0; i < count; i++) {
+    S.spawnQ.push({ kind, gap });
+    if (kind === 'queen') S.spawnQ.push({ kind: 'lawyer', gap: .9 });
+  }
+  S.spawnT = .6;
+  S.mode = 'wave';
+  flash(`Wave ${S.wave}. ${w.note}`, 4.5);
+  log(`Wave ${S.wave}: ${w.note}`);
+  hud();
+}
+
+let lastQueen = null;
+function spawn(s) {
+  const K = ANTS[s.kind];
+  const scale = S.mode === 'march' ? MARCH.hp : 1 + .12 * (S.wave - 1);
+  const n = { id: ++S.nid, kind: s.kind, hp: K.hp * scale, maxhp: K.hp * scale, d: 0, stun: 0, alive: true, x: S.pts[0].x, y: S.pts[0].y, ang: 0, obj: -9 };
+  if (s.kind === 'queen') lastQueen = n;
+  if (s.kind === 'lawyer' && lastQueen) { lastQueen.lawyer = n.id; }
+  S.ants.push(n);
+}
+function lawyerAlive(q) { return q.lawyer && S.ants.some(n => n.id === q.lawyer && n.alive); }
+
+function hurt(n, amt) {
+  if (!n.alive) return;
+  if (n.kind === 'queen' && lawyerAlive(n)) {
+    amt *= .5;
+    if (S.t - n.obj > 1.2) { n.obj = S.t; pop(n.x, n.y - .35, 'Objection!', T.mustard); }
+  }
+  n.hp -= amt;
+  if (n.hp <= 0) {
+    n.alive = false;
+    if (S.mode === 'march') { S.lost++; return; }
+    const R = ANTS[n.kind].reward;
+    S.sand += R; S.made += R; S.score++;
+    pop(n.x, n.y - .2, '+' + R, T.leaf);
+  }
+}
+function reach(n) {
+  n.alive = false;
+  if (S.mode === 'march') { if (n.kind !== 'pauline') { S.delivered++; pop(n.x, n.y - .3, 'yum', T.leaf); } return; }
+  const h = ANTS[n.kind].harm;
+  S.scoops -= h;
+  pop(n.x, n.y - .3, `-${h} scoop${h > 1 ? 's' : ''}`, T.ketchup);
+  if (S.scoops <= 0) gameOver();
+}
+
+function auntsAct(dt) {
+  for (const a of S.aunts) {
+    a.swing = Math.max(0, a.swing - dt);
+    a.bubble = Math.max(0, a.bubble - dt);
+    if (a.shot) { a.shot.t -= dt; if (a.shot.t <= 0) a.shot = null; }
+    const s = st(a), cx = a.c + .5, cy = a.r + .5;
+    if (a.type === 'ilse') {
+      a.phaseT += dt;
+      if (a.awake && a.phaseT >= s.awake) { a.awake = false; a.phaseT = 0; }
+      else if (!a.awake && a.phaseT >= s.nap) { a.awake = true; a.phaseT = 0; }
+      if (!a.awake) continue;
+    }
+    a.cd -= dt;
+    if (a.cd > 0) continue;
+    const inR = S.ants.filter(n => n.alive && n.kind !== 'pauline' && Math.hypot(n.x - cx, n.y - cy) <= s.range);
+    if (a.type === 'margaret') {
+      if (!inR.length) continue;
+      for (const n of inR) hurt(n, s.dmg);
+      a.swing = .35; a.cd = s.rate;
+    } else if (a.type === 'doreen') {
+      let tgt = null;
+      if (S.mode === 'march') tgt = S.ants.find(n => n.alive && n.kind === 'pauline' && Math.hypot(n.x - cx, n.y - cy) <= s.range) || null;
+      if (!tgt) tgt = inR.filter(n => !ANTS[n.kind].hat && n.stun <= 0).sort((p, q) => q.d - p.d)[0];
+      if (!tgt) continue;
+      tgt.stun = s.stun;
+      if (tgt.kind === 'pauline') { if (Math.random() < .3) log('Doreen asks Pauline where on earth she has been since 1998.'); }
+      else { hurt(tgt, s.dmg); if (Math.random() < .25) log(QUESTIONS[Math.floor(Math.random() * QUESTIONS.length)]); }
+      a.bubble = .9; a.cd = s.rate;
+    } else if (a.type === 'ilse') {
+      const tgt = inR.sort((p, q) => q.d - p.d)[0];
+      if (!tgt) continue;
+      hurt(tgt, s.dmg);
+      a.swing = .25; a.cd = s.rate; a.shot = { x: tgt.x, y: tgt.y, t: .18 };
+    }
+  }
+}
+
+function update(dt) {
+  S.t += dt;
+  if (S.mode === 'wave' || S.mode === 'march') {
+    if (S.spawnQ.length) {
+      S.spawnT -= dt;
+      if (S.spawnT <= 0) { const s = S.spawnQ.shift(); spawn(s); S.spawnT = S.spawnQ.length ? S.spawnQ[0].gap : 0; }
+    }
+    for (const n of S.ants) {
+      if (!n.alive) continue;
+      if (n.stun > 0) { n.stun -= dt; continue; }
+      const cell = { c: Math.floor(n.x), r: Math.floor(n.y) };
+      const mul = S.mode === 'wave' && puddleAt(cell.c, cell.r) ? .4 : 1;
+      n.d += ANTS[n.kind].speed * mul * dt;
+      const p = posAt(n.d), q = posAt(n.d + .05);
+      n.x = p.x; n.y = p.y;
+      if (q.x !== p.x || q.y !== p.y) n.ang = Math.atan2(q.y - p.y, q.x - p.x);
+      if (n.d >= S.total) reach(n);
+      if (S.mode === 'over') return;
+    }
+    auntsAct(dt);
+    S.ants = S.ants.filter(n => n.alive);
+    for (const p of S.puddles) p.t -= dt;
+    S.puddles = S.puddles.filter(p => p.t > 0);
+    if (S.mode === 'wave' && !S.spawnQ.length && !S.ants.length) waveCleared();
+    if (S.mode === 'march' && !S.spawnQ.length && !S.ants.some(n => n.kind !== 'pauline')) marchOver();
+  } else {
+    for (const a of S.aunts) { a.swing = Math.max(0, a.swing - dt); a.bubble = Math.max(0, a.bubble - dt); }
+  }
+  for (const p of S.pops) { p.t -= dt; p.y -= dt * .5; }
+  S.pops = S.pops.filter(p => p.t > 0);
+}
+
+function waveCleared() {
+  if (S.wave >= 10) { S.mode = 'cut'; hud(); return storyIntro(); }
+  const bonus = 3;
+  S.sand += bonus; S.made += bonus;
+  S.mode = 'build';
+  log(`Wave ${S.wave} cleared. The aunts make ${bonus} more sandwiches.`);
+  flash(`Wave ${S.wave} cleared. +${bonus} sandwiches. Next: ${WAVES[S.wave].note}`, 4);
+  hud();
+}
+
+function story(steps, done) {
+  let i = 0;
+  const show = () => {
+    const s = steps[i];
+    $('#st-eye').textContent = s.eye || '';
+    $('#st-title').textContent = s.title;
+    $('#st-body').textContent = s.body;
+    $('#st-stat').textContent = s.stat || '';
+    $('#st-stat').hidden = !s.stat;
+    $('#st-btn').textContent = s.btn;
+    $('#story').hidden = false;
+    $('#st-btn').focus();
+  };
+  $('#st-btn').onclick = () => { i++; if (i < steps.length) show(); else { $('#story').hidden = true; done(); } };
+  show();
+}
+
+function storyIntro() {
+  story([
+    { eye: 'Wave 11', title: 'The ants have brought an aunt.', body: 'She is very small and is wearing a cardigan the ants knitted for her.', btn: 'Look closer' },
+    { eye: 'Wave 11', title: 'It is Aunt Pauline.', body: 'Your Aunt Pauline. She went to fetch more napkins in 1998. She says the ants have been very kind to her, and she would like some potato salad.', btn: 'Oh no' },
+    { eye: 'Wave 11 · switch sides', title: 'Lead the ants to the salad.', body: `Your own family is still on the blanket. Lay up to three crumbs to steer the column round them. ${NEED} of ${FINAL_ANTS} ants must reach the salad. The aunts will not touch Pauline.`, btn: 'Switch sides' },
+  ], enterPlan);
+}
+
+function enterPlan() {
+  S.mode = 'plan';
+  S.ants = []; S.spawnQ = []; S.puddles = []; S.sel = null;
+  S.delivered = 0; S.lost = 0;
+  const danger = {};
+  for (let c = 0; c < COLS; c++) for (let r = 0; r < ROWS; r++) {
+    let n = 0;
+    for (const a of S.aunts) if (Math.hypot(c + .5 - a.c - .5, r + .5 - a.r - .5) <= st(a).range) n++;
+    danger[c + ',' + r] = n;
+  }
+  S.danger = danger;
+  S.route = planRoute();
+  renderSel(); hud();
+  flash('Tap squares to lay crumbs, then March.', 4);
+}
+
+function bfs(from, to) {
+  const key = (c, r) => c + ',' + r, prev = new Map([[key(from.c, from.r), null]]), q = [from];
+  while (q.length) {
+    const cur = q.shift();
+    if (cur.c === to.c && cur.r === to.r) {
+      const out = []; let k = key(cur.c, cur.r);
+      while (k) { const [c, r] = k.split(',').map(Number); out.unshift({ c, r }); k = prev.get(k); }
+      return out;
+    }
+    for (const [dc, dr] of [[1, 0], [0, 1], [-1, 0], [0, -1]]) {
+      const c = cur.c + dc, r = cur.r + dr, k = key(c, r);
+      if (c < 0 || r < 0 || c >= COLS || r >= ROWS || prev.has(k) || auntAt(c, r)) continue;
+      prev.set(k, key(cur.c, cur.r)); q.push({ c, r });
+    }
+  }
+  return null;
+}
+function planRoute() {
+  const stops = [START, ...S.crumbs, SALAD];
+  let cells = [];
+  for (let i = 1; i < stops.length; i++) {
+    const seg = bfs(stops[i - 1], stops[i]);
+    if (!seg) return null;
+    cells = cells.concat(i > 1 ? seg.slice(1) : seg);
+  }
+  return cells;
+}
+function toggleCrumb(c, r) {
+  if (auntAt(c, r)) return flash('That square has an aunt on it. Ants walk round aunts.');
+  if ((c === START.c && r === START.r) || (c === SALAD.c && r === SALAD.r)) return;
+  const i = S.crumbs.findIndex(k => k.c === c && k.r === r);
+  if (i >= 0) S.crumbs.splice(i, 1);
+  else if (S.crumbs.length >= 3) return flash('Three crumbs is all Pauline brought. Tap a crumb to pick it up.');
+  else S.crumbs.push({ c, r });
+  S.route = planRoute();
+  hud();
+}
+function march() {
+  if (S.mode !== 'plan' || !S.route) return;
+  setPath([{ x: -.1, y: START.r + .5 }, ...S.route.map(k => ({ x: k.c + .5, y: k.r + .5 }))]);
+  S.spawnQ = [];
+  for (let i = 0; i < FINAL_ANTS; i++) {
+    S.spawnQ.push({ kind: 'worker', gap: .55 });
+    if (i === 4) S.spawnQ.push({ kind: 'pauline', gap: .55 });
+  }
+  for (const a of S.aunts) { a.cd = 0; a.awake = true; a.phaseT = 0; }
+  S.delivered = 0; S.lost = 0; S.spawnT = .5;
+  S.mode = 'march';
+  log('The ants set off, with Pauline in the middle of the column.');
+  hud();
+}
+function marchOver() {
+  S.ants = [];
+  if (S.delivered >= NEED) return ending();
+  S.mode = 'cut';
+  S.attempts++;
+  hud();
+  story([{ eye: 'Wave 11', title: `Only ${S.delivered} ant${S.delivered === 1 ? '' : 's'} made it.`, body: `Pauline needs ${NEED}. The rest of the family is getting distracted by Pauline's stories, so they will be slower next time. Your crumbs are where you left them.`, btn: 'Plan another route' }], () => { setPath(TRAIL); enterPlan(); });
+}
+function ending() {
+  S.mode = 'end';
+  best = Math.max(best, S.score);
+  hud();
+  story([
+    { eye: 'The end of the picnic', title: 'Pauline has her potato salad.', body: 'The ants ate the rest. Margaret and Doreen agree, for the first time in forty years, that this is your fault. Ilse slept through it.', btn: 'And then' },
+    { eye: 'The end of the picnic', title: 'Pauline is staying with the ants.', body: 'She says they listen. She asks whether you are seeing anyone.', stat: `Ants turned away: ${S.score} · Sandwiches made: ${S.made} · Ants delivered: ${S.delivered} · Routes tried: ${S.attempts + 1}`, btn: 'Picnic again' },
+  ], begin);
+}
+function gameOver() {
+  S.mode = 'over';
+  best = Math.max(best, S.score);
+  hud();
+  story([{ eye: `Wave ${S.wave}`, title: 'The ants have the potato salad.', body: 'Margaret blames Doreen. Doreen blames the weather. Ilse is asleep.', stat: `Ants turned away: ${S.score} · Sandwiches made: ${S.made} · Best: ${best}`, btn: 'Picnic again' }], begin);
+}
+
+function draw() {
+  const W = cv.clientWidth, H = cs * (ROWS + 1);
+  if (!W) return;
+  const X = c => (c + OX) * cs, Y = r => (r + OY) * cs;
+  ctx.fillStyle = T.grass; ctx.fillRect(0, 0, W, H);
+  ctx.fillStyle = T['grass-deep'];
+  for (let i = 0; i < 140; i++) {
+    const gx = (i * 97.13 % 1) * W, gy = (i * 61.7 % 1) * H;
+    ctx.fillRect(gx, gy, 1.5, 4);
+  }
+  // gingham: a stripe colour laid over alternate rows and columns, darker where they cross
+  ctx.fillStyle = T['cloth-white'];
+  ctx.fillRect(X(0), Y(0), COLS * cs, ROWS * cs);
+  ctx.fillStyle = T.cloth;
+  for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) {
+    const n = (r % 2) + (c % 2);
+    if (!n) continue;
+    ctx.globalAlpha = n === 2 ? .62 : .3;
+    ctx.fillRect(X(c), Y(r), cs, cs);
+  }
+  ctx.globalAlpha = 1;
+
+  if (S.mode === 'plan' && S.danger) {
+    for (let c = 0; c < COLS; c++) for (let r = 0; r < ROWS; r++) {
+      const n = S.danger[c + ',' + r];
+      if (!n) continue;
+      ctx.fillStyle = T.ketchup; ctx.globalAlpha = Math.min(.55, .16 * n);
+      ctx.fillRect(X(c), Y(r), cs, cs);
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  const showTrail = S.mode !== 'plan' && S.mode !== 'march';
+  if (showTrail) {
+    ctx.fillStyle = T.crumb;
+    for (const k of PATH_CELLS) {
+      const [c, r] = k.split(',').map(Number);
+      ctx.globalAlpha = .45; ctx.fillRect(X(c) + cs * .12, Y(r) + cs * .12, cs * .76, cs * .76);
+      ctx.globalAlpha = 1;
+      for (let i = 0; i < 5; i++) {
+        const h = (c * 7 + r * 13 + i * 5) % 11 / 11, v = (c * 3 + r * 5 + i * 7) % 13 / 13;
+        ctx.beginPath(); ctx.arc(X(c) + cs * (.2 + h * .6), Y(r) + cs * (.2 + v * .6), cs * .035, 0, 7); ctx.fill();
+      }
+    }
+  }
+  for (const p of S.puddles) {
+    ctx.globalAlpha = Math.min(1, p.t / 6) * .85;
+    ctx.fillStyle = T.ketchup;
+    const cx = X(p.c) + cs / 2, cy = Y(p.r) + cs / 2;
+    ctx.beginPath();
+    for (let i = 0; i <= 10; i++) {
+      const a = i / 10 * Math.PI * 2, rr = cs * (.3 + .07 * Math.sin(i * 2.3 + p.c));
+      ctx.lineTo(cx + Math.cos(a) * rr, cy + Math.sin(a) * rr);
+    }
+    ctx.fill();
+    ctx.globalAlpha = 1;
+  }
+
+  if (S.mode === 'plan' && S.route) {
+    ctx.strokeStyle = T.mustard; ctx.lineWidth = Math.max(2, cs * .07); ctx.setLineDash([cs * .12, cs * .12]);
+    ctx.beginPath(); ctx.moveTo(X(-.6), Y(START.r + .5));
+    for (const k of S.route) ctx.lineTo(X(k.c + .5), Y(k.r + .5));
+    ctx.stroke(); ctx.setLineDash([]);
+  }
+  if (S.mode === 'plan' || S.mode === 'march') {
+    S.crumbs.forEach((k, i) => {
+      const cx = X(k.c + .5), cy = Y(k.r + .5);
+      ctx.fillStyle = T.crumb; ctx.beginPath(); ctx.arc(cx, cy, cs * .26, 0, 7); ctx.fill();
+      ctx.fillStyle = T.ink; ctx.font = `700 ${Math.round(cs * .3)}px Karla, system-ui, sans-serif`;
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(String(i + 1), cx, cy + 1);
+    });
+  }
+
+  // anthill in the grass, potato salad on the blanket
+  ctx.fillStyle = '#8a5a34';
+  ctx.beginPath(); ctx.ellipse(X(-.15), Y(START.r + .5), cs * .38, cs * .3, 0, 0, 7); ctx.fill();
+  ctx.fillStyle = '#5b3a20'; ctx.beginPath(); ctx.arc(X(-.15), Y(START.r + .5), cs * .08, 0, 7); ctx.fill();
+  drawSalad(X(SALAD.c + .5), Y(SALAD.r + .5));
+
+  for (const l of S.links) {
+    const x1 = X(l.a.c + .5), y1 = Y(l.a.r + .5), x2 = X(l.b.c + .5), y2 = Y(l.b.r + .5);
+    ctx.lineWidth = Math.max(2, cs * .06);
+    if (l.kind === 'bicker') {
+      ctx.strokeStyle = T.ketchup; ctx.beginPath();
+      for (let i = 0; i <= 8; i++) {
+        const t = i / 8, off = (i % 2 ? 1 : -1) * cs * .08 * (i && i < 8 ? 1 : 0);
+        const px = x1 + (x2 - x1) * t + (y2 - y1 ? off : 0), py = y1 + (y2 - y1) * t + (x2 - x1 ? off : 0);
+        i ? ctx.lineTo(px, py) : ctx.moveTo(px, py);
+      }
+      ctx.stroke();
+    } else {
+      ctx.strokeStyle = T.leaf; ctx.setLineDash([cs * .08, cs * .08]);
+      ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke(); ctx.setLineDash([]);
+    }
+  }
+
+  const hov = S.kbd ? S.cur : S.hover;
+  if (hov && (S.mode === 'build' || S.mode === 'wave')) {
+    const a = auntAt(hov.c, hov.r);
+    const range = a ? st(a).range : S.tool !== 'ketchup' ? AUNTS[S.tool].range : 0;
+    if (range) {
+      ctx.strokeStyle = T.ink; ctx.globalAlpha = .5; ctx.lineWidth = 1.5; ctx.setLineDash([4, 4]);
+      ctx.beginPath(); ctx.arc(X(hov.c + .5), Y(hov.r + .5), range * cs, 0, 7); ctx.stroke(); ctx.setLineDash([]); ctx.globalAlpha = 1;
+    }
+  }
+  if (S.sel && S.aunts.includes(S.sel)) {
+    ctx.strokeStyle = T.mustard; ctx.lineWidth = 2.5;
+    ctx.beginPath(); ctx.arc(X(S.sel.c + .5), Y(S.sel.r + .5), st(S.sel).range * cs, 0, 7); ctx.stroke();
+  }
+  if (S.kbd && S.mode !== 'title') {
+    ctx.strokeStyle = T.mustard; ctx.lineWidth = 3;
+    ctx.strokeRect(X(S.cur.c) + 2, Y(S.cur.r) + 2, cs - 4, cs - 4);
+  }
+
+  for (const a of S.aunts) drawAunt(a, X(a.c + .5), Y(a.r + .5));
+  for (const n of S.ants) drawAnt(n);
+  for (const a of S.aunts) if (a.shot) {
+    ctx.strokeStyle = T.ink; ctx.lineWidth = 2; ctx.globalAlpha = a.shot.t / .18;
+    ctx.beginPath(); ctx.moveTo(X(a.c + .5), Y(a.r + .5)); ctx.lineTo(X(a.shot.x), Y(a.shot.y)); ctx.stroke(); ctx.globalAlpha = 1;
+  }
+
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.font = `700 ${Math.max(11, Math.round(cs * .3))}px Karla, system-ui, sans-serif`;
+  for (const p of S.pops) {
+    ctx.globalAlpha = Math.min(1, p.t * 1.5);
+    ctx.fillStyle = p.col || T.ink;
+    ctx.fillText(p.text, X(p.x), Y(p.y));
+  }
+  ctx.globalAlpha = 1;
+}
+
+function drawSalad(cx, cy) {
+  ctx.fillStyle = '#ffffff'; ctx.strokeStyle = T.cloth; ctx.lineWidth = Math.max(2, cs * .06);
+  ctx.beginPath(); ctx.arc(cx, cy, cs * .44, 0, 7); ctx.fill(); ctx.stroke();
+  const left = S.mode === 'plan' || S.mode === 'march' ? 9 - Math.min(9, S.delivered) : Math.ceil(Math.max(0, S.scoops) / 20 * 9);
+  ctx.fillStyle = '#e8cf72';
+  for (let i = 0; i < left; i++) {
+    const a = i * 2.39, rr = cs * (.08 + .26 * Math.sqrt(i / 9));
+    ctx.fillRect(cx + Math.cos(a) * rr - cs * .06, cy + Math.sin(a) * rr - cs * .06, cs * .12, cs * .12);
+  }
+  ctx.fillStyle = '#4f8f3a';
+  for (let i = 0; i < Math.min(left, 4); i++) ctx.fillRect(cx - cs * .2 + i * cs * .12, cy + cs * .02 * (i % 2), cs * .04, cs * .04);
+}
+
+function drawAunt(a, x, y) {
+  const b = AUNTS[a.type], sleeping = a.type === 'ilse' && !a.awake;
+  ctx.globalAlpha = sleeping ? .7 : 1;
+  ctx.fillStyle = '#00000022'; ctx.beginPath(); ctx.ellipse(x + cs * .04, y + cs * .06, cs * .38, cs * .34, 0, 0, 7); ctx.fill();
+  ctx.fillStyle = b.dress; ctx.beginPath(); ctx.arc(x, y, cs * .36, 0, 7); ctx.fill();
+  if (a.type === 'ilse') {
+    ctx.fillStyle = '#151515'; ctx.beginPath(); ctx.arc(x, y - cs * .02, cs * .3, 0, 7); ctx.fill();
+    ctx.fillStyle = '#e05a7a'; ctx.beginPath(); ctx.arc(x + cs * .14, y - cs * .14, cs * .07, 0, 7); ctx.fill();
+  } else {
+    ctx.fillStyle = b.hair; ctx.beginPath(); ctx.arc(x, y - cs * .02, cs * .19, 0, 7); ctx.fill();
+  }
+  if (a.type === 'margaret') {
+    const ang = -0.6 + (a.swing > 0 && !reduce ? Math.sin(a.swing / .35 * Math.PI) * 1.6 : 0);
+    ctx.save(); ctx.translate(x + cs * .2, y + cs * .05); ctx.rotate(ang);
+    ctx.fillStyle = '#ecebe4'; ctx.fillRect(0, -cs * .05, cs * .42, cs * .1);
+    ctx.fillStyle = '#9a988f'; ctx.fillRect(cs * .05, -cs * .02, cs * .3, cs * .015);
+    ctx.restore();
+  }
+  ctx.globalAlpha = 1;
+  ctx.font = `700 ${Math.max(9, Math.round(cs * .24))}px Karla, system-ui, sans-serif`;
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillStyle = '#ffffff';
+  ctx.fillText(a.type === 'margaret' ? 'M' : a.type === 'doreen' ? 'D' : 'I', x, y + cs * .2);
+  for (let i = 0; i < a.lvl; i++) {
+    ctx.fillStyle = T.mustard; ctx.beginPath(); ctx.arc(x - cs * .14 + i * cs * .14, y + cs * .43, cs * .05, 0, 7); ctx.fill();
+  }
+  if (a.bubble > 0) {
+    ctx.fillStyle = '#ffffff'; ctx.strokeStyle = '#2a2a2a'; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.arc(x + cs * .3, y - cs * .42, cs * .17, 0, 7); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = '#2a2a2a'; ctx.fillText('?', x + cs * .3, y - cs * .41);
+  }
+  if (sleeping) {
+    ctx.fillStyle = T.ink; ctx.font = `700 ${Math.max(10, Math.round(cs * .26))}px Karla, system-ui, sans-serif`;
+    const bob = reduce ? 0 : Math.sin(S.t * 2) * cs * .05;
+    ctx.fillText('z', x + cs * .32, y - cs * .32 + bob);
+    ctx.fillText('z', x + cs * .46, y - cs * .5 + bob);
+  }
+}
+
+function drawAnt(n) {
+  const x = (n.x + OX) * cs, y = (n.y + OY) * cs, K = ANTS[n.kind];
+  if (n.kind === 'pauline') {
+    ctx.fillStyle = '#e48aa8'; ctx.beginPath(); ctx.arc(x, y, cs * .2, 0, 7); ctx.fill();
+    ctx.fillStyle = '#f2f0ea'; ctx.beginPath(); ctx.arc(x, y - cs * .02, cs * .11, 0, 7); ctx.fill();
+    ctx.fillStyle = T.ink; ctx.font = `700 ${Math.max(9, Math.round(cs * .22))}px Karla, system-ui, sans-serif`;
+    ctx.textAlign = 'center'; ctx.fillText('Pauline', x, y - cs * .34);
+    if (n.stun > 0) { ctx.fillText('…', x + cs * .25, y - cs * .2); }
+    return;
+  }
+  const s = K.size * cs;
+  ctx.save(); ctx.translate(x, y); ctx.rotate(n.ang);
+  ctx.strokeStyle = K.body; ctx.lineWidth = Math.max(1, s * .14);
+  const wig = reduce || n.stun > 0 ? 0 : Math.sin(S.t * 18 + n.id) * s * .25;
+  for (const sx of [-.7, 0, .7]) {
+    ctx.beginPath(); ctx.moveTo(sx * s, 0); ctx.lineTo(sx * s + wig, -s * 1.1); ctx.moveTo(sx * s, 0); ctx.lineTo(sx * s - wig, s * 1.1); ctx.stroke();
+  }
+  ctx.fillStyle = K.body;
+  ctx.beginPath(); ctx.ellipse(-s * 1.05, 0, s * .75, s * .55, 0, 0, 7); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(0, 0, s * .45, s * .35, 0, 0, 7); ctx.fill();
+  ctx.beginPath(); ctx.arc(s * .8, 0, s * .4, 0, 7); ctx.fill();
+  if (n.kind === 'soldier') {
+    ctx.beginPath(); ctx.moveTo(s * 1.1, -s * .2); ctx.lineTo(s * 1.5, -s * .35); ctx.moveTo(s * 1.1, s * .2); ctx.lineTo(s * 1.5, s * .35); ctx.stroke();
+  }
+  if (K.hat) {
+    ctx.fillStyle = '#111'; ctx.beginPath(); ctx.arc(s * .8, 0, s * .5, 0, 7); ctx.fill();
+    ctx.fillStyle = '#c4342a'; ctx.beginPath(); ctx.arc(s * .8, 0, s * .3, 0, 7); ctx.fill();
+    ctx.fillStyle = '#111'; ctx.beginPath(); ctx.arc(s * .8, 0, s * .22, 0, 7); ctx.fill();
+  }
+  if (n.kind === 'queen') {
+    ctx.fillStyle = '#e2b53a';
+    for (let i = 0; i < 5; i++) { const a = i / 5 * Math.PI * 2; ctx.beginPath(); ctx.arc(s * .8 + Math.cos(a) * s * .3, Math.sin(a) * s * .3, s * .1, 0, 7); ctx.fill(); }
+  }
+  if (n.kind === 'lawyer') {
+    ctx.fillStyle = '#7a4b22'; ctx.fillRect(-s * .3, s * .6, s * .9, s * .55);
+    ctx.fillStyle = '#ffffff'; ctx.fillRect(s * .35, -s * .08, s * .3, s * .16);
+  }
+  ctx.restore();
+  if (n.hp < n.maxhp) {
+    const w = cs * .4;
+    ctx.fillStyle = '#00000055'; ctx.fillRect(x - w / 2, y - s * 1.6 - 4, w, 3);
+    ctx.fillStyle = T.leaf; ctx.fillRect(x - w / 2, y - s * 1.6 - 4, w * Math.max(0, n.hp / n.maxhp), 3);
+  }
+  if (n.stun > 0) {
+    ctx.fillStyle = T.ink; ctx.font = `700 ${Math.max(10, Math.round(cs * .26))}px Karla, system-ui, sans-serif`;
+    ctx.textAlign = 'center'; ctx.fillText('…', x + s, y - s * 1.4);
+  }
+}
+
+let last = 0;
+function frame(now) {
+  const dt = Math.min(.05, (now - last) / 1000 || 0); last = now;
+  if (S.mode !== 'title' && S.mode !== 'over' && S.mode !== 'end' && S.mode !== 'cut') for (let i = 0; i < S.speed; i++) update(dt);
+  if (bannerT > 0) { bannerT -= dt; if (bannerT <= 0) $('#banner').hidden = true; }
+  draw();
+  requestAnimationFrame(frame);
+}
+
+function begin() {
+  const keepSpeed = S?.speed || 1;
+  S = fresh(); S.speed = keepSpeed;
+  setPath(TRAIL);
+  S.mode = 'build';
+  $('#title').hidden = true;
+  $('#log').innerHTML = '';
+  log('The blanket is down. The potato salad is out. Something is moving in the grass.');
+  renderSel(); hud();
+}
+
+function cellFromEvent(e) {
+  const r = cv.getBoundingClientRect();
+  return { c: Math.floor((e.clientX - r.left) / cs - OX), r: Math.floor((e.clientY - r.top) / cs - OY) };
+}
+cv.addEventListener('pointermove', e => { S.kbd = false; S.hover = cellFromEvent(e); });
+cv.addEventListener('pointerleave', () => { S.hover = null; });
+cv.addEventListener('click', e => { S.kbd = false; const k = cellFromEvent(e); clickCell(k.c, k.r); });
+document.querySelectorAll('.tool').forEach(b => b.addEventListener('click', () => { S.tool = b.dataset.tool; hud(); }));
+$('#go').addEventListener('click', startWave);
+$('#fast').addEventListener('click', () => { S.speed = S.speed === 1 ? 2 : 1; hud(); });
+$('#march').addEventListener('click', march);
+$('#clear').addEventListener('click', () => { if (S.mode !== 'plan') return; S.crumbs = []; S.route = planRoute(); hud(); });
+$('#start').addEventListener('click', begin);
+
+addEventListener('keydown', e => {
+  if (!S || S.mode === 'title' || !$('#story').hidden) return;
+  if (e.target.closest && e.target.closest('button') && (e.key === 'Enter' || e.key === ' ')) return;
+  const k = e.key;
+  const moves = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] };
+  if (moves[k]) {
+    e.preventDefault(); S.kbd = true;
+    S.cur = { c: Math.max(0, Math.min(COLS - 1, S.cur.c + moves[k][0])), r: Math.max(0, Math.min(ROWS - 1, S.cur.r + moves[k][1])) };
+    return;
+  }
+  if (k === 'Enter') { e.preventDefault(); S.kbd = true; clickCell(S.cur.c, S.cur.r); return; }
+  if ('1234'.includes(k) && k.length === 1) { S.tool = ['margaret', 'doreen', 'ilse', 'ketchup'][+k - 1]; hud(); return; }
+  if (k === 'u' || k === 'U') return upgrade(S.sel);
+  if (k === 'Delete' || k === 'Backspace') return sendHome(S.sel);
+  if (k === 'Escape') { S.sel = null; renderSel(); return; }
+  if (k === 'f' || k === 'F') { S.speed = S.speed === 1 ? 2 : 1; hud(); return; }
+  if (k === 'c' || k === 'C') { if (S.mode === 'plan') { S.crumbs = []; S.route = planRoute(); hud(); } return; }
+  if (k === ' ') { e.preventDefault(); if (S.mode === 'build') startWave(); else if (S.mode === 'plan') march(); }
+});
+
+function boot(data) {
+  best = data.best || 0;
+  S = fresh();
+  setPath(TRAIL);
+  resize(); readTokens();
+  renderSel(); hud();
+  requestAnimationFrame(frame);
+}
+window.claude?.hot?.snapshot?.(() => ({ best: Math.max(best, S?.score || 0) }));
+window.claude?.hot?.ready ? window.claude.hot.ready(boot) : boot(window.claude?.hot?.data ?? {});
+</script>
+</body>
+</html>

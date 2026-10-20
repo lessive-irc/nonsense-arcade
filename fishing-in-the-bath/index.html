@@ -1,0 +1,846 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Fishing in the Bath</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Shrikhand&family=Karla:ital,wght@0,400;0,600;0,700;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: a 1970s avocado bathroom suite in cross-section — the tub on the left, a tiled shelf of bait and the field guide on the right. */
+:root {
+  --tile: #dfe4c2;
+  --grout: #bfc39a;
+  --tub: #7c8a3e;
+  --gold: #c98a1c;
+  --ink: #2b2a1a;
+  --ink-soft: #5d5c45;
+  --paper: #eef0dc;
+  --water-top: #9fcfc6;
+  --water-deep: #12323d;
+  --blush: #c2564b;
+  --f-display: "Shrikhand", "Cooper Black", Georgia, serif;
+  --f-body: "Karla", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --tile: #1d2116; --grout: #2c3221; --tub: #8f9d4c; --gold: #e7ad42;
+    --ink: #ecebd5; --ink-soft: #a9a88d; --paper: #24291b;
+    --water-top: #3f7f7a; --water-deep: #061a20; --blush: #e07c70;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --tile: #1d2116; --grout: #2c3221; --tub: #8f9d4c; --gold: #e7ad42;
+  --ink: #ecebd5; --ink-soft: #a9a88d; --paper: #24291b;
+  --water-top: #3f7f7a; --water-deep: #061a20; --blush: #e07c70;
+  color-scheme: dark;
+}
+[hidden] { display: none !important; }
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background-color: var(--tile);
+  background-image:
+    linear-gradient(var(--grout) 2px, transparent 2px),
+    linear-gradient(90deg, var(--grout) 2px, transparent 2px);
+  background-size: 44px 44px;
+  color: var(--ink);
+  font: 16px/1.55 var(--f-body);
+  padding-block: 20px 32px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.wrap { max-width: 1180px; margin: 0 auto; display: grid; gap: 16px; }
+header {
+  display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px 20px;
+  background: var(--paper); border-radius: 14px; padding: 12px 18px;
+  box-shadow: 0 0 0 2px var(--grout);
+}
+h1 { margin: 0; font: 400 clamp(26px, 4.4vw, 40px)/1 var(--f-display); color: var(--tub); }
+.stats { display: flex; gap: 18px; flex-wrap: wrap; font: 500 13px var(--f-mono); color: var(--ink-soft); font-variant-numeric: tabular-nums; }
+.stats b { color: var(--ink); font-weight: 500; }
+.room { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 16px; align-items: start; }
+.tank {
+  position: relative; height: clamp(420px, 72vh, 720px);
+  border-radius: 28px 28px 40px 40px; overflow: hidden;
+  box-shadow: 0 0 0 10px var(--tub), 0 18px 40px -20px #00000080;
+  margin: 10px;
+  background: var(--water-deep);
+}
+canvas { display: block; width: 100%; height: 100%; touch-action: none; cursor: pointer; }
+.status {
+  position: absolute; left: 14px; right: 14px; bottom: 12px; pointer-events: none;
+  font: 500 13px var(--f-mono); color: #f3f1dc; text-shadow: 0 1px 6px #000a;
+  text-align: center; text-wrap: balance;
+}
+.kit { display: grid; gap: 16px; }
+.panel { background: var(--paper); border-radius: 14px; padding: 14px 16px; box-shadow: 0 0 0 2px var(--grout); display: grid; gap: 10px; }
+.panel h2 { margin: 0; font: 500 12px var(--f-mono); letter-spacing: .12em; text-transform: uppercase; color: var(--ink-soft); }
+.baits { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.bait {
+  font: 600 14px var(--f-body); text-align: left; color: var(--ink); background: transparent;
+  border: 2px solid var(--grout); border-radius: 10px; padding: 8px 10px; cursor: pointer;
+  display: grid; gap: 2px;
+}
+.bait small { font: 400 11px var(--f-mono); color: var(--ink-soft); }
+.bait[aria-pressed="true"] { border-color: var(--gold); background: color-mix(in srgb, var(--gold) 16%, transparent); }
+.bait:focus-visible, button:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
+.guide { list-style: none; margin: 0; padding: 0; display: grid; gap: 0; max-height: 420px; overflow-y: auto; }
+.guide li { display: grid; gap: 1px; padding: 8px 0; border-top: 1px dashed var(--grout); }
+.guide li:first-child { border-top: 0; }
+.guide .nm { font-weight: 700; font-size: 15px; }
+.guide .unk .nm { color: var(--ink-soft); font-weight: 600; }
+.guide .meta { font: 400 11px var(--f-mono); color: var(--ink-soft); letter-spacing: .02em; }
+.guide .clue { font-size: 13px; font-style: italic; color: var(--ink-soft); }
+.help { font-size: 13px; color: var(--ink-soft); margin: 0; }
+kbd { font: 500 11px var(--f-mono); border: 1px solid var(--grout); border-radius: 4px; padding: 0 4px; }
+.card-wrap { position: absolute; inset: 0; display: grid; place-items: center; padding: 50px 20px 20px; background: color-mix(in srgb, var(--water-deep) 62%, transparent); }
+.card {
+  background: var(--paper); color: var(--ink); border-radius: 18px; padding: 22px 24px; max-width: 440px;
+  display: grid; gap: 10px; box-shadow: 0 0 0 3px var(--tub), 0 20px 40px -18px #000c;
+}
+.card .kicker { font: 500 11px var(--f-mono); letter-spacing: .12em; text-transform: uppercase; color: var(--gold); }
+.card h2 { margin: 0; font: 400 clamp(26px, 4.6vw, 36px)/1.05 var(--f-display); color: var(--tub); text-wrap: balance; }
+.card p { margin: 0; }
+.card .note { font-size: 14px; color: var(--ink-soft); }
+.card button {
+  justify-self: start; font: 700 15px var(--f-body); color: #fff8e6; background: var(--tub);
+  border: 0; border-radius: 999px; padding: 10px 20px; cursor: pointer;
+}
+.card button:hover { background: var(--gold); color: var(--ink); }
+/* The language toggle sits on the tiled wall inside the tub, above the card overlay, so the one
+   group serves the title card, every catch card and the end card. */
+.lang {
+  position: absolute; top: 14px; left: 22px; z-index: 2; display: flex;
+  border-radius: 999px; background: var(--paper); box-shadow: 0 0 0 2px var(--grout); overflow: hidden;
+}
+.lang button {
+  font: 500 12px var(--f-mono); letter-spacing: .08em; color: var(--ink-soft); background: transparent;
+  border: 0; padding: 5px 11px; cursor: pointer;
+}
+.lang button + button { border-left: 1px solid var(--grout); }
+.lang button:hover { color: var(--ink); }
+.lang button[aria-pressed="true"] { background: var(--tub); color: #fff8e6; }
+@media (max-width: 860px) {
+  .room { grid-template-columns: minmax(0, 1fr); }
+  .tank { height: clamp(380px, 64vh, 560px); }
+  .guide { max-height: none; }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1 data-t="docTitle">Fishing in the Bath</h1>
+    <div class="stats">
+      <span><b id="litres">0</b> <span data-t="statLitres">L displaced</span></span>
+      <span><b id="count">0</b><span data-t="statCount">/13 catalogued</span></span>
+      <span><span data-t="statDepth">depth</span> <b id="depth">0 cm</b></span>
+    </div>
+  </header>
+
+  <div class="room">
+    <section class="tank">
+      <canvas id="tub" data-ta="tubAria" aria-label="Cross-section of a bathtub that is much deeper than it should be"></canvas>
+      <div class="status" id="status" aria-live="polite"></div>
+      <div class="card-wrap" id="card-wrap">
+        <div class="card" role="dialog" aria-labelledby="card-title">
+          <div class="kicker" id="card-kicker">A bath, run to 38 °C</div>
+          <h2 id="card-title">Fishing in the Bath</h2>
+          <p id="card-body">The bath is deeper than it should be. Things live in it. Catch them, catalogue them, and try not to think about how far down it goes.</p>
+          <p class="note" id="card-note">Hold to charge a cast and release to throw. When the float dips, press to strike. Then hold to raise the green box and keep it over the catch until the line is full.</p>
+          <button id="card-go">Run the bath</button>
+        </div>
+      </div>
+      <div class="lang" role="group" data-ta="langGroup" aria-label="Language"></div>
+    </section>
+
+    <aside class="kit">
+      <div class="panel">
+        <h2 data-t="baitHead">Bait</h2>
+        <div class="baits" id="baits"></div>
+        <p class="help" data-th="help">Hold <kbd>Space</kbd>, the mouse or a finger on the bath. <kbd>1</kbd>–<kbd>4</kbd> change bait.</p>
+      </div>
+      <div class="panel">
+        <h2 data-t="guideHead">Field guide to the bath</h2>
+        <ul class="guide" id="guide"></ul>
+      </div>
+    </aside>
+  </div>
+</div>
+
+<script>
+const $ = s => document.querySelector(s);
+const cv = $('#tub'), cx = cv.getContext('2d');
+const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+// Names and copy live in I18N below; these tables carry only ids and numbers, so a mid-game
+// language switch cannot change a catch, a bait match or a score.
+const ZONES = [
+  { from: 0, to: 0.4 },
+  { from: 0.4, to: 1.5 },
+  { from: 1.5, to: 6 },
+  { from: 6, to: 40 },
+];
+const BAITS = [{ id: 'bread' }, { id: 'foam' }, { id: 'letter' }, { id: 'toast' }];
+// speed: how fast the catch moves along the reel bar (bar-heights per second); jitter: how often it changes its mind.
+const CATCH = [
+  { id: 'duck', zone: 0, bait: null, L: 2, speed: .35, jitter: .6 },
+  { id: 'eyelash', zone: 0, bait: 'bread', L: 1, speed: .5, jitter: 1.1 },
+  { id: 'soap', zone: 0, bait: 'foam', L: 4, speed: .85, jitter: 1.7 },
+  { id: 'tuesday', zone: 1, bait: 'letter', L: 24, speed: .6, jitter: 1 },
+  { id: 'whale', zone: 1, bait: 'bread', L: 40, speed: .55, jitter: .7 },
+  { id: 'ex', zone: 1, bait: 'foam', L: 12, speed: .8, jitter: 1.5 },
+  { id: 'apology', zone: 2, bait: 'letter', L: 60, speed: .75, jitter: 1.4 },
+  { id: 'wreck', zone: 2, bait: 'bread', L: 180, speed: .4, jitter: .5 },
+  { id: 'plug', zone: 2, bait: 'toast', L: 5, speed: 1, jitter: 2.1, w: .6 },
+  { id: 'cough', zone: 3, bait: 'foam', L: 90, speed: .9, jitter: 1.6 },
+  { id: 'cert', zone: 3, bait: 'letter', L: 30, speed: 1, jitter: 2 },
+  { id: 'plumber', zone: 3, bait: 'toast', L: 120, speed: .7, jitter: 1.2 },
+  { id: 'line', zone: 3, bait: null, L: 0, speed: .6, jitter: 1, special: true },
+];
+
+const I18N = {
+  en: {
+    docTitle: 'Fishing in the Bath',
+    langGroup: 'Language',
+    statLitres: 'L displaced', statCount: '/13 catalogued', statDepth: 'depth',
+    tubAria: 'Cross-section of a bathtub that is much deeper than it should be',
+    baitHead: 'Bait',
+    help: 'Hold <kbd>Space</kbd>, the mouse or a finger on the bath. <kbd>1</kbd>–<kbd>4</kbd> change bait.',
+    guideHead: 'Field guide to the bath',
+    zones: ['Bubbles', 'Lukewarm', 'The Cold Bit', 'Below the Plughole'],
+    baits: {
+      bread: { name: 'Bread', sub: 'a heel, slightly stale' },
+      foam: { name: 'Bubble bath', sub: 'lavender, allegedly' },
+      letter: { name: 'A letter', sub: 'strongly worded' },
+      toast: { name: 'Toast', sub: 'buttered, regrettably' },
+    },
+    takes: id => `takes ${(id ? I18N.en.baits[id].name : 'any bait').toLowerCase()}`,
+    catch: {
+      duck: { name: 'Rubber duck', clue: 'No preference. It is a duck.', note: 'Squeaks once, in a minor key.' },
+      eyelash: { name: 'A single eyelash', clue: 'Follows crumbs.', note: 'You may make one wish. You wish for a bigger bath.' },
+      soap: { name: 'The lost bar of soap', clue: 'Drawn to anything foamy.', note: 'Missing since 2019. Smaller now, and wiser.' },
+      tuesday: { name: 'Last Tuesday', clue: 'Responds to correspondence.', note: 'Still damp. Nothing happened in it, again.' },
+      whale: { name: 'A very small whale', clue: 'Large appetite for carbohydrates.', note: '14 cm long. Sings at a frequency only towels can hear.' },
+      ex: { name: "The sponge's ex", clue: 'Comes back for the foam.', note: 'It wants the sponge to know it is doing fine.' },
+      apology: { name: 'An apology you never sent', clue: 'Wants the letters it never received.', note: 'Addressed to someone you have not thought about in years. Water-stained, still sincere.' },
+      wreck: { name: 'A shipwreck, bath-sized', clue: 'The crew were fond of bread.', note: 'HMS Loofah. All hands accounted for. There were no hands.' },
+      plug: { name: 'The plug', clue: 'Toast. It is always toast.', note: 'You pull it out. Nothing drains away. Something drains in.' },
+      cough: { name: "A lighthouse keeper's cough", clue: 'Likes foam that looks like fog.', note: 'It has been echoing down here since 1911.' },
+      cert: { name: 'Your 10 m swimming certificate', clue: 'Paperwork attracts paperwork.', note: 'You never got the 25 m one. It knows.' },
+      plumber: { name: 'A plumber, swimming', clue: 'On a break. Wants toast.', note: '"I was told there was a leak." There is no leak. There is only down.' },
+      line: { name: 'A fishing line, going up', clue: 'Deep in the deep end, once the deep end knows you.', note: '' },
+    },
+    goesUp: 'It goes up.',
+    deeper: 'somewhere deeper', uncatalogued: 'Uncatalogued', notYet: 'Not yet.',
+    idle: 'Hold to charge a cast. Release to throw.',
+    charging: 'Charging. Release to cast.',
+    eager: 'Too eager. The water saw you coming.',
+    sinking: p => `Sinking to ${fmtDepth(metres(p))}, ${zoneName(Math.floor(p))}.`,
+    nothing: 'Nothing. Just bathwater, and a bit of hair.',
+    hooked: 'Hooked! Hold to raise the box, release to let it sink. Keep it over the catch.',
+    gurgle: 'Something gurgles. The bath is draining into a deeper bath.',
+    unlock1: 'Your toes cannot find the bottom any more. The Lukewarm zone opens.',
+    unlock2: 'The water gets colder. Nobody ran it this cold. The Cold Bit opens.',
+    unlock3: 'There is a deeper bath under the bath. Below the Plughole is open.',
+    youFish: "You are the catch now. Hold to swim up, release to dive. Stay out of the bather's box until the line snaps.",
+    waiting: 'Waiting. Watch the float.',
+    dips: 'The float dips. Strike!',
+    tookBait: 'It took the bait and left. Reeling in an empty hook.',
+    slipped: special => `${special ? 'The line' : 'It'} slipped off the hook.`,
+    freshBath: 'A fresh bath. 38 °C. The same depth as before, which is too deep.',
+    lineCard: {
+      kicker: (zone, depth) => `Catalogued · ${zone} · ${depth}`,
+      body: 'You reel and reel. The line does not end. It goes up, past the taps, past the ceiling, past the bathroom light, and at the far end of it there is a hook.',
+      note: 'The hook is in you.', button: 'Swim',
+    },
+    catchCard: {
+      kicker: (isNew, zone, depth) => `${isNew ? 'New to the field guide' : 'Caught again'} · ${zone} · ${depth}`,
+      note: L => `+${L} L displaced.`, button: 'Back to the water',
+    },
+    stats: (n, L) => `${n}/13 catalogued · ${L} L displaced.`,
+    again: 'Run another bath',
+    won: {
+      kicker: 'One that got away', title: 'The line snaps.',
+      body: 'You sink, slowly, into the deep end of the bath, which goes on for a very long time, which turns out to be the sea. Somewhere above, a bather writes you down as one that got away.',
+    },
+    lost: {
+      kicker: 'Catalogued', title: 'You are caught.',
+      body: 'A bather holds you up to the bathroom light. You look at the bather. The bather is holding a field guide, and your name is on page fourteen.',
+    },
+    title: {
+      kicker: 'A bath, run to 38 °C', title: 'Fishing in the Bath',
+      body: 'The bath is deeper than it should be. Things live in it. Catch them, catalogue them, and try not to think about how far down it goes.',
+      note: 'Hold to charge a cast and release to throw. When the float dips, press to strike. Then hold to raise the green box and keep it over the catch until the line is full. Bait changes what bites.',
+      button: 'Run the bath',
+    },
+  },
+  fr: {
+    docTitle: 'Pêche dans le bain',
+    langGroup: 'Langue',
+    statLitres: 'L déplacés', statCount: '/13 répertoriés', statDepth: 'profondeur',
+    tubAria: "Vue en coupe d'une baignoire bien plus profonde qu'elle ne devrait l'être",
+    baitHead: 'Appât',
+    help: 'Maintenez <kbd>Espace</kbd>, la souris ou un doigt sur le bain. <kbd>1</kbd>–<kbd>4</kbd> changent l’appât.',
+    guideHead: "Guide d'identification du bain",
+    zones: ['Les Bulles', 'Le Tiède', 'Le Coin froid', 'Sous le siphon'],
+    baits: {
+      bread: { name: 'Pain', sub: 'un quignon, un peu rassis' },
+      foam: { name: 'Bain moussant', sub: 'lavande, paraît-il' },
+      letter: { name: 'Une lettre', sub: 'au ton cinglant' },
+      toast: { name: 'Tartine', sub: 'beurrée, hélas' },
+    },
+    takes: id => ({ bread: 'mord au pain', foam: 'mord au bain moussant', letter: 'mord à la lettre', toast: 'mord à la tartine' })[id] || 'mord à tout',
+    catch: {
+      duck: { name: 'Canard en plastique', clue: "Aucune préférence. C'est un canard.", note: 'Couine une fois, en mineur.' },
+      eyelash: { name: 'Un cil, tout seul', clue: 'Suit les miettes.', note: 'Vous avez droit à un vœu. Vous souhaitez une baignoire plus grande.' },
+      soap: { name: 'La savonnette perdue', clue: 'Attirée par tout ce qui mousse.', note: 'Disparue depuis 2019. Plus petite, maintenant, et plus sage.' },
+      tuesday: { name: 'Mardi dernier', clue: 'Réagit au courrier.', note: "Encore humide. Il ne s'y est rien passé, cette fois non plus." },
+      whale: { name: 'Une toute petite baleine', clue: 'Un gros faible pour les féculents.', note: '14 cm de long. Chante sur une fréquence que seules les serviettes entendent.' },
+      ex: { name: "L'ex de l'éponge", clue: 'Revient toujours pour la mousse.', note: "Tient à ce que l'éponge sache que tout va très bien, merci." },
+      apology: { name: 'Des excuses jamais envoyées', clue: "Réclament les lettres qu'elles n'ont jamais reçues.", note: "Adressées à quelqu'un à qui vous n'avez pas pensé depuis des années. Tachées d'eau, toujours sincères." },
+      wreck: { name: 'Une épave, format baignoire', clue: "L'équipage adorait le pain.", note: "Le HMS Loofah. Personne à bord ne manque à l'appel. Il n'y avait personne à bord." },
+      plug: { name: 'La bonde', clue: "La tartine. C'est toujours la tartine.", note: "Vous la retirez. Rien ne s'écoule. Quelque chose remonte." },
+      cough: { name: "La toux d'un gardien de phare", clue: 'Aime la mousse qui ressemble au brouillard.', note: 'Elle résonne ici depuis 1911.' },
+      cert: { name: 'Votre brevet des 10 mètres', clue: 'La paperasse attire la paperasse.', note: "Le brevet des 25 mètres, vous ne l'avez jamais eu. Il le sait." },
+      plumber: { name: 'Un plombier, à la nage', clue: 'En pause. Veut une tartine.', note: "« On m'a parlé d'une fuite. » Il n'y a pas de fuite. Il n'y a que de la profondeur." },
+      line: { name: 'Une ligne de pêche, qui monte', clue: 'Tout au fond du grand bain, une fois que le grand bain vous connaît.', note: '' },
+    },
+    goesUp: 'Elle monte.',
+    deeper: 'quelque part plus bas', uncatalogued: 'Non répertorié', notYet: 'Pas encore.',
+    idle: 'Maintenez pour armer le lancer. Relâchez pour lancer.',
+    charging: 'Ça se tend. Relâchez pour lancer.',
+    eager: "Trop tôt. L'eau a vu le coup venir.",
+    sinking: p => `Le plomb descend à ${fmtDepth(metres(p))} : ${zoneName(Math.floor(p))}.`,
+    nothing: "Rien. De l'eau de bain, et quelques cheveux.",
+    hooked: 'Au bout de la ligne ! Maintenez pour monter la boîte, relâchez pour la laisser couler. Gardez-la sur la prise.',
+    gurgle: 'Quelque chose gargouille. La baignoire se vide dans une baignoire plus profonde.',
+    unlock1: "Vous n'avez plus pied. Le Tiède est ouvert.",
+    unlock2: "L'eau se rafraîchit. Personne ne l'a fait couler aussi froide. Le Coin froid est ouvert.",
+    unlock3: 'Il y a une baignoire sous la baignoire. Sous le siphon est ouvert.',
+    youFish: "La prise, maintenant, c'est vous. Maintenez pour remonter, relâchez pour plonger. Restez hors de la boîte du baigneur jusqu'à ce que la ligne casse.",
+    waiting: 'On attend. Surveillez le bouchon.',
+    dips: 'Le bouchon plonge. Ferrez !',
+    tookBait: "Ça a pris l'appât et c'est reparti. Vous remontez un hameçon vide.",
+    slipped: special => special ? "La ligne s'est décrochée." : "La prise s'est décrochée.",
+    freshBath: "Un bain tout neuf. 38 °C. Même profondeur qu'avant, c'est-à-dire trop.",
+    lineCard: {
+      kicker: (zone, depth) => `Au guide · ${zone} · ${depth}`,
+      body: 'Vous moulinez, et moulinez encore. La ligne ne finit pas. Elle monte, passe les robinets, le plafond, la lampe de la salle de bain, et tout au bout, il y a un hameçon.',
+      note: "L'hameçon est en vous.", button: 'Nager',
+    },
+    catchCard: {
+      kicker: (isNew, zone, depth) => `${isNew ? 'Nouvelle entrée au guide' : 'Prise déjà connue'} · ${zone} · ${depth}`,
+      note: L => `+${L} L déplacés.`, button: "Retour à l'eau",
+    },
+    stats: (n, L) => `${n}/13 répertoriés · ${L} L déplacés.`,
+    again: 'Faire couler un autre bain',
+    won: {
+      kicker: 'Ni vu ni pris', title: 'La ligne casse.',
+      body: "Vous coulez, lentement, dans le grand bain de la baignoire, qui dure très longtemps, et qui s'avère être la mer. Quelque part au-dessus, un baigneur vous inscrit dans son carnet, à la rubrique des prises qui ont filé.",
+    },
+    lost: {
+      kicker: 'Au catalogue', title: 'Hameçonnage réussi.',
+      body: "Un baigneur vous brandit sous la lampe de la salle de bain. Vous regardez le baigneur. Le baigneur tient un guide d'identification, et votre nom est en page quatorze.",
+    },
+    title: {
+      kicker: 'Un bain, coulé à 38 °C', title: 'Pêche dans le bain',
+      body: "La baignoire est plus profonde qu'elle ne devrait. Des choses y vivent. Attrapez-les, répertoriez-les, et évitez de vous demander jusqu'où ça descend.",
+      note: "Maintenez pour armer un lancer, relâchez pour lancer. Quand le bouchon plonge, appuyez pour ferrer. Puis maintenez pour monter la boîte verte et gardez-la sur la prise jusqu'à ce que la jauge soit pleine. L'appât change ce qui mord.",
+      button: 'Faire couler le bain',
+    },
+  },
+};
+
+// French typography: a narrow no-break space before ? ! : ; » and after «, applied once to every
+// French string (and to whatever a French string function returns).
+(function frenchSpacing() {
+  const fix = s => s.replace(/ ([?!:;»])/g, '\u202f$1').replace(/« /g, '«\u202f');
+  const deep = v => typeof v === 'string' ? fix(v)
+    : typeof v === 'function' ? (...a) => fix(v(...a))
+    : Array.isArray(v) ? v.map(deep)
+    : v && typeof v === 'object' ? Object.fromEntries(Object.entries(v).map(([k, x]) => [k, deep(x)]))
+    : v;
+  I18N.fr = deep(I18N.fr);
+})();
+
+let lang = 'en';
+const t = k => I18N[lang][k] ?? I18N.en[k];
+const tf = (k, ...a) => { const v = t(k); return typeof v === 'function' ? v(...a) : v; };
+const zoneName = z => t('zones')[z];
+const catchText = c => t('catch')[c.id];
+const num = n => Math.round(n).toLocaleString(lang === 'fr' ? 'fr-FR' : undefined);
+
+let W = 0, H = 0;
+function resize() {
+  const r = cv.getBoundingClientRect(), d = Math.min(2, devicePixelRatio || 1);
+  W = r.width; H = r.height;
+  cv.width = Math.round(W * d); cv.height = Math.round(H * d);
+  cx.setTransform(d, 0, 0, d, 0, 0);
+}
+new ResizeObserver(resize).observe(cv);
+
+const C = {};
+function tokens() {
+  const s = getComputedStyle(document.documentElement);
+  for (const k of ['tile', 'grout', 'tub', 'gold', 'ink', 'paper', 'water-top', 'water-deep', 'blush']) C[k] = s.getPropertyValue('--' + k).trim();
+}
+
+let S;
+function fresh(d = {}) {
+  const unlocked = d.unlocked || 0;
+  return {
+    state: 'title', t: 0, power: 0, pdir: 1, hookP: 0, targetP: 0, biteAt: 0, biteEnd: 0, msgEnd: 0,
+    caught: new Set(d.caught || []), n: d.n || [0, 0, 0, 0], litres: d.litres || 0,
+    unlocked, scale: unlocked + 1, bait: 'bread', fish: null, reel: null, fp: null, hold: false, drainEnd: 0,
+  };
+}
+
+// The status line remembers its key and arguments so a language switch can say it again.
+let said = null;
+function say(key, ...args) { said = [key, args]; $('#status').textContent = tf(key, ...args); }
+
+function fmtDepth(m) {
+  if (m < 1) return Math.round(m * 100) + ' cm';
+  const v = String(m < 10 ? m.toFixed(1) : Math.round(m));
+  return (lang === 'fr' ? v.replace('.', ',') : v) + ' m';
+}
+// Band position p: integer part is the zone, fraction is how far through it.
+function metres(p) {
+  const z = Math.min(3, Math.floor(p)), f = p - z, Z = ZONES[z];
+  return Z.from + (Z.to - Z.from) * Math.min(1, f);
+}
+
+function renderBaits() {
+  $('#baits').innerHTML = '';
+  BAITS.forEach((b, i) => {
+    const el = document.createElement('button');
+    el.className = 'bait'; el.id = 'bait-' + b.id; el.type = 'button';
+    el.setAttribute('aria-pressed', String(S.bait === b.id));
+    const tx = t('baits')[b.id];
+    el.innerHTML = `<span>${i + 1} · ${tx.name}</span><small>${tx.sub}</small>`;
+    el.onclick = () => { S.bait = b.id; renderBaits(); };
+    $('#baits').append(el);
+  });
+}
+
+function renderGuide() {
+  const ul = $('#guide');
+  ul.innerHTML = '';
+  for (const c of CATCH) {
+    const known = S.caught.has(c.id);
+    const li = document.createElement('li');
+    const where = c.zone <= S.unlocked ? zoneName(c.zone) : t('deeper');
+    const tx = catchText(c);
+    if (known) {
+      li.innerHTML = `<span class="nm">${tx.name}</span><span class="meta">${zoneName(c.zone)} · ${tf('takes', c.bait)}</span><span class="clue">${tx.note || t('goesUp')}</span>`;
+    } else {
+      li.className = 'unk';
+      const clue = c.zone <= S.unlocked ? tx.clue : t('notYet');
+      li.innerHTML = `<span class="nm">${t('uncatalogued')}</span><span class="meta">${where}</span><span class="clue">${clue}</span>`;
+    }
+    ul.append(li);
+  }
+  $('#count').textContent = S.caught.size;
+  $('#litres').textContent = num(S.litres);
+}
+
+// A card is built by a function of the current language, kept so applyLang can rebuild it.
+let cardThen = null, cardBuild = null;
+function showCard(build, then) {
+  cardBuild = build; cardThen = then;
+  fillCard();
+  $('#card-wrap').hidden = false;
+  S.hold = false;
+  $('#card-go').focus({ preventScroll: true });
+}
+function fillCard() {
+  const { kicker, title, body, note = '', button } = cardBuild();
+  $('#card-kicker').textContent = kicker;
+  $('#card-title').textContent = title;
+  $('#card-body').textContent = body;
+  $('#card-note').textContent = note;
+  $('#card-note').hidden = !note;
+  $('#card-go').textContent = button;
+}
+$('#card-go').onclick = () => {
+  $('#card-wrap').hidden = true;
+  const f = cardThen; cardThen = null; cardBuild = null;
+  f && f();
+};
+const cardOpen = () => !$('#card-wrap').hidden;
+
+function idle(key) {
+  S.state = 'idle'; S.hookP = 0; S.fish = null; S.reel = null;
+  say(key || 'idle');
+}
+
+function msg(key, after = 1.6, ...args) { S.state = 'msg'; S.msgEnd = S.t + after; say(key, ...args); }
+
+function pick(p) {
+  const z = Math.min(3, Math.floor(p)), frac = p - z;
+  if (z === 3 && S.n[3] >= 2 && frac > .5) return CATCH.find(c => c.special);
+  if (Math.random() < .12) return null;
+  const pool = CATCH.filter(c => c.zone === z && !c.special);
+  const w = pool.map(c => (c.w || 1) * (c.bait === S.bait ? 5 : 1));
+  let r = Math.random() * w.reduce((a, b) => a + b, 0);
+  for (let i = 0; i < pool.length; i++) { r -= w[i]; if (r <= 0) return pool[i]; }
+  return pool[pool.length - 1];
+}
+
+function press() {
+  if (cardOpen()) return;
+  switch (S.state) {
+    case 'idle': S.state = 'charging'; S.power = 0; S.pdir = 1; say('charging'); break;
+    case 'waiting': S.state = 'idle'; msg('eager'); break;
+    case 'bite': startReel(); break;
+    case 'reeling': case 'fish': S.hold = true; break;
+  }
+}
+function release() {
+  S.hold = false;
+  if (S.state === 'charging') {
+    S.targetP = Math.max(.04, S.power * (S.unlocked + 1) - .001);
+    S.state = 'sinking';
+    say('sinking', S.targetP);
+  }
+}
+
+function startReel() {
+  const c = pick(S.hookP);
+  if (!c) { msg('nothing'); return; }
+  const z = c.zone, size = .3 - z * .035;
+  S.fish = c;
+  S.reel = { box: .5 - size / 2, v: 0, size, fishY: .5, fishT: .5, nextT: 0, prog: .3, z };
+  S.state = 'reeling';
+  say('hooked');
+}
+
+function landed(c) {
+  const isNew = !S.caught.has(c.id);
+  S.caught.add(c.id);
+  S.n[c.zone]++;
+  const m = metres(S.hookP);
+  if (c.special) {
+    renderGuide();
+    showCard(() => {
+      const k = t('lineCard');
+      return { kicker: k.kicker(zoneName(3), fmtDepth(m)), title: catchText(c).name, body: k.body, note: k.note, button: k.button };
+    }, startFish);
+    return;
+  }
+  S.litres += c.L;
+  renderGuide();
+  showCard(() => {
+    const k = t('catchCard'), tx = catchText(c);
+    return { kicker: k.kicker(isNew, zoneName(c.zone), fmtDepth(m)), title: tx.name, body: tx.note, note: k.note(c.L), button: k.button };
+  }, () => afterCatch(c));
+}
+
+function afterCatch(c) {
+  if (c.id === 'plug' && S.unlocked === 2) {
+    S.state = 'drain'; S.drainEnd = S.t + (reduce ? .5 : 3);
+    say('gurgle');
+    return;
+  }
+  if (S.unlocked === 0 && S.n[0] >= 3) return unlock(1, 'unlock1');
+  if (S.unlocked === 1 && S.n[1] >= 2) return unlock(2, 'unlock2');
+  idle();
+}
+
+function unlock(z, key) {
+  S.unlocked = z;
+  renderGuide();
+  idle(key);
+}
+
+function startFish() {
+  S.state = 'fish';
+  S.fp = { me: .75, v: 0, box: .2, size: .26, pull: 0, strain: 0, time: 0 };
+  say('youFish');
+}
+
+function endFish(won) {
+  S.state = 'end';
+  const n = S.caught.size, L = S.litres;
+  showCard(() => {
+    const k = t(won ? 'won' : 'lost');
+    return { kicker: k.kicker, title: k.title, body: k.body, note: tf('stats', n, num(L)), button: t('again') };
+  }, restart);
+}
+
+function restart() { S = fresh(); renderBaits(); renderGuide(); idle('freshBath'); }
+
+function update(dt) {
+  S.t += dt;
+  const sp = S.scale, target = S.unlocked + 1;
+  S.scale += (target - sp) * Math.min(1, dt * 2);
+  if (S.state === 'charging') {
+    S.power += S.pdir * dt * .8;
+    if (S.power >= 1) { S.power = 1; S.pdir = -1; }
+    if (S.power <= 0) { S.power = 0; S.pdir = 1; }
+  } else if (S.state === 'sinking') {
+    S.hookP = Math.min(S.targetP, S.hookP + dt * (.5 + S.unlocked * .35));
+    if (S.hookP >= S.targetP) { S.state = 'waiting'; S.biteAt = S.t + 1.2 + Math.random() * 2.6; say('waiting'); }
+  } else if (S.state === 'waiting') {
+    if (S.t >= S.biteAt) { S.state = 'bite'; S.biteEnd = S.t + .9; say('dips'); }
+  } else if (S.state === 'bite') {
+    if (S.t >= S.biteEnd) msg('tookBait');
+  } else if (S.state === 'msg') {
+    if (S.t >= S.msgEnd) idle();
+  } else if (S.state === 'drain') {
+    if (S.t >= S.drainEnd) unlock(3, 'unlock3');
+  } else if (S.state === 'reeling') {
+    const r = S.reel, f = S.fish;
+    r.v = Math.max(-1.1, Math.min(1.1, r.v + (S.hold ? -2.6 : 2) * dt));
+    r.box += r.v * dt;
+    if (r.box < 0) { r.box = 0; r.v = 0; }
+    if (r.box > 1 - r.size) { r.box = 1 - r.size; r.v = 0; }
+    if (S.t >= r.nextT) {
+      r.fishT = Math.max(.04, Math.min(.96, r.fishY + (Math.random() - .5) * (.4 + f.jitter * .3)));
+      r.nextT = S.t + (.4 + Math.random() * 1.2) / f.jitter;
+    }
+    const step = f.speed * dt;
+    r.fishY += Math.max(-step, Math.min(step, r.fishT - r.fishY));
+    const over = r.fishY >= r.box && r.fishY <= r.box + r.size;
+    r.prog += over ? .3 * dt : -(.2 + r.z * .03) * dt;
+    if (r.prog >= 1) landed(f);
+    else if (r.prog <= 0) msg('slipped', 1.6, !!f.special);
+  } else if (S.state === 'fish') {
+    const p = S.fp;
+    p.time += dt;
+    p.v = Math.max(-1.25, Math.min(1.25, p.v + (S.hold ? -2.8 : 2.1) * dt));
+    p.me += p.v * dt;
+    if (p.me < .02) { p.me = .02; p.v = 0; }
+    if (p.me > .98) { p.me = .98; p.v = 0; }
+    // The bather chases with a lag and surges every few seconds.
+    const surge = Math.sin(p.time * 1.1) > .6 ? .78 : .46;
+    const aim = p.me - p.size / 2, s = surge * dt;
+    p.box += Math.max(-s, Math.min(s, aim - p.box));
+    p.box = Math.max(0, Math.min(1 - p.size, p.box));
+    const over = p.me >= p.box && p.me <= p.box + p.size;
+    if (over) p.pull += .3 * dt; else { p.strain += .13 * dt; p.pull = Math.max(0, p.pull - .04 * dt); }
+    if (p.pull >= 1) endFish(false);
+    else if (p.strain >= 1) endFish(true);
+  }
+  const shown = S.state === 'fish' ? 39 : metres(S.hookP);
+  $('#depth').textContent = S.hookP > 0 || S.state === 'fish' ? fmtDepth(shown) : '0 cm';
+}
+
+function waterTop() { return Math.max(70, H * .22); }
+function yOf(p) { const wt = waterTop(); return wt + 18 + (p / S.scale) * (H - wt - 40); }
+
+function draw() {
+  tokens();
+  const wt = waterTop(), t = S.t;
+  // wall tiles above the water line
+  cx.fillStyle = C.tile; cx.fillRect(0, 0, W, wt);
+  cx.strokeStyle = C.grout; cx.lineWidth = 2;
+  cx.beginPath();
+  for (let x = 22; x < W; x += 44) { cx.moveTo(x, 0); cx.lineTo(x, wt); }
+  for (let y = 22; y < wt; y += 44) { cx.moveTo(0, y); cx.lineTo(W, y); }
+  cx.stroke();
+  // taps, gold, on the right wall
+  cx.fillStyle = C.gold;
+  cx.fillRect(W - 90, wt - 46, 46, 10); cx.fillRect(W - 54, wt - 46, 10, 24);
+  cx.beginPath(); cx.arc(W - 80, wt - 52, 9, 0, 6.28); cx.fill();
+
+  // water
+  const g = cx.createLinearGradient(0, wt, 0, H);
+  g.addColorStop(0, C['water-top']); g.addColorStop(1, C['water-deep']);
+  cx.fillStyle = g; cx.fillRect(0, wt, W, H - wt);
+  if (S.state === 'drain') {
+    const k = 1 - Math.max(0, S.drainEnd - t) / (reduce ? .5 : 3);
+    cx.strokeStyle = C.paper; cx.globalAlpha = .35; cx.lineWidth = 2;
+    for (let i = 0; i < 6; i++) { cx.beginPath(); cx.arc(W * .55, H - 30, 10 + i * 18 * k, t * 3 + i, t * 3 + i + 4); cx.stroke(); }
+    cx.globalAlpha = 1;
+  }
+  // foam line
+  cx.fillStyle = C.paper; cx.globalAlpha = .75;
+  for (let x = 0; x < W; x += 16) { cx.beginPath(); cx.arc(x + 8, wt + 2 + Math.sin(x * .3 + (reduce ? 0 : t * 2)) * 2, 7, 0, 6.28); cx.fill(); }
+  cx.globalAlpha = 1;
+
+  // depth zones, labelled in real units
+  cx.font = '500 11px "IBM Plex Mono", ui-monospace, monospace';
+  const bands = Math.min(4, Math.ceil(S.scale - .01));
+  for (let z = 0; z < bands; z++) {
+    const y = yOf(z);
+    if (z > 0) {
+      cx.strokeStyle = C.paper; cx.globalAlpha = .3; cx.setLineDash([6, 6]);
+      cx.beginPath(); cx.moveTo(24, y); cx.lineTo(W - 70, y); cx.stroke(); cx.setLineDash([]);
+    }
+    cx.globalAlpha = .8; cx.fillStyle = z === 0 ? C['water-deep'] : C.paper;
+    cx.fillText(`${zoneName(z).toUpperCase()}  ${fmtDepth(ZONES[z].from)}–${fmtDepth(ZONES[z].to)}`, 26, y + (z === 0 ? 30 : 16), Math.max(60, W - 120));
+    cx.globalAlpha = 1;
+  }
+
+  // steam
+  if (!reduce) {
+    cx.strokeStyle = C.paper; cx.lineWidth = 3; cx.lineCap = 'round';
+    for (let i = 0; i < 5; i++) {
+      const x0 = W * (.2 + i * .15), ph = (t * .4 + i * .37) % 1;
+      cx.globalAlpha = .35 * (1 - ph);
+      cx.beginPath();
+      for (let k = 0; k < 6; k++) cx.lineTo(x0 + Math.sin(k + t + i) * 8, wt - 6 - ph * 50 - k * 9);
+      cx.stroke();
+    }
+    cx.globalAlpha = 1;
+  }
+
+  if (S.state === 'fish') drawFishPhase(wt);
+  else drawAngler(wt);
+
+  // tub rim across the water line
+  cx.fillStyle = C.tub;
+  cx.fillRect(0, wt - 10, 16, H); cx.fillRect(W - 16, wt - 10, 16, H);
+}
+
+function drawAngler(wt) {
+  const t = S.t;
+  // the bather: knees above the foam, a head in a shower cap, a rod
+  const bx = Math.max(46, W * .12);
+  cx.fillStyle = C.blush;
+  cx.beginPath(); cx.ellipse(bx + 34, wt - 4, 22, 14, 0, Math.PI, 0); cx.fill();
+  cx.beginPath(); cx.arc(bx, wt - 34, 17, 0, 6.28); cx.fill();
+  cx.fillStyle = C.gold;
+  cx.beginPath(); cx.arc(bx, wt - 40, 18, Math.PI * 1.05, Math.PI * 1.95); cx.fill();
+  cx.fillStyle = C.ink;
+  cx.beginPath(); cx.arc(bx + 6, wt - 32, 2, 0, 6.28); cx.fill();
+  const hand = { x: bx + 22, y: wt - 22 }, tip = { x: W * .44, y: wt - 74 };
+  cx.strokeStyle = C.ink; cx.lineWidth = 3;
+  cx.beginPath(); cx.moveTo(hand.x, hand.y); cx.lineTo(tip.x, tip.y); cx.stroke();
+
+  const hx = Math.min(W * .58, W - 110);
+  const active = ['sinking', 'waiting', 'bite', 'reeling'].includes(S.state);
+  if (S.state === 'charging') {
+    cx.strokeStyle = C.gold; cx.lineWidth = 6; cx.lineCap = 'round';
+    cx.beginPath(); cx.arc(hand.x, hand.y, 34, Math.PI * 1.1, Math.PI * (1.1 + .8 * S.power)); cx.stroke();
+    cx.font = '500 11px "IBM Plex Mono", ui-monospace, monospace'; cx.fillStyle = C.ink;
+    cx.fillText(fmtDepth(metres(Math.max(.04, S.power * (S.unlocked + 1) - .001))), hand.x + 40, hand.y - 34);
+  }
+  if (!active) return;
+  const dip = S.state === 'bite' ? 6 + Math.sin(t * 30) * 2 : Math.sin(t * 2) * 1.5;
+  const hy = yOf(S.hookP);
+  cx.strokeStyle = C.ink; cx.lineWidth = 1;
+  cx.beginPath(); cx.moveTo(tip.x, tip.y); cx.lineTo(hx, wt + dip); cx.lineTo(hx, hy); cx.stroke();
+  // float: two-tone
+  cx.fillStyle = C.blush; cx.beginPath(); cx.arc(hx, wt + dip - 3, 7, Math.PI, 0); cx.fill();
+  cx.fillStyle = C.paper; cx.beginPath(); cx.arc(hx, wt + dip - 3, 7, 0, Math.PI); cx.fill();
+  if (S.state === 'bite') {
+    cx.strokeStyle = C.paper; cx.lineWidth = 2;
+    for (let i = 0; i < 3; i++) { cx.globalAlpha = .6 - i * .18; cx.beginPath(); cx.ellipse(hx, wt + 4, 12 + i * 10 + (t * 40 % 10), 4 + i * 2, 0, 0, 6.28); cx.stroke(); }
+    cx.globalAlpha = 1;
+  }
+  // hook
+  cx.strokeStyle = C.gold; cx.lineWidth = 2;
+  cx.beginPath(); cx.arc(hx - 4, hy + 4, 4, 0, Math.PI); cx.stroke();
+  // a shape on the line while reeling
+  if (S.state === 'reeling') {
+    cx.fillStyle = C['water-deep']; cx.globalAlpha = .7;
+    const w = 18 + S.fish.zone * 6;
+    cx.beginPath(); cx.ellipse(hx + Math.sin(t * 9) * 6, hy + 14, w, w * .45, Math.sin(t * 4) * .3, 0, 6.28); cx.fill();
+    cx.globalAlpha = 1;
+    const r = S.reel;
+    drawBar(wt, r.box, r.size, r.fishY, [{ v: r.prog, c: C.gold }]);
+  }
+}
+
+function drawFishPhase(wt) {
+  const t = S.t, p = S.fp;
+  cx.fillStyle = C['water-deep']; cx.globalAlpha = .55; cx.fillRect(0, wt, W, H - wt); cx.globalAlpha = 1;
+  const top = wt + 18, h = H - wt - 40;
+  const fx = W * .4, fy = top + p.me * h;
+  // the line, from somewhere far above
+  cx.strokeStyle = C.paper; cx.lineWidth = 1;
+  cx.beginPath(); cx.moveTo(fx + 30, 0); cx.lineTo(fx + 22, fy); cx.stroke();
+  // you
+  cx.fillStyle = C.gold;
+  cx.save(); cx.translate(fx, fy); cx.rotate(p.v * .35);
+  cx.beginPath(); cx.ellipse(0, 0, 24, 11, 0, 0, 6.28); cx.fill();
+  cx.beginPath(); cx.moveTo(-20, 0); cx.lineTo(-36, -10 + Math.sin(t * 12) * 3); cx.lineTo(-36, 10 + Math.sin(t * 12) * 3); cx.fill();
+  cx.fillStyle = C.ink; cx.beginPath(); cx.arc(12, -3, 2.4, 0, 6.28); cx.fill();
+  cx.restore();
+  drawBar(wt, p.box, p.size, p.me, [{ v: p.pull, c: C.blush }, { v: p.strain, c: C.gold }], true);
+}
+
+function drawBar(wt, box, size, marker, meters, inverse) {
+  const bw = 26, bx = W - 26 - bw - meters.length * 12, by = wt + 18, bh = H - wt - 40;
+  cx.fillStyle = C.paper; cx.globalAlpha = .9;
+  cx.fillRect(bx - 4, by - 4, bw + 8, bh + 8);
+  cx.globalAlpha = 1;
+  cx.fillStyle = inverse ? C.blush : C.tub;
+  cx.globalAlpha = .85; cx.fillRect(bx, by + box * bh, bw, size * bh); cx.globalAlpha = 1;
+  const my = by + marker * bh;
+  cx.fillStyle = inverse ? C.gold : C['water-deep'];
+  cx.beginPath(); cx.moveTo(bx + 4, my); cx.lineTo(bx + bw - 4, my - 6); cx.lineTo(bx + bw - 4, my + 6); cx.closePath(); cx.fill();
+  meters.forEach((m, i) => {
+    const x = bx + bw + 8 + i * 12;
+    cx.fillStyle = C.paper; cx.globalAlpha = .5; cx.fillRect(x, by, 8, bh); cx.globalAlpha = 1;
+    const v = Math.max(0, Math.min(1, m.v));
+    cx.fillStyle = m.c; cx.fillRect(x, by + bh * (1 - v), 8, bh * v);
+  });
+}
+
+let last = 0;
+function frame(now) {
+  const dt = Math.min(.05, (now - last) / 1000 || 0); last = now;
+  if (!cardOpen()) update(dt);
+  if (W > 0) draw();
+  requestAnimationFrame(frame);
+}
+
+cv.addEventListener('pointerdown', e => { cv.setPointerCapture(e.pointerId); press(); });
+addEventListener('pointerup', release);
+addEventListener('pointercancel', release);
+addEventListener('keydown', e => {
+  if (cardOpen()) return;
+  if (e.key === ' ') { e.preventDefault(); if (!e.repeat) press(); }
+  const i = '1234'.indexOf(e.key);
+  if (i >= 0) { S.bait = BAITS[i].id; renderBaits(); }
+});
+addEventListener('keyup', e => { if (e.key === ' ') release(); });
+
+// Static markup carries data-t (text), data-th (trusted markup from I18N) and data-ta
+// (aria-label); the baits, the guide, the status line and an open card are rebuilt here, and
+// the canvas labels follow on the next frame.
+function applyLang() {
+  document.documentElement.lang = lang;
+  document.title = t('docTitle');
+  for (const el of document.querySelectorAll('[data-t]')) el.textContent = t(el.dataset.t);
+  for (const el of document.querySelectorAll('[data-th]')) el.innerHTML = t(el.dataset.th);
+  for (const el of document.querySelectorAll('[data-ta]')) el.setAttribute('aria-label', t(el.dataset.ta));
+  for (const box of document.querySelectorAll('.lang')) {
+    if (!box.children.length) box.innerHTML = '<button type="button" data-lang="fr" lang="fr">FR</button><button type="button" data-lang="en" lang="en">EN</button>';
+    for (const b of box.children) b.setAttribute('aria-pressed', String(b.dataset.lang === lang));
+  }
+  if (!S) return;
+  renderBaits(); renderGuide();
+  if (said) say(said[0], ...said[1]);
+  if (cardBuild && cardOpen()) fillCard();
+  $('#depth').textContent = S.hookP > 0 || S.state === 'fish' ? fmtDepth(S.state === 'fish' ? 39 : metres(S.hookP)) : '0 cm';
+}
+function setLang(l) {
+  if (!(l in I18N) || l === lang) return;
+  lang = l;
+  applyLang();
+}
+document.addEventListener('click', e => {
+  const b = e.target.closest('[data-lang]');
+  if (b) setLang(b.dataset.lang);
+});
+
+function start(data) {
+  lang = data?.lang in I18N ? data.lang : (navigator.language || '').toLowerCase().startsWith('fr') ? 'fr' : 'en';
+  S = fresh(data || {});
+  applyLang();
+  showCard(() => t('title'), () => idle());
+  resize();
+  requestAnimationFrame(frame);
+}
+window.claude?.hot?.snapshot?.(() => S ? ({ caught: [...S.caught], n: S.n, litres: S.litres, unlocked: S.unlocked, lang }) : { lang });
+window.claude?.hot?.ready ? window.claude.hot.ready(start) : start(window.claude?.hot?.data ?? {});
+</script>
+</body>
+</html>

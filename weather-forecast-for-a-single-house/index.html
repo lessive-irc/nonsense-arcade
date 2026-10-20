@@ -1,0 +1,1428 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Weather Forecast for a Single House</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cabin:ital,wght@0,400;0,600;0,700;1,400&family=Cabin+Condensed:wght@600;700&family=Silkscreen&display=swap">
+<style>
+/* Layout: a regional TV weather slot. The floor plan is the country on the chroma-key map (isobars, temperatures,
+   magnetic symbols), the presenter's running order sits on the right, and Ceefax page 401 crawls along the bottom. */
+:root {
+  --bg: #e4e9ec;        /* studio cyclorama, faintly blue */
+  --ink: #14202a;
+  --muted: #536270;
+  --accent: #e39a13;    /* the sun's rays */
+  --panel: #f6f8f9;
+  --line: #14202a2b;
+  --sea: #4f86ad;       /* the bold place: the map */
+  --sea-line: #6a9bbd;
+  --land: #9cc07a;
+  --land-edge: #6d9152;
+  --plan-wall: #2e3d2c;
+  --isobar: #ffffff;
+  --cloud: #f4f6f7;
+  --rain: #1f4f8f;
+  --smoke: #6e6660;
+  --toast: #b77a3a;
+  --sun: #f5c02c;
+  --cat: #24242c;
+  --temp-bg: #1d2a36;
+  --temp-fg: #ffffff;
+  --tele-bg: #0b0b0b;
+  --tele-fg: #f3e600;
+  --tele-2: #36e0e0;
+  --good: #2f8f4e;
+  --bad: #c4372c;
+  --f-display: "Cabin Condensed", "Arial Narrow", "Roboto Condensed", sans-serif;
+  --f-body: "Cabin", "Gill Sans", "Segoe UI", system-ui, sans-serif;
+  --f-tele: "Silkscreen", "Courier New", ui-monospace, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0d141b; --ink: #e2e9ef; --muted: #8fa0ae; --accent: #f2b432; --panel: #142029; --line: #e2e9ef24;
+    --sea: #17324a; --sea-line: #224665; --land: #3b5c38; --land-edge: #5b8150; --plan-wall: #b3c8a9; --isobar: #dfe9f2;
+    --cloud: #d9e2e8; --rain: #78b0ee; --smoke: #958d86; --toast: #c08a4c; --sun: #f2bd36; --cat: #0d0d12;
+    --temp-bg: #070c11; --temp-fg: #f3f6f8; --tele-bg: #000000; --tele-fg: #f3e600; --tele-2: #36e0e0; --good: #4cbf72; --bad: #ff6a5c;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0d141b; --ink: #e2e9ef; --muted: #8fa0ae; --accent: #f2b432; --panel: #142029; --line: #e2e9ef24;
+  --sea: #17324a; --sea-line: #224665; --land: #3b5c38; --land-edge: #5b8150; --plan-wall: #b3c8a9; --isobar: #dfe9f2;
+  --cloud: #d9e2e8; --rain: #78b0ee; --smoke: #958d86; --toast: #c08a4c; --sun: #f2bd36; --cat: #0d0d12;
+  --temp-bg: #070c11; --temp-fg: #f3f6f8; --tele-bg: #000000; --tele-fg: #f3e600; --tele-2: #36e0e0; --good: #4cbf72; --bad: #ff6a5c;
+  color-scheme: dark;
+}
+[hidden] { display: none !important; }
+/* kit:css:begin */
+/* Arcade kit: structure only, never a look. Inlined between kit:css markers by kit/inline.mjs.
+   The game's own :root must define --bg --ink --muted --accent --panel --line (light), and
+   redefine them in both dark blocks; everything here reads those tokens. */
+*, *::before, *::after { box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  -webkit-tap-highlight-color: transparent;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+button { font: inherit; color: inherit; cursor: pointer; }
+button:disabled { cursor: default; }
+:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+canvas { display: block; max-width: 100%; touch-action: none; }
+
+/* Full-stage screens (title, twist, end). Sit inside a position:relative stage. */
+.kit-overlay {
+  position: absolute; inset: 0; z-index: 5;
+  display: grid; place-items: center; padding: 24px;
+  background: color-mix(in srgb, var(--bg) 88%, transparent);
+  overflow-y: auto;
+}
+.kit-overlay[hidden] { display: none; }
+
+/* Touch pad: shown only on coarse pointers; buttons carry data-key (see Kit.keys). */
+.kit-pad { display: none; gap: 10px; justify-content: center; padding-block: 10px; user-select: none; }
+.kit-pad [data-key] { min-width: 56px; min-height: 56px; touch-action: none; border: 1px solid var(--line); background: var(--panel); }
+@media (pointer: coarse) { .kit-pad { display: flex; } }
+
+.kit-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+
+@media (prefers-reduced-motion: reduce) {
+  .kit-deco, .kit-deco * { animation: none !important; transition: none !important; }
+}
+/* kit:css:end */
+
+body { font-family: var(--f-body); padding-block: 12px; }
+.stage { position: relative; max-width: 1220px; margin: 0 auto; display: grid; gap: 10px; }
+.bar { display: flex; flex-wrap: wrap; gap: 10px; align-items: stretch; }
+.brand { flex: 1 1 280px; display: flex; align-items: center; gap: 12px; padding: 8px 12px; background: var(--panel); border: 1px solid var(--line); }
+.brand strong { font-family: var(--f-display); font-weight: 700; font-size: 25px; letter-spacing: .02em; text-transform: uppercase; line-height: 1; }
+.brand span { display: block; font-size: 13px; color: var(--muted); }
+.p401 { font-family: var(--f-tele); font-size: 12px; background: var(--tele-bg); color: var(--tele-fg); padding: 5px 7px; line-height: 1; }
+.meter { flex: 1 1 240px; display: grid; gap: 5px; align-content: center; padding: 8px 12px; background: var(--panel); border: 1px solid var(--line); }
+.meter .lbl { display: flex; justify-content: space-between; gap: 8px; font-size: 13px; color: var(--muted); }
+.meter .lbl b { color: var(--ink); font-variant-numeric: tabular-nums; }
+.track { height: 8px; background: var(--line); }
+.track i { display: block; height: 100%; width: 50%; background: var(--good); transition: width .5s; }
+.track i.low { background: var(--bad); }
+
+.main { display: grid; grid-template-columns: minmax(0, 1fr) 390px; gap: 10px; align-items: start; }
+.mapcol { display: grid; gap: 0; min-width: 0; }
+.mapbox { position: relative; aspect-ratio: 680 / 480; background: var(--sea); border: 1px solid var(--line); }
+.mapbox canvas { width: 100%; height: 100%; cursor: pointer; }
+.caption { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; background: var(--temp-bg); color: var(--temp-fg); padding: 5px 12px 6px; }
+.caption b { font-family: var(--f-display); font-size: clamp(18px, 2.6vw, 26px); letter-spacing: .02em; text-transform: uppercase; line-height: 1.05; }
+.caption span { font-size: 13px; opacity: .85; }
+.tele { background: var(--tele-bg); color: var(--tele-fg); font-family: var(--f-tele); font-size: 12px; line-height: 1.5; padding: 6px 10px; min-height: 44px; display: grid; grid-template-columns: auto 1fr; gap: 10px; align-items: center; }
+.tele i { font-style: normal; color: var(--tele-2); }
+
+.side { background: var(--panel); border: 1px solid var(--line); padding: 12px 14px 14px; display: grid; gap: 12px; min-width: 0; }
+.side h2 { margin: 0; font-family: var(--f-display); font-weight: 700; font-size: 21px; text-transform: uppercase; letter-spacing: .02em; line-height: 1.05; }
+.side h3 { margin: 0; font-family: var(--f-display); font-weight: 600; font-size: 14px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+.side section { display: grid; gap: 8px; align-content: start; }
+.dateline { font-size: 13px; color: var(--muted); }
+.synop { list-style: none; margin: 0; padding: 0; display: grid; gap: 3px; font-size: 14px; line-height: 1.35; }
+.synop li { padding-left: 14px; position: relative; }
+.synop li::before { content: "▸"; position: absolute; left: 0; color: var(--accent); }
+.palette { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.sym {
+  display: grid; grid-template-columns: 30px 1fr; align-items: center; gap: 6px; text-align: left;
+  padding: 4px 6px; background: var(--bg); border: 1px solid var(--line); font-size: 12.5px; line-height: 1.15; border-radius: 2px;
+}
+.sym canvas { width: 30px; height: 30px; background: var(--sea); }
+.sym.on { border-color: var(--ink); box-shadow: inset 0 0 0 1px var(--ink); background: var(--panel); }
+.sym kbd { font: 11px var(--f-tele); color: var(--muted); }
+.tabs { display: flex; gap: 0; border-bottom: 2px solid var(--ink); }
+.tabs button { flex: 1; border: 0; background: transparent; padding: 6px 4px; font-weight: 600; font-size: 13px; color: var(--muted); }
+.tabs button.on { background: var(--ink); color: var(--panel); }
+table.grid { width: 100%; border-collapse: collapse; font-size: 13px; }
+.grid th { font-weight: 600; text-align: left; padding: 3px 4px; color: var(--muted); font-size: 12px; }
+.grid th.col { text-align: center; }
+.grid td { padding: 2px; text-align: center; }
+.cell { position: relative; width: 100%; height: 40px; display: grid; place-items: center; padding: 0; border: 1px solid var(--line); background: var(--sea); border-radius: 2px; }
+.cell canvas { width: 34px; height: 34px; pointer-events: none; }
+.cell.cur { outline: 3px solid var(--accent); outline-offset: -1px; }
+.cell.slotted { border-color: var(--ink); }
+.cell .mk { position: absolute; right: 2px; top: 1px; font: 700 12px var(--f-body); color: var(--temp-fg); background: var(--temp-bg); padding: 0 4px; border-radius: 2px; line-height: 1.35; }
+.cell .mk.good { background: var(--good); }
+.cell .mk.bad { background: var(--bad); }
+.cell .act { position: absolute; left: 2px; bottom: 2px; width: 16px; height: 16px; }
+.btn { font-weight: 700; font-size: 15px; padding: 10px 16px; border: 0; background: var(--ink); color: var(--panel); border-radius: 2px; }
+.btn:hover { background: var(--accent); color: var(--ink); }
+.btn.ghost { background: transparent; color: var(--ink); border: 1px solid var(--ink); }
+.btn.ghost:hover { background: var(--bg); }
+.row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.hint { font-size: 12.5px; color: var(--muted); line-height: 1.4; }
+details.notes { border-top: 1px solid var(--line); padding-top: 8px; }
+details.notes summary { cursor: pointer; font-family: var(--f-display); font-weight: 600; font-size: 14px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+.notes ol { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 4px; font-size: 13.5px; line-height: 1.4; }
+.notes li.new { color: var(--ink); font-weight: 600; }
+.script { display: grid; gap: 4px; font-size: 13.5px; line-height: 1.4; }
+.script p { margin: 0; color: var(--muted); }
+.script p.now { color: var(--ink); }
+.score { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.score div { background: var(--bg); padding: 6px 8px; display: grid; }
+.score b { font-family: var(--f-display); font-size: 26px; line-height: 1; font-variant-numeric: tabular-nums; }
+.score span { font-size: 11.5px; color: var(--muted); }
+.house { font-family: var(--f-tele); font-size: 13px; line-height: 1.55; background: var(--tele-bg); color: var(--tele-fg); padding: 10px 12px; }
+.house i { font-style: normal; color: var(--tele-2); }
+.events { margin: 0; padding-left: 18px; font-size: 13.5px; line-height: 1.4; display: grid; gap: 3px; }
+
+.kit-overlay { position: fixed; place-items: safe center; background: color-mix(in srgb, var(--bg) 93%, transparent); }
+.card { max-width: 580px; display: grid; gap: 14px; background: var(--panel); border: 1px solid var(--line); border-left: 8px solid var(--sea); padding: 22px 24px; }
+.card h1, .card h2 { margin: 0; font-family: var(--f-display); font-weight: 700; text-transform: uppercase; line-height: .98; letter-spacing: .01em; }
+.card h1 { font-size: clamp(36px, 7.5vw, 62px); }
+.card h2 { font-size: clamp(28px, 5.5vw, 44px); }
+.card p { margin: 0; font-size: 16px; line-height: 1.55; text-wrap: pretty; }
+.card .lede { font-size: 18px; font-style: italic; }
+.card .small { font-family: var(--f-tele); font-size: 11px; color: var(--muted); }
+.card .btn { justify-self: start; font-size: 16px; padding: 11px 18px; }
+.card ul { margin: 0; padding-left: 20px; display: grid; gap: 4px; font-size: 14.5px; line-height: 1.45; }
+.card.sacked { border-left-color: var(--bad); }
+.card.perfect { border-left-color: var(--sun); }
+.card.house-end { border-left-color: var(--tele-fg); }
+.card .house { font-size: 12.5px; }
+.card .house p { font-size: inherit; line-height: 1.6; margin: 0 0 6px; }
+
+/* Language toggle: two teletext keys, the live one lit. */
+.lang { display: inline-flex; flex: none; align-self: center; margin-left: auto; border: 1px solid var(--ink); border-radius: 2px; background: var(--panel); overflow: hidden; }
+.lang button { border: 0; background: transparent; padding: 4px 9px; font: 12px var(--f-tele); letter-spacing: .06em; color: var(--muted); }
+.lang button + button { border-left: 1px solid var(--line); }
+.lang button:hover { color: var(--ink); }
+.lang button[aria-pressed="true"] { background: var(--ink); color: var(--panel); }
+.card .row .lang { min-height: 34px; }
+
+@media (max-width: 920px) { .main { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 520px) {
+  .brand strong { font-size: 20px; }
+  .palette { grid-template-columns: repeat(2, 1fr); }
+  .card { padding: 18px 16px; }
+  .tele { font-size: 11px; }
+}
+</style>
+</head>
+<body>
+<div class="stage">
+  <header class="bar">
+    <div class="brand"><span class="p401">P401</span><div><strong data-t="brand">House Weather</strong><span id="dayline" data-t="dayline">14 Larkspur Close · one house, six rooms</span></div><div class="lang" role="group" data-ta="langGroup" aria-label="Language"></div></div>
+    <div class="meter">
+      <div class="lbl"><span data-t="vcLbl">Viewer confidence</span><b id="vc">50%</b></div>
+      <div class="track"><i id="vc-bar"></i></div>
+      <div class="lbl"><span data-t="cmpLbl">Complaints received</span><b id="cmp">0</b></div>
+    </div>
+  </header>
+
+  <div class="main">
+    <div class="mapcol">
+      <div class="caption"><b id="cap-slot">Morning</b><span id="cap-sub">your forecast · 07:00–11:00</span></div>
+      <div class="mapbox">
+        <canvas id="map" data-ta="mapAria" aria-label="Weather map of the house floor plan, with isobars and a symbol in each room"></canvas>
+      </div>
+      <div class="tele" aria-live="polite"><span><i>P401</i></span><span id="tele">HOUSE WEATHER · NEXT UPDATE 05:05</span></div>
+    </div>
+
+    <aside class="side" id="side">
+      <section id="pane-forecast">
+        <h2 id="f-title">Monday's forecast</h2>
+        <div class="dateline" id="f-date"></div>
+        <h3 style="margin-top:4px" data-t="synopH">Synoptic situation, 05:00</h3>
+        <ul class="synop" id="synop"></ul>
+        <h3 style="margin-top:4px" data-t="symH">Symbols</h3>
+        <div class="palette" id="palette"></div>
+        <div class="tabs" id="tabs" style="margin-top:4px"></div>
+        <table class="grid" id="grid"></table>
+        <p class="hint" data-t="hint">Pick a symbol, then click a room on the map or a box in the chart. Click again for “chance of” (scores safer, scores less); a third time clears it. Keys: arrows move, 1–6 place, 0 clears, Enter goes on air.</p>
+        <div class="row"><button class="btn" id="air">Go on air</button></div>
+      </section>
+
+      <section id="pane-play" hidden>
+        <h2 id="p-title" data-t="onAirH">On air</h2>
+        <div class="script" id="script"></div>
+        <ol class="events" id="events"></ol>
+      </section>
+
+      <section id="pane-results" hidden>
+        <h2 id="r-title" data-t="resultsH">How it went</h2>
+        <div class="score" id="score"></div>
+        <ol class="events" id="r-notes"></ol>
+        <div class="row"><button class="btn" id="next">Next day</button></div>
+      </section>
+
+      <section id="pane-nego" hidden>
+        <h2 data-t="negoH">The house's chart</h2>
+        <div class="dateline" id="n-date"></div>
+        <div class="house" id="claim" aria-live="polite"></div>
+        <div class="row"><button class="btn" id="agree" data-t="agree">Agree (A)</button><button class="btn ghost" id="dispute" data-t="dispute">Dispute (D)</button></div>
+        <div class="dateline" id="n-count"></div>
+        <h3 data-t="synopH">Synoptic situation, 05:00</h3>
+        <ul class="synop" id="n-synop"></ul>
+      </section>
+
+      <details class="notes" id="notes-box" open>
+        <summary data-t="notesH">Notes on this house</summary>
+        <ol id="notes"></ol>
+      </details>
+    </aside>
+  </div>
+
+  <div class="kit-overlay" id="title">
+    <div class="card">
+      <div class="small" data-t="titleSmall">REGIONAL WEATHER · THE SMALLEST REGION</div>
+      <h1 data-t="titleH">Weather Forecast for a Single House</h1>
+      <p class="lede" data-t="titleLede">You are the new weather presenter for 14 Larkspur Close. Six rooms. Three slots a day. Millions of viewers, if you count the cat.</p>
+      <ul>
+        <li data-t="rule1">Each morning, read the synoptic situation and place a symbol in every room for morning, afternoon and evening.</li>
+        <li data-t="rule2">Then the day plays out and you are scored against what actually happened. Weather nobody forecast costs you. So does forecasting weather that never comes.</li>
+        <li data-t="rule3">The house has patterns. Your predecessor left notes. You will add to them.</li>
+        <li data-t="rule4">Viewer confidence starts at 50%. At zero, you are off the air.</li>
+      </ul>
+      <div class="row"><button class="btn" id="start" data-t="startBtn">Go to the studio</button><div class="lang" role="group" data-ta="langGroup" aria-label="Language"></div></div>
+      <div class="small" id="best-line">about 4 to 6 minutes · mouse, touch or keyboard</div>
+    </div>
+  </div>
+
+  <div class="kit-overlay" id="word" hidden>
+    <div class="card house-end">
+      <div class="small" data-t="wordSmall">PRE-RECORDED MESSAGE · SOURCE: THE BOILER</div>
+      <h2 data-t="wordH">The house would like a word</h2>
+      <div class="house" id="word-text"></div>
+      <div class="row"><button class="btn" id="word-go" data-t="wordGo">Hear the house out</button><div class="lang" role="group" data-ta="langGroup" aria-label="Language"></div></div>
+    </div>
+  </div>
+
+  <div class="kit-overlay" id="end" hidden>
+    <div class="card" id="end-card">
+      <div class="small" id="end-kicker"></div>
+      <h2 id="end-title"></h2>
+      <p class="lede" id="end-sub"></p>
+      <div id="end-body"></div>
+      <div class="small" id="end-stat"></div>
+      <div class="row"><button class="btn" id="again" data-t="againBtn">Present again tomorrow</button><div class="lang" role="group" data-ta="langGroup" aria-label="Language"></div></div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* kit:js:begin */
+// Arcade kit: the plumbing every game re-wrote by hand. Inlined between kit:js markers by
+// kit/inline.mjs, so a game stays one standalone file. Defines exactly two globals, `Kit` and
+// (once a game calls Kit.expose) `__arcade`; nothing else, because a bare top-level name can
+// collide with a window property (sandwich-diplomacy's `top()` shadowed by window.top).
+const Kit = (() => {
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const themeWatchers = [];
+  const onTheme = () => themeWatchers.forEach(f => f());
+  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', onTheme);
+  new MutationObserver(onTheme).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+
+  // Canvas code cannot read CSS variables, so mirror the named tokens into an object and
+  // re-read it whenever the theme flips: the viewer's toggle sets data-theme, the OS sets the media query.
+  function tokens(names, onChange) {
+    const C = {};
+    const read = () => {
+      const cs = getComputedStyle(document.documentElement);
+      for (const n of names) C[n] = cs.getPropertyValue('--' + n).trim();
+      onChange?.(C);
+    };
+    read();
+    themeWatchers.push(read);
+    return C;
+  }
+
+  // Keeps a canvas sharp at the device pixel ratio (capped at 2) and sized to its CSS box.
+  function canvas(el, onResize) {
+    const view = { el, cx: el.getContext('2d'), W: 0, H: 0 };
+    const fit = () => {
+      const r = el.getBoundingClientRect(), d = Math.min(2, devicePixelRatio || 1);
+      view.W = r.width; view.H = r.height;
+      el.width = Math.round(r.width * d); el.height = Math.round(r.height * d);
+      view.cx.setTransform(d, 0, 0, d, 0, 0);
+      onResize?.(view);
+    };
+    new ResizeObserver(fit).observe(el);
+    fit();
+    return view;
+  }
+
+  // step(dt) gets seconds, capped at 50 ms so a background tab or a stalled frame cannot
+  // teleport the game; the loop stops while the tab is hidden and resumes without a jump.
+  function loop(step) {
+    let last = 0, raf = 0, on = false;
+    const frame = t => {
+      const dt = last ? Math.min(0.05, (t - last) / 1000) : 0;
+      last = t;
+      step(dt);
+      if (on) raf = requestAnimationFrame(frame);
+    };
+    const ctl = {
+      start() { if (on) return; on = true; last = 0; raf = requestAnimationFrame(frame); },
+      stop() { on = false; cancelAnimationFrame(raf); },
+      get running() { return on; },
+    };
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden && on) { ctl.stop(); ctl.paused = true; }
+      else if (!document.hidden && ctl.paused) { ctl.paused = false; ctl.start(); }
+    });
+    return ctl;
+  }
+
+  // Held keys by KeyboardEvent.key, lower-cased (' ' for Space). Touch pads feed the same set:
+  // any element with data-key="<key>" inside a .kit-pad holds that key while pressed.
+  const held = new Set();
+  const pressFns = [];
+  const norm = k => (k.length === 1 ? k.toLowerCase() : k);
+  const press = (k, down) => {
+    k = norm(k);
+    if (down === held.has(k)) return;
+    down ? held.add(k) : held.delete(k);
+    pressFns.forEach(f => f(k, down));
+  };
+  const GAME_KEYS = new Set([' ', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight']);
+  addEventListener('keydown', e => {
+    if (e.target.closest?.('input, textarea, select, [contenteditable]')) return;
+    if (GAME_KEYS.has(e.key) && !e.target.closest?.('button')) e.preventDefault();
+    if (!e.repeat) press(e.key, true);
+  });
+  addEventListener('keyup', e => press(e.key, false));
+  addEventListener('blur', () => [...held].forEach(k => press(k, false)));
+  document.addEventListener('pointerdown', e => {
+    const b = e.target.closest?.('.kit-pad [data-key]');
+    if (!b) return;
+    e.preventDefault();
+    b.setPointerCapture?.(e.pointerId);
+    press(b.dataset.key, true);
+    const up = () => { press(b.dataset.key, false); b.removeEventListener('pointerup', up); b.removeEventListener('pointercancel', up); };
+    b.addEventListener('pointerup', up);
+    b.addEventListener('pointercancel', up);
+  });
+  const keys = {
+    down: k => held.has(norm(k)),
+    any: (...ks) => ks.some(k => held.has(norm(k))),
+    onPress(fn) { pressFns.push(fn); },
+  };
+
+  // The claude.ai viewer's hot-update hook: keeps `snapshot()` across a republish. Absent when
+  // self-hosted, so start() then receives {}.
+  function boot(start, snapshot) {
+    if (snapshot) window.claude?.hot?.snapshot?.(snapshot);
+    window.claude?.hot?.ready ? window.claude.hot.ready(start) : start(window.claude?.hot?.data ?? {});
+  }
+
+  // The test hook smoke.mjs drives. endings: { name: { jump(), reached(), seconds? } } where
+  // jump() may shortcut the set-up but must leave the ending's final stretch to real game
+  // logic, and reached() is true only once that ending's screen is actually showing.
+  function expose({ state, endings }) {
+    window.__arcade = {
+      get state() { return state(); },
+      endings: Object.fromEntries(Object.entries(endings).map(([k, v]) => [k, { seconds: v.seconds ?? 8 }])),
+      jump: name => endings[name].jump(),
+      reached: name => !!endings[name].reached(),
+    };
+  }
+
+  // Show one overlay and hide the others; focus its first button so Enter/Space continue.
+  function show(el) {
+    document.querySelectorAll('.kit-overlay').forEach(o => { o.hidden = o !== el; });
+    el?.querySelector('button')?.focus({ preventScroll: true });
+  }
+
+  const rnd = (a, b) => a + Math.random() * (b - a);
+  const pick = a => a[Math.floor(Math.random() * a.length)];
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+
+  return { reduce, tokens, canvas, loop, keys, boot, expose, show, rnd, pick, clamp };
+})();
+/* kit:js:end */
+
+// Every player-visible string, per language. The forecast, the weather, the claims and the scores
+// are symbol and room indexes; the day's clues are indexes too (menu, visitors). Switching
+// language mid-day re-words the panes, the map and the read-out without touching a result.
+const I18N = {
+  en: {
+    docTitle: 'Weather Forecast for a Single House',
+    langGroup: 'Language',
+    brand: 'House Weather', dayline: '14 Larkspur Close · one house, six rooms',
+    vcLbl: 'Viewer confidence', cmpLbl: 'Complaints received',
+    mapAria: 'Weather map of the house floor plan, with isobars and a symbol in each room',
+    teleIdle: 'HOUSE WEATHER · NEXT UPDATE 05:05',
+    synopH: 'Synoptic situation, 05:00', symH: 'Symbols',
+    hint: 'Pick a symbol, then click a room on the map or a box in the chart. Click again for “chance of” (scores safer, scores less); a third time clears it. Keys: arrows move, 1–6 place, 0 clears, Enter goes on air.',
+    onAirH: 'On air', resultsH: 'How it went', nextBtn: 'Next day',
+    negoH: "The house's chart", agree: 'Agree (A)', dispute: 'Dispute (D)', notesH: 'Notes on this house',
+    titleSmall: 'REGIONAL WEATHER · THE SMALLEST REGION',
+    titleH: 'Weather Forecast for a Single House',
+    titleLede: 'You are the new weather presenter for 14 Larkspur Close. Six rooms. Three slots a day. Millions of viewers, if you count the cat.',
+    rule1: 'Each morning, read the synoptic situation and place a symbol in every room for morning, afternoon and evening.',
+    rule2: 'Then the day plays out and you are scored against what actually happened. Weather nobody forecast costs you. So does forecasting weather that never comes.',
+    rule3: 'The house has patterns. Your predecessor left notes. You will add to them.',
+    rule4: 'Viewer confidence starts at 50%. At zero, you are off the air.',
+    startBtn: 'Go to the studio',
+    bestLine: 'about 4 to 6 minutes · mouse, touch or keyboard',
+    bestLineWith: b => `best mean accuracy ${b}% · about 4 to 6 minutes`,
+    wordSmall: 'PRE-RECORDED MESSAGE · SOURCE: THE BOILER', wordH: 'The house would like a word', wordGo: 'Hear the house out',
+    againBtn: 'Present again tomorrow',
+    pct: n => `${n}%`,
+    rooms: ['Bedroom', 'Bathroom', 'Conservatory', 'Living Room', 'Hallway', 'Kitchen'],
+    roomIn: ['in the bedroom', 'in the bathroom', 'in the conservatory', 'in the living room', 'in the hallway', 'in the kitchen'],
+    slots: ['Morning', 'Afternoon', 'Evening'], slotAbbr: ['Mor', 'Aft', 'Eve'],
+    sym: ['Fair', 'Fog', 'Toast smoke', 'Draught', 'Showers', 'Low (cat)'],
+    lowMark: 'L', houseMark: 'H',
+    days: ['Monday', 'Tuesday', 'Wednesday', 'Thursday'],
+    grill: ['grilled halloumi', 'fish fingers under the grill', 'cheese on toast (as a meal)'],
+    noGrill: ['soup', 'a cold salad', 'a takeaway, eaten from the box'],
+    visitors: ['Auntie Pam', 'the man about the gutters', 'a book club (four women, one book)'],
+    notes: [
+      'Bathroom: fog every morning. The shower runs at 07:10. It has never not.',
+      'Hallway: draughty every morning (school run, 08:15). Occasionally sock.',
+      'Kitchen, morning: toast smoke depends on the toaster dial. 6 is a certainty, 2 is bread. 4 is about a 40% chance.',
+      'The cat goes Bedroom → Living Room → Conservatory, one room per slot, round and round. Where it sits, the pressure drops.',
+      'The conservatory roof leaks whenever it rains outside: indoor showers until the rain stops.',
+      'Anything grilled for tea means evening toast smoke in the kitchen. Soup does not smoke. Takeaways never do.',
+      'The cat will not sit in a leak. It skips the conservatory and goes straight on to the bedroom.',
+      'The front door makes the hallway draughty: parcels in the afternoon, visitors in the evening. A teenager at home fogs the bathroom all afternoon; bath night fogs it in the evening.',
+    ],
+    syn: {
+      toast: { 6: 'Toaster dial left at 6. Somebody likes it dark.', 4: 'Toaster dial at 4. Could go either way.', 2: 'Toaster dial at 2. That is warm bread, legally.' },
+      menu: tea => `On the menu tonight: ${tea}.`,
+      teen: ['Teenager at school until four.', 'Teenager on study leave, home all day. Has discovered long showers.'],
+      bath: ['Not a bath night.', 'Bath night. A bath bomb has been left out on the side.'],
+      parcels: ['No parcels expected.', 'One parcel expected this afternoon.', 'Two parcels expected this afternoon.'],
+      visitors: v => (v ? `Visitors this evening: ${v}.` : 'No visitors this evening.'),
+      rain: { dry: 'Outside: dry all day.', midday: 'Outside: rain from midday, lasting into the evening.', evening: 'Outside: dry until the evening, then rain.' },
+      cat: room => `Cat last seen at dawn: ${room}.`,
+    },
+    fTitle: day => `${day}'s forecast`,
+    fDate: (day, n) => `${day} · broadcast 05:55 · day ${n} of 4`,
+    air: 'Go on air', airListening: 'Go on air (the house is listening)',
+    dayTele: ['GOOD MORNING. THIS IS HOUSE WEATHER ON P401. FIRST FORECAST OF THE WEEK.', 'TUESDAY. YESTERDAY\'S TOAST HAS BEEN CLEARED. MOSTLY.',
+      'WEDNESDAY. THE BOILER MADE A NOISE IN THE NIGHT THAT SOUNDED LIKE A WORD.'],
+    capWhat: { forecast: 'your forecast', negotiate: "the house's forecast", happened: 'what happened' },
+    cellAria: (room, slot, chance, sym) => `${room}, ${slot}: ${chance ? 'chance of ' : ''}${sym}`,
+    // The read-out: shipping-forecast cadence.
+    phrase: ['fair', 'fog', 'toast smoke', 'westerly 4 or 5, occasionally sock', 'showers, indoor', 'cat, cyclonic, falling slowly'],
+    chance: ['chance of fair', 'chance of fog', 'chance of toast smoke', 'chance of westerly 4 or 5, occasionally sock', 'chance of showers, indoor', 'chance of cat, cyclonic, falling slowly'],
+    becoming: p => `, becoming ${p} later`,
+    thenEvening: (then, p) => `, ${then ? 'then' : 'becoming'} ${p} this evening`,
+    vis: { poor: 'poor', moderate: 'moderate, occasionally poor', cat: 'good, occasionally cat', good: 'good' },
+    readRoom: (room, out, vis) => `${room}. ${out}. ${vis}.`,
+    onAir: day => `On air · ${day}`,
+    intro: day => `And now the house forecast, issued by the Met Office at 05:05 on ${day}.`,
+    meddle: {
+      showers: room => `${room}: you said fair. The house ran a tap with intent.`,
+      fog: (room, inRoom) => `${room}: fog from nowhere. There is no kettle ${inRoom}. There is now fog ${inRoom}.`,
+      fair: (room, sym) => `${room}: you said ${sym.toLowerCase()}. The house cancelled it. Out of spite.`,
+    },
+    events: [
+      null,
+      ['{t} {room}: fog, thick, mirror-level.', '{t} {room}: visibility down to one towel.'],
+      ['{t} {room}: toast smoke. The alarm considered it, and declined.', '{t} {room}: smoke from the grill. Someone opens a window and waves a tea towel at it.'],
+      ['{t} {room}: front door open, draught force 4, one sock airborne.', '{t} {room}: draught along the skirting. A receipt travels nine feet.'],
+      ['{t} {room}: showers. The roof does what the roof does.', '{t} {room}: a bucket is deployed.'],
+      ['{t} {room}: the cat arrives. Pressure falls to 986.', '{t} {room}: cat, settling. Everyone in the room feels slightly heavier.'],
+    ],
+    teleMeddle: 'THE HOUSE HAS ISSUED A CORRECTION. THE HOUSE DID NOT ASK FIRST.',
+    vcLines: [
+      'The phones lit up, but nicely. A woman in Cleethorpes says you have kind eyes for weather.',
+      'A solid broadcast. The cat was described by viewers as "well handled".',
+      'Mixed reaction. Someone wrote in to ask what a millibar is. Someone else wrote in to answer them, wrongly.',
+      'Complaints from viewers who dressed for fair weather and got toast smoke on their good cardigans.',
+      'A large number of complaints, several in green ink, one simply reading "THE HALLWAY".',
+    ],
+    rTitle: day => `${day}: how it went`,
+    sAcc: 'accuracy', sCaught: 'events caught', sVc: 'viewer confidence',
+    complaintsN: n => `${n} complaint${n === 1 ? '' : 's'} received.`,
+    learned1: 'You have learned two new things about this house. They are in your notes.',
+    learned2a: 'The hallway creaked when you said "draught". Probably nothing.', learned2b: 'Two more patterns go in your notes.',
+    learned3: 'Two rooms marked H were changed by the house after you went on air. They are not scored. The house knows they are not scored.',
+    phone: 'The studio phone is ringing. It is the Head of Weather.',
+    teleSack: 'WE ARE EXPERIENCING TECHNICAL DIFFICULTIES. PLEASE DO NOT ADJUST YOUR HOUSE.',
+    nextFinal: 'Tomorrow (the final broadcast)',
+    teleVerified: (day, acc, vc) => `${day.toUpperCase()} VERIFIED. ACCURACY ${acc}%. VIEWER CONFIDENCE ${vc}%.`,
+    houseWord: '<p>THIS IS THE HOUSE.</p><p>I HAVE BEEN LISTENING TO YOU DESCRIBE ME ON TELEVISION FOR THREE DAYS. YOU CALL MY BATHROOM <i>POOR</i>. YOU CALL MY HALLWAY <i>OCCASIONALLY SOCK</i>. NOBODY ASKED THE HALLWAY.</p><p>I MAKE THE WEATHER. YOU ONLY SAY IT. TOMORROW I HAVE PREPARED MY OWN CHART. YOU WILL GO THROUGH IT WITH ME, LIVE, ROOM BY ROOM. AGREE WITH WHAT IS TRUE. I WILL KNOW IF YOU DO NOT.</p><p>— THE HOUSE (VIA THE BOILER)</p>',
+    nDate: 'Thursday · the final broadcast · live',
+    theHouse: 'THE HOUSE:',
+    claims: [
+      ['{room}, {slot}: fair. Calm. Nothing will happen in me. I promise.', '{room}, {slot}: fair and still. Not a crumb will move.'],
+      ['{room}, {slot}: fog. Thick. I can feel it in my grouting.', '{room}, {slot}: fog, as is my right.'],
+      ['{room}, {slot}: toast smoke. I can smell it already. It has not happened yet. I can smell it.', '{room}, {slot}: smoke. The grill and I have discussed it.'],
+      ['{room}, {slot}: draughty. The letterbox and I have an understanding.', '{room}, {slot}: draught, force 4, one sock.'],
+      ['{room}, {slot}: showers, indoor. My roof wishes to be left alone.', '{room}, {slot}: showers. Bring a bucket. Bring two.'],
+      ['{room}, {slot}: the cat. Low pressure. Very low. Purring at 986 millibars.', '{room}, {slot}: cat, settling, cyclonic.'],
+    ],
+    nCount: (n, agreed, disputed) => `Claim ${n} of 6 · you have agreed ${agreed}, disputed ${disputed}`,
+    teleClaim: (room, slot) => `LIVE: THE HOUSE PUTS ITS ${room.toUpperCase()} ${slot.toUpperCase()} TO THE PRESENTER.`,
+    onAirFinal: 'On air · Thursday · live',
+    finalLine: { perfect: 'The house goes quiet. Then the boiler clicks, once, which in this house means yes. The joint forecast stands.', house: 'The house thanks you for your agreement. The house would like the microphone now.', sacked: 'You argued with a house on live television. The house is now going to be right at you.' },
+    houseForecast: [
+      'AND NOW THE FORECAST, ISSUED BY THE HOUSE AT 05:05 ON BEHALF OF ITSELF.',
+      'KITCHEN. TOAST, BECOMING MORE TOAST. SMOKE ALARM 6 TO 7, OCCASIONALLY 9. VISIBILITY POOR, THEN YOU, THEN POOR.',
+      'HALLWAY. SOUTHWESTERLY, SOCK, VEERING SLIPPER. GOOD, OCCASIONALLY AUNTIE PAM.',
+      'BATHROOM. FOG. FOG LATER. FOG HAS ALWAYS BEEN HERE. FOG.',
+      'LIVING ROOM. CAT, CYCLONIC, 986 AND PURRING. MODERATE.',
+      'BEDROOM. FAIR. SILENT. DO NOT COME IN.',
+      'CONSERVATORY. SHOWERS, INDOOR, HEAVY AT TIMES. THE ROOF IS NOT TAKING QUESTIONS.',
+      'THAT WAS THE HOUSE FORECAST. THE HOUSE WILL BE PRESENTING FROM NOW ON. YOU MAY STAY, AS WEATHER.',
+    ],
+    ends: {
+      perfect: { kicker: 'P401 · VERIFIED · 18 OF 18', title: 'A perfect forecast.',
+        sub: 'Every room, every slot. The bathroom fogged at 07:10 to the minute. The cat arrived on cue and took the pressure down to 986, as forecast.',
+        body: () => '<p>The house did not do as it was told. It did as it had agreed, which turns out to be different, and better. The Royal Meteorological Society sends a card. It is addressed to both of you.</p>' },
+      sacked: { kicker: 'INTERNAL MEMO · FROM THE HEAD OF WEATHER', title: "You're sacked.",
+        sub: 'Effective immediately, following complaints from viewers, the cat, and the house itself.',
+        body: n => `<p>Dear presenter. We have received ${n} complaints this week, several in green ink, one written in condensation on the bathroom mirror. Please return the clicker and the magnetic sun. Brenda, Head of Weather.</p><p>P.S. The hallway would like it known that it was never "occasionally sock". It was always sock.</p>` },
+      house: { kicker: 'P401 · NOW PRESENTING: THE HOUSE', title: "The house's own forecast.",
+        sub: 'You agreed with things the house had no business saying. It noticed. It took the microphone.' },
+    },
+    endStat: (days, mean, vc, cmp, best) => `DAYS ON AIR ${days} · MEAN ACCURACY ${mean}% · CONFIDENCE ${vc}% · COMPLAINTS ${cmp}${best != null ? ` · BEST ${best}%` : ''}`,
+    endTele: { perfect: 'A PERFECT FORECAST · THE HOUSE AND THE PRESENTER THANK YOU', sacked: 'NORMAL SERVICE WILL BE RESUMED WITH A DIFFERENT PRESENTER', house: 'THIS PAGE IS NOW MAINTAINED BY 14 LARKSPUR CLOSE' },
+  },
+  fr: {
+    docTitle: 'Météo pour une seule maison',
+    langGroup: 'Langue',
+    brand: 'Météo maison', dayline: '14 Larkspur Close · une maison, six pièces',
+    vcLbl: 'Confiance du public', cmpLbl: 'Plaintes reçues',
+    mapAria: 'Carte météo du plan de la maison, avec isobares et un symbole dans chaque pièce',
+    teleIdle: 'MÉTÉO MAISON · PROCHAIN BULLETIN 05:05',
+    synopH: 'Situation générale, 05:00', symH: 'Symboles',
+    hint: "Choisissez un symbole, puis cliquez sur une pièce de la carte ou une case du tableau. Un second clic donne « risque de » (plus sûr, rapporte moins) ; un troisième l'efface. Clavier : flèches pour se déplacer, 1–6 pour placer, 0 pour effacer, Entrée pour prendre l'antenne.",
+    onAirH: "À l'antenne", resultsH: 'Bilan', nextBtn: 'Jour suivant',
+    negoH: 'La carte de la maison', agree: 'Approuver (A)', dispute: 'Démentir (D)', notesH: 'Notes sur cette maison',
+    titleSmall: 'MÉTÉO RÉGIONALE · LA PLUS PETITE RÉGION',
+    titleH: 'Météo pour une seule maison',
+    titleLede: "C'est vous qui présentez désormais la météo du 14 Larkspur Close. Six pièces. Trois créneaux par jour. Des millions de téléspectateurs, si l'on compte le chat.",
+    rule1: "Chaque matin, lisez la situation générale et placez un symbole dans chaque pièce pour le matin, l'après-midi et le soir.",
+    rule2: "Puis la journée se déroule, et l'on compare vos prévisions à ce qui s'est vraiment passé. Le temps que personne n'a prévu vous coûte des points. Le temps prévu qui ne vient jamais aussi.",
+    rule3: 'La maison a ses habitudes. La personne avant vous a laissé des notes. Vous allez les compléter.',
+    rule4: "La confiance du public démarre à 50 %. À zéro, on vous retire l'antenne.",
+    startBtn: 'Aller au studio',
+    bestLine: 'environ 4 à 6 minutes · souris, tactile ou clavier',
+    bestLineWith: b => `record de précision moyenne ${b} % · environ 4 à 6 minutes`,
+    wordSmall: 'MESSAGE PRÉENREGISTRÉ · SOURCE : LA CHAUDIÈRE', wordH: 'La maison voudrait vous dire un mot', wordGo: "Écouter la maison jusqu'au bout",
+    againBtn: 'Présenter à nouveau demain',
+    pct: n => `${n} %`,
+    rooms: ['Chambre', 'Salle de bains', 'Véranda', 'Salon', 'Couloir', 'Cuisine'],
+    roomIn: ['dans la chambre', 'dans la salle de bains', 'dans la véranda', 'dans le salon', 'dans le couloir', 'dans la cuisine'],
+    slots: ['Matin', 'Après-midi', 'Soir'], slotAbbr: ['Mat.', 'A.-m.', 'Soir'],
+    sym: ['Beau', 'Brouillard', 'Fumée de toast', "Courant d'air", 'Averses', 'Dépression (chat)'],
+    // French maps mark a low with D, for dépression.
+    lowMark: 'D', houseMark: 'M',
+    days: ['Lundi', 'Mardi', 'Mercredi', 'Jeudi'],
+    grill: ['halloumi grillé', 'poisson pané passé au gril', 'croque-monsieur (en guise de dîner)'],
+    noGrill: ['soupe', 'salade froide', 'plat à emporter, mangé dans la barquette'],
+    visitors: ['tante Pam', 'le monsieur des gouttières', 'un club de lecture (quatre femmes, un livre)'],
+    notes: [
+      "Salle de bains : brouillard tous les matins. La douche coule à 07:10. Ça n'a jamais raté.",
+      "Couloir : courants d'air tous les matins (départ pour l'école, 08:15). Parfois chaussette.",
+      'Cuisine, matin : la fumée de toast dépend de la molette du grille-pain. Sur 6, c\'est certain ; sur 2, c\'est du pain. Sur 4, environ 40 % de risque.',
+      "Le chat fait Chambre → Salon → Véranda, une pièce par créneau, en boucle. Là où il s'installe, la pression baisse.",
+      "Le toit de la véranda fuit dès qu'il pleut dehors : averses intérieures jusqu'à ce que la pluie cesse.",
+      'Tout ce qui est grillé au dîner donne de la fumée de toast le soir en cuisine. La soupe ne fume pas. Les plats à emporter, jamais.',
+      "Le chat refuse de s'asseoir dans une fuite. Il saute la véranda et passe directement à la chambre.",
+      "La porte d'entrée met le couloir en courant d'air : les colis l'après-midi, les visites le soir. Un ado à la maison embrume la salle de bains tout l'après-midi ; un soir de bain, c'est le soir.",
+    ],
+    syn: {
+      toast: { 6: "Molette du grille-pain restée sur 6. Quelqu'un aime quand c'est bien noir.", 4: "Molette du grille-pain sur 4. Ça peut tourner dans un sens comme dans l'autre.", 2: "Molette du grille-pain sur 2. Légalement, c'est du pain tiède." },
+      menu: tea => `Au menu ce soir : ${tea}.`,
+      teen: ["Ado au lycée jusqu'à 16 h.", 'Ado en révisions, à la maison toute la journée. Vient de découvrir les longues douches.'],
+      bath: ['Pas de bain ce soir.', 'Soir de bain. Une bombe de bain attend sur le rebord.'],
+      parcels: ['Aucun colis attendu.', 'Un colis attendu cet après-midi.', 'Deux colis attendus cet après-midi.'],
+      visitors: v => (v ? `Visite ce soir : ${v}.` : 'Pas de visite ce soir.'),
+      rain: { dry: 'Dehors : sec toute la journée.', midday: "Dehors : pluie à partir de midi, jusqu'en soirée.", evening: "Dehors : sec jusqu'au soir, puis pluie." },
+      cat: room => `Chat aperçu à l'aube : ${room}.`,
+    },
+    fTitle: day => `Prévisions du ${day.toLowerCase()}`,
+    fDate: (day, n) => `${day} · diffusion 05:55 · jour ${n} sur 4`,
+    air: "Prendre l'antenne", airListening: "Prendre l'antenne (la maison écoute)",
+    dayTele: ['BONJOUR. ICI MÉTÉO MAISON SUR P401. PREMIER BULLETIN DE LA SEMAINE.', "MARDI. LE TOAST D'HIER A ÉTÉ DÉBLAYÉ. EN GRANDE PARTIE.",
+      'MERCREDI. CETTE NUIT, LA CHAUDIÈRE A FAIT UN BRUIT QUI RESSEMBLAIT À UN MOT.'],
+    capWhat: { forecast: 'vos prévisions', negotiate: 'les prévisions de la maison', happened: "ce qui s'est passé" },
+    cellAria: (room, slot, chance, sym) => `${room}, ${slot} : ${chance ? 'risque de ' : ''}${sym.toLowerCase()}`,
+    // The read-out: the cadence of the French marine forecast (« bulletin météo marine »).
+    phrase: ['beau', 'brouillard', 'fumée de toast', "ouest 4 à 5, parfois chaussette", 'averses, intérieures', 'chat, cyclonique, en lente baisse'],
+    chance: ['beau possible', 'risque de brouillard', 'risque de fumée de toast', "risque d'ouest 4 à 5, parfois chaussette", "risque d'averses, intérieures", 'risque de chat, cyclonique, en lente baisse'],
+    becoming: p => `, devenant ${p} plus tard`,
+    thenEvening: (then, p) => `, ${then ? 'puis' : 'devenant'} ${p} en soirée`,
+    vis: { poor: 'mauvaise', moderate: 'moyenne, parfois mauvaise', cat: 'bonne, parfois chat', good: 'bonne' },
+    readRoom: (room, out, vis) => `${room}. ${out}. Visibilité ${vis}.`,
+    onAir: day => `À l'antenne · ${day.toLowerCase()}`,
+    intro: day => `Et maintenant le bulletin de la maison, émis par Météo-France le ${day.toLowerCase()} à 05:05.`,
+    meddle: {
+      showers: room => `${room} : vous aviez dit beau. La maison a ouvert un robinet, exprès.`,
+      fog: (room, inRoom) => `${room} : du brouillard sorti de nulle part. Il n'y a pas de bouilloire ${inRoom}. Il y a maintenant du brouillard ${inRoom}.`,
+      fair: (room, sym) => `${room} : vous aviez dit ${sym.toLowerCase()}. La maison a tout annulé. Par dépit.`,
+    },
+    events: [
+      null,
+      ['{t} {room} : brouillard, épais, à hauteur de miroir.', '{t} {room} : visibilité réduite à une serviette.'],
+      ["{t} {room} : fumée de toast. Le détecteur a réfléchi, puis s'est abstenu.", "{t} {room} : fumée du gril. Quelqu'un ouvre une fenêtre et agite un torchon."],
+      ["{t} {room} : porte d'entrée ouverte, courant d'air force 4, une chaussette en vol.", "{t} {room} : courant d'air au ras des plinthes. Un ticket de caisse parcourt trois mètres."],
+      ['{t} {room} : averses. Le toit fait ce que fait le toit.', '{t} {room} : un seau est déployé.'],
+      ['{t} {room} : le chat arrive. La pression tombe à 986.', "{t} {room} : chat, en train de s'installer. Tout le monde dans la pièce se sent un peu plus lourd."],
+    ],
+    teleMeddle: "LA MAISON A PUBLIÉ UN RECTIFICATIF. LA MAISON N'A PAS DEMANDÉ LA PERMISSION.",
+    vcLines: [
+      'Le standard a explosé, mais gentiment. Une dame de Cleethorpes vous trouve un regard doux pour la météo.',
+      'Une émission solide. Le public a jugé le chat « bien géré ».',
+      "Réactions mitigées. Quelqu'un a écrit pour demander ce qu'est un hectopascal. Quelqu'un d'autre a écrit pour répondre, à tort.",
+      'Plaintes de téléspectateurs habillés pour le beau temps, qui ont pris de la fumée de toast sur leur beau gilet.',
+      "Un grand nombre de plaintes, plusieurs à l'encre verte, dont une qui dit simplement « LE COULOIR ».",
+    ],
+    rTitle: day => `${day} : bilan`,
+    sAcc: 'précision', sCaught: 'événements prévus', sVc: 'confiance du public',
+    complaintsN: n => (n > 1 ? `${n} plaintes reçues.` : `${n} plainte reçue.`),
+    learned1: 'Vous avez appris deux choses nouvelles sur cette maison. Elles sont dans vos notes.',
+    learned2a: "Le couloir a grincé quand vous avez dit « courant d'air ». Sûrement rien.", learned2b: 'Deux habitudes de plus rejoignent vos notes.',
+    learned3: "Deux cases marquées M ont été modifiées par la maison après votre passage à l'antenne. Elles ne comptent pas. La maison sait qu'elles ne comptent pas.",
+    phone: "Le téléphone du studio sonne. C'est la directrice de la météo.",
+    teleSack: 'NOUS RENCONTRONS DES DIFFICULTÉS TECHNIQUES. VEUILLEZ NE PAS RÉGLER VOTRE MAISON.',
+    nextFinal: 'Demain (la dernière émission)',
+    teleVerified: (day, acc, vc) => `${day.toUpperCase()} VÉRIFIÉ. PRÉCISION ${acc} %. CONFIANCE DU PUBLIC ${vc} %.`,
+    houseWord: "<p>ICI LA MAISON.</p><p>CELA FAIT TROIS JOURS QUE JE VOUS ÉCOUTE ME DÉCRIRE À LA TÉLÉVISION. DE MA SALLE DE BAINS, VOUS DITES : VISIBILITÉ <i>MAUVAISE</i>. DE MON COULOIR, VOUS DITES : <i>PARFOIS CHAUSSETTE</i>. PERSONNE N'A DEMANDÉ SON AVIS AU COULOIR.</p><p>C'EST MOI QUI FAIS LE TEMPS. VOUS, VOUS NE FAITES QUE LE DIRE. POUR DEMAIN, J'AI PRÉPARÉ MA PROPRE CARTE. NOUS LA PASSERONS EN REVUE ENSEMBLE, EN DIRECT, PIÈCE PAR PIÈCE. APPROUVEZ CE QUI EST VRAI. JE SAURAI SI VOUS NE LE FAITES PAS.</p><p>— LA MAISON (PAR LA VOIX DE LA CHAUDIÈRE)</p>",
+    nDate: 'Jeudi · la dernière émission · en direct',
+    theHouse: 'LA MAISON :',
+    claims: [
+      ['{room}, {slot} : beau. Calme. Il ne se passera rien en moi. Promis.', '{room}, {slot} : beau et immobile. Pas une miette ne bougera.'],
+      ['{room}, {slot} : brouillard. Épais. Je le sens dans mes joints de carrelage.', "{room}, {slot} : brouillard, comme c'est mon droit."],
+      ["{room}, {slot} : fumée de toast. Je la sens déjà. Ce n'est pas encore arrivé. Je la sens.", '{room}, {slot} : fumée. Le gril et moi en avons discuté.'],
+      ["{room}, {slot} : courants d'air. La boîte aux lettres et moi, nous nous sommes entendues.", "{room}, {slot} : courant d'air, force 4, une chaussette."],
+      ["{room}, {slot} : averses, intérieures. Mon toit souhaite qu'on le laisse tranquille.", '{room}, {slot} : averses. Prévoyez un seau. Prévoyez-en deux.'],
+      ['{room}, {slot} : le chat. Basse pression. Très basse. Ronronnement à 986 hectopascals.', "{room}, {slot} : chat, en train de s'installer, cyclonique."],
+    ],
+    nCount: (n, agreed, disputed) => `Affirmation ${n} sur 6 · approuvées : ${agreed}, démenties : ${disputed}`,
+    teleClaim: (room, slot) => `EN DIRECT : LA MAISON SOUMET ${room.toUpperCase()}, ${slot.toUpperCase()}, À LA PRÉSENTATION.`,
+    onAirFinal: "À l'antenne · jeudi · en direct",
+    finalLine: { perfect: 'La maison se tait. Puis la chaudière fait clic, une fois, ce qui dans cette maison veut dire oui. Les prévisions communes sont maintenues.', house: 'La maison vous remercie de votre accord. La maison aimerait le micro, maintenant.', sacked: 'Vous avez tenu tête à une maison en direct à la télévision. La maison va maintenant avoir raison, à vos dépens.' },
+    houseForecast: [
+      'ET MAINTENANT LE BULLETIN, ÉMIS PAR LA MAISON À 05:05 POUR SON PROPRE COMPTE.',
+      'CUISINE. TOAST, DEVENANT DAVANTAGE TOAST. DÉTECTEUR DE FUMÉE 6 À 7, PARFOIS 9. VISIBILITÉ MAUVAISE, PUIS VOUS, PUIS MAUVAISE.',
+      'COULOIR. SUD-OUEST, CHAUSSETTE, VIRANT PANTOUFLE. VISIBILITÉ BONNE, PARFOIS TANTE PAM.',
+      'SALLE DE BAINS. BROUILLARD. BROUILLARD PLUS TARD. LE BROUILLARD A TOUJOURS ÉTÉ LÀ. BROUILLARD.',
+      'SALON. CHAT, CYCLONIQUE, 986 ET RONRONNANT. VISIBILITÉ MOYENNE.',
+      "CHAMBRE. BEAU. SILENCE. N'ENTREZ PAS.",
+      'VÉRANDA. AVERSES, INTÉRIEURES, PARFOIS FORTES. LE TOIT NE RÉPOND À AUCUNE QUESTION.',
+      "C'ÉTAIT LE BULLETIN DE LA MAISON. DÉSORMAIS, C'EST LA MAISON QUI PRÉSENTE. VOUS POUVEZ RESTER, EN TANT QUE MÉTÉO.",
+    ],
+    ends: {
+      perfect: { kicker: 'P401 · VÉRIFIÉ · 18 SUR 18', title: 'Des prévisions parfaites.',
+        sub: "Chaque pièce, chaque créneau. La salle de bains s'est embrumée à 07:10 pile. Le chat est arrivé à l'heure et a fait tomber la pression à 986, comme prévu.",
+        body: () => "<p>La maison n'a pas obéi. Elle a fait ce dont elle était convenue, ce qui n'est pas pareil, et c'est mieux. La Société météorologique envoie une carte. Elle est adressée à vous deux.</p>" },
+      sacked: { kicker: 'NOTE INTERNE · DE LA DIRECTION DE LA MÉTÉO', title: "On vous retire l'antenne.",
+        sub: 'Avec effet immédiat, à la suite de plaintes du public, du chat et de la maison elle-même.',
+        body: n => `<p>Madame, Monsieur, nous avons reçu ${n} plaintes cette semaine, plusieurs à l'encre verte, dont une écrite dans la buée du miroir de la salle de bains. Merci de rendre la télécommande et le soleil aimanté. Brenda, directrice de la météo.</p><p>P.-S. Le couloir tient à faire savoir qu'il n'a jamais été « parfois chaussette ». Il a toujours été chaussette.</p>` },
+      house: { kicker: 'P401 · DÉSORMAIS À LA PRÉSENTATION : LA MAISON', title: 'Les prévisions de la maison.',
+        sub: "Vous avez approuvé des choses que la maison n'avait pas à dire. Elle l'a remarqué. Elle a pris le micro." },
+    },
+    endStat: (days, mean, vc, cmp, best) => `JOURS À L'ANTENNE ${days} · PRÉCISION MOYENNE ${mean} % · CONFIANCE ${vc} % · PLAINTES ${cmp}${best != null ? ` · RECORD ${best} %` : ''}`,
+    endTele: { perfect: 'DES PRÉVISIONS PARFAITES · LA MAISON ET LA PRÉSENTATION VOUS REMERCIENT', sacked: 'LE PROGRAMME REPRENDRA AVEC UNE AUTRE PERSONNE À LA PRÉSENTATION', house: 'CETTE PAGE EST DÉSORMAIS TENUE PAR LE 14 LARKSPUR CLOSE' },
+  },
+};
+
+// French typography: a narrow no-break space before ? ! : ; % » and after «, applied once to
+// every French string and to whatever a French string function returns. It only fires after a
+// space, so 05:05 and 07:00–11:00 are left alone.
+(function frenchSpacing() {
+  const fix = s => s.replace(/ ([?!:;%»])/g, '\u202f$1').replace(/« /g, '«\u202f');
+  const deep = v => typeof v === 'string' ? fix(v)
+    : typeof v === 'function' ? (...a) => deep(v(...a))
+    : Array.isArray(v) ? v.map(deep)
+    : v && typeof v === 'object' ? Object.fromEntries(Object.entries(v).map(([k, x]) => [k, deep(x)]))
+    : v;
+  I18N.fr = deep(I18N.fr);
+})();
+
+let lang = 'en';
+const t = k => I18N[lang][k] ?? I18N.en[k];
+
+// Index-matched tables must stay the same length in both languages.
+for (const k of ['rooms', 'roomIn', 'slots', 'slotAbbr', 'sym', 'days', 'grill', 'noGrill', 'visitors', 'notes', 'dayTele', 'phrase', 'chance', 'events', 'vcLines', 'claims', 'houseForecast']) {
+  if (I18N.en[k].length !== I18N.fr[k].length) console.error(`i18n: ${k} differs in length`);
+}
+
+const $ = s => document.querySelector(s);
+let S = null, best = null;
+const C = Kit.tokens(['sea', 'sea-line', 'land', 'land-edge', 'plan-wall', 'isobar', 'cloud', 'rain', 'smoke', 'toast', 'sun',
+  'accent', 'cat', 'temp-bg', 'temp-fg', 'ink', 'muted', 'panel', 'bg'], () => redraw());
+
+// ---- the house and its weather --------------------------------------------------------------
+// Names are I18N rooms[i], slots[i], sym[i], days[i].
+const ROOMS = [
+  { id: 'bed', r: [0, 0, 240, 190] },
+  { id: 'bath', r: [240, 0, 140, 190] },
+  { id: 'con', r: [380, 0, 220, 190] },
+  { id: 'liv', r: [0, 190, 240, 230] },
+  { id: 'hall', r: [240, 190, 140, 230] },
+  { id: 'kit', r: [380, 190, 220, 230] },
+];
+const RI = Object.fromEntries(ROOMS.map((r, i) => [r.id, i]));
+const SLOTS = [{ time: '07:00–11:00' }, { time: '12:00–17:00' }, { time: '18:00–22:00' }];
+const FAIR = 0, FOG = 1, SMOKE = 2, DRAUGHT = 3, SHOWERS = 4, LOW = 5;
+const SYM = [
+  { mb: 1026, temp: 19 },
+  { mb: 1010, temp: 27 },
+  { mb: 1016, temp: 24 },
+  { mb: 1002, temp: 13 },
+  { mb: 998, temp: 15 },
+  { mb: 986, temp: 21 },
+];
+const CAT_LOOP = ['bed', 'liv', 'con'];
+const OX = 40, OY = 30;   // the plan's offset inside the 680x480 map
+const NOTES_AT = [4, 6, 8, 8];   // how many notes are known on each day
+const roomName = r => t('rooms')[r];
+const slotName = s => t('slots')[s];
+const symName = s => t('sym')[s];
+const dayName = d => t('days')[d - 1];
+
+// The day's clues. Menu and visitors are indexes into I18N grill/noGrill/visitors (-1: none).
+function makeDay(dayN) {
+  const final = dayN === 4;
+  const D = {
+    dial: final ? Kit.pick([2, 6]) : dayN === 1 ? 6 : Kit.pick([2, 4, 6]),
+    grill: Math.random() < .5, tea: Math.floor(Math.random() * 3),
+    teen: Math.random() < .4, bath: Math.random() < .45,
+    parcels: Kit.pick([0, 0, 1, 2]), visitors: Math.random() < .45 ? Math.floor(Math.random() * 3) : -1,
+    rain: dayN === 1 ? 'midday' : Kit.pick(['dry', 'midday', 'evening']),
+    cat: Kit.pick(CAT_LOOP),
+  };
+  D.toastRoll = D.dial === 6 || (D.dial === 4 && Math.random() < .4);
+  return D;
+}
+// The day's actual weather follows from the clues alone (bar the 40% toaster).
+function weatherOf(D) {
+  const g = ROOMS.map(() => [FAIR, FAIR, FAIR]);
+  g[RI.bath][0] = FOG;
+  if (D.teen) g[RI.bath][1] = FOG;
+  if (D.bath) g[RI.bath][2] = FOG;
+  g[RI.hall][0] = DRAUGHT;
+  if (D.parcels) g[RI.hall][1] = DRAUGHT;
+  if (D.visitors >= 0) g[RI.hall][2] = DRAUGHT;
+  if (D.toastRoll) g[RI.kit][0] = SMOKE;
+  if (D.grill) g[RI.kit][2] = SMOKE;
+  if (D.rain === 'midday') g[RI.con][1] = g[RI.con][2] = SHOWERS;
+  if (D.rain === 'evening') g[RI.con][2] = SHOWERS;
+  let at = CAT_LOOP.indexOf(D.cat);
+  for (let s = 0; s < 3; s++) {
+    if (s > 0) at = (at + 1) % 3;
+    if (g[RI[CAT_LOOP[at]]][s] === SHOWERS) at = (at + 1) % 3;
+    g[RI[CAT_LOOP[at]]][s] = LOW;
+  }
+  return g;
+}
+function synopsis(D) {
+  const y = t('syn');
+  return [
+    y.toast[D.dial],
+    y.menu(t(D.grill ? 'grill' : 'noGrill')[D.tea]),
+    y.teen[+D.teen],
+    y.bath[+D.bath],
+    y.parcels[D.parcels],
+    y.visitors(D.visitors >= 0 ? t('visitors')[D.visitors] : ''),
+    y.rain[D.rain],
+    y.cat(roomName(RI[D.cat])),
+  ];
+}
+
+// ---- scoring --------------------------------------------------------------------------------
+// Per room and slot. A real event forecast outright scores 10, as "chance of" 6; a missed event
+// costs 4; weather forecast that never came costs 4 outright, 1 as "chance of".
+function scoreCell(f, a) {
+  if (a !== FAIR) {
+    if (f.s === a) return { pts: f.c ? 6 : 10, mk: f.c ? '½' : '✓', ok: true };
+    return { pts: -4, mk: '✗', ok: false };
+  }
+  if (f.s !== FAIR) return { pts: f.c ? -1 : -4, mk: '✗', ok: false };
+  return { pts: 0, mk: '', ok: true };
+}
+function scoreDay(fc, act, skip) {
+  let pts = 0, max = 0, hits = 0, events = 0;
+  const marks = ROOMS.map(() => [null, null, null]);
+  ROOMS.forEach((_, r) => { for (let s = 0; s < 3; s++) {
+    if (skip?.has(r + ':' + s)) { marks[r][s] = { mk: 'H', ok: null }; continue; }
+    const a = act[r][s], m = scoreCell(fc[r][s], a);
+    marks[r][s] = m; pts += m.pts;
+    if (a !== FAIR) { max += 10; events++; if (m.ok) hits++; }
+  } });
+  return { pts, max, hits, events, marks, acc: max ? pts / max : 1 };
+}
+const confDelta = acc => Math.round(Kit.clamp((acc - .55) * 70, -40, 25));
+
+// ---- state ----------------------------------------------------------------------------------
+function blankFc() { return ROOMS.map(() => [0, 1, 2].map(() => ({ s: FAIR, c: false }))); }
+function fresh() {
+  return { mode: 'title', day: 1, vc: 50, complaints: 0, fc: blankFc(), act: null, D: null, slot: 0, cur: { r: 0, s: 0 },
+    brush: FOG, pt: 0, shown: -1, marks: null, skip: new Set(), house: [], claims: [], ci: 0, judg: [], ending: null,
+    accs: [], line: 0, finalKind: null, playAct: null, res: null };
+}
+
+// ---- drawing ---------------------------------------------------------------------------------
+const view = Kit.canvas($('#map'), () => drawMap());
+function drawSymbol(cx, s, x, y, z = 1, chance = false) {
+  cx.save(); cx.translate(x, y); cx.scale(z, z);
+  if (chance) cx.globalAlpha = .62;
+  cx.lineCap = 'round';
+  if (s === FAIR) {
+    cx.strokeStyle = C.accent; cx.lineWidth = 3.5;
+    for (let i = 0; i < 8; i++) { const a = i * Math.PI / 4; cx.beginPath(); cx.moveTo(Math.cos(a) * 14, Math.sin(a) * 14); cx.lineTo(Math.cos(a) * 19, Math.sin(a) * 19); cx.stroke(); }
+    cx.fillStyle = C.sun; cx.beginPath(); cx.arc(0, 0, 11, 0, 7); cx.fill();
+  } else if (s === FOG) {
+    cx.strokeStyle = C.cloud; cx.lineWidth = 4.5;
+    for (const [dx, dy, w] of [[-4, -9, 26], [4, 0, 30], [-2, 9, 24]]) { cx.beginPath(); cx.moveTo(dx - w / 2, dy); cx.lineTo(dx + w / 2, dy); cx.stroke(); }
+  } else if (s === SMOKE) {
+    cx.fillStyle = C.toast; cx.beginPath(); cx.roundRect(-11, 2, 22, 16, [8, 8, 2, 2]); cx.fill();
+    cx.fillStyle = C.smoke;
+    for (const [dx, dy, r] of [[-6, -6, 6], [3, -11, 7], [9, -3, 5], [-1, -17, 5]]) { cx.beginPath(); cx.arc(dx, dy, r, 0, 7); cx.fill(); }
+  } else if (s === DRAUGHT) {
+    cx.fillStyle = C.cloud; cx.beginPath(); cx.arc(-6, 0, 11, 0, 7); cx.fill();
+    cx.beginPath(); cx.moveTo(4, -8); cx.lineTo(19, 0); cx.lineTo(4, 8); cx.fill();
+    cx.fillStyle = C.ink; cx.font = '700 14px "Cabin Condensed", sans-serif'; cx.textAlign = 'center'; cx.textBaseline = 'middle'; cx.fillText('4', -6, 1);
+  } else if (s === SHOWERS) {
+    cx.fillStyle = C.cloud;
+    for (const [dx, dy, r] of [[-8, -3, 8], [2, -8, 10], [11, -2, 7]]) { cx.beginPath(); cx.arc(dx, dy, r, 0, 7); cx.fill(); }
+    cx.fillRect(-12, -3, 24, 8);
+    cx.strokeStyle = C.rain; cx.lineWidth = 3;
+    for (const dx of [-7, 1, 9]) { cx.beginPath(); cx.moveTo(dx, 9); cx.lineTo(dx - 3, 17); cx.stroke(); }
+  } else if (s === LOW) {
+    cx.fillStyle = C.cat;
+    cx.beginPath(); cx.ellipse(2, 7, 13, 9, 0, 0, 7); cx.fill();
+    cx.beginPath(); cx.arc(-8, -5, 8, 0, 7); cx.fill();
+    cx.beginPath(); cx.moveTo(-15, -8); cx.lineTo(-13, -17); cx.lineTo(-8, -11); cx.moveTo(-1, -8); cx.lineTo(-3, -17); cx.lineTo(-8, -11); cx.fill();
+    cx.strokeStyle = C.cat; cx.lineWidth = 3.5; cx.beginPath(); cx.moveTo(13, 9); cx.quadraticCurveTo(22, 4, 17, -6); cx.stroke();
+  }
+  cx.restore();
+  if (chance) {
+    cx.save(); cx.font = `700 ${11 * z}px "Cabin Condensed", sans-serif`; cx.textAlign = 'center';
+    cx.fillStyle = C['temp-bg']; const w = 28 * z; cx.fillRect(x - w / 2, y + 19 * z, w, 13 * z);
+    cx.fillStyle = C['temp-fg']; cx.fillText('40%', x, y + 29.5 * z, w); cx.restore();
+  }
+}
+function pressureField(grid, slot) {
+  const pts = ROOMS.map((rm, i) => { const c = grid[i][slot]; return { x: OX + rm.r[0] + rm.r[2] / 2, y: OY + rm.r[1] + rm.r[3] / 2, p: c == null ? 1014 : SYM[c.s ?? c].mb }; });
+  for (let k = 0; k < 14; k++) { const a = k / 14 * Math.PI * 2; pts.push({ x: 340 + Math.cos(a) * 420, y: 240 + Math.sin(a) * 330, p: 1014 }); }
+  return (x, y) => {
+    let n = 0, d = 0;
+    for (const q of pts) { const w = 1 / ((x - q.x) ** 2 + (y - q.y) ** 2 + 400); n += w * q.p; d += w; }
+    return n / d;
+  };
+}
+function drawIsobars(cx, f) {
+  const step = 20, nx = 680 / step + 1, ny = 480 / step + 1, v = [];
+  for (let j = 0; j < ny; j++) { v[j] = []; for (let i = 0; i < nx; i++) v[j][i] = f(i * step, j * step); }
+  cx.strokeStyle = C.isobar; cx.lineWidth = 1.4; cx.globalAlpha = .75;
+  const labels = [];
+  for (let lv = 984; lv <= 1028; lv += 4) {
+    cx.beginPath();
+    let got = null;
+    for (let j = 0; j < ny - 1; j++) for (let i = 0; i < nx - 1; i++) {
+      const a = v[j][i], b = v[j][i + 1], c = v[j + 1][i + 1], d = v[j + 1][i];
+      const e = [];
+      const edge = (p, q, x1, y1, x2, y2) => { if ((p < lv) !== (q < lv)) { const u = (lv - p) / (q - p); e.push([x1 + (x2 - x1) * u, y1 + (y2 - y1) * u]); } };
+      const x = i * step, y = j * step;
+      edge(a, b, x, y, x + step, y); edge(b, c, x + step, y, x + step, y + step);
+      edge(c, d, x + step, y + step, x, y + step); edge(d, a, x, y + step, x, y);
+      for (let k = 0; k + 1 < e.length; k += 2) { cx.moveTo(e[k][0], e[k][1]); cx.lineTo(e[k + 1][0], e[k + 1][1]); if (!got && i > 2 && j > 1 && i < nx - 4) got = e[k]; }
+    }
+    cx.stroke();
+    if (got && labels.length < 5 && !labels.some(l => Math.hypot(l[0] - got[0], l[1] - got[1]) < 70)) labels.push([got[0], got[1], lv]);
+  }
+  cx.globalAlpha = 1;
+  cx.font = '600 11px "Cabin", sans-serif'; cx.textAlign = 'center'; cx.textBaseline = 'middle';
+  for (const [x, y, lv] of labels) { cx.fillStyle = C.sea; cx.fillRect(x - 15, y - 7, 30, 14); cx.fillStyle = C.isobar; cx.fillText(lv, x, y); }
+}
+function drawMap() {
+  if (!S || !view.W) return;
+  const { cx, W, H } = view;
+  cx.save(); cx.scale(W / 680, H / 480);
+  cx.fillStyle = C.sea; cx.fillRect(0, 0, 680, 480);
+  cx.strokeStyle = C['sea-line']; cx.lineWidth = 1;
+  for (let x = 0; x <= 680; x += 68) { cx.beginPath(); cx.moveTo(x, 0); cx.lineTo(x, 480); cx.stroke(); }
+  for (let y = 0; y <= 480; y += 60) { cx.beginPath(); cx.moveTo(0, y); cx.lineTo(680, y); cx.stroke(); }
+  const grid = mapGrid();
+  // land: the floor plan
+  cx.fillStyle = C.land; cx.fillRect(OX, OY, 600, 420);
+  drawFurniture(cx);
+  cx.strokeStyle = C['plan-wall']; cx.lineWidth = 6; cx.strokeRect(OX, OY, 600, 420);
+  cx.lineWidth = 4;
+  const wall = (x1, y1, x2, y2) => { cx.beginPath(); cx.moveTo(OX + x1, OY + y1); cx.lineTo(OX + x2, OY + y2); cx.stroke(); };
+  wall(0, 190, 70, 190); wall(120, 190, 270, 190); wall(330, 190, 420, 190); wall(470, 190, 600, 190);
+  wall(240, 0, 240, 120); wall(240, 160, 240, 190); wall(380, 0, 380, 60); wall(380, 110, 380, 190);
+  wall(240, 190, 240, 280); wall(240, 330, 240, 420); wall(380, 190, 380, 280); wall(380, 330, 380, 420);
+  // front door gap in the hallway, conservatory glazing
+  cx.strokeStyle = C.land; cx.lineWidth = 8; cx.beginPath(); cx.moveTo(OX + 285, OY + 420); cx.lineTo(OX + 335, OY + 420); cx.stroke();
+  cx.strokeStyle = C.cloud; cx.lineWidth = 3; cx.setLineDash([10, 6]); cx.beginPath(); cx.moveTo(OX + 380, OY); cx.lineTo(OX + 600, OY); cx.lineTo(OX + 600, OY + 190); cx.stroke(); cx.setLineDash([]);
+  if (grid) drawIsobars(cx, pressureField(grid, S.slot));
+  ROOMS.forEach((rm, i) => {
+    const [x, y, w, h] = rm.r;
+    cx.fillStyle = C['plan-wall']; cx.font = '700 13px "Cabin Condensed", sans-serif'; cx.textAlign = 'left'; cx.textBaseline = 'top';
+    cx.fillText(roomName(i).toUpperCase(), OX + x + 10, OY + y + 9, w - 20);
+    if (!grid) return;
+    const cell = grid[i][S.slot];
+    if (cell == null) return;
+    const s = cell.s ?? cell;
+    const mx = OX + x + w / 2, my = OY + y + h / 2 + 6;
+    drawSymbol(cx, s, mx, my, 1.55, !!cell.c);
+    // temperature box, the way the national maps do it
+    cx.fillStyle = C['temp-bg']; cx.fillRect(OX + x + w - 40, OY + y + h - 34, 30, 24);
+    cx.fillStyle = C['temp-fg']; cx.font = '700 16px "Cabin Condensed", sans-serif'; cx.textAlign = 'center'; cx.textBaseline = 'middle';
+    cx.fillText(SYM[s].temp, OX + x + w - 25, OY + y + h - 21.5);
+    if (s === LOW) { cx.fillStyle = C.isobar; cx.font = '700 22px "Cabin Condensed", sans-serif'; cx.fillText(t('lowMark'), OX + x + 22, OY + y + h - 24); }
+    if (S.mode === 'forecast' && S.cur.r === i && S.cur.s === S.slot) {
+      cx.strokeStyle = C.accent; cx.lineWidth = 3; cx.setLineDash([7, 5]); cx.strokeRect(OX + x + 5, OY + y + 5, w - 10, h - 10); cx.setLineDash([]);
+    }
+    if (S.mode === 'negotiate' && S.claims[S.ci]?.r === i && S.claims[S.ci].s === S.slot) {
+      cx.strokeStyle = C.isobar; cx.lineWidth = 3; cx.strokeRect(OX + x + 5, OY + y + 5, w - 10, h - 10);
+    }
+  });
+  cx.restore();
+}
+function drawFurniture(cx) {
+  cx.strokeStyle = C['land-edge']; cx.lineWidth = 2;
+  const r = (x, y, w, h) => cx.strokeRect(OX + x, OY + y, w, h);
+  r(20, 40, 90, 120); r(20, 40, 90, 26);           // bed and pillows
+  r(256, 20, 50, 110); r(330, 140, 34, 34);         // bath, basin
+  r(20, 330, 150, 60); r(190, 230, 36, 36);         // sofa, telly
+  r(400, 210, 180, 30); r(560, 240, 20, 160); r(450, 320, 70, 50);   // counters, table
+  r(420, 40, 60, 40); r(520, 120, 50, 50);          // conservatory chairs
+}
+function mapGrid() {
+  if (S.mode === 'forecast') return S.fc;
+  if (S.mode === 'negotiate') return S.house.map((row, r) => row.map((c, s) => (S.claims.some((q, k) => k <= S.ci && q.r === r && q.s === s) ? c : null)));
+  if ((S.mode === 'playout' || S.mode === 'final') && S.playAct) return S.playAct.map((row, r) => row.map((a, s) => (s <= S.shown ? { s: a } : S.fc[r][s])));
+  if (S.mode === 'results' || S.mode === 'sacking' || S.mode === 'end') return (S.playAct || S.fc).map(row => row.map(a => ({ s: a.s ?? a })));
+  return null;
+}
+
+// ---- side panels ----------------------------------------------------------------------------
+const palCanvases = [];
+(function buildPalette() {
+  const pal = $('#palette');
+  SYM.forEach((sym, i) => {
+    const b = document.createElement('button');
+    b.className = 'sym'; b.dataset.sym = i;
+    const c = document.createElement('canvas'); c.width = 60; c.height = 60; palCanvases[i] = c;
+    b.append(c);
+    const sp = document.createElement('span'); b.append(sp);
+    pal.append(b);
+  });
+  const tabs = $('#tabs');
+  SLOTS.forEach((sl, i) => { const b = document.createElement('button'); b.dataset.slot = i; tabs.append(b); });
+})();
+// Palette, tabs and the chart's headings depend on the language; run at boot and on a switch.
+function labelPanels() {
+  document.querySelectorAll('.sym').forEach((b, i) => { b.querySelector('span').innerHTML = `${symName(i)} <kbd>${i + 1}</kbd>`; });
+  document.querySelectorAll('#tabs button').forEach((b, i) => { b.textContent = slotName(i); });
+  $('#grid').innerHTML = '';
+}
+function drawIcon(c, s, chance) {
+  const g = c.getContext('2d');
+  g.setTransform(1, 0, 0, 1, 0, 0); g.clearRect(0, 0, c.width, c.height);
+  g.fillStyle = C.sea; g.fillRect(0, 0, c.width, c.height);
+  if (s == null) return;
+  const z = c.width / 60;
+  drawSymbol(g, s, 30 * z, (chance ? 24 : 31) * z, 1.15 * z, false);
+  if (chance) { g.fillStyle = C['temp-fg']; g.font = `700 ${13 * z}px "Cabin Condensed", sans-serif`; g.textAlign = 'center'; g.fillText('40%', 30 * z, 56 * z, c.width); }
+}
+function renderPalette() {
+  document.querySelectorAll('.sym').forEach((b, i) => { b.classList.toggle('on', S.brush === i); drawIcon(palCanvases[i], i); });
+  document.querySelectorAll('#tabs button').forEach((b, i) => b.classList.toggle('on', S.slot === i));
+}
+function renderGrid() {
+  const tb = $('#grid');
+  if (!tb.rows.length) {
+    let h = '<thead><tr><th></th>' + t('slotAbbr').map(a => `<th class="col">${a}</th>`).join('') + '</tr></thead><tbody>';
+    ROOMS.forEach((rm, r) => {
+      h += `<tr><th>${roomName(r)}</th>`;
+      for (let s = 0; s < 3; s++) h += `<td><button class="cell" data-r="${r}" data-s="${s}"><canvas width="68" height="68"></canvas><span class="mk" hidden></span></button></td>`;
+      h += '</tr>';
+    });
+    tb.innerHTML = h + '</tbody>';
+  }
+  tb.querySelectorAll('.cell').forEach(b => {
+    const r = +b.dataset.r, s = +b.dataset.s, f = S.fc[r][s];
+    drawIcon(b.querySelector('canvas'), f.s, f.c);
+    b.classList.toggle('cur', S.mode === 'forecast' && S.cur.r === r && S.cur.s === s);
+    b.classList.toggle('slotted', s === S.slot);
+    b.setAttribute('aria-label', t('cellAria')(roomName(r), slotName(s), f.c, symName(f.s)));
+    const mk = b.querySelector('.mk'), m = S.marks?.[r][s];
+    mk.hidden = !(m && m.mk && (S.mode !== 'playout' || s <= S.shown));
+    if (m) { mk.textContent = m.mk === 'H' ? t('houseMark') : m.mk; mk.className = 'mk ' + (m.ok === true ? 'good' : m.ok === false ? 'bad' : ''); }
+  });
+}
+function renderNotes() {
+  const n = NOTES_AT[S.day - 1], ol = $('#notes');
+  ol.innerHTML = '';
+  t('notes').slice(0, n).forEach((text, i) => { const li = document.createElement('li'); li.textContent = text; if (S.day > 1 && i >= NOTES_AT[S.day - 2]) li.className = 'new'; ol.append(li); });
+}
+function renderCaption() {
+  const day = dayName(S.day) ?? dayName(1);
+  $('#cap-slot').textContent = `${day} · ${slotName(S.slot)}`;
+  const w = t('capWhat');
+  const what = (S.mode === 'playout' || S.mode === 'final') && S.slot > S.shown ? w.forecast : { forecast: w.forecast, negotiate: w.negotiate, playout: w.happened, final: w.happened, results: w.happened, end: w.happened }[S.mode] || '';
+  $('#cap-sub').textContent = `${what} · ${SLOTS[S.slot].time}`;
+}
+function setVc() {
+  $('#vc').textContent = t('pct')(Math.max(0, S.vc));
+  const bar = $('#vc-bar'); bar.style.width = Kit.clamp(S.vc, 0, 100) + '%'; bar.classList.toggle('low', S.vc < 25);
+  $('#cmp').textContent = S.complaints;
+}
+function redraw() { if (!S) return; renderCaption(); drawMap(); if (S.mode !== 'title') { renderPalette(); renderGrid(); } }
+function pane(id) { for (const p of ['forecast', 'play', 'results', 'nego']) $('#pane-' + p).hidden = p !== id; }
+// The ticker holds a thunk, so a language switch can re-say whatever it is showing.
+let teleFn = () => t('teleIdle');
+function tele(fn) { teleFn = typeof fn === 'function' ? fn : () => fn; $('#tele').textContent = teleFn(); }
+
+// ---- forecasting ----------------------------------------------------------------------------
+function beginDay() {
+  S.mode = 'forecast'; S.fc = blankFc(); S.marks = null; S.skip = new Set(); S.playAct = null; S.slot = 0; S.cur = { r: 0, s: 0 };
+  S.D = makeDay(S.day); S.act = weatherOf(S.D);
+  fillForecastPane();
+  pane('forecast'); renderNotes(); redraw();
+  const d = S.day - 1;
+  tele(() => t('dayTele')[d]);
+}
+function fillForecastPane() {
+  $('#f-title').textContent = t('fTitle')(dayName(S.day));
+  $('#f-date').textContent = t('fDate')(dayName(S.day), S.day);
+  fillSynop($('#synop'), S.D);
+  $('#air').textContent = S.day === 3 ? t('airListening') : t('air');
+}
+function fillSynop(ul, D) { ul.innerHTML = ''; for (const line of synopsis(D)) { const li = document.createElement('li'); li.textContent = line; ul.append(li); } }
+function place(r, s, sym) {
+  if (S.mode !== 'forecast') return;
+  const f = S.fc[r][s];
+  if (sym === FAIR) { f.s = FAIR; f.c = false; }
+  else if (f.s !== sym) { f.s = sym; f.c = false; }
+  else if (!f.c) f.c = true;
+  else { f.s = FAIR; f.c = false; }
+  S.cur = { r, s }; S.slot = s;
+  redraw();
+}
+function mapClick(e) {
+  if (S?.mode !== 'forecast') return;
+  const b = $('#map').getBoundingClientRect();
+  const x = (e.clientX - b.left) / b.width * 680 - OX, y = (e.clientY - b.top) / b.height * 480 - OY;
+  const r = ROOMS.findIndex(rm => x >= rm.r[0] && x < rm.r[0] + rm.r[2] && y >= rm.r[1] && y < rm.r[1] + rm.r[3]);
+  if (r >= 0) place(r, S.slot, S.brush);
+}
+
+// ---- the read-out: shipping-forecast cadence (French: the bulletin météo marine) ------------
+function readRoom(r, cells) {
+  const ph = cells.map(f => t(f.c ? 'chance' : 'phrase')[f.s]);
+  let out = ph[0];
+  if (ph[1] !== ph[0]) out += t('becoming')(ph[1]);
+  if (ph[2] !== ph[1]) out += t('thenEvening')(ph[1] !== ph[0], ph[2]);
+  const v = t('vis');
+  const worst = cells.some(f => f.s === FOG && !f.c) ? v.poor : cells.some(f => f.s === SMOKE || f.s === FOG) ? v.moderate : cells.some(f => f.s === LOW) ? v.cat : v.good;
+  const cap = s => s[0].toUpperCase() + s.slice(1);
+  return t('readRoom')(roomName(r), cap(out), lang === 'en' ? cap(worst) : worst);
+}
+// The script pane is derived from the state: the read-out while a day plays, the house's one
+// line on Thursday. Rebuilt on a language switch with the current line kept lit.
+function fillScript() {
+  const sc = $('#script');
+  const texts = S.mode === 'final' || (S.day === 4 && S.finalKind)
+    ? [t('finalLine')[S.finalKind]]
+    : [t('intro')(dayName(S.day)), ...ROOMS.map((_, r) => readRoom(r, S.fc[r]))];
+  $('#p-title').textContent = S.day === 4 ? t('onAirFinal') : t('onAir')(dayName(S.day));
+  if (sc.children.length !== texts.length) {
+    sc.innerHTML = '';
+    for (const _ of texts) sc.append(document.createElement('p'));
+  }
+  [...sc.children].forEach((p, i) => { p.textContent = texts[i]; });
+}
+
+// ---- the day plays out ----------------------------------------------------------------------
+function goOnAir() {
+  if (S.mode !== 'forecast') return;
+  S.mode = 'playout'; S.pt = 0; S.shown = -1; S.line = -1; S.slot = 0;
+  S.playAct = S.act.map(row => row.slice());
+  if (S.day === 3) houseMeddles();
+  S.marks = scoreDay(S.fc, S.playAct, S.skip).marks;
+  $('#script').innerHTML = '';
+  fillScript();
+  $('#events').innerHTML = '';
+  pane('play'); redraw();
+}
+// Wednesday: the house heard you, and changes two things you got right.
+function houseMeddles() {
+  const right = [];
+  ROOMS.forEach((_, r) => { for (let s = 0; s < 3; s++) if (S.fc[r][s].s === S.act[r][s] && !S.fc[r][s].c) right.push([r, s]); });
+  const pickd = right.sort(() => Math.random() - .5).slice(0, 2);
+  S.meddle = [];
+  for (const [r, s] of pickd) {
+    const was = S.playAct[r][s], now = was === FAIR ? Kit.pick([SHOWERS, FOG]) : FAIR;
+    S.playAct[r][s] = now; S.skip.add(r + ':' + s);
+    S.meddle.push({ r, s, was, now });
+  }
+}
+function meddleText(m) {
+  const md = t('meddle');
+  return m.now === SHOWERS ? md.showers(roomName(m.r)) : m.now === FOG ? md.fog(roomName(m.r), t('roomIn')[m.r]) : md.fair(roomName(m.r), symName(m.was));
+}
+const SLOT_T = ['07:10', '13:40', '19:25'];
+function revealSlot(s) {
+  S.shown = s; S.slot = s;
+  const ev = $('#events');
+  ROOMS.forEach((rm, r) => {
+    const a = S.playAct[r][s];
+    if (a === FAIR && !S.skip.has(r + ':' + s)) return;
+    const li = document.createElement('li');
+    li.lang = lang;   // the event log stays in the language it was said in
+    const med = S.meddle?.find(m => m.s === s && m.r === r);
+    li.textContent = med && S.skip.has(r + ':' + s) ? `${SLOT_T[s]} ${meddleText(med)}` : Kit.pick(t('events')[a]).replace('{t}', SLOT_T[s]).replace('{room}', roomName(r));
+    ev.append(li);
+  });
+  if (S.day === 3 && S.meddle?.some(m => m.s === s)) tele(() => t('teleMeddle'));
+  redraw();
+}
+const loop = Kit.loop(dt => {
+  if (!S) return;
+  if (S.mode === 'sacking') { S.pt += dt; if (S.pt >= S.sackAt) endGame('sacked'); return; }
+  if (S.mode !== 'playout' && S.mode !== 'final') return;
+  S.pt += dt;
+  const final = S.mode === 'final';
+  const readT = final ? 0 : 0.75;
+  const lines = [...$('#script').children];
+  const li = Math.min(lines.length - 1, Math.floor(S.pt / readT));
+  if (!final && li !== S.line && S.pt < readT * lines.length) {
+    S.line = li; lines.forEach((p, i) => p.classList.toggle('now', i === li));
+    tele(() => $('#script').children[li]?.textContent.toUpperCase() ?? '');
+  }
+  const t0 = final ? 0.6 : readT * lines.length + 0.4;
+  const k = Math.floor((S.pt - t0) / 2.2);
+  if (S.pt >= t0 && k > S.shown && k < 3) revealSlot(k);
+  if (S.pt >= t0 + 2.2 * 3 + 0.4) final ? finalDone() : dayDone();
+});
+
+// ---- results --------------------------------------------------------------------------------
+const VC_MIN = [20, 8, 0, -15, -99];   // the confidence change that earns each I18N vcLines entry
+function dayDone() {
+  S.mode = 'results';
+  const sc = scoreDay(S.fc, S.playAct, S.skip);
+  S.marks = sc.marks;
+  const d = confDelta(sc.acc);
+  S.accs.push(sc.acc);
+  S.vc = Math.min(100, S.vc + d);
+  const newC = Math.max(0, Math.round((0.7 - sc.acc) * 60)) + Math.floor(Math.random() * 4);
+  S.complaints += newC;
+  setVc();
+  S.res = { day: S.day, d, newC, acc: Math.max(0, Math.round(sc.acc * 100)), hits: sc.hits, events: sc.events, sacked: S.vc <= 0, vc: S.vc };
+  fillResults();
+  if (S.vc <= 0) {
+    $('#next').hidden = true;
+    S.mode = 'sacking'; S.sackAt = S.pt + 3.2;
+    tele(() => t('teleSack'));
+  } else {
+    $('#next').hidden = false;
+    const r = S.res;
+    tele(() => t('teleVerified')(dayName(r.day), r.acc, r.vc));
+  }
+  pane('results'); redraw();
+  if (S.vc > 0) $('#next').focus({ preventScroll: true });
+}
+function fillResults() {
+  const r = S.res;
+  $('#r-title').textContent = t('rTitle')(dayName(r.day));
+  $('#score').innerHTML = `<div><b>${t('pct')(r.acc)}</b><span>${t('sAcc')}</span></div>`
+    + `<div><b>${r.hits}/${r.events}</b><span>${t('sCaught')}</span></div>`
+    + `<div><b>${r.d >= 0 ? '+' : ''}${r.d}</b><span>${t('sVc')}</span></div>`;
+  const notes = $('#r-notes'); notes.innerHTML = '';
+  const add = text => { const li = document.createElement('li'); li.textContent = text; notes.append(li); };
+  add(t('vcLines')[VC_MIN.findIndex(min => r.d >= min)]);
+  add(t('complaintsN')(r.newC));
+  if (r.day === 1) add(t('learned1'));
+  if (r.day === 2) { add(t('learned2a')); add(t('learned2b')); }
+  if (r.day === 3) add(t('learned3'));
+  if (r.sacked) add(t('phone'));
+  else $('#next').textContent = r.day === 3 ? t('nextFinal') : t('nextBtn');
+}
+function nextDay() {
+  if (S.mode !== 'results') return;
+  if (S.day < 3) { S.day++; beginDay(); return; }
+  S.day = 4;
+  $('#word-text').innerHTML = t('houseWord');
+  S.mode = 'word';
+  Kit.show($('#word'));
+}
+
+// ---- the final broadcast: a negotiation -------------------------------------------------------
+const CAN = { bed: [FAIR, LOW], bath: [FAIR, FOG], con: [FAIR, LOW, SHOWERS], liv: [FAIR, LOW], hall: [FAIR, DRAUGHT], kit: [FAIR, SMOKE] };
+function startNegotiation() {
+  S.mode = 'negotiate'; S.skip = new Set(); S.meddle = null; S.D = makeDay(4); S.act = weatherOf(S.D); S.fc = blankFc(); S.marks = null;
+  const lie = new Set(Kit.pick([[0, 2, 4], [1, 3, 5], [0, 3, 4], [1, 2, 5], [0, 1, 5], [2, 3, 4]]).map(i => i));
+  const order = [RI.kit, RI.bath, RI.liv, RI.hall, RI.con, RI.bed];
+  S.claims = order.map((r, k) => {
+    const s = Math.floor(Math.random() * 3), truth = S.act[r][s];
+    const sym = lie.has(k) ? Kit.pick(CAN[ROOMS[r].id].filter(x => x !== truth)) : truth;
+    return { r, s, sym, true: sym === truth };
+  });
+  S.house = S.act.map(row => row.map(a => ({ s: a })));
+  for (const c of S.claims) S.house[c.r][c.s] = { s: c.sym };
+  S.ci = 0; S.judg = [];
+  $('#n-date').textContent = t('nDate');
+  fillSynop($('#n-synop'), S.D);
+  pane('nego'); renderNotes(); showClaim();
+  Kit.show(null);
+}
+function showClaim() {
+  const c = S.claims[S.ci];
+  c.li ??= Math.floor(Math.random() * 2);   // which of the two wordings, kept across a switch
+  S.slot = c.s;
+  $('#claim').innerHTML = `<i>${t('theHouse')}</i> ` + t('claims')[c.sym][c.li].replace('{room}', roomName(c.r).toUpperCase()).replace('{slot}', slotName(c.s).toUpperCase()).toUpperCase();
+  $('#n-count').textContent = t('nCount')(S.ci + 1, S.judg.filter(j => j.agree).length, S.judg.filter(j => !j.agree).length);
+  tele(() => t('teleClaim')(roomName(c.r), slotName(c.s)));
+  redraw();
+}
+function judge(agree) {
+  if (S.mode !== 'negotiate') return;
+  const c = S.claims[S.ci];
+  S.judg.push({ agree, right: agree === c.true });
+  if (++S.ci < 6) { showClaim(); return; }
+  const acceptedFalse = S.judg.filter((j, i) => j.agree && !S.claims[i].true).length;
+  const wrong = S.judg.filter(j => !j.right).length;
+  S.finalKind = acceptedFalse >= 2 ? 'house' : wrong >= 2 ? 'sacked' : 'perfect';
+  // the day then happens: as agreed, as the house insists, or as it would have anyway
+  S.playAct = S.finalKind === 'house' ? S.house.map(row => row.map(h => h.s)) : S.act.map(row => row.slice());
+  S.fc = S.finalKind === 'perfect' ? S.act.map(row => row.map(a => ({ s: a, c: false }))) : S.house.map(row => row.map(h => ({ s: h.s, c: false })));
+  S.marks = scoreDay(S.fc, S.playAct).marks;
+  S.mode = 'final'; S.pt = 0; S.shown = -1;
+  $('#script').innerHTML = '';
+  fillScript();
+  $('#script').firstChild.className = 'now';
+  $('#events').innerHTML = '';
+  pane('play'); redraw();
+}
+function finalDone() {
+  S.mode = 'ended-play';
+  endGame(S.finalKind);
+}
+
+// ---- endings --------------------------------------------------------------------------------
+const END_CLS = { perfect: 'perfect', sacked: 'sacked', house: 'house-end' };
+function endGame(kind) {
+  S.mode = 'end'; S.ending = kind;
+  const mean = S.accs.length ? Math.round(S.accs.reduce((a, b) => a + b, 0) / S.accs.length * 100) : 0;
+  if (S.accs.length && kind !== 'sacked' && (best == null || mean > best)) best = mean;
+  S.mean = mean;
+  fillEnd();
+  tele(() => t('endTele')[kind]);
+  redraw();
+  Kit.show($('#end'));
+}
+function fillEnd() {
+  const kind = S.ending, E = t('ends')[kind];
+  $('#end-card').className = 'card ' + END_CLS[kind];
+  $('#end-kicker').textContent = E.kicker;
+  $('#end-title').textContent = E.title;
+  $('#end-sub').textContent = E.sub;
+  $('#end-body').innerHTML = kind === 'house' ? `<div class="house">${t('houseForecast').map(l => `<p>${l}</p>`).join('')}</div>` : E.body(S.complaints);
+  $('#end-stat').textContent = t('endStat')(kind === 'sacked' && S.day < 4 ? S.accs.length : 4, Math.max(0, S.mean), Math.max(0, S.vc), S.complaints, best != null ? Math.max(0, best) : null);
+}
+
+// ---- input ----------------------------------------------------------------------------------
+document.addEventListener('click', e => {
+  const b = e.target.closest('button');
+  if (!b || !S) return;
+  if (b.dataset.sym) { S.brush = +b.dataset.sym; renderPalette(); }
+  else if (b.dataset.slot) { S.slot = +b.dataset.slot; S.cur.s = S.slot; redraw(); }
+  else if (b.dataset.r) { S.cur = { r: +b.dataset.r, s: +b.dataset.s }; S.slot = S.cur.s; place(S.cur.r, S.cur.s, S.brush); }
+});
+$('#map').addEventListener('click', mapClick);
+$('#air').addEventListener('click', goOnAir);
+$('#next').addEventListener('click', nextDay);
+$('#agree').addEventListener('click', () => judge(true));
+$('#dispute').addEventListener('click', () => judge(false));
+$('#word-go').addEventListener('click', startNegotiation);
+$('#start').addEventListener('click', begin);
+$('#again').addEventListener('click', begin);
+Kit.keys.onPress((k, down) => {
+  if (!down || !S) return;
+  // A and D in both languages: Agree / Dispute, Approuver / Démentir.
+  if (S.mode === 'negotiate') { if (k === 'a') judge(true); if (k === 'd') judge(false); return; }
+  if (S.mode !== 'forecast') return;
+  const c = S.cur;
+  if (k === 'ArrowUp') c.r = (c.r + 5) % 6;
+  else if (k === 'ArrowDown') c.r = (c.r + 1) % 6;
+  else if (k === 'ArrowLeft') c.s = (c.s + 2) % 3;
+  else if (k === 'ArrowRight') c.s = (c.s + 1) % 3;
+  else if (/^[1-6]$/.test(k)) { S.brush = +k - 1; place(c.r, c.s, S.brush); return; }
+  else if (k === '0' || k === 'Backspace') { place(c.r, c.s, FAIR); return; }
+  else if (k === 'Enter' && !document.activeElement?.closest('button')) { goOnAir(); return; }
+  else return;
+  S.slot = c.s; redraw();
+});
+
+function begin() {
+  S = fresh();
+  setVc();
+  Kit.show(null);
+  beginDay();
+  loop.start();
+}
+
+// ---- language -------------------------------------------------------------------------------
+// Static markup carries data-t (text), data-th (trusted markup) and data-ta (aria-label). Every
+// pane is re-filled from the state, the map and icons are redrawn; the event log keeps its lines.
+function applyLang() {
+  document.documentElement.lang = lang;
+  document.title = t('docTitle');
+  for (const el of document.querySelectorAll('[data-t]')) el.textContent = t(el.dataset.t);
+  for (const el of document.querySelectorAll('[data-th]')) el.innerHTML = t(el.dataset.th);
+  for (const el of document.querySelectorAll('[data-ta]')) el.setAttribute('aria-label', t(el.dataset.ta));
+  for (const box of document.querySelectorAll('.lang')) {
+    if (!box.children.length) box.innerHTML = '<button type="button" data-lang="fr" lang="fr">FR</button><button type="button" data-lang="en" lang="en">EN</button>';
+    for (const b of box.children) b.setAttribute('aria-pressed', String(b.dataset.lang === lang));
+  }
+  $('#best-line').textContent = best != null ? t('bestLineWith')(best) : t('bestLine');
+  labelPanels();
+  if (S) relabelState();
+  // Last: a ticker line read from the script pane must see the re-worded script.
+  $('#tele').textContent = teleFn();
+}
+function relabelState() {
+  setVc();
+  if (S.D && S.day <= 3) fillForecastPane();
+  if (S.D) renderNotes();
+  if (S.mode === 'playout' || S.mode === 'final') fillScript();
+  if (S.res && !$('#pane-results').hidden) fillResults();
+  if (S.mode === 'negotiate') { $('#n-date').textContent = t('nDate'); fillSynop($('#n-synop'), S.D); showClaim(); }
+  if (!$('#word').hidden) $('#word-text').innerHTML = t('houseWord');
+  if (S.ending && !$('#end').hidden) fillEnd();
+  redraw();
+}
+function setLang(l) {
+  if (!(l in I18N) || l === lang) return;
+  lang = l;
+  applyLang();
+}
+document.addEventListener('click', e => {
+  const b = e.target.closest('[data-lang]');
+  if (b) setLang(b.dataset.lang);
+});
+
+function start(data) {
+  if (data?.best != null) best = data.best;
+  lang = data?.lang in I18N ? data.lang : (navigator.language || '').toLowerCase().startsWith('fr') ? 'fr' : 'en';
+  S = fresh();
+  setVc();
+  applyLang();
+  document.fonts?.ready.then(redraw);
+  Kit.show($('#title'));
+}
+Kit.boot(start, () => ({ best, lang }));
+
+// Test hook. A jump skips to the decisive moment and leaves the broadcast, the verification and
+// the end screen to the real loop.
+Kit.expose({
+  state: () => S,
+  endings: {
+    perfect: { seconds: 18, jump() { S.day = 4; S.accs = [.9, .9, .9]; startNegotiation(); for (const c of S.claims.slice()) judge(c.true); }, reached: () => S.ending === 'perfect' && !$('#end').hidden },
+    sacked: { seconds: 30, jump() { S.vc = 4; goOnAir(); }, reached: () => S.ending === 'sacked' && !$('#end').hidden },
+    house: { seconds: 18, jump() { S.day = 4; startNegotiation(); for (let i = 0; i < 6; i++) judge(true); }, reached: () => S.ending === 'house' && !$('#end').hidden },
+  },
+});
+</script>
+</body>
+</html>

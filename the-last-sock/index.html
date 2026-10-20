@@ -1,0 +1,992 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>The Last Sock</title>
+<meta name="description" content="A platformer inside a turning washing-machine drum. Find your missing sock.">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Shrikhand&family=Karla:ital,wght@0,400;0,500;0,700;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: the front of a launderette machine on a tiled wall: control panel on top, porthole drum in the middle, gossip strip and touch pad below. */
+:root {
+  --wall-tile: #dde7ea;
+  --grout: #c6d2d6;
+  --enamel: #f7f9f8;
+  --panel: #e8eef0;
+  --ink: #17242b;
+  --ink-soft: #586870;
+  --chrome: #9aa8b0;
+  --drum: #c9d3d8;
+  --steel: #8a98a1;
+  --lint: #b4ada3;
+  --brass: #b88a34;
+  --shirt: #c8322f;
+  --pink: #d93d72;
+  --suds: #4fa9c1;
+  --softener: #a08ad6;
+  --sock: #f4ecdc;
+  --stripe: #2f8f8a;
+  --f-display: "Shrikhand", "Cooper Black", Georgia, serif;
+  --f-body: "Karla", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --wall-tile: #0e1619; --grout: #18252b; --enamel: #172328; --panel: #1e2c32;
+    --ink: #e2ebee; --ink-soft: #95a6ae; --chrome: #56656d; --drum: #22323a; --steel: #42535b;
+    --lint: #8a847c; --brass: #d3a34a; --shirt: #e0504a; --pink: #f0729a; --suds: #7dcfe2;
+    --softener: #b9a4ec; --sock: #ece2cf; --stripe: #3fb0a9;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --wall-tile: #0e1619; --grout: #18252b; --enamel: #172328; --panel: #1e2c32;
+  --ink: #e2ebee; --ink-soft: #95a6ae; --chrome: #56656d; --drum: #22323a; --steel: #42535b;
+  --lint: #8a847c; --brass: #d3a34a; --shirt: #e0504a; --pink: #f0729a; --suds: #7dcfe2;
+  --softener: #b9a4ec; --sock: #ece2cf; --stripe: #3fb0a9;
+  color-scheme: dark;
+}
+[hidden] { display: none !important; }
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  margin: 0;
+  overflow: hidden;
+  color: var(--ink);
+  font: 15px/1.5 var(--f-body);
+  background-color: var(--wall-tile);
+  background-image:
+    linear-gradient(var(--grout) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grout) 1px, transparent 1px);
+  background-size: 44px 44px;
+  padding-block: 12px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.machine {
+  position: relative;
+  height: 100%;
+  max-width: 720px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-rows: auto 1fr auto auto;
+  background: var(--enamel);
+  border-radius: 28px;
+  box-shadow: 0 0 0 1px var(--grout), 0 24px 50px -30px #00000088;
+  overflow: hidden;
+}
+.panel {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+  padding: 14px 20px; background: var(--panel); border-bottom: 1px solid var(--grout);
+}
+.brand { font: 400 24px/1 var(--f-display); color: var(--ink); letter-spacing: .01em; display: inline-block; }
+.machine.mirrored .brand { transform: scaleX(-1); }
+.care { display: flex; align-items: center; gap: 8px; font: 500 12px var(--f-mono); letter-spacing: .08em; text-transform: uppercase; }
+.care svg { width: 26px; height: 26px; fill: none; stroke: var(--ink); stroke-width: 1.6; stroke-linejoin: round; }
+.care svg text { fill: var(--ink); stroke: none; font: 500 8px var(--f-mono); }
+.readouts { display: flex; gap: 14px; flex-wrap: wrap; font: 400 12px var(--f-mono); color: var(--ink-soft); font-variant-numeric: tabular-nums; }
+.readouts b { font-weight: 500; color: var(--ink); }
+.stage { position: relative; display: grid; place-items: center; min-height: 0; padding: 12px; }
+.porthole {
+  position: relative; border-radius: 50%;
+  box-shadow: 0 0 0 10px var(--chrome), 0 0 0 13px var(--grout), 0 0 0 22px var(--panel), 0 10px 30px 18px #0000001f;
+  transition: box-shadow .2s;
+}
+.porthole.warn { box-shadow: 0 0 0 10px var(--pink), 0 0 0 13px var(--grout), 0 0 0 22px var(--panel), 0 10px 30px 18px #0000001f; }
+canvas { display: block; width: 100%; height: 100%; border-radius: 50%; }
+.toast {
+  position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+  font: 400 clamp(30px, 7vw, 54px)/1 var(--f-display); color: var(--enamel);
+  text-shadow: 0 2px 0 var(--ink), 0 0 24px #00000066; pointer-events: none;
+  opacity: 0; transition: opacity .5s; text-align: center; white-space: nowrap;
+}
+.toast.on { opacity: 1; }
+.gossip {
+  margin: 0; padding: 10px 20px; min-height: 3.6em; border-top: 1px solid var(--grout);
+  display: grid; gap: 2px; align-content: center; text-align: center;
+  transition: opacity .6s;
+}
+.gossip .who { font: 500 11px var(--f-mono); letter-spacing: .1em; text-transform: uppercase; color: var(--pink); }
+.gossip .say { font-style: italic; color: var(--ink); max-width: 60ch; margin: 0 auto; text-wrap: balance; }
+.gossip.dim { opacity: .55; }
+.pad { display: grid; grid-template-columns: 1fr 1fr 1.4fr; gap: 10px; padding: 0 16px 16px; }
+.pad button { height: 58px; font-size: 22px; }
+.keys { padding: 0 20px 14px; text-align: center; font: 400 12px var(--f-mono); color: var(--ink-soft); }
+@media (hover: hover) and (pointer: fine) { .pad { display: none; } }
+@media (hover: none), (pointer: coarse) { .keys { display: none; } }
+button {
+  font: 700 15px var(--f-body); color: var(--enamel); background: var(--ink);
+  border: 0; border-radius: 14px; padding: 12px 22px; cursor: pointer; touch-action: manipulation;
+  user-select: none; -webkit-user-select: none;
+}
+button:hover { background: var(--stripe); }
+button:focus-visible { outline: 3px solid var(--suds); outline-offset: 3px; }
+.pad button { background: var(--panel); color: var(--ink); box-shadow: inset 0 0 0 1px var(--grout); }
+.pad button.held { background: var(--stripe); color: var(--enamel); }
+.lang { display: flex; flex: 0 0 auto; border: 1.5px solid var(--ink); border-radius: 8px; overflow: hidden; background: var(--enamel); }
+.lang button {
+  font: 500 12px var(--f-mono); letter-spacing: .08em; color: var(--ink-soft); background: transparent;
+  border: 0; border-radius: 0; padding: 5px 10px;
+}
+.lang button + button { border-left: 1px solid var(--grout); }
+.lang button:hover { background: var(--panel); color: var(--ink); }
+.lang button[aria-pressed="true"] { background: var(--ink); color: var(--enamel); }
+.overlay {
+  position: absolute; inset: 0; display: grid; place-items: center; padding: 24px;
+  background: color-mix(in srgb, var(--enamel) 90%, transparent);
+  backdrop-filter: blur(3px); z-index: 5;
+}
+.card { display: grid; gap: 14px; max-width: 470px; justify-items: center; text-align: center; }
+.card h1 { margin: 0; font: 400 clamp(46px, 11vw, 78px)/.95 var(--f-display); color: var(--ink); text-wrap: balance; }
+.card h1 span { color: var(--stripe); }
+.card h2 { margin: 0; font: 400 clamp(28px, 6vw, 40px)/1.05 var(--f-display); text-wrap: balance; }
+.card p { margin: 0; color: var(--ink-soft); max-width: 46ch; }
+.card .label { font: 500 11px var(--f-mono); letter-spacing: .12em; text-transform: uppercase; color: var(--pink); }
+.card .line { font-size: 19px; font-style: italic; color: var(--ink); }
+.card .stat { font: 400 13px var(--f-mono); color: var(--ink); font-variant-numeric: tabular-nums; }
+.tag {
+  font: 500 11px var(--f-mono); letter-spacing: .1em; text-transform: uppercase;
+  border: 1.5px solid var(--ink); border-radius: 4px; padding: 4px 8px; color: var(--ink);
+}
+@media (max-width: 520px) {
+  .panel { padding: 10px 14px; }
+  .brand { font-size: 20px; }
+  .readouts { gap: 10px; font-size: 11px; }
+  .brand { order: -2; }
+  .panel .lang { order: -1; margin-left: auto; }
+  .porthole { box-shadow: 0 0 0 7px var(--chrome), 0 0 0 9px var(--grout), 0 0 0 15px var(--panel); }
+  .porthole.warn { box-shadow: 0 0 0 7px var(--pink), 0 0 0 9px var(--grout), 0 0 0 15px var(--panel); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .toast, .gossip, .porthole { transition: none; }
+}
+</style>
+</head>
+<body>
+<section class="machine" id="machine">
+  <div class="panel">
+    <span class="brand" data-t="brand">The Last Sock</span>
+    <div class="care"><svg id="care-icon" viewBox="0 0 26 26" aria-hidden="true"></svg><span id="lvl">Wash 40°</span></div>
+    <div class="readouts">
+      <span><span data-t="cluesLabel">clues</span> <b id="clues">0/3</b></span>
+      <span><span data-t="missingLabel">missing</span> <b id="time">00:00</b></span>
+      <span id="turn">drum rocking</span>
+    </div>
+    <div class="lang" role="group" data-ta="langGroup" aria-label="Language"></div>
+  </div>
+
+  <div class="stage" id="stage">
+    <div class="porthole" id="porthole"><canvas id="cv" data-ta="drumAria" aria-label="The inside of a washing machine drum, turning"></canvas></div>
+    <div class="toast" id="toast"></div>
+  </div>
+
+  <p class="gossip" id="gossip" aria-live="polite"><span class="who">The laundry</span><span class="say">is waiting.</span></p>
+  <div class="pad">
+    <button id="b-left" data-ta="leftAria" aria-label="Walk left">◀</button>
+    <button id="b-right" data-ta="rightAria" aria-label="Walk right">▶</button>
+    <button id="b-jump" data-ta="jumpAria" aria-label="Jump" data-t="jumpBtn">Jump</button>
+  </div>
+  <div class="keys" data-t="keys">← → or A D to walk · Space, W or ↑ to jump</div>
+
+  <div class="overlay" id="title">
+    <div class="card">
+      <span class="tag" data-t="titleTag">Care label · wash with similar colours</span>
+      <h1 data-th="titleH">The Last <span>Sock</span></h1>
+      <p data-t="titleP">Your partner went missing in the wash. The drum keeps turning, and once it turns far enough, down becomes a different wall. Collect every clue to open the door, and find your other half.</p>
+      <button id="start" data-t="startBtn">Start the wash</button>
+      <p class="stat" data-t="titleKeys">← → or A D to walk · Space, W or ↑ to jump · touch pad on phones</p>
+      <div class="lang" role="group" data-ta="langGroup" aria-label="Language"></div>
+    </div>
+  </div>
+
+  <div class="overlay" id="dialog" hidden>
+    <div class="card">
+      <span class="label" id="d-who"></span>
+      <p class="line" id="d-line"></p>
+      <button id="d-next">Next</button>
+      <div class="lang" role="group" data-ta="langGroup" aria-label="Language"></div>
+    </div>
+  </div>
+
+  <div class="overlay" id="end" hidden>
+    <div class="card">
+      <span class="tag" data-t="endTag">Pairs reunited: 1</span>
+      <h2 data-t="endH">You are a pair.</h2>
+      <p class="line" data-t="endLine">You fold into each other at the bottom of the drum. Somewhere, a different drum begins to turn.</p>
+      <p class="stat" id="end-stat"></p>
+      <button id="again" data-t="againBtn">Wash again</button>
+      <div class="lang" role="group" data-ta="langGroup" aria-label="Language"></div>
+    </div>
+  </div>
+</section>
+
+<script>
+const $ = s => document.querySelector(s);
+const cv = $('#cv'), ctx = cv.getContext('2d');
+const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const TAU = Math.PI * 2, QUARTER = Math.PI / 2;
+
+// Drum grid: 22x22 tiles; anything farther than RAD from the centre is drum wall.
+const N = 22, C = 11, RAD = 10.4, H = 0.36;
+const G = 42;
+const SOLID = new Set(['#', '=', 'o', 'c', 'h']);
+
+const CARE = {
+  wash: '<path d="M3 8 L5.5 21 H20.5 L23 8"/><path d="M3 8 q2.5 -2.2 5 0 t5 0 t5 0 t5 0"/><text x="13" y="18" text-anchor="middle">40</text>',
+  rinse: '<path d="M3 8 L5.5 21 H20.5 L23 8"/><path d="M3 8 q2.5 -2.2 5 0 t5 0 t5 0 t5 0"/><path d="M8 15 q2.5 -2 5 0 t5 0"/>',
+  spin: '<rect x="3" y="3" width="20" height="20" rx="2"/><circle cx="13" cy="13" r="7"/><path d="M13 6 v4"/>',
+  dry: '<rect x="3" y="3" width="20" height="20" rx="2"/><circle cx="13" cy="13" r="7"/><circle cx="13" cy="13" r="1.4" fill="currentColor"/>',
+  mirror: '<g transform="translate(26 0) scale(-1 1)"><path d="M3 8 L5.5 21 H20.5 L23 8"/><path d="M3 8 q2.5 -2.2 5 0 t5 0 t5 0 t5 0"/><text x="13" y="18" text-anchor="middle" transform="translate(26 0) scale(-1 1)">∞</text></g>',
+};
+
+const LEVELS = [
+  {
+    care: 'wash', spin: { kind: 'rock', amp: .5, f: .7 },
+    build(put) {
+      put(3, 7, 18, 18, '='); put(14, 18, 18, 18, 'o');
+      put(8, 13, 15, 15, '=');
+      put(3, 7, 12, 12, '='); put(14, 18, 12, 12, 'c');
+      put(8, 13, 9, 9, 'h');
+      put(4, 8, 6, 6, '='); put(13, 17, 6, 6, '=');
+      put(9, 13, 4, 4, 'o');
+      put(11, 11, 3, 3, 'x');
+      put(5, 5, 17, 17, 'k'); put(16, 16, 11, 11, 'k'); put(6, 6, 5, 5, 'k');
+    },
+  },
+  {
+    care: 'rinse', spin: { kind: 'rot', w: .24 },
+    build(put) {
+      put(7, 15, 11, 11, '='); put(11, 11, 7, 15, '=');
+      put(3, 6, 14, 17, '~'); put(15, 18, 4, 7, '~');
+      put(4, 6, 6, 6, 'o'); put(15, 17, 15, 15, 'o');
+      put(12, 12, 10, 10, 'x');
+      put(1, 1, 11, 11, 'k'); put(20, 20, 11, 11, 'k'); put(11, 11, 1, 1, 'k'); put(15, 15, 18, 18, 'k');
+    },
+  },
+  {
+    care: 'spin', spin: { kind: 'rot', w: .5 },
+    build(put) {
+      put(15, 18, 13, 16, 'r');
+      put(5, 8, 19, 19, 'f'); put(13, 16, 2, 2, 'f'); put(2, 2, 8, 11, 'f');
+      put(6, 8, 8, 8, 'o'); put(13, 15, 13, 13, 'o');
+      put(9, 13, 16, 16, 'h');
+      put(16, 16, 6, 9, 'c');
+      put(10, 12, 12, 12, '='); put(11, 11, 11, 11, 'x');
+      put(2, 2, 13, 13, 'k'); put(19, 19, 9, 9, 'k'); put(8, 8, 2, 2, 'k'); put(12, 12, 18, 18, 'k');
+    },
+  },
+  {
+    care: 'dry', spin: { kind: 'swing', w: .38, period: 5 },
+    build(put) {
+      put(4, 7, 18, 18, '='); put(14, 17, 18, 18, '=');
+      put(8, 13, 15, 15, '=');
+      put(3, 6, 12, 12, '='); put(15, 18, 12, 12, '=');
+      put(9, 12, 9, 9, '=');
+      put(5, 8, 6, 6, '='); put(13, 16, 6, 6, '=');
+      put(9, 13, 4, 4, '=');
+      put(8, 13, 19, 20, '~');
+      put(11, 11, 3, 3, 'p');
+      put(5, 5, 11, 11, 'k'); put(16, 16, 5, 5, 'k');
+    },
+  },
+  {
+    care: 'mirror', spin: { kind: 'rot', w: -.42 }, mirrorOf: 2, role: 'partner',
+  },
+];
+
+// The two conversations are line indexes into I18N.reveal / I18N.reunion; identity and length
+// are what the game logic (and the smoke jumps) read.
+const REVEAL = [0, 1, 2, 3, 4, 5];
+const REUNION = [0, 1, 2];
+
+const I18N = {
+  en: {
+    docTitle: 'The Last Sock',
+    langGroup: 'Language',
+    brand: 'The Last Sock',
+    cluesLabel: 'clues', missingLabel: 'missing',
+    rocking: 'drum rocking', nextTurn: s => `next turn ${s} s`,
+    drumAria: 'The inside of a washing machine drum, turning',
+    leftAria: 'Walk left', rightAria: 'Walk right', jumpAria: 'Jump', jumpBtn: 'Jump',
+    keys: '← → or A D to walk · Space, W or ↑ to jump',
+    titleTag: 'Care label · wash with similar colours',
+    titleH: 'The Last <span>Sock</span>',
+    titleP: 'Your partner went missing in the wash. The drum keeps turning, and once it turns far enough, down becomes a different wall. Collect every clue to open the door, and find your other half.',
+    startBtn: 'Start the wash',
+    titleKeys: '← → or A D to walk · Space, W or ↑ to jump · touch pad on phones',
+    endTag: 'Pairs reunited: 1',
+    endH: 'You are a pair.',
+    endLine: 'You fold into each other at the bottom of the drum. Somewhere, a different drum begins to turn.',
+    againBtn: 'Wash again',
+    endStat: (time, soft, dyed, best) => `Time spent missing ${time} · softened ${soft}× · dyed pink: ${dyed ? 'yes' : 'no'} · best ${best}`,
+    waiting: ['The laundry', 'is waiting.'],
+    levels: [
+      { name: 'Wash 40°',
+        intro: ['A fitted sheet', 'nobody can fold me and nobody can find your partner. we have that in common.'],
+        texts: ['A grey thread, still warm. Someone left recently.',
+                'A laundry tag: PAIR 07, LEFT. You are the right one. Probably.',
+                'A coin. It is not a clue. You keep it anyway.'] },
+      { name: 'Rinse',
+        intro: ['Tea towel', 'rinse cycle. the drum turns now. when it turns far enough, the floor becomes a wall.'],
+        texts: ['A damp note: "if found, return to the other drum".',
+                'Sock-shaped footprints, going the other way.',
+                'A bubble. Inside it, a sock that looks like you is looking for you.',
+                'A lost-property ticket: ONE SOCK, STRIPED. CLAIMED BY: (blank).'] },
+      { name: 'Spin 1400',
+        intro: ['The red shirt', 'spin cycle. hello. i am completely harmless. come closer.'],
+        texts: ['The red shirt says it saw your partner. The red shirt lies.',
+                'A poster: MISSING. Answers to "you".',
+                'A shopping list: milk, bread, find my sock.',
+                'Another poster. The photo on it is of you.'] },
+      { name: 'Tumble dry low',
+        intro: ['Lint', 'welcome to the dryer. we are what is left of everyone. your partner is at the top.'],
+        texts: ['A wall of posters. Every one is a picture of you.',
+                'The lint whispers: "it was never the other one that went."'] },
+      { name: 'Wash ∞, as your partner',
+        intro: ['A fitted sheet', 'oh, it is you again. or the other one. honestly, you look identical.'],
+        texts: ['A grey thread. It came from you.',
+                'The poster you made yourself: MISSING. Answers to "you".',
+                'A note in your handwriting: "if found, return to the other drum".',
+                'Footprints, going the other way. They are yours, from before.'] },
+    ],
+    reveal: [
+      ['Your partner', 'oh. there you are.'],
+      ['You', 'i found you! you went missing!'],
+      ['Your partner', 'i never went anywhere. i have been in this drum since tuesday.'],
+      ['Your partner', 'you went missing. every wash, i searched a different drum for you.'],
+      ['Your partner', 'those clues were mine. i left them so you could find me finding you.'],
+      ['Your partner', 'your turn now. go and find you.'],
+    ],
+    reunion: [
+      ['You, the other one', 'oh. there you are.'],
+      ['You', 'i was looking for you looking for me.'],
+      ['Both of you', '…'],
+    ],
+    next: 'Next', becomePartner: 'Become your partner', fold: 'Fold',
+    pink: [
+      ['Duvet cover', 'you have gone pink. we are all going to talk about this.'],
+      ['Tea towel', 'pink suits you. it does not suit me. i am a tea towel.'],
+      ['A fitted sheet', 'the red shirt does this to everyone. it is its whole personality.'],
+    ],
+    dryerMind: ['Lint', 'the dryer has changed its mind.'],
+    clue: (n, total) => `Clue ${n} of ${total}`, anotherClue: 'Another clue.',
+    findYou: 'Find you', goTop: 'Go to the top', doorOpen: 'Door open',
+    softener: ['Tea towel', 'fabric softener. you are lovely and soft and back at the start.'],
+    locked: ['The door', 'locked. i open for whoever has every clue.'],
+    notYet: ['A sock that looks exactly like you', 'not yet. read the clues first.'],
+    pillowWho: 'Pillowcase', pillow: ['hold on to something.', 'here comes a wall.', 'down is about to move.'],
+  },
+  fr: {
+    docTitle: 'La Dernière Chaussette',
+    langGroup: 'Langue',
+    brand: 'La Dernière Chaussette',
+    cluesLabel: 'indices', missingLabel: 'disparition',
+    rocking: 'le tambour tangue', nextTurn: s => `quart de tour dans ${s} s`,
+    drumAria: "L'intérieur d'un tambour de machine à laver, qui tourne",
+    leftAria: 'Aller à gauche', rightAria: 'Aller à droite', jumpAria: 'Sauter', jumpBtn: 'Sauter',
+    keys: '← → ou Q D pour marcher · Espace, Z ou ↑ pour sauter',
+    titleTag: "Étiquette d'entretien · laver avec des couleurs similaires",
+    titleH: 'La Dernière <span>Chaussette</span>',
+    titleP: "Votre partenaire a disparu au lavage. Le tambour n'arrête pas de tourner, et quand il a assez tourné, le bas devient un autre mur. Ramassez tous les indices pour ouvrir la porte, et retrouvez votre moitié.",
+    startBtn: 'Lancer la lessive',
+    titleKeys: '← → ou Q D pour marcher · Espace, Z ou ↑ pour sauter · pavé tactile sur téléphone',
+    endTag: 'Paires réunies : 1',
+    endH: 'Vous formez une paire.',
+    endLine: 'Au fond du tambour, vous vous repliez ensemble, en boule. Quelque part, un autre tambour se met à tourner.',
+    againBtn: 'Relancer une lessive',
+    endStat: (time, soft, dyed, best) => `Durée de la disparition ${time} · adoucissements ${soft}× · teinture rose : ${dyed ? 'oui' : 'non'} · record ${best}`,
+    waiting: ['Le linge', 'attend.'],
+    levels: [
+      { name: 'Lavage 40°',
+        intro: ['Un drap-housse', 'personne ne sait me plier et personne ne trouve votre partenaire. on a ça en commun.'],
+        texts: ["Un fil gris, encore tiède. Quelqu'un vient de s'en aller.",
+                'Une étiquette : PAIRE 07, GAUCHE. Vous, vous partez donc du bon pied. Probablement.',
+                "Une pièce. Ce n'est pas un indice. Vous la gardez quand même."] },
+      { name: 'Rinçage',
+        intro: ['Torchon', 'cycle de rinçage. maintenant le tambour tourne. quand il a assez tourné, le sol devient un mur.'],
+        texts: ["Un mot humide : « en cas de découverte, rapporter à l'autre tambour ».",
+                "Des empreintes en forme de chaussette, qui vont dans l'autre sens.",
+                'Une bulle. Dedans, une chaussette qui vous ressemble vous cherche.',
+                'Un ticket des objets trouvés : UNE CHAUSSETTE, À RAYURES. RÉCLAMÉE PAR : (vide).'] },
+      { name: 'Essorage 1400',
+        intro: ['La chemise rouge', 'essorage. bonjour. je suis parfaitement inoffensive. approchez.'],
+        texts: ["La chemise rouge dit qu'elle a vu votre partenaire. La chemise rouge ment.",
+                'Une affiche : AVIS DE RECHERCHE. Répond au nom de « vous ».',
+                'Une liste de courses : lait, pain, retrouver ma chaussette.',
+                "Une autre affiche. Sur la photo, c'est vous."] },
+      { name: 'Séchage doux',
+        intro: ['Les peluches', 'bienvenue dans le sèche-linge. nous sommes ce qui reste de tout le monde. votre partenaire est tout en haut.'],
+        texts: ["Un mur d'affiches. Sur chacune, c'est vous.",
+                "Les peluches chuchotent : « ce n'est jamais l'autre qui a disparu. »"] },
+      { name: 'Lavage ∞, en partenaire',
+        intro: ['Un drap-housse', "oh, encore vous. ou l'autre. franchement, impossible de vous distinguer."],
+        texts: ['Un fil gris. Il vient de vous.',
+                "L'affiche que vous avez faite vous-même : AVIS DE RECHERCHE. Répond au nom de « vous ».",
+                "Un mot de votre écriture : « en cas de découverte, rapporter à l'autre tambour ».",
+                "Des empreintes, dans l'autre sens. Ce sont les vôtres, d'avant."] },
+    ],
+    // The two socks of a pair say tu to each other; the game still says vous to the player.
+    reveal: [
+      ['Votre partenaire', 'oh. te voilà.'],
+      ['Vous', 'te voilà enfin ! tu avais disparu !'],
+      ['Votre partenaire', "je n'ai jamais bougé. je suis dans ce tambour depuis mardi."],
+      ['Votre partenaire', "c'est toi qui avais disparu. à chaque lavage, j'ai fouillé un autre tambour pour te retrouver."],
+      ['Votre partenaire', "ces indices, c'était moi. je les ai semés pour que tu me trouves en train de te trouver."],
+      ['Votre partenaire', 'à ton tour, maintenant. va te retrouver.'],
+    ],
+    reunion: [
+      ['Vous, l’autre', 'oh. te voilà.'],
+      ['Vous', 'je te cherchais en train de me chercher.'],
+      ['Vous deux', '…'],
+    ],
+    next: 'Suite', becomePartner: 'Devenir votre partenaire', fold: 'Se plier',
+    pink: [
+      ['Housse de couette', 'vous avez viré au rose. tout le monde va en parler.'],
+      ['Torchon', 'le rose vous va bien. moi, il ne me va pas. je suis un torchon.'],
+      ['Un drap-housse', "la chemise rouge fait ça à tout le monde. c'est toute sa personnalité."],
+    ],
+    dryerMind: ['Les peluches', "le sèche-linge a changé d'avis."],
+    clue: (n, total) => `Indice ${n} sur ${total}`, anotherClue: 'Encore un indice.',
+    findYou: 'Trouvez-vous', goTop: 'Montez tout en haut', doorOpen: 'Porte ouverte',
+    softener: ['Torchon', "de l'adoucissant. douceur garantie, et retour au départ."],
+    locked: ['La porte', "fermée à clé. je m'ouvre pour qui a tous les indices."],
+    notYet: ['Une chaussette qui vous ressemble trait pour trait', "pas encore. lisez d'abord les indices."],
+    pillowWho: "Taie d'oreiller", pillow: ['accrochez-vous.', 'attention, un mur arrive.', 'le bas va bouger.'],
+  },
+};
+
+// French typography: a narrow no-break space before ? ! : ; » and after «, applied once to every
+// French string (and to whatever a French string function returns).
+(function frenchSpacing() {
+  const fix = s => s.replace(/ ([?!:;»])/g, '\u202f$1').replace(/« /g, '«\u202f');
+  const deep = v => typeof v === 'string' ? fix(v)
+    : typeof v === 'function' ? (...a) => fix(v(...a))
+    : Array.isArray(v) ? v.map(deep)
+    : v && typeof v === 'object' ? Object.fromEntries(Object.entries(v).map(([k, x]) => [k, deep(x)]))
+    : v;
+  I18N.fr = deep(I18N.fr);
+})();
+
+let lang = 'en';
+const t = k => I18N[lang][k] ?? I18N.en[k];
+const levelText = i => t('levels')[i];
+
+// Tables indexed across a mid-game switch (clue counter, random picks, dialogue line) must match.
+for (const k of ['levels', 'reveal', 'reunion', 'pink', 'pillow']) {
+  if (I18N.en[k].length !== I18N.fr[k].length) console.error(`i18n: ${k} differs in length`);
+}
+I18N.en.levels.forEach((l, i) => { if (l.texts.length !== I18N.fr.levels[i].texts.length) console.error(`i18n: level ${i} texts differ`); });
+
+function buildLevel(def) {
+  const src = def.mirrorOf != null ? LEVELS[def.mirrorOf] : def;
+  let m = Array.from({ length: N }, () => Array(N).fill('.'));
+  const put = (x1, x2, y1, y2, ch) => {
+    for (let y = y1; y <= y2; y++) for (let x = x1; x <= x2; x++) m[y][x] = ch;
+  };
+  src.build(put);
+  for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
+    if (Math.hypot(x + .5 - C, y + .5 - C) > RAD) m[y][x] = '#';
+  }
+  let start = [11, 20];
+  if (def.mirrorOf != null) {
+    m = m.map(row => row.slice().reverse().map(ch => ch === 'x' ? 'p' : ch));
+    start = [N - 1 - start[0], start[1]];
+  }
+  let total = 0;
+  for (const row of m) for (const ch of row) if (ch === 'k') total++;
+  return { m, start, total };
+}
+
+let S, L, LV, P;
+const input = { left: false, right: false, jump: false };
+let tok = {};
+
+function readTokens() {
+  const cs = getComputedStyle(document.documentElement);
+  for (const k of ['drum', 'steel', 'lint', 'brass', 'shirt', 'pink', 'suds', 'softener', 'sock', 'stripe', 'ink', 'enamel', 'chrome', 'ink-soft'])
+    tok[k] = cs.getPropertyValue('--' + k).trim();
+}
+
+let size = 300;
+function resize() {
+  const st = $('#stage').getBoundingClientRect();
+  const pad = innerWidth < 520 ? 40 : 60;
+  size = Math.max(160, Math.floor(Math.min(st.width, st.height) - pad));
+  const ph = $('#porthole');
+  ph.style.width = ph.style.height = size + 'px';
+  const d = Math.min(2, devicePixelRatio || 1);
+  cv.width = cv.height = size * d;
+  ctx.setTransform(d, 0, 0, d, 0, 0);
+  readTokens();
+}
+addEventListener('resize', resize);
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', readTokens);
+new MutationObserver(readTokens).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+
+// The gossip strip and the toast take a function of the current language returning their text,
+// kept so a language switch can say the same thing again.
+let gossipTimer = null, gossipNow = () => t('waiting');
+function paintGossip() {
+  const [who, say] = gossipNow();
+  const el = $('#gossip');
+  el.innerHTML = '';
+  const w = document.createElement('span'); w.className = 'who'; w.textContent = who;
+  const s = document.createElement('span'); s.className = 'say'; s.textContent = say;
+  el.append(w, s);
+}
+function gossip(line) {
+  gossipNow = line;
+  paintGossip();
+  const el = $('#gossip');
+  el.classList.remove('dim');
+  clearTimeout(gossipTimer);
+  gossipTimer = setTimeout(() => el.classList.add('dim'), 6000);
+}
+let toastTimer = null, toastNow = null;
+function toast(text) {
+  const el = $('#toast');
+  toastNow = text;
+  el.textContent = text(); el.classList.add('on');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('on'), 1800);
+}
+
+function fmt(t) {
+  const s = Math.floor(t);
+  return String(Math.floor(s / 60)).padStart(2, '0') + ':' + String(s % 60).padStart(2, '0');
+}
+
+function newRun(best) {
+  return { mode: 'title', li: 0, time: 0, best, pink: false, softened: 0, dyed: false, dialog: null, di: 0 };
+}
+
+function loadLevel(i) {
+  S.li = i; L = LEVELS[i];
+  const b = buildLevel(L);
+  LV = { m: b.m, start: b.start, total: b.total, got: 0, lt: 0, theta: 0, omega: 0, q: 0,
+         swingT: 0, swingDir: 1, warnedQ: null, lockCd: 0, inSuds: false };
+  P = { x: b.start[0] + .5, y: b.start[1] + .5, vx: 0, vy: 0, face: 1, ground: false, coyote: 0, buf: 0 };
+  if (L.role === 'partner') S.pink = false;
+  $('#machine').classList.toggle('mirrored', L.role === 'partner');
+  $('#lvl').textContent = levelText(i).name;
+  $('#care-icon').innerHTML = CARE[L.care];
+  toast(() => levelText(i).name);
+  gossip(() => levelText(i).intro);
+  hud();
+}
+
+function respawn() {
+  P.x = LV.start[0] + .5; P.y = LV.start[1] + .5; P.vx = P.vy = 0;
+}
+
+function gravity() {
+  const a = LV.q * QUARTER;
+  return { x: Math.round(Math.sin(a)), y: Math.round(Math.cos(a)) };
+}
+
+function spinStep(dt) {
+  const s = L.spin;
+  if (s.kind === 'rock') {
+    LV.theta = s.amp * Math.sin(LV.lt * s.f);
+    LV.omega = s.amp * s.f * Math.cos(LV.lt * s.f);
+  } else if (s.kind === 'rot') {
+    LV.omega = s.w; LV.theta += s.w * dt;
+  } else {
+    LV.swingT += dt;
+    if (LV.swingT > s.period) {
+      LV.swingT = 0; LV.swingDir *= -1;
+      if (Math.random() < .4) gossip(() => t('dryerMind'));
+    }
+    LV.omega = s.w * LV.swingDir; LV.theta += LV.omega * dt;
+  }
+  // a little hysteresis so a drum hovering at 45° does not flicker gravity
+  const u = LV.theta / QUARTER;
+  if (Math.abs(u - LV.q) > .53) LV.q = Math.round(u);
+}
+
+function nextTurnIn() {
+  const u = LV.theta / QUARTER, w = LV.omega;
+  if (L.spin.kind === 'rock') return null;
+  if (w > .01) return (LV.q + .5 - u) * QUARTER / w;
+  if (w < -.01) return (u - (LV.q - .5)) * QUARTER / -w;
+  return null;
+}
+
+function solid(tx, ty) {
+  if (tx < 0 || ty < 0 || tx >= N || ty >= N) return true;
+  return SOLID.has(LV.m[ty][tx]);
+}
+
+function moveAxis(ax, d) {
+  if (!d) return 0;
+  P[ax] += d;
+  // epsilon on both edges: 1.36 - .36 is 0.9999…, which would count a wall you rest against at index 0 as overlapped
+  const x0 = Math.floor(P.x - H + 1e-6), x1 = Math.floor(P.x + H - 1e-6);
+  const y0 = Math.floor(P.y - H + 1e-6), y1 = Math.floor(P.y + H - 1e-6);
+  let hit = 0, lim = d > 0 ? Infinity : -Infinity;
+  for (let ty = y0; ty <= y1; ty++) for (let tx = x0; tx <= x1; tx++) {
+    if (!solid(tx, ty)) continue;
+    hit = d > 0 ? 1 : -1;
+    const t = ax === 'x' ? tx : ty;
+    lim = d > 0 ? Math.min(lim, t - H) : Math.max(lim, t + 1 + H);
+  }
+  if (hit) P[ax] = lim;
+  return hit;
+}
+
+function approach(v, t, a) { return v < t ? Math.min(t, v + a) : Math.max(t, v - a); }
+
+function physics(dt) {
+  const g = gravity(), r = { x: g.y, y: -g.x };
+  const suds = LV.inSuds;
+  const run = suds ? 3.4 : 7.2, cap = suds ? 6 : 18, J = suds ? 14.2 : 17.6;
+  const dir = (input.right ? 1 : 0) - (input.left ? 1 : 0);
+  let along = P.vx * r.x + P.vy * r.y;
+  let fall = P.vx * g.x + P.vy * g.y;
+  along = approach(along, dir * run, (P.ground ? 70 : 38) * dt);
+  if (dir) P.face = dir;
+  // releasing jump early cuts the arc short
+  fall += G * dt * (!input.jump && fall < 0 ? 2.2 : 1);
+  fall = Math.min(fall, cap);
+  P.coyote = P.ground ? .1 : Math.max(0, P.coyote - dt);
+  P.buf = Math.max(0, P.buf - dt);
+  if (P.buf > 0 && P.coyote > 0) { fall = -J; P.buf = 0; P.coyote = 0; }
+  P.vx = r.x * along + g.x * fall;
+  P.vy = r.y * along + g.y * fall;
+  P.ground = false;
+  const hx = moveAxis('x', P.vx * dt);
+  if (hx) { if (g.x !== 0 && hx === g.x) P.ground = true; P.vx = 0; }
+  const hy = moveAxis('y', P.vy * dt);
+  if (hy) { if (g.y !== 0 && hy === g.y) P.ground = true; P.vy = 0; }
+}
+
+function interact(dt) {
+  LV.lockCd = Math.max(0, LV.lockCd - dt);
+  LV.inSuds = false;
+  const h = H * .8;
+  const x0 = Math.floor(P.x - h), x1 = Math.floor(P.x + h), y0 = Math.floor(P.y - h), y1 = Math.floor(P.y + h);
+  const tide = (LV.lt % 6) > 4;
+  for (let ty = y0; ty <= y1; ty++) for (let tx = x0; tx <= x1; tx++) {
+    if (tx < 0 || ty < 0 || tx >= N || ty >= N) continue;
+    const ch = LV.m[ty][tx];
+    if (ch === 'k') {
+      LV.m[ty][tx] = '.';
+      const n = LV.got, total = LV.total, li = S.li;
+      gossip(() => [t('clue')(n + 1, total), levelText(li).texts[n] || t('anotherClue')]);
+      LV.got++;
+      if (LV.got === LV.total) {
+        const key = L.role === 'partner' ? 'findYou' : S.li === 3 ? 'goTop' : 'doorOpen';
+        toast(() => t(key));
+      }
+    } else if (ch === '~') {
+      LV.inSuds = true;
+    } else if (ch === 'r') {
+      if (!S.pink) {
+        S.pink = true; S.dyed = true;
+        const i = Math.floor(Math.random() * I18N.en.pink.length);
+        gossip(() => t('pink')[i]);
+      }
+    } else if (ch === 'f' && tide) {
+      S.softened++;
+      respawn();
+      gossip(() => t('softener'));
+      return;
+    } else if (ch === 'x' || ch === 'p') {
+      if (LV.got < LV.total) {
+        if (!LV.lockCd) {
+          LV.lockCd = 3;
+          gossip(() => t(ch === 'x' ? 'locked' : 'notYet'));
+        }
+      } else if (ch === 'x') {
+        loadLevel(S.li + 1);
+        return;
+      } else {
+        startDialog(L.role === 'partner' ? REUNION : REVEAL);
+        return;
+      }
+    }
+  }
+}
+
+function startDialog(lines) {
+  S.mode = 'dialog'; S.dialog = lines; S.di = 0;
+  input.left = input.right = input.jump = false;
+  showLine();
+  $('#dialog').hidden = false;
+  $('#d-next').focus();
+}
+function showLine() {
+  const [who, line] = t(S.dialog === REVEAL ? 'reveal' : 'reunion')[S.dialog[S.di]];
+  $('#d-who').textContent = who; $('#d-line').textContent = line;
+  $('#d-next').textContent = t(S.di === S.dialog.length - 1 ? (S.dialog === REVEAL ? 'becomePartner' : 'fold') : 'next');
+}
+function advanceDialog() {
+  if (S.mode !== 'dialog') return;
+  S.di++;
+  if (S.di < S.dialog.length) { showLine(); return; }
+  $('#dialog').hidden = true;
+  if (S.dialog === REVEAL) { S.mode = 'play'; loadLevel(4); }
+  else finish();
+}
+
+function finish() {
+  S.mode = 'end';
+  S.best = S.best ? Math.min(S.best, S.time) : S.time;
+  endStat();
+  $('#end').hidden = false;
+  $('#again').focus();
+}
+function endStat() {
+  $('#end-stat').textContent = t('endStat')(fmt(S.time), S.softened, S.dyed, fmt(S.best));
+}
+
+function hud() {
+  $('#clues').textContent = `${LV.got}/${LV.total}`;
+  $('#time').textContent = fmt(S.time);
+  const n = nextTurnIn();
+  const s = n == null ? '' : lang === 'fr' ? n.toFixed(1).replace('.', ',') : n.toFixed(1);
+  $('#turn').textContent = n == null ? t('rocking') : t('nextTurn')(s);
+  $('#porthole').classList.toggle('warn', n != null && n < 1);
+}
+
+function update(dt) {
+  LV.lt += dt; S.time += dt;
+  spinStep(dt);
+  const turn = nextTurnIn();
+  if (turn != null && turn < 1 && LV.warnedQ !== LV.q && Math.random() < .35) {
+    LV.warnedQ = LV.q;
+    const i = Math.floor(Math.random() * 3);
+    gossip(() => [t('pillowWho'), t('pillow')[i]]);
+  }
+  physics(dt / 2); physics(dt / 2);
+  interact(dt);
+  hud();
+}
+
+function rr(x, y, w, h, r) {
+  ctx.beginPath(); ctx.roundRect(x, y, w, h, r);
+}
+
+function drawTile(ch, x, y, s, t) {
+  const px = x * s, py = y * s;
+  switch (ch) {
+    case '#':
+      ctx.fillStyle = tok.steel; ctx.fillRect(px - .5, py - .5, s + 1, s + 1);
+      break;
+    case '=':
+      ctx.fillStyle = tok.lint; rr(px + 1, py + s * .18, s - 2, s * .64, s * .3); ctx.fill();
+      ctx.fillStyle = tok.enamel; ctx.globalAlpha = .35;
+      ctx.beginPath(); ctx.arc(px + s * .3, py + s * .4, s * .08, 0, TAU); ctx.arc(px + s * .7, py + s * .6, s * .06, 0, TAU); ctx.fill();
+      ctx.globalAlpha = 1;
+      break;
+    case 'o':
+      ctx.fillStyle = tok.pink; ctx.beginPath(); ctx.arc(px + s / 2, py + s / 2, s * .44, 0, TAU); ctx.fill();
+      ctx.fillStyle = tok.drum;
+      for (const [dx, dy] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) {
+        ctx.beginPath(); ctx.arc(px + s / 2 + dx * s * .12, py + s / 2 + dy * s * .12, s * .06, 0, TAU); ctx.fill();
+      }
+      break;
+    case 'c':
+      ctx.fillStyle = tok.brass; ctx.beginPath(); ctx.arc(px + s / 2, py + s / 2, s * .45, 0, TAU); ctx.fill();
+      ctx.strokeStyle = tok.enamel; ctx.globalAlpha = .5; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.arc(px + s / 2, py + s / 2, s * .3, 0, TAU); ctx.stroke(); ctx.globalAlpha = 1;
+      break;
+    case 'h':
+      ctx.fillStyle = tok.ink; rr(px, py + s * .38, s, s * .24, s * .12); ctx.fill();
+      ctx.strokeStyle = tok.chrome; ctx.lineWidth = 1.2; ctx.beginPath();
+      ctx.moveTo(px, py + s * .5); ctx.quadraticCurveTo(px + s * .25, py + s * .4, px + s * .5, py + s * .5);
+      ctx.quadraticCurveTo(px + s * .75, py + s * .6, px + s, py + s * .5); ctx.stroke();
+      break;
+    case '~': {
+      ctx.fillStyle = tok.suds; ctx.globalAlpha = .18; ctx.fillRect(px, py, s, s); ctx.globalAlpha = .55;
+      ctx.fillStyle = tok.enamel;
+      for (let i = 0; i < 3; i++) {
+        const k = reduce ? 0 : Math.sin(t * 2 + x * 1.7 + y * 2.3 + i * 2);
+        ctx.beginPath(); ctx.arc(px + s * (.25 + i * .25), py + s * (.3 + (i % 2) * .4), s * (.12 + .04 * k), 0, TAU); ctx.fill();
+      }
+      ctx.globalAlpha = 1;
+      break;
+    }
+    case 'r':
+      ctx.fillStyle = tok.shirt; ctx.fillRect(px - .5, py - .5, s + 1, s + 1);
+      ctx.fillStyle = tok.enamel; ctx.globalAlpha = .4;
+      if ((x + y) % 3 === 0) { ctx.beginPath(); ctx.arc(px + s / 2, py + s / 2, s * .08, 0, TAU); ctx.fill(); }
+      ctx.globalAlpha = 1;
+      break;
+    case 'f': {
+      const ph = LV.lt % 6, on = ph > 4, warn = ph > 3.3 && !on;
+      ctx.fillStyle = tok.softener;
+      ctx.globalAlpha = on ? .85 : warn ? (reduce ? .45 : .25 + .3 * (Math.sin(t * 18) > 0)) : .16;
+      ctx.fillRect(px, py, s, s);
+      ctx.globalAlpha = 1;
+      break;
+    }
+    case 'k': {
+      const bob = reduce ? 0 : Math.sin(t * 3 + x) * s * .06;
+      ctx.save(); ctx.translate(px + s / 2, py + s / 2 + bob); ctx.rotate(-LV.q * QUARTER + .25);
+      ctx.fillStyle = tok.enamel; ctx.strokeStyle = tok.ink; ctx.lineWidth = 1.2;
+      ctx.beginPath(); ctx.moveTo(-s * .3, -s * .2); ctx.lineTo(s * .18, -s * .2); ctx.lineTo(s * .34, 0); ctx.lineTo(s * .18, s * .2); ctx.lineTo(-s * .3, s * .2); ctx.closePath();
+      ctx.fill(); ctx.stroke();
+      ctx.fillStyle = tok.pink; ctx.beginPath(); ctx.arc(s * .14, 0, s * .05, 0, TAU); ctx.fill();
+      ctx.restore();
+      break;
+    }
+    case 'x': {
+      const open = LV.got >= LV.total;
+      ctx.fillStyle = open ? tok.suds : tok.chrome;
+      ctx.beginPath(); ctx.arc(px + s / 2, py + s / 2, s * .46, 0, TAU); ctx.fill();
+      ctx.fillStyle = open ? tok.enamel : tok.drum;
+      ctx.beginPath(); ctx.arc(px + s / 2, py + s / 2, s * .3, 0, TAU); ctx.fill();
+      break;
+    }
+    case 'p':
+      drawSock(x + .5, y + .5, s, -1, false, LV.got >= LV.total ? 1 : .55);
+      break;
+  }
+}
+
+function drawSock(cx, cy, s, face, pink, alpha = 1) {
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  ctx.translate(cx * s, cy * s);
+  ctx.rotate(-LV.q * QUARTER);
+  ctx.scale(face, 1);
+  const body = tok.sock, stripe = pink ? tok.pink : tok.stripe;
+  ctx.fillStyle = body; ctx.strokeStyle = tok.ink; ctx.lineWidth = Math.max(1, s * .05);
+  ctx.beginPath();
+  ctx.moveTo(-s * .2, -s * .4);
+  ctx.lineTo(s * .12, -s * .4);
+  ctx.lineTo(s * .12, s * .06);
+  ctx.quadraticCurveTo(s * .42, s * .06, s * .42, s * .23);
+  ctx.quadraticCurveTo(s * .42, s * .38, s * .2, s * .38);
+  ctx.lineTo(-s * .1, s * .38);
+  ctx.quadraticCurveTo(-s * .22, s * .38, -s * .21, s * .22);
+  ctx.closePath();
+  ctx.fill(); ctx.stroke();
+  ctx.save(); ctx.clip();
+  ctx.fillStyle = stripe;
+  ctx.fillRect(-s * .3, -s * .4, s * .6, s * .1);
+  ctx.fillRect(-s * .3, -s * .18, s * .6, s * .07);
+  ctx.fillRect(-s * .3, -s * .03, s * .6, s * .07);
+  ctx.fillRect(s * .26, 0, s * .3, s * .5);
+  ctx.restore();
+  ctx.fillStyle = tok.ink;
+  ctx.beginPath(); ctx.arc(s * .02, -s * .26, s * .035, 0, TAU); ctx.fill();
+  ctx.restore();
+}
+
+function draw(t) {
+  const s = size / N;
+  ctx.clearRect(0, 0, size, size);
+  ctx.save();
+  ctx.translate(size / 2, size / 2);
+  ctx.beginPath(); ctx.arc(0, 0, size / 2, 0, TAU); ctx.clip();
+  ctx.fillStyle = tok.drum; ctx.fillRect(-size / 2, -size / 2, size, size);
+  if (LV) {
+    ctx.rotate(LV.theta);
+    ctx.translate(-C * s, -C * s);
+    // drum perforations, so the turning is visible even in empty space
+    ctx.fillStyle = tok.steel; ctx.globalAlpha = .35;
+    for (let y = 1; y < N; y += 2) for (let x = 1 + (y % 4 === 1 ? 0 : 1); x < N; x += 2) {
+      ctx.beginPath(); ctx.arc(x * s, y * s, s * .07, 0, TAU); ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+    for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
+      const ch = LV.m[y][x];
+      if (ch !== '.') drawTile(ch, x, y, s, t);
+    }
+    drawSock(P.x, P.y, s, P.face, S.pink);
+  }
+  ctx.restore();
+  // the porthole glass catches the light in screen space, not drum space
+  ctx.save();
+  ctx.globalAlpha = .18; ctx.fillStyle = '#ffffff';
+  ctx.beginPath(); ctx.ellipse(size * .32, size * .26, size * .22, size * .09, -.7, 0, TAU); ctx.fill();
+  ctx.restore();
+}
+
+let last = 0;
+function frame(now) {
+  const dt = Math.min(1 / 30, (now - last) / 1000 || 0); last = now;
+  if (S.mode === 'play') update(dt);
+  draw(now / 1000);
+  requestAnimationFrame(frame);
+}
+
+function begin() {
+  S = newRun(S.best);
+  S.mode = 'play';
+  $('#title').hidden = true; $('#end').hidden = true; $('#dialog').hidden = true;
+  loadLevel(0);
+}
+
+// q/Q is the AZERTY left key, which the French key hint names.
+const KEYS = { ArrowLeft: 'left', a: 'left', A: 'left', q: 'left', Q: 'left', ArrowRight: 'right', d: 'right', D: 'right',
+               ' ': 'jump', ArrowUp: 'jump', w: 'jump', W: 'jump', z: 'jump', Z: 'jump' };
+addEventListener('keydown', e => {
+  // a focused Next button already handles Enter/Space itself
+  if (S.mode === 'dialog' && (e.key === 'Enter' || e.key === ' ') && document.activeElement !== $('#d-next')) {
+    e.preventDefault(); advanceDialog(); return;
+  }
+  const k = KEYS[e.key];
+  if (!k || S.mode !== 'play') return;
+  e.preventDefault();
+  if (k === 'jump' && !e.repeat) P.buf = .13;
+  input[k] = true;
+});
+addEventListener('keyup', e => { const k = KEYS[e.key]; if (k) input[k] = false; });
+
+function bindPad(id, k) {
+  const b = $(id);
+  const on = e => { e.preventDefault(); if (S.mode !== 'play') return; input[k] = true; b.classList.add('held'); if (k === 'jump') P.buf = .13; };
+  const off = () => { input[k] = false; b.classList.remove('held'); };
+  b.addEventListener('pointerdown', on);
+  for (const ev of ['pointerup', 'pointercancel', 'pointerleave']) b.addEventListener(ev, off);
+}
+bindPad('#b-left', 'left'); bindPad('#b-right', 'right'); bindPad('#b-jump', 'jump');
+
+$('#start').onclick = begin;
+$('#again').onclick = begin;
+$('#d-next').onclick = advanceDialog;
+
+// Static markup carries data-t (text), data-th (trusted markup from I18N) and data-ta
+// (aria-label); the level name, HUD, gossip strip, toast, dialogue and end stats are redrawn here.
+function applyLang() {
+  document.documentElement.lang = lang;
+  document.title = t('docTitle');
+  for (const el of document.querySelectorAll('[data-t]')) el.textContent = t(el.dataset.t);
+  for (const el of document.querySelectorAll('[data-th]')) el.innerHTML = t(el.dataset.th);
+  for (const el of document.querySelectorAll('[data-ta]')) el.setAttribute('aria-label', t(el.dataset.ta));
+  for (const box of document.querySelectorAll('.lang')) {
+    if (!box.children.length) box.innerHTML = '<button type="button" data-lang="fr" lang="fr">FR</button><button type="button" data-lang="en" lang="en">EN</button>';
+    for (const b of box.children) b.setAttribute('aria-pressed', String(b.dataset.lang === lang));
+  }
+  paintGossip();
+  if (toastNow) $('#toast').textContent = toastNow();
+  $('#lvl').textContent = levelText(S?.li ?? 0).name;
+  if (LV) hud(); else $('#turn').textContent = t('rocking');
+  if (S?.mode === 'dialog') showLine();
+  if (S?.mode === 'end') endStat();
+}
+function setLang(l) {
+  if (!(l in I18N) || l === lang) return;
+  lang = l;
+  applyLang();
+}
+document.addEventListener('click', e => {
+  const b = e.target.closest('[data-lang]');
+  if (b) setLang(b.dataset.lang);
+});
+
+function start(data) {
+  lang = data?.lang in I18N ? data.lang : (navigator.language || '').toLowerCase().startsWith('fr') ? 'fr' : 'en';
+  S = newRun(data.best || 0);
+  applyLang();
+  resize();
+  requestAnimationFrame(frame);
+}
+window.claude?.hot?.snapshot?.(() => ({ best: S?.best || 0, lang }));
+window.claude?.hot?.ready ? window.claude.hot.ready(start) : start(window.claude?.hot?.data ?? {});
+</script>
+</body>
+</html>

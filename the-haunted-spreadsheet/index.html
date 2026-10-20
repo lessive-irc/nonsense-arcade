@@ -1,0 +1,954 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>The Haunted Spreadsheet</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo+Narrow:wght@400;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Caveat:wght@500;700&display=swap">
+<style>
+/* Layout: one office spreadsheet window — title bar, ribbon, formula bar, the sheet beside a sticky comment, sheet tabs, status bar. It is almost right. */
+:root {
+  --desk: #d5d9cf;
+  --chrome: #eceee7;
+  --paper: #fcfcf8;
+  --hidden: #e4e7de;
+  --line: #cdd1c5;
+  --ink: #1d2320;
+  --ink-soft: #5f6862;
+  --ecto: #2c7f6a;
+  --on-ecto: #f4fbf8;
+  --ecto-wash: #d6ece4;
+  --error: #b2402a;
+  --error-wash: #f6ddd5;
+  --note: #f4e7a8;
+  --note-ink: #3a3420;
+  --suspect: #b2402a33;
+  --t-row: #2f64a3;
+  --t-lie: #9b3f86;
+  --t-diag: #8a5d0c;
+  --scrim: #1d232099;
+  --f-ui: "Archivo Narrow", "Arial Narrow", "Helvetica Neue", Arial, sans-serif;
+  --f-cell: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  --f-hand: "Caveat", "Segoe Print", "Bradley Hand", cursive;
+  --cell: 36px;
+  --rowhead: 34px;
+  --colhead: 24px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --desk: #0f1312; --chrome: #212725; --paper: #191e1c; --hidden: #2a312e; --line: #36403b;
+    --ink: #e2e8e2; --ink-soft: #9aa69f; --ecto: #5cc3a5; --on-ecto: #0d1814; --ecto-wash: #1d3a31;
+    --error: #e47a62; --error-wash: #3d2620; --note: #4a4426; --note-ink: #f1e8c4; --suspect: #e47a6233;
+    --t-row: #8fb6e6; --t-lie: #dc9ccb; --t-diag: #e2b65e; --scrim: #000000aa;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --desk: #0f1312; --chrome: #212725; --paper: #191e1c; --hidden: #2a312e; --line: #36403b;
+  --ink: #e2e8e2; --ink-soft: #9aa69f; --ecto: #5cc3a5; --on-ecto: #0d1814; --ecto-wash: #1d3a31;
+  --error: #e47a62; --error-wash: #3d2620; --note: #4a4426; --note-ink: #f1e8c4; --suspect: #e47a6233;
+  --t-row: #8fb6e6; --t-lie: #dc9ccb; --t-diag: #e2b65e; --scrim: #000000aa;
+  color-scheme: dark;
+}
+@media (min-width: 900px) { :root { --cell: 42px; } }
+[hidden] { display: none !important; }
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  margin: 0;
+  background: var(--desk);
+  color: var(--ink);
+  font: 14px/1.45 var(--f-ui);
+  padding-block: 16px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+button { font: inherit; color: inherit; }
+button:focus-visible { outline: 2px solid var(--ecto); outline-offset: 2px; }
+
+.app {
+  position: relative; height: 100%; max-width: 1180px; margin: 0 auto;
+  display: flex; flex-direction: column; overflow: hidden;
+  background: var(--chrome); border: 1px solid var(--line); border-radius: 8px;
+  box-shadow: 0 18px 50px -24px #00000080;
+}
+.titlebar {
+  display: flex; align-items: center; gap: 10px; padding: 7px 12px;
+  background: var(--ecto); color: var(--on-ecto);
+  font-weight: 600; font-size: 13px; letter-spacing: .01em;
+}
+.titlebar .file { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.titlebar .ro { opacity: .8; font-weight: 400; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.lang { display: inline-flex; flex: none; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; background: var(--paper); }
+.lang button { border: 0; background: transparent; padding: 4px 10px; font: 600 12px var(--f-ui); letter-spacing: .08em; cursor: pointer; color: var(--ink-soft); }
+.lang button + button { border-left: 1px solid var(--line); }
+.lang button[aria-pressed="true"] { background: var(--ecto); color: var(--on-ecto); }
+.card .lang { justify-self: end; }
+.dots { display: flex; gap: 6px; flex: none; }
+.dots i { width: 10px; height: 10px; border-radius: 50%; background: var(--on-ecto); opacity: .55; }
+
+.ribbon {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 10px 18px;
+  padding: 8px 12px; border-bottom: 1px solid var(--line);
+}
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; background: var(--paper); }
+.seg button { border: 0; background: transparent; padding: 6px 12px; cursor: pointer; font-weight: 600; font-size: 13px; }
+.seg button[aria-pressed="true"] { background: var(--ecto); color: var(--on-ecto); }
+.seg button + button { border-left: 1px solid var(--line); }
+.label { font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-soft); }
+.count { font: 500 13px var(--f-cell); font-variant-numeric: tabular-nums; }
+.score { margin-left: auto; display: flex; align-items: baseline; gap: 8px; }
+.score .count { font-size: 15px; color: var(--ecto); font-weight: 600; }
+
+.fbar { display: flex; align-items: stretch; border-bottom: 1px solid var(--line); background: var(--paper); min-height: 30px; }
+.namebox { width: 92px; flex: none; display: grid; place-items: center start; padding: 0 10px; border-right: 1px solid var(--line); font: 500 13px var(--f-cell); }
+.fx { flex: none; display: grid; place-items: center; width: 34px; border-right: 1px solid var(--line); font: italic 600 14px Georgia, serif; color: var(--ink-soft); }
+.formula { flex: 1; min-width: 0; display: flex; align-items: center; padding: 0 10px; font: 13px var(--f-cell); color: var(--ink); overflow-x: auto; white-space: nowrap; }
+
+.main { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) 290px; }
+.scroll { overflow: auto; background: var(--paper); min-height: 0; }
+.grid { position: relative; display: grid; width: max-content; }
+.colh, .rowh, .corner {
+  background: var(--chrome); color: var(--ink-soft);
+  font: 500 11px var(--f-cell); display: grid; place-items: center;
+  box-shadow: inset -1px -1px 0 var(--line);
+}
+.colh { position: sticky; top: 0; z-index: 3; }
+.rowh { position: sticky; left: 0; z-index: 3; font-variant-numeric: tabular-nums; }
+.corner { position: sticky; top: 0; left: 0; z-index: 4; }
+
+.cell {
+  position: relative; border: 0; margin: 0; padding: 0; cursor: pointer;
+  background: var(--hidden); color: var(--ink);
+  box-shadow: inset -1px -1px 0 var(--line);
+  display: grid; place-items: center;
+  font: 500 15px var(--f-cell); font-variant-numeric: tabular-nums;
+  -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; touch-action: manipulation;
+}
+.cell:hover { background: var(--ecto-wash); }
+.cell.open { background: var(--paper); cursor: default; }
+.cell.open.merged { background: linear-gradient(90deg, var(--paper) 49.6%, var(--line) 49.6% 50.4%, var(--paper) 50.4%); }
+.cell.zero .v { opacity: .35; }
+.cell .tag { position: absolute; top: 2px; left: 3px; font: 600 8px var(--f-cell); letter-spacing: .04em; }
+.cell.t-ROW .tag { color: var(--t-row); }
+.cell.t-LIES .tag { color: var(--t-lie); }
+.cell.t-FEAR .tag { color: var(--t-diag); }
+.cell.t-ROW .v { color: var(--t-row); }
+.cell.t-LIES .v { color: var(--t-lie); }
+.cell.t-FEAR .v { color: var(--t-diag); }
+.cell.marked::after {
+  content: ""; position: absolute; top: 0; right: 0;
+  border-style: solid; border-width: 0 10px 10px 0;
+  border-color: transparent var(--error) transparent transparent;
+}
+.cell.marked .v { color: var(--error); font-size: 10px; font-weight: 600; }
+.cell.boo { background: var(--error-wash); color: var(--error); font-size: 10px; font-weight: 600; }
+.cell.hit { background: var(--error); color: var(--paper); }
+.cell.spell { background: var(--ecto-wash); color: var(--ecto); font-size: 19px; font-weight: 600; }
+.cell.sel { outline: 2px solid var(--ecto); outline-offset: -2px; z-index: 2; }
+.cell.sel::before { content: ""; position: absolute; right: -3px; bottom: -3px; width: 6px; height: 6px; background: var(--ecto); border: 1px solid var(--paper); }
+.cell:focus-visible { outline: 3px solid var(--ecto); outline-offset: -3px; z-index: 2; }
+.cell.can { background-color: var(--paper); }
+.cell.can::after { content: ""; position: absolute; inset: 5px; border: 1px dashed var(--ecto); border-radius: 3px; }
+.cell.suspect { background-image: repeating-linear-gradient(45deg, var(--suspect) 0 3px, transparent 3px 7px); }
+.cell.you { background: var(--ecto); color: var(--on-ecto); font-size: 10px; font-weight: 600; letter-spacing: .06em; }
+.cell.you.suspect { background-image: repeating-linear-gradient(45deg, #ffffff22 0 3px, transparent 3px 7px); }
+
+.cursor { position: absolute; left: 0; top: 0; z-index: 6; pointer-events: none; transition: transform .7s cubic-bezier(.4,.1,.2,1); }
+.cursor svg { display: block; filter: drop-shadow(0 1px 1px #00000055); }
+.cursor span { position: absolute; left: 16px; top: 16px; background: var(--error); color: var(--paper); font: 600 10px var(--f-ui); letter-spacing: .06em; padding: 1px 5px; border-radius: 3px; text-transform: uppercase; white-space: nowrap; }
+.cursor.click svg { transform: scale(.82); }
+
+.memo { padding: 14px; border-left: 1px solid var(--line); overflow: auto; display: grid; align-content: start; gap: 12px; }
+.note { background: var(--note); color: var(--note-ink); padding: 12px 14px 14px; border-radius: 2px; box-shadow: 0 1px 0 #0000001a, 0 8px 18px -12px #00000066; display: grid; gap: 8px; }
+.note .who { font: 600 11px var(--f-ui); letter-spacing: .08em; text-transform: uppercase; opacity: .75; }
+.note .text { font: 500 21px/1.2 var(--f-hand); text-wrap: pretty; }
+.actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.btn { border: 0; border-radius: 6px; padding: 8px 14px; background: var(--ecto); color: var(--on-ecto); font-weight: 600; font-size: 14px; cursor: pointer; }
+.btn:hover { filter: brightness(1.08); }
+.btn.quiet { background: transparent; color: var(--ink); box-shadow: inset 0 0 0 1px var(--line); }
+.legend { display: grid; gap: 6px; font-size: 13px; color: var(--ink-soft); }
+.legend b { font: 600 11px var(--f-cell); }
+.legend .r { color: var(--t-row); } .legend .l { color: var(--t-lie); } .legend .d { color: var(--t-diag); }
+.legend .m { color: var(--error); }
+
+.tabs { display: flex; gap: 2px; padding: 0 8px; border-top: 1px solid var(--line); overflow-x: auto; background: var(--chrome); }
+.tab { flex: none; border: 0; background: transparent; padding: 6px 14px 7px; font-size: 13px; cursor: pointer; color: var(--ink-soft); border-radius: 0 0 6px 6px; }
+.tab[aria-current="true"] { background: var(--paper); color: var(--ecto); font-weight: 700; box-shadow: inset 0 2px 0 var(--ecto); }
+.tab:disabled { opacity: .4; cursor: not-allowed; }
+.tab.you { color: var(--error); font-weight: 700; }
+
+.status { display: flex; flex-wrap: wrap; gap: 4px 18px; padding: 4px 12px; font-size: 12px; color: var(--ink-soft); border-top: 1px solid var(--line); }
+.status .grow { flex: 1; min-width: 12ch; }
+
+.overlay { position: absolute; inset: 0; z-index: 20; display: grid; place-items: center; padding: 20px; background: var(--scrim); }
+.card { max-width: 520px; background: var(--paper); color: var(--ink); border-radius: 10px; padding: 26px; display: grid; gap: 14px; box-shadow: 0 30px 60px -20px #00000099; }
+.card h2 { margin: 0; font: 700 clamp(24px, 4.4vw, 34px)/1.05 var(--f-ui); text-transform: uppercase; letter-spacing: .01em; text-wrap: balance; }
+.card p { margin: 0; font: 500 22px/1.25 var(--f-hand); color: var(--ink-soft); }
+.card .stat { font: 500 13px var(--f-cell); color: var(--ecto); font-variant-numeric: tabular-nums; }
+
+@media (max-width: 760px) {
+  .main { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); }
+  .memo { order: -1; border-left: 0; border-bottom: 1px solid var(--line); max-height: 34vh; padding: 10px; }
+  .note .text { font-size: 19px; }
+  .legend { display: none; }
+  .score { margin-left: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .cursor { transition: none; }
+}
+</style>
+</head>
+<body>
+<div class="app" id="app">
+  <div class="titlebar">
+    <div class="dots" aria-hidden="true"><i></i><i></i><i></i></div>
+    <span class="file" id="file">Q3_FINAL_final_v7.xls</span>
+    <span class="ro" data-t="readOnly">— Read-only (Possessed)</span>
+  </div>
+
+  <div class="ribbon">
+    <div class="seg" role="group" data-ta="modeAria" aria-label="Click mode">
+      <button type="button" id="m-reveal" aria-pressed="true" data-t="reveal">Reveal</button>
+      <button type="button" id="m-mark" aria-pressed="false" data-t="markGhost">Mark ghost</button>
+    </div>
+    <div><span class="label" data-t="ghostsLbl">Ghosts</span> <span class="count" id="ghosts">9</span></div>
+    <div><span class="label" data-t="markedLbl">Marked</span> <span class="count" id="marked">0</span></div>
+    <div class="score"><span class="label" data-t="scoreLbl">Reconciled cells</span> <span class="count" id="score">0</span></div>
+    <div class="lang" role="group" data-ta="langGroup" aria-label="Language"></div>
+  </div>
+
+  <div class="fbar">
+    <div class="namebox" id="namebox">A1</div>
+    <div class="fx" aria-hidden="true">fx</div>
+    <div class="formula" id="formula"></div>
+  </div>
+
+  <div class="main">
+    <div class="scroll" id="scroll">
+      <div class="grid" id="grid" role="grid" data-ta="gridAria" aria-label="Spreadsheet"></div>
+    </div>
+    <aside class="memo">
+      <div class="note">
+        <div class="who" data-t="who">Comment · Dale (Accounts)</div>
+        <div class="text" id="memo"></div>
+        <div class="actions" id="actions"></div>
+      </div>
+      <div class="legend" id="legend">
+        <div><b>3</b> <span data-t="lg0">=GHOSTS(ADJACENT): ghosts touching it, diagonals included</span></div>
+        <div><b class="r" data-t="tagROW">ROW</b> <span data-t="lg1">=GHOSTS(ROW): every ghost in its row</span></div>
+        <div><b class="l" data-t="tagLIES">LIE</b> <span data-t="lg2">=LIES(): always one more than it touches</span></div>
+        <div><b class="d" data-t="tagFEAR">DIAG</b> <span data-t="lg3">=SUM(FEAR): the four diagonal cells only</span></div>
+        <div><b class="m">◥</b> <span data-t="lg4">a cell you marked as a ghost</span></div>
+        <div data-t="lg5">Right-click or long-press to mark. Arrows move, Enter reveals, F marks.</div>
+      </div>
+    </aside>
+  </div>
+
+  <div class="tabs" id="tabs" role="tablist" data-ta="tabsAria" aria-label="Sheets"></div>
+  <div class="status">
+    <span class="grow" id="status">Ready</span>
+    <span id="audit"></span>
+    <span data-t="sumLine">Sum: ?   Count: ?   Average: haunted</span>
+  </div>
+
+  <div class="overlay" id="overlay" hidden>
+    <div class="card">
+      <div class="lang" role="group" data-ta="langGroup" aria-label="Language"></div>
+      <h2 id="ov-title"></h2>
+      <p id="ov-text"></p>
+      <div class="stat" id="ov-stat"></div>
+      <div class="actions" id="ov-actions"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const $ = s => document.querySelector(s);
+const gridEl = $('#grid');
+const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const rand = n => Math.floor(Math.random() * n);
+const shuffle = a => { for (let i = a.length - 1; i > 0; i--) { const j = rand(i + 1); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+const ref = (r, c) => String.fromCharCode(65 + c) + (r + 1);
+const uref = u => u.w === 2 ? `${ref(u.r, u.c)}:${ref(u.r, u.c + 1)}` : ref(u.r, u.c);
+
+// Every player-visible string, per language. Logic keeps formula types, unit ids and sheet indexes;
+// text is read when shown, so a switch mid-sheet cannot change a value or a score. Cell refs (B4)
+// and the #REF! error are the same in a French spreadsheet, so the deduction does not depend on words.
+const I18N = {
+  en: {
+    docTitle: 'The Haunted Spreadsheet', langGroup: 'Language', readOnly: '— Read-only (Possessed)',
+    modeAria: 'Click mode', reveal: 'Reveal', markGhost: 'Mark ghost',
+    ghostsLbl: 'Ghosts', markedLbl: 'Marked', scoreLbl: 'Reconciled cells',
+    gridAria: 'Spreadsheet', tabsAria: 'Sheets', who: 'Comment · Dale (Accounts)',
+    lg0: '=GHOSTS(ADJACENT): ghosts touching it, diagonals included',
+    lg1: '=GHOSTS(ROW): every ghost in its row',
+    lg2: '=LIES(): always one more than it touches',
+    lg3: '=SUM(FEAR): the four diagonal cells only',
+    lg4: 'a cell you marked as a ghost',
+    lg5: 'Right-click or long-press to mark. Arrows move, Enter reveals, F marks.',
+    sumLine: 'Sum: ?   Count: ?   Average: haunted',
+    tagROW: 'ROW', tagLIES: 'LIE', tagFEAR: 'DIAG',
+    f: { ADJ: '=GHOSTS(ADJACENT)', ROW: '=GHOSTS(ROW)', LIES: '=LIES(GHOSTS(ADJACENT))', FEAR: '=SUM(FEAR)',
+      you: '=YOU()', ghost: '=GHOST()', who: '=WHO(HAUNTS(THIS_FILE))', merged: r => `merged ${r}` },
+    cell: { boo: '#BOO!', booWon: 'BOO', you: 'YOU',
+      clicked: v => `, clicked by Dale, ${v}`, hiding: ', you are hiding here', suspected: ', suspected',
+      canHide: ', you can hide here', ghost: ', ghost', marked: ', marked as ghost', hidden: ', hidden' },
+    spell: ['YOU', 'ARE', 'THE', 'GHOST'],
+    sheets: [
+      { tab: 'Sheet1', file: 'Q3_FINAL_final_v7.xls',
+        memo: 'Hi! Q3 attached. There are 9 ghosts in this sheet. Please don’t click them. Each number counts the ghosts touching that cell, diagonals included. Right-click or long-press to mark one.',
+        done: 'Lovely, Sheet1 reconciles. The next tab has row totals in it.' },
+      { tab: 'Q3_ROWS', file: 'Q3_FINAL_final_v7.xls',
+        memo: 'Some cells now say =GHOSTS(ROW). They count every ghost in their row, near or far. They’re labelled ROW. The row is not responsible for its ghosts.',
+        done: 'Rows balance. I heard the printer laugh.' },
+      { tab: 'Q3_LIES', file: 'Q3_FINAL_final_v8_USE_THIS.xls',
+        memo: 'Cells labelled LIE use =LIES(). They always report exactly one more ghost than they touch. Never fewer. Consistent liars, which is more than I can say for Finance.',
+        done: 'The liars were honest about lying. Fear sheet next.' },
+      { tab: 'Q3_FEAR', file: 'Q3_FINAL_final_v8_USE_THIS (2).xls',
+        memo: '=SUM(FEAR) cells, labelled DIAG, count only the four diagonal cells. Fear comes from the corners. The ROW cells are back. I have stopped sleeping.',
+        done: 'Diagonals clear. Someone merged cells on the next tab and I don’t think it was a person.' },
+      { tab: 'MERGED', file: 'Q3_FINAL_final_v9_DONT_OPEN.xls',
+        memo: 'Someone merged cells. A merged cell is one cell wearing two cells’ clothes: one ghost or none, one number. It touches everything either half touches, and counts once.',
+        done: 'Merged cells reconciled. One sheet left. FINAL_final.' },
+      { tab: 'FINAL_final', file: 'Q3_FINAL_final_v7 (Recovered) (Recovered).xls',
+        memo: 'Last sheet. Every formula at once. After this the quarter closes and I can go home. Do you ever feel like someone else is in the file with us?',
+        done: '' },
+    ],
+    final: { tab: 'YOU', file: 'YOU.xls',
+      memo: 'Dale is looking for you. Each turn, drift into a touching cell (or stay put). Then Dale clicks a cell. Clicked cells count how many ghosts touch them, live, so they show Dale where you are near. Hatched cells are where Dale suspects you. Survive 12 clicks.' },
+    ready: 'Ready. Your first click is always safe.',
+    auditFair: 'Audit: solvable without guessing', auditGuess: 'Audit: one guess may be needed',
+    refStatus: r => `#REF! in ${r}. Audit penalty: 10 cells.`,
+    refMemo: r => `#REF! There was a ghost in ${r}. The quarter cannot close like this. Restore from backup and try again.`,
+    restore: 'Restore from backup',
+    progress: (n, m) => `${n} of ${m} cells reconciled`,
+    sheetDone: 'Sheet reconciled.', next: 'Next sheet →',
+    recalc: 'Recalculating…', why: 'Why are the cells saying that.',
+    whoResult: '=WHO(HAUNTS(THIS_FILE)) returned 1 result.',
+    whoMemo: 'Who is in the file. Hello? I’m going to find you. I’m very good at this.', hide: 'Hide',
+    clicksLeft: n => `Dale's clicks left: ${n}`, chooseHide: 'Choose a cell to hide in.',
+    tooFar: 'Too far. You can drift one cell at a time.',
+    suspects: n => `Dale suspects ${n} cell${n === 1 ? '' : 's'}…`,
+    clicked: r => `Dale clicked ${r}. Drift to a touching cell, or click your own to stay.`,
+    foundStatus: r => `Found in ${r}.`, foundH: 'Found you.',
+    foundP: r => `Dale clicked ${r}. You have been reconciled. Dale is going home now.`,
+    foundStat: (a, b, s) => `${a} of ${b} clicks survived · ${s} reconciled cells`,
+    hideAgain: 'Hide again', backTo: 'Back to Sheet1',
+    closedStatus: 'Q3_FINAL_final_v7.xls was closed without saving.', closedH: 'Closed without saving.',
+    closedP: r => `Dale went home. The quarter never closed. You live in ${r} now, and the rent is zero.`,
+    closedStat: (b, s) => `${b} clicks survived · ${s} reconciled cells`, newFile: 'Open a new file',
+  },
+  fr: {
+    docTitle: 'Le Tableur hanté', langGroup: 'Langue', readOnly: '— Lecture seule (Possédé)',
+    modeAria: 'Mode de clic', reveal: 'Révéler', markGhost: 'Marquer fantôme',
+    ghostsLbl: 'Fantômes', markedLbl: 'Marqués', scoreLbl: 'Cellules rapprochées',
+    gridAria: 'Feuille de calcul', tabsAria: 'Feuilles', who: 'Commentaire · Dale (Compta)',
+    lg0: '=FANTÔMES(ADJACENTS) : les fantômes qui la touchent, diagonales comprises',
+    lg1: '=FANTÔMES(LIGNE) : tous les fantômes de sa ligne',
+    lg2: '=MENSONGES() : toujours un de plus que ce qu’elle touche',
+    lg3: '=SOMME(PEUR) : seulement les quatre cellules en diagonale',
+    lg4: 'une cellule marquée comme fantôme',
+    lg5: 'Clic droit ou appui long pour marquer. Flèches pour bouger, Entrée révèle, F marque.',
+    sumLine: 'Somme : ?   Nb : ?   Moyenne : hantée',
+    tagROW: 'LIGNE', tagLIES: 'MENT', tagFEAR: 'DIAG',
+    f: { ADJ: '=FANTÔMES(ADJACENTS)', ROW: '=FANTÔMES(LIGNE)', LIES: '=MENSONGES(FANTÔMES(ADJACENTS))', FEAR: '=SOMME(PEUR)',
+      you: '=VOUS()', ghost: '=FANTÔME()', who: '=QUI(HANTE(CE_FICHIER))', merged: r => `fusionnée ${r}` },
+    cell: { boo: '#BOUH', booWon: 'BOUH', you: 'VOUS',
+      clicked: v => `, cliquée par Dale, ${v}`, hiding: ', vous vous cachez ici', suspected: ', soupçonnée',
+      canHide: ', cachette possible', ghost: ', fantôme', marked: ', marquée fantôme', hidden: ', masquée' },
+    spell: ['VOUS', 'ÊTES', 'LE', 'FANTÔME'],
+    sheets: [
+      { tab: 'Feuil1', file: 'T3_FINAL_final_v7.xls',
+        memo: 'Bonjour ! Le T3 en pièce jointe. Il y a 9 fantômes dans cette feuille. Merci de ne pas cliquer dessus. Chaque nombre compte les fantômes qui touchent sa cellule, diagonales comprises. Clic droit ou appui long pour en marquer un.',
+        done: 'Parfait, Feuil1 est rapprochée. L’onglet suivant contient des totaux par ligne.' },
+      { tab: 'T3_LIGNES', file: 'T3_FINAL_final_v7.xls',
+        memo: 'Certaines cellules affichent maintenant =FANTÔMES(LIGNE). Elles comptent tous les fantômes de leur ligne, proches ou lointains. Elles portent l’étiquette LIGNE. La ligne n’est pas responsable de ses fantômes.',
+        done: 'Les lignes sont équilibrées. J’ai entendu l’imprimante ricaner.' },
+      { tab: 'T3_MENSONGES', file: 'T3_FINAL_final_v8_PRENDRE_CELUI-LA.xls',
+        memo: 'Les cellules marquées MENT utilisent =MENSONGES(). Elles annoncent toujours exactement un fantôme de plus que ce qu’elles touchent. Jamais moins. Des menteuses fiables, on ne peut pas en dire autant de la Finance.',
+        done: 'Les menteuses mentaient en toute honnêteté. Ensuite, la feuille de la peur.' },
+      { tab: 'T3_PEUR', file: 'T3_FINAL_final_v8_PRENDRE_CELUI-LA (2).xls',
+        memo: 'Les cellules =SOMME(PEUR), marquées DIAG, ne comptent que les quatre cellules en diagonale. La peur vient des coins. Les cellules LIGNE sont de retour. J’ai arrêté de dormir.',
+        done: 'Diagonales en ordre. Quelqu’un a fusionné des cellules dans l’onglet suivant, et je ne crois pas que c’était quelqu’un.' },
+      { tab: 'FUSION', file: 'T3_FINAL_final_v9_NE_PAS_OUVRIR.xls',
+        memo: 'Quelqu’un a fusionné des cellules. Une cellule fusionnée, c’est une cellule qui porte les vêtements de deux : un fantôme ou aucun, un seul nombre. Elle touche tout ce que touche l’une ou l’autre moitié, et ne compte qu’une fois.',
+        done: 'Cellules fusionnées rapprochées. Plus qu’une feuille. FINAL_final.' },
+      { tab: 'FINAL_final', file: 'T3_FINAL_final_v7 (Récupéré) (Récupéré).xls',
+        memo: 'Dernière feuille. Toutes les formules à la fois. Après ça, le trimestre est clôturé et je peux rentrer chez moi. Vous n’avez jamais l’impression que quelqu’un d’autre est dans le fichier avec nous ?',
+        done: '' },
+    ],
+    final: { tab: 'VOUS', file: 'VOUS.xls',
+      memo: 'Dale vous cherche. À chaque tour, glissez vers une cellule voisine (ou restez sur place). Puis Dale clique sur une cellule. Les cellules cliquées comptent en direct les fantômes qui les touchent : elles montrent à Dale près d’où vous êtes. Les cellules hachurées sont celles où Dale vous soupçonne. Tenez 12 clics.' },
+    ready: 'Prêt. Le premier clic est toujours sans danger.',
+    auditFair: 'Audit : soluble sans deviner', auditGuess: 'Audit : il faudra peut-être deviner une fois',
+    refStatus: r => `#REF! en ${r}. Pénalité d’audit : 10 cellules.`,
+    refMemo: r => `#REF! Il y avait un fantôme en ${r}. Le trimestre ne peut pas clôturer comme ça. Restaurez la sauvegarde et recommencez.`,
+    restore: 'Restaurer la sauvegarde',
+    progress: (n, m) => `${n} cellules rapprochées sur ${m}`,
+    sheetDone: 'Feuille rapprochée.', next: 'Feuille suivante →',
+    recalc: 'Recalcul…', why: 'Pourquoi les cellules disent ça.',
+    whoResult: '=QUI(HANTE(CE_FICHIER)) a renvoyé 1 résultat.',
+    whoMemo: 'Qui est dans le fichier. Allô ? Je vais vous trouver. C’est mon métier.', hide: 'Se cacher',
+    clicksLeft: n => `Clics restants de Dale : ${n}`, chooseHide: 'Choisissez une cellule où vous cacher.',
+    tooFar: 'Trop loin. Une cellule à la fois.',
+    suspects: n => `Dale soupçonne ${n} cellule${n === 1 ? '' : 's'}…`,
+    clicked: r => `Dale a cliqué sur ${r}. Glissez vers une cellule voisine, ou cliquez sur la vôtre pour rester.`,
+    foundStatus: r => `Cachette trouvée en ${r}.`, foundH: 'Vous voilà.',
+    foundP: r => `Dale a cliqué sur ${r}. Dale vient de vous rapprocher. Dale rentre à la maison, maintenant.`,
+    foundStat: (a, b, s) => `${a} clics esquivés sur ${b} · ${s} cellules rapprochées`,
+    hideAgain: 'Se cacher encore', backTo: 'Retour à Feuil1',
+    closedStatus: 'T3_FINAL_final_v7.xls a été fermé sans enregistrer.', closedH: 'Fermé sans enregistrer.',
+    closedP: r => `Dale a quitté le bureau. Le trimestre n’a jamais été clôturé. Vous habitez en ${r} maintenant, et le loyer est de zéro.`,
+    closedStat: (b, s) => `${b} clics esquivés · ${s} cellules rapprochées`, newFile: 'Ouvrir un nouveau fichier',
+  },
+};
+
+// French typography: a narrow no-break space before ? ! : ; » and after «, applied once to every
+// French string (and to whatever a French string function returns). It only fires after a space,
+// so #REF! and formulas are untouched.
+(function frenchSpacing() {
+  const fix = s => s.replace(/ ([?!:;»])/g, '\u202f$1').replace(/« /g, '«\u202f');
+  const deep = v => typeof v === 'string' ? fix(v)
+    : typeof v === 'function' ? (...a) => fix(v(...a))
+    : Array.isArray(v) ? v.map(deep)
+    : v && typeof v === 'object' ? Object.fromEntries(Object.entries(v).map(([k, x]) => [k, deep(x)]))
+    : v;
+  I18N.fr = deep(I18N.fr);
+})();
+
+let lang = 'en';
+const t = k => I18N[lang][k] ?? I18N.en[k];
+
+const TYPES = { ADJ: { tag: '' }, ROW: { tag: 'tagROW' }, LIES: { tag: 'tagLIES' }, FEAR: { tag: 'tagFEAR' } };
+
+const LEVELS = [
+  { cols: 8, rows: 8, ghosts: 9, merges: 0, mix: { ADJ: 1 } },
+  { cols: 9, rows: 9, ghosts: 12, merges: 0, mix: { ADJ: .72, ROW: .28 } },
+  { cols: 9, rows: 9, ghosts: 13, merges: 0, mix: { ADJ: .75, LIES: .25 } },
+  { cols: 9, rows: 10, ghosts: 15, merges: 0, mix: { ADJ: .6, FEAR: .25, ROW: .15 } },
+  { cols: 9, rows: 10, ghosts: 14, merges: 9, mix: { ADJ: .75, ROW: .15, LIES: .1 } },
+  { cols: 10, rows: 10, ghosts: 17, merges: 0, mix: { ADJ: .55, ROW: .15, LIES: .15, FEAR: .15 } },
+];
+const FINAL = { cols: 8, rows: 8, clicks: 12 };
+const sheetText = i => i === LEVELS.length ? t('final') : t('sheets')[i];
+
+let G = { sheet: 0, score: 0, unlocked: 1, mode: 'reveal' };
+let S = null, V = null, F = null, els = [], focusCell = 0, cursorEl = null;
+
+const cur = () => F ? FINAL : LEVELS[G.sheet];
+
+function buildUnits(L) {
+  const { cols, rows } = L;
+  const cellUnit = new Array(cols * rows).fill(-1);
+  const units = [];
+  for (let m = 0, tries = 0; m < (L.merges || 0) && tries < 600; tries++) {
+    const r = rand(rows), c = rand(cols - 1), a = r * cols + c;
+    if (cellUnit[a] >= 0 || cellUnit[a + 1] >= 0) continue;
+    cellUnit[a] = cellUnit[a + 1] = units.length;
+    units.push({ r, c, w: 2 });
+    m++;
+  }
+  for (let i = 0; i < cols * rows; i++) if (cellUnit[i] < 0) { cellUnit[i] = units.length; units.push({ r: Math.floor(i / cols), c: i % cols, w: 1 }); }
+  units.forEach((u, id) => {
+    const nb = new Set(), dg = new Set(), row = new Set();
+    const at = (rr, cc) => (rr < 0 || cc < 0 || rr >= rows || cc >= cols) ? -1 : cellUnit[rr * cols + cc];
+    for (let k = 0; k < u.w; k++) for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
+      const v = at(u.r + dy, u.c + k + dx);
+      if (v >= 0 && v !== id) nb.add(v);
+    }
+    if (u.w === 1) for (const [dy, dx] of [[-1, -1], [-1, 1], [1, -1], [1, 1]]) { const v = at(u.r + dy, u.c + dx); if (v >= 0) dg.add(v); }
+    for (let cc = 0; cc < cols; cc++) { const v = cellUnit[u.r * cols + cc]; if (v !== id) row.add(v); }
+    u.nb = [...nb]; u.nbSet = nb; u.dg = [...dg]; u.row = [...row];
+  });
+  return { units, cellUnit, generated: false, ghosts: L.ghosts || 0 };
+}
+
+function pickType(mix, u) {
+  let x = Math.random();
+  for (const [k, p] of Object.entries(mix)) { if ((x -= p) <= 0) return (k === 'FEAR' && u.w === 2) ? 'ADJ' : k; }
+  return 'ADJ';
+}
+
+// Re-roll formulas and ghosts until a pure-deduction solver can clear the sheet from the first click.
+function generate(L, start) {
+  const t0 = performance.now();
+  const n = S.units.length;
+  for (let attempt = 0; ; attempt++) {
+    S.units.forEach(u => { u.type = pickType(L.mix, u); });
+    S.units[start].type = 'ADJ';
+    const safeZone = new Set([start, ...S.units[start].nb]);
+    const pool = shuffle([...Array(n).keys()].filter(i => !safeZone.has(i)));
+    const ghosts = new Set(pool.slice(0, L.ghosts));
+    S.units.forEach((u, i) => { u.ghost = ghosts.has(i); });
+    S.units.forEach(u => {
+      u.scope = u.type === 'ROW' ? u.row : u.type === 'FEAR' ? u.dg : u.nb;
+      u.value = u.scope.filter(v => S.units[v].ghost).length + (u.type === 'LIES' ? 1 : 0);
+    });
+    S.start = start;
+    S.fair = solvable();
+    if (S.fair || performance.now() - t0 > 400) break;
+  }
+  S.generated = true;
+}
+
+function solvable() {
+  const n = S.units.length, st = new Int8Array(n), rev = [];
+  const reveal = u => {
+    const stack = [u];
+    while (stack.length) {
+      const x = stack.pop();
+      if (st[x]) continue;
+      st[x] = 1; rev.push(x);
+      const U = S.units[x];
+      if (U.type === 'ADJ' && U.value === 0) for (const v of U.nb) if (!st[v]) stack.push(v);
+    }
+  };
+  reveal(S.start);
+  let progress = true;
+  while (progress) {
+    progress = false;
+    const cons = [], all = [];
+    let known = 0;
+    for (let i = 0; i < n; i++) { if (st[i] === 0) all.push(i); else if (st[i] === 2) known++; }
+    cons.push({ set: all, need: S.ghosts - known });
+    for (const x of rev) {
+      const U = S.units[x], set = [];
+      let need = U.value - (U.type === 'LIES' ? 1 : 0);
+      for (const v of U.scope) { if (st[v] === 0) set.push(v); else if (st[v] === 2) need--; }
+      if (set.length) cons.push({ set, need });
+    }
+    const apply = (set, ghost) => { for (const v of set) if (st[v] === 0) { if (ghost) st[v] = 2; else reveal(v); progress = true; } };
+    for (const c of cons) { if (c.need === 0) apply(c.set, false); else if (c.need === c.set.length) apply(c.set, true); }
+    if (progress) continue;
+    const mark = new Int32Array(n).fill(-1);
+    outer: for (let i = 0; i < cons.length; i++) {
+      const a = cons[i];
+      for (const v of a.set) mark[v] = i;
+      for (let j = 0; j < cons.length; j++) {
+        const b = cons[j];
+        if (i === j || b.set.length <= a.set.length) continue;
+        let inside = 0; const diff = [];
+        for (const v of b.set) { if (mark[v] === i) inside++; else diff.push(v); }
+        if (inside !== a.set.length) continue;
+        const nd = b.need - a.need;
+        if (nd === 0) apply(diff, false); else if (nd === diff.length) apply(diff, true);
+        if (progress) break outer;
+      }
+    }
+  }
+  return rev.length === n - S.ghosts;
+}
+
+function div(cls, text) { const d = document.createElement('div'); d.className = cls; if (text != null) d.textContent = text; return d; }
+
+function renderSheet(L) {
+  gridEl.innerHTML = '';
+  gridEl.style.gridTemplateColumns = `var(--rowhead) repeat(${L.cols}, var(--cell))`;
+  gridEl.style.gridTemplateRows = `var(--colhead) repeat(${L.rows}, var(--cell))`;
+  const corner = div('corner'); corner.style.gridRow = 1; corner.style.gridColumn = 1; gridEl.append(corner);
+  for (let c = 0; c < L.cols; c++) { const h = div('colh', String.fromCharCode(65 + c)); h.style.gridRow = 1; h.style.gridColumn = c + 2; gridEl.append(h); }
+  for (let r = 0; r < L.rows; r++) { const h = div('rowh', r + 1); h.style.gridRow = r + 2; h.style.gridColumn = 1; gridEl.append(h); }
+  els = S.units.map((u, i) => {
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'cell'; b.dataset.u = i; b.tabIndex = -1;
+    b.setAttribute('role', 'gridcell');
+    b.style.gridRow = u.r + 2; b.style.gridColumn = `${u.c + 2} / span ${u.w}`;
+    b.innerHTML = '<span class="v"></span><span class="tag"></span>';
+    gridEl.append(b);
+    return b;
+  });
+  cursorEl = div('cursor');
+  cursorEl.hidden = true;
+  cursorEl.innerHTML = '<svg width="20" height="22" viewBox="0 0 20 22" aria-hidden="true"><path d="M2 1 L2 18 L6.5 13.8 L9.6 20.5 L12.6 19.1 L9.6 12.6 L15.6 12.6 Z" fill="#ffffff" stroke="#1d2320" stroke-width="1.4" stroke-linejoin="round"/></svg><span>Dale</span>';
+  gridEl.append(cursorEl);
+}
+
+const unitOfFocus = () => S.cellUnit[focusCell];
+const cellOf = u => S.units[u].r * cur().cols + S.units[u].c;
+
+function updateCells() {
+  const fu = unitOfFocus(), C = t('cell');
+  S.units.forEach((u, i) => {
+    const b = els[i];
+    let cls = 'cell', text = '', tag = '', label = uref(u);
+    if (u.w === 2) cls += ' merged';
+    if (F) {
+      if (F.revealed.has(i)) { const v = F.pos >= 0 && u.nbSet.has(F.pos) ? 1 : 0; cls += ' open' + (v ? '' : ' zero'); text = String(v); label += C.clicked(v); }
+      else {
+        if (i === F.pos) { cls += ' you'; text = C.you; label += C.hiding; }
+        if (F.P && F.P.has(i)) { cls += ' suspect'; label += C.suspected; }
+        if (F.phase === 'place' || (F.phase === 'move' && !F.busy && (i === F.pos || u.nbSet.has(F.pos)))) { cls += ' can'; label += C.canHide; }
+      }
+    } else if (V.spell && V.spell.has(i)) { cls += ' spell'; text = V.spell.get(i); }
+    else if (V.revealed.has(i)) { cls += ' open t-' + u.type + (u.value === 0 ? ' zero' : ''); text = String(u.value); tag = TYPES[u.type].tag ? t(TYPES[u.type].tag) : ''; label += `, ${t('f')[u.type]} = ${u.value}`; }
+    else if (V.over && u.ghost) { cls += ' boo' + (i === V.hit ? ' hit' : ''); text = C.boo; label += C.ghost; }
+    else if (V.marked.has(i)) { cls += ' marked'; text = V.won ? C.booWon : ''; label += C.marked; }
+    else label += C.hidden;
+    if (i === fu) cls += ' sel';
+    b.className = cls;
+    b.tabIndex = i === fu ? 0 : -1;
+    b.firstChild.textContent = text;
+    b.lastChild.textContent = tag;
+    b.setAttribute('aria-label', label);
+  });
+}
+
+function updateFormula() {
+  const i = unitOfFocus(), u = S.units[i];
+  $('#namebox').textContent = uref(u);
+  let f = '';
+  const X = t('f');
+  if (F) {
+    if (F.revealed.has(i)) f = X.ADJ;
+    else if (i === F.pos) f = X.you;
+  } else if (V.spell && V.spell.has(i)) f = X.who;
+  else if (V.revealed.has(i)) f = X[u.type] + (u.w === 2 ? `      ${X.merged(uref(u))}` : '');
+  else if (V.over && u.ghost) f = X.ghost;
+  $('#formula').textContent = f;
+}
+
+function refresh() {
+  updateCells();
+  updateFormula();
+  $('#ghosts').textContent = F ? 1 : cur().ghosts;
+  $('#marked').textContent = F ? 0 : V.marked.size;
+  $('#score').textContent = num(G.score);
+}
+
+// status, memo, audit and overlay keep their arguments (keys or thunks), so a language switch
+// re-renders whatever is showing in the new language.
+const val = x => typeof x === 'function' ? x() : x;
+const num = n => n.toLocaleString(lang);
+let stArg = '', auArg = '', memoArgs = null, ovArgs = null;
+function status(x) { stArg = x; $('#status').textContent = val(x); }
+function audit(x) { auArg = x; $('#audit').textContent = val(x); }
+function buttons(box, actions) {
+  box.innerHTML = '';
+  for (const [label, fn, quiet] of actions) {
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'btn' + (quiet ? ' quiet' : ''); b.textContent = t(label); b.onclick = fn;
+    box.append(b);
+  }
+}
+function memo(text, actions = []) {
+  memoArgs = [text, actions];
+  $('#memo').textContent = val(text);
+  buttons($('#actions'), actions);
+}
+
+function renderTabs() {
+  const box = $('#tabs');
+  box.innerHTML = '';
+  const all = [...t('sheets').map(l => l.tab), ...(G.unlocked > LEVELS.length ? [t('final').tab] : [])];
+  all.forEach((name, i) => {
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'tab' + (i === LEVELS.length ? ' you' : ''); b.textContent = name;
+    b.setAttribute('role', 'tab');
+    b.setAttribute('aria-current', String(i === G.sheet));
+    b.disabled = i >= G.unlocked;
+    b.onclick = () => { if (i === LEVELS.length) startFinal(); else startSheet(i); };
+    box.append(b);
+  });
+}
+
+function setFile() { $('#file').textContent = sheetText(G.sheet).file; document.title = t('docTitle'); }
+
+function startSheet(i) {
+  F = null; G.sheet = i;
+  const L = LEVELS[i];
+  S = buildUnits(L);
+  V = { revealed: new Set(), marked: new Set(), over: false, won: false, spell: null };
+  renderSheet(L);
+  focusCell = 0;
+  memo(() => sheetText(i).memo);
+  setFile();
+  renderTabs();
+  $('#legend').hidden = false;
+  $('#overlay').hidden = true;
+  status(() => t('ready'));
+  audit('');
+  refresh();
+}
+
+function floodReveal(u) {
+  const stack = [u];
+  let n = 0;
+  while (stack.length) {
+    const x = stack.pop();
+    if (V.revealed.has(x) || V.marked.has(x)) continue;
+    V.revealed.add(x); n++;
+    const U = S.units[x];
+    if (U.type === 'ADJ' && U.value === 0) for (const v of U.nb) if (!V.revealed.has(v)) stack.push(v);
+  }
+  G.score += n;
+}
+
+function act(u, mark) {
+  focusCell = cellOf(u);
+  if (F) return finalAct(u);
+  if (V.over || V.won) return refresh();
+  if (mark) {
+    if (!V.revealed.has(u)) V.marked.has(u) ? V.marked.delete(u) : V.marked.add(u);
+    return refresh();
+  }
+  if (V.marked.has(u) || V.revealed.has(u)) return refresh();
+  if (!S.generated) {
+    generate(cur(), u);
+    const fair = S.fair;
+    audit(() => t(fair ? 'auditFair' : 'auditGuess'));
+  }
+  const U = S.units[u];
+  if (U.ghost) {
+    V.over = true; V.hit = u;
+    G.score = Math.max(0, G.score - 10);
+    status(() => t('refStatus')(uref(U)));
+    memo(() => t('refMemo')(uref(U)), [['restore', () => startSheet(G.sheet)]]);
+    return refresh();
+  }
+  floodReveal(u);
+  const n = V.revealed.size, m = S.units.length - S.ghosts;
+  status(() => t('progress')(n, m));
+  if (V.revealed.size === S.units.length - S.ghosts) win();
+  refresh();
+}
+
+function win() {
+  V.won = true;
+  S.units.forEach((u, i) => { if (u.ghost) V.marked.add(i); });
+  G.unlocked = Math.max(G.unlocked, G.sheet + 2);
+  renderTabs();
+  if (G.sheet === LEVELS.length - 1) return spell();
+  status(() => t('sheetDone'));
+  const i = G.sheet;
+  memo(() => sheetText(i).done, [['next', () => startSheet(i + 1)]]);
+}
+
+// Letter cells for the current language: four words on rows 2, 4, 6 and 8, each centred.
+function spellSeq() {
+  const L = cur(), seq = [];
+  t('spell').forEach((w, j) => {
+    const r = 1 + 2 * j, c0 = Math.floor((L.cols - w.length) / 2);
+    [...w].forEach((ch, k) => seq.push([S.cellUnit[r * L.cols + c0 + k], ch]));
+  });
+  return seq;
+}
+function spell() {
+  V.spell = new Map();
+  V.spellK = 0;
+  status(() => t('recalc'));
+  memo(() => t('why'));
+  const step = () => {
+    const seq = spellSeq();
+    V.spellK = reduce ? seq.length : V.spellK + 1;
+    V.spell = new Map(seq.slice(0, V.spellK));
+    refresh();
+    if (V.spellK < seq.length) return setTimeout(step, 150);
+    status(() => t('whoResult'));
+    memo(() => t('whoMemo'), [['hide', startFinal]]);
+  };
+  setTimeout(step, 500);
+}
+
+function startFinal() {
+  G.sheet = LEVELS.length;
+  G.unlocked = LEVELS.length + 1;
+  S = buildUnits(FINAL);
+  S.units.forEach(u => { u.type = 'ADJ'; });
+  V = null;
+  F = { phase: 'place', pos: -1, revealed: new Set(), P: null, clicks: 0, busy: false };
+  renderSheet(FINAL);
+  focusCell = Math.floor(FINAL.rows / 2) * FINAL.cols + Math.floor(FINAL.cols / 2);
+  memo(() => t('final').memo);
+  setFile();
+  renderTabs();
+  $('#legend').hidden = true;
+  $('#overlay').hidden = true;
+  audit(() => t('clicksLeft')(FINAL.clicks));
+  status(() => t('chooseHide'));
+  refresh();
+}
+
+function consistent(c) {
+  for (const r of F.revealed) if (S.units[r].nbSet.has(c) !== S.units[r].nbSet.has(F.pos)) return false;
+  return !F.revealed.has(c);
+}
+
+function finalAct(u) {
+  if (F.busy || F.phase === 'end' || F.revealed.has(u)) return refresh();
+  if (F.phase === 'place') {
+    F.pos = u; F.phase = 'move';
+    F.P = new Set([...Array(S.units.length).keys()]);
+    return daleTurn();
+  }
+  if (u !== F.pos && !S.units[F.pos].nbSet.has(u)) { status(() => t('tooFar')); return refresh(); }
+  F.pos = u;
+  daleTurn();
+}
+
+function daleTurn() {
+  F.busy = true;
+  // Dale's suspicion: anywhere you could have drifted to that agrees with every live number.
+  const P = new Set();
+  for (const c of F.P) { P.add(c); for (const v of S.units[c].nb) P.add(v); }
+  F.P = new Set([...P].filter(consistent));
+  refresh();
+  const ns = F.P.size;
+  status(() => t('suspects')(ns));
+  const list = [...F.P];
+  const target = list[rand(list.length)];
+  moveCursor(target, () => {
+    F.revealed.add(target);
+    F.P = new Set([...F.P].filter(consistent));
+    if (target === F.pos) return caught(target);
+    F.clicks++;
+    const left = FINAL.clicks - F.clicks;
+    audit(() => t('clicksLeft')(left));
+    if (F.clicks >= FINAL.clicks) return escaped();
+    F.busy = false;
+    status(() => t('clicked')(uref(S.units[target])));
+    refresh();
+  });
+}
+
+function moveCursor(target, done) {
+  const b = els[target];
+  cursorEl.hidden = false;
+  cursorEl.style.transform = `translate(${b.offsetLeft + b.offsetWidth * .45}px, ${b.offsetTop + b.offsetHeight * .4}px)`;
+  setTimeout(() => {
+    cursorEl.classList.add('click');
+    setTimeout(() => { cursorEl.classList.remove('click'); done(); }, 180);
+  }, reduce ? 350 : 900);
+}
+
+function overlay(title, text, stat, actions, refocus = true) {
+  ovArgs = [title, text, stat, actions];
+  $('#ov-title').textContent = t(title);
+  $('#ov-text').textContent = val(text);
+  $('#ov-stat').textContent = val(stat);
+  const box = $('#ov-actions');
+  buttons(box, actions);
+  $('#overlay').hidden = false;
+  if (refocus) box.firstChild.focus();
+}
+
+function caught(target) {
+  F.phase = 'end';
+  refresh();
+  const r = uref(S.units[target]), a = F.clicks, sc = G.score;
+  status(() => t('foundStatus')(r));
+  overlay('foundH', () => t('foundP')(r), () => t('foundStat')(a, FINAL.clicks, num(sc)),
+    [['hideAgain', startFinal], ['backTo', () => startSheet(0), true]]);
+}
+
+function escaped() {
+  F.phase = 'end';
+  F.P = null;
+  cursorEl.hidden = true;
+  refresh();
+  const r = uref(S.units[F.pos]), sc = G.score;
+  status(() => t('closedStatus'));
+  overlay('closedH', () => t('closedP')(r), () => t('closedStat')(FINAL.clicks, num(sc)),
+    [['newFile', () => { G.score = 0; G.unlocked = 1; startSheet(0); }], ['hideAgain', startFinal, true]]);
+}
+
+// A long-press marks; mobile browsers may then also fire contextmenu and click, which must not undo it.
+let pressTimer = 0, lastLong = -1e9;
+const justLong = ms => performance.now() - lastLong < ms;
+gridEl.addEventListener('click', e => {
+  const b = e.target.closest('.cell');
+  if (!b || justLong(700)) return;
+  act(+b.dataset.u, G.mode === 'mark');
+});
+gridEl.addEventListener('contextmenu', e => {
+  const b = e.target.closest('.cell');
+  if (!b) return;
+  e.preventDefault();
+  if (!F && !justLong(1200)) act(+b.dataset.u, true);
+});
+gridEl.addEventListener('pointerdown', e => {
+  const b = e.target.closest('.cell');
+  if (!b || e.pointerType === 'mouse' || F) return;
+  clearTimeout(pressTimer);
+  pressTimer = setTimeout(() => { lastLong = performance.now(); act(+b.dataset.u, true); navigator.vibrate?.(15); }, 450);
+});
+for (const ev of ['pointerup', 'pointercancel', 'pointerleave']) gridEl.addEventListener(ev, () => clearTimeout(pressTimer));
+gridEl.addEventListener('focusin', e => {
+  const b = e.target.closest('.cell');
+  if (!b) return;
+  const u = +b.dataset.u;
+  if (S.cellUnit[focusCell] !== u) { focusCell = cellOf(u); refresh(); }
+});
+gridEl.addEventListener('keydown', e => {
+  const L = cur();
+  const u = S.units[unitOfFocus()];
+  let r = Math.floor(focusCell / L.cols), c = focusCell % L.cols;
+  const mv = { ArrowUp: [-1, 0], ArrowDown: [1, 0], ArrowLeft: [0, -1], ArrowRight: [0, 1] }[e.key];
+  if (mv) {
+    e.preventDefault();
+    r += mv[0];
+    if (mv[1] === 1) c = u.c + u.w; else if (mv[1] === -1) c = u.c - 1;
+    if (r < 0 || c < 0 || r >= L.rows || c >= L.cols) return;
+    focusCell = r * L.cols + c;
+    refresh();
+    els[unitOfFocus()].focus();
+  } else if ((e.key === 'f' || e.key === 'F') && !F) {
+    e.preventDefault();
+    act(unitOfFocus(), true);
+  }
+});
+
+function setMode(m) {
+  G.mode = m;
+  $('#m-reveal').setAttribute('aria-pressed', String(m === 'reveal'));
+  $('#m-mark').setAttribute('aria-pressed', String(m === 'mark'));
+}
+$('#m-reveal').onclick = () => setMode('reveal');
+$('#m-mark').onclick = () => setMode('mark');
+
+// ---- language ------------------------------------------------------------------------------
+// Static markup carries data-t / data-ta; the memo, status, audit line, tabs, file name, cells,
+// formula bar and an open end card are re-rendered from their stored keys and thunks.
+function applyLang() {
+  document.documentElement.lang = lang;
+  document.title = t('docTitle');
+  for (const el of document.querySelectorAll('[data-t]')) el.textContent = t(el.dataset.t);
+  for (const el of document.querySelectorAll('[data-ta]')) el.setAttribute('aria-label', t(el.dataset.ta));
+  for (const box of document.querySelectorAll('.lang')) {
+    if (!box.children.length) box.innerHTML = '<button type="button" data-lang="fr" lang="fr">FR</button><button type="button" data-lang="en" lang="en">EN</button>';
+    for (const b of box.children) b.setAttribute('aria-pressed', String(b.dataset.lang === lang));
+  }
+  if (!S) return;
+  if (V && V.spell) V.spell = new Map(spellSeq().slice(0, V.spellK));
+  setFile();
+  renderTabs();
+  status(stArg);
+  audit(auArg);
+  if (memoArgs) memo(...memoArgs);
+  if (ovArgs && !$('#overlay').hidden) overlay(...ovArgs, false);
+  refresh();
+}
+function setLang(l) {
+  if (!(l in I18N) || l === lang) return;
+  lang = l;
+  applyLang();
+}
+document.addEventListener('click', e => {
+  const b = e.target.closest('[data-lang]');
+  if (b) setLang(b.dataset.lang);
+});
+
+function start(data) {
+  lang = data?.lang in I18N ? data.lang : (navigator.language || '').toLowerCase().startsWith('fr') ? 'fr' : 'en';
+  applyLang();
+  G.score = data.score || 0;
+  G.unlocked = data.unlocked || 1;
+  if (data.sheet === LEVELS.length) startFinal();
+  else startSheet(Math.min(data.sheet || 0, G.unlocked - 1));
+}
+window.claude?.hot?.snapshot?.(() => ({ sheet: G.sheet, score: G.score, unlocked: G.unlocked, lang }));
+window.claude?.hot?.ready ? window.claude.hot.ready(start) : start(window.claude?.hot?.data ?? {});
+</script>
+</body>
+</html>

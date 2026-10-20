@@ -1,0 +1,1485 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Lost &amp; Found: The Sequel</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Antonio:wght@500;700&family=Bitter:ital,wght@0,400;0,600;1,400&family=Kalam:wght@400&display=swap">
+<style>
+/* Layout: the clerk's side of a municipal lost-property counter. The serving hatch on the left, the steel shelving bay on the right, the ledger slip under the hatch, and the edge of the desk along the bottom. Ledger-green paper everywhere; red Dymo tape on exactly one thing. */
+:root {
+  --bg: #e2e9da;
+  --ink: #1f2a22;
+  --muted: #586757;
+  --accent: #c2202e;
+  --panel: #f0f4ea;
+  --line: #1f2a2226;
+  --rule: #a9c19d;
+  --steel: #97a2a5;
+  --steel-dark: #6a7578;
+  --manila: #dcc893;
+  --tape-ink: #fbf7f1;
+  --glass: #cfdccb;
+  --wood: #9c7246;
+  --coat-a: #536b8a; --coat-b: #8a5a43; --coat-c: #4c6a47; --coat-d: #6c5a7e;
+  --skin-a: #e1b997; --skin-b: #ad7952; --skin-c: #6c4a33;
+  --f-display: "Antonio", "Arial Narrow", "Roboto Condensed", sans-serif;
+  --f-body: "Bitter", Georgia, "Times New Roman", serif;
+  --f-hand: "Kalam", "Comic Neue", "Segoe Print", cursive;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f1511; --ink: #dde5d6; --muted: #8e9c8b; --accent: #d93a45; --panel: #162019; --line: #dde5d624;
+    --rule: #2c3f2b; --steel: #46535a; --steel-dark: #2e383d; --manila: #8f8058; --tape-ink: #fff6f2; --glass: #1c2a21;
+    --wood: #6d4f31; --coat-a: #6f88aa; --coat-b: #a56d53; --coat-c: #67885f; --coat-d: #8a75a2;
+    --skin-a: #d0aa89; --skin-b: #9c6c49; --skin-c: #644530;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f1511; --ink: #dde5d6; --muted: #8e9c8b; --accent: #d93a45; --panel: #162019; --line: #dde5d624;
+  --rule: #2c3f2b; --steel: #46535a; --steel-dark: #2e383d; --manila: #8f8058; --tape-ink: #fff6f2; --glass: #1c2a21;
+  --wood: #6d4f31; --coat-a: #6f88aa; --coat-b: #a56d53; --coat-c: #67885f; --coat-d: #8a75a2;
+  --skin-a: #d0aa89; --skin-b: #9c6c49; --skin-c: #644530;
+  color-scheme: dark;
+}
+[hidden] { display: none !important; }
+/* kit:css:begin */
+/* Arcade kit: structure only, never a look. Inlined between kit:css markers by kit/inline.mjs.
+   The game's own :root must define --bg --ink --muted --accent --panel --line (light), and
+   redefine them in both dark blocks; everything here reads those tokens. */
+*, *::before, *::after { box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  -webkit-tap-highlight-color: transparent;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+button { font: inherit; color: inherit; cursor: pointer; }
+button:disabled { cursor: default; }
+:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+canvas { display: block; max-width: 100%; touch-action: none; }
+
+/* Full-stage screens (title, twist, end). Sit inside a position:relative stage. */
+.kit-overlay {
+  position: absolute; inset: 0; z-index: 5;
+  display: grid; place-items: center; padding: 24px;
+  background: color-mix(in srgb, var(--bg) 88%, transparent);
+  overflow-y: auto;
+}
+.kit-overlay[hidden] { display: none; }
+
+/* Touch pad: shown only on coarse pointers; buttons carry data-key (see Kit.keys). */
+.kit-pad { display: none; gap: 10px; justify-content: center; padding-block: 10px; user-select: none; }
+.kit-pad [data-key] { min-width: 56px; min-height: 56px; touch-action: none; border: 1px solid var(--line); background: var(--panel); }
+@media (pointer: coarse) { .kit-pad { display: flex; } }
+
+.kit-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+
+@media (prefers-reduced-motion: reduce) {
+  .kit-deco, .kit-deco * { animation: none !important; transition: none !important; }
+}
+/* kit:css:end */
+body { font-family: var(--f-body); padding-block: 12px;
+  background-image: repeating-linear-gradient(to bottom, transparent 0 27px, var(--rule) 27px 28px); background-attachment: local; }
+.app { position: relative; max-width: 1220px; margin-inline: auto; min-height: calc(100% - 0px); display: grid; gap: 12px;
+  grid-template-columns: minmax(300px, 380px) 1fr; grid-template-rows: auto auto 1fr auto; grid-template-areas: "head head" "side bay" "slip bay" "desk desk"; align-items: start; }
+.slip { grid-area: slip; }
+.bay { align-self: start; }
+.head { grid-area: head; display: flex; align-items: baseline; gap: 14px 22px; flex-wrap: wrap; border-bottom: 2px solid var(--ink); padding-bottom: 8px; }
+.head h1 { margin: 0; font-family: var(--f-display); font-weight: 700; font-size: 26px; letter-spacing: .04em; text-transform: uppercase; line-height: 1; }
+.head .stats { display: flex; gap: 6px 18px; flex-wrap: wrap; font-size: 13px; color: var(--muted); margin-left: auto; }
+.head .stats b { color: var(--ink); font-family: var(--f-display); font-size: 17px; font-weight: 500; margin-right: 3px; font-variant-numeric: tabular-nums; }
+.side { grid-area: side; display: grid; gap: 12px; align-content: start; min-width: 0; }
+.hatch { background: var(--panel); border: 1.5px solid var(--ink); display: grid; grid-template-rows: auto auto; }
+.hatch canvas { width: 100%; height: 190px; border-bottom: 1.5px solid var(--ink); }
+.talk { padding: 10px 14px 12px; display: grid; gap: 8px; min-height: 150px; align-content: start; }
+.who { display: flex; justify-content: space-between; gap: 10px; align-items: baseline; }
+.who strong { font-family: var(--f-display); font-weight: 500; font-size: 18px; letter-spacing: .03em; text-transform: uppercase; }
+.who span { font-size: 12px; color: var(--muted); font-style: italic; }
+.clues { margin: 0; padding: 0; list-style: none; display: grid; gap: 5px; }
+.clues li { font-size: 15px; line-height: 1.4; padding-left: 14px; border-left: 2px solid var(--rule); text-wrap: pretty; }
+.clues li.reply { font-style: italic; color: var(--muted); border-left-color: var(--accent); }
+.pat { height: 6px; background: var(--line); }
+.pat i { display: block; height: 100%; width: 100%; background: var(--ink); transition: width .2s linear; }
+.pat.low i { background: var(--accent); }
+.slip { background: var(--manila); color: #2a2418; padding: 12px 14px 12px 22px; position: relative; display: grid; gap: 6px; min-height: 160px; align-content: start;
+  clip-path: polygon(0 12px, 12px 0, 100% 0, 100% 100%, 12px 100%, 0 calc(100% - 12px)); }
+.slip::before { content: ""; position: absolute; left: 8px; top: 50%; width: 8px; height: 8px; margin-top: -4px; border-radius: 50%; background: var(--bg); box-shadow: inset 0 0 0 1.5px #2a241888; }
+.slip .tag { font-family: var(--f-display); font-weight: 700; font-size: 20px; letter-spacing: .06em; }
+.slip .ledger { font-size: 14px; line-height: 1.45; text-wrap: pretty; }
+.slip .meta { font-size: 12px; color: #2a2418b0; }
+.slip .note { font-family: var(--f-hand); font-size: 17px; line-height: 1.35; }
+.slip .row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 4px; }
+.bay { grid-area: bay; min-width: 0; background: var(--steel-dark); padding: 10px; display: grid; gap: 0; align-content: start; border: 1.5px solid var(--ink); position: relative; }
+.bay .plate { position: absolute; right: 12px; top: -11px; background: var(--panel); border: 1.5px solid var(--ink); font: 500 11px var(--f-display); letter-spacing: .12em; padding: 2px 8px; text-transform: uppercase; }
+.shelf { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 8px; padding: 10px 6px 12px; border-bottom: 9px solid var(--steel);
+  background-image: radial-gradient(circle at 4px 50%, var(--steel-dark) 2px, transparent 2.5px); }
+.item { position: relative; min-height: 104px; border: 0; background: var(--panel); color: var(--ink); padding: 8px 4px 6px; display: grid; justify-items: center; align-content: end; gap: 4px; border-radius: 2px; text-align: center; font: 600 11.5px var(--f-body); line-height: 1.15; }
+.item svg { width: 44px; height: 44px; fill: none; stroke: currentColor; stroke-width: 1.4; stroke-linecap: round; stroke-linejoin: round; }
+.item .t { background: var(--manila); color: #2a2418; font: 500 11px var(--f-display); letter-spacing: .08em; padding: 1px 6px; }
+.item:hover { outline: 2px solid var(--muted); outline-offset: -2px; }
+.item.sel { outline: 3px solid var(--ink); outline-offset: -3px; }
+.item.gone { visibility: hidden; }
+.item.empty { background: transparent; pointer-events: none; }
+.desk { grid-area: desk; display: flex; gap: 12px; align-items: stretch; flex-wrap: wrap; background: var(--wood); padding: 10px 12px; border-top: 4px solid color-mix(in srgb, var(--wood) 70%, #000); }
+.desk h3 { margin: 0 0 6px; font: 500 11px var(--f-display); letter-spacing: .12em; text-transform: uppercase; color: var(--tape-ink); opacity: .85; }
+.dymo { border: 0; background: var(--accent); color: var(--tape-ink); font: 700 17px var(--f-display); letter-spacing: .16em; text-transform: uppercase; padding: 6px 12px 5px;
+  text-shadow: 0 1px 0 #0005, 0 -1px 0 #fff4; border-radius: 2px; box-shadow: 0 2px 0 #0004; align-self: center; }
+.dymo.sel { outline: 3px solid var(--tape-ink); outline-offset: 2px; }
+.tray { flex: 1; min-width: 0; }
+.tray .chips { display: flex; gap: 6px; flex-wrap: wrap; }
+.chip { border: 0; background: var(--manila); color: #2a2418; font: 500 12px var(--f-display); letter-spacing: .06em; padding: 4px 8px; display: flex; gap: 5px; align-items: center; }
+.chip svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+.chip.sel { outline: 2px solid var(--tape-ink); }
+.tray .none { color: var(--tape-ink); opacity: .7; font-style: italic; font-size: 13px; }
+.btn { font: 600 14px var(--f-body); border: 1.5px solid #2a2418; background: #2a2418; color: var(--manila); padding: 8px 14px; border-radius: 2px; }
+.btn.ghost { background: transparent; color: #2a2418; }
+.btn kbd { font: 500 10px var(--f-display); letter-spacing: .08em; opacity: .7; margin-left: 6px; }
+.big { font: 700 15px var(--f-body); background: var(--ink); color: var(--bg); border: 0; padding: 12px 20px; border-radius: 2px; }
+.big.ghost { background: transparent; color: var(--ink); box-shadow: inset 0 0 0 1.5px var(--ink); }
+
+.kit-overlay { position: fixed; background: color-mix(in srgb, var(--bg) 93%, transparent); }
+.card { width: min(600px, 100%); display: grid; gap: 14px; justify-items: start; }
+.card h1 { margin: 0; font-family: var(--f-display); font-weight: 700; font-size: clamp(44px, 9vw, 92px); line-height: .9; text-transform: uppercase; letter-spacing: .01em; }
+.card h1 small { display: block; font-size: .42em; letter-spacing: .1em; color: var(--muted); margin-top: 8px; }
+.card h2 { margin: 0; font-family: var(--f-display); font-weight: 700; font-size: clamp(32px, 6vw, 54px); line-height: 1; text-transform: uppercase; }
+.card p { margin: 0; font-size: 16px; line-height: 1.6; max-width: 54ch; text-wrap: pretty; }
+.card .lede { font-size: 18px; font-style: italic; }
+.card .small { font: 500 12px var(--f-display); letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+.card ul.rules { margin: 0; padding: 12px 0 0; list-style: none; display: grid; gap: 6px; border-top: 1.5px solid var(--ink); width: 100%; }
+.card ul.rules li { font-size: 14px; line-height: 1.45; }
+.card ul.rules b { font: 500 13px var(--f-display); letter-spacing: .06em; text-transform: uppercase; margin-right: 6px; }
+.notes { display: grid; gap: 10px; width: 100%; max-height: 46vh; overflow: auto; }
+.notecard { background: var(--manila); color: #2a2418; padding: 10px 14px; display: grid; gap: 3px; transform: rotate(var(--r, -.6deg)); }
+.notecard small { font: 500 11px var(--f-display); letter-spacing: .08em; text-transform: uppercase; opacity: .75; }
+.notecard span { font-family: var(--f-hand); font-size: 17px; line-height: 1.35; }
+.ledgerline { width: 100%; font-size: 14px; border-top: 1.5px solid var(--ink); border-bottom: 1.5px solid var(--ink); padding: 8px 0; display: grid; grid-template-columns: auto 1fr; gap: 3px 14px; }
+.ledgerline dt { font: 500 12px var(--f-display); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); padding-top: 2px; }
+.ledgerline dd { margin: 0; }
+.ledgerline dd.hand { font-family: var(--f-hand); font-size: 17px; }
+/* Language toggle: a strip of Dymo-style tape in the header, repeated at the top of every card.
+   On a card it follows the main button in the DOM, so Kit.show still focuses that button. */
+.lang { display: inline-flex; flex: none; align-self: center; border: 1.5px solid var(--ink); border-radius: 2px; background: var(--panel); overflow: hidden; }
+.lang button { border: 0; background: transparent; padding: 3px 8px; font: 500 12px var(--f-display); letter-spacing: .12em; color: var(--muted); }
+.lang button + button { border-left: 1px solid var(--line); }
+.lang button:hover { color: var(--ink); }
+.lang button[aria-pressed="true"] { background: var(--ink); color: var(--bg); }
+.card > .lang { order: -1; justify-self: end; }
+/* "86ᵉ jour": the ordinal sits on the number */
+:root[lang="fr"] #s-day { margin-right: 0; }
+.toast { position: fixed; left: 50%; bottom: 18px; transform: translateX(-50%); background: var(--ink); color: var(--bg); padding: 8px 14px; font-size: 14px; max-width: min(520px, calc(100% - 32px)); z-index: 4; pointer-events: none; transition: opacity .3s; }
+@media (max-width: 860px) {
+  .app { grid-template-columns: 1fr; grid-template-rows: none; grid-template-areas: "head" "side" "bay" "slip" "desk"; }
+  .shelf { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .hatch { grid-template-columns: 120px 1fr; grid-template-rows: auto; }
+  .hatch canvas { height: 100%; min-height: 150px; border-bottom: 0; border-right: 1.5px solid var(--ink); }
+  .talk { min-height: 0; padding: 8px 10px 10px; }
+  .clues li { font-size: 14px; }
+  .slip { position: sticky; bottom: 0; z-index: 3; min-height: 0; box-shadow: 0 -6px 16px -8px #0006; }
+  .head h1 { font-size: 22px; }
+  .head .stats { margin-left: 0; }
+}
+</style>
+</head>
+<body>
+<div class="app" id="app">
+  <header class="head">
+    <h1 data-t="headH">Lost Property</h1>
+    <div class="stats" aria-live="off">
+      <span><b id="s-day">86</b><span data-t="sDay">day</span></span>
+      <span><b id="s-clock">09:00</b></span>
+      <span><b id="s-ret">0</b><span data-t="sRet">reunited</span></span>
+      <span><b id="s-out">0</b><span data-t="sOut">walked out</span></span>
+      <span><b id="s-kept">0</b><span data-t="sKept">in your drawer</span></span>
+    </div>
+    <div class="lang" role="group" data-ta="langGroup" aria-label="Language"></div>
+  </header>
+
+  <section class="side">
+    <div class="hatch">
+      <canvas id="window" data-ta="hatchAria" aria-label="The serving hatch. Whoever is waiting stands behind it."></canvas>
+      <div class="talk">
+        <div class="who"><strong id="who-name">Hatch closed</strong><span id="who-mood"></span></div>
+        <ul class="clues" id="clues" aria-live="polite"></ul>
+        <div class="pat" id="pat"><i id="pat-bar"></i></div>
+      </div>
+    </div>
+  </section>
+
+  <div class="slip" id="slip" aria-live="polite">
+      <div class="tag" id="slip-tag">Nothing selected</div>
+      <div class="ledger" id="slip-ledger">Pick something off the shelves to read its ledger line.</div>
+      <div class="meta" id="slip-meta"></div>
+      <div class="row" id="slip-row">
+        <button class="btn" id="b-give">Hand over<kbd>enter</kbd></button>
+        <button class="btn ghost" id="b-keep">Keep it<kbd>K</kbd></button>
+      </div>
+  </div>
+
+  <section class="bay" data-ta="bayAria" aria-label="Shelving bay">
+    <div class="plate" data-t="plate">Bay 3 · Dexion · today's likely items</div>
+    <div id="shelves"></div>
+  </section>
+
+  <section class="desk" data-ta="deskAria" aria-label="Your desk">
+    <div>
+      <h3 data-t="deskH">Your desk</h3>
+      <button class="dymo" id="desk-tag" data-ta="deskTagAria" aria-label="The label on your desk: number 0001">#0001</button>
+    </div>
+    <div class="tray">
+      <h3 data-t="trayH">Came back overnight</h3>
+      <div class="chips" id="tray"><span class="none">Nothing yet. Things come back the morning after you return them.</span></div>
+    </div>
+    <div class="tray">
+      <h3 data-t="drawerH">Your drawer</h3>
+      <div class="chips" id="drawer"><span class="none">Empty. Keep it that way, the ledger says.</span></div>
+    </div>
+  </section>
+</div>
+
+<div class="toast" id="toast" hidden></div>
+
+<div class="kit-overlay" id="title">
+  <div class="card">
+    <div class="small" data-t="titleSmall">Borough of Upper Hatch · Lost Property Office · counter 2</div>
+    <h1 data-th="titleH">Lost &amp; Found<small>The Sequel</small></h1>
+    <p class="lede" data-t="titleLede">Not a sequel to anything. Everything in here has been lost at least once before.</p>
+    <p data-t="titleIntro">People come to the hatch and describe what they lost, badly. Find it on the shelves, read its ledger line, and hand it over before they give up. Every item is held for 90 days, then the disposal contractor takes it.</p>
+    <button class="big" id="start" data-t="startBtn">Open the desk</button>
+    <div class="lang" role="group" data-ta="langGroup" aria-label="Language"></div>
+    <ul class="rules">
+      <li data-th="rule1"><b>Click or tap</b>an item to read its ledger line. Arrow keys work too.</li>
+      <li data-th="rule2"><b>Hand over</b>the one that matches. Enter. A wrong one costs them patience; three wrong and they go to the police.</li>
+      <li data-th="rule3"><b>Wait</b>and they remember more. They always remember more.</li>
+      <li data-th="rule4"><b>Keep it</b>puts the item in your drawer. Nobody will know. The ledger will know.</li>
+    </ul>
+    <div class="small" data-t="titleFoot">About 5 minutes · five days · one desk</div>
+  </div>
+</div>
+
+<div class="kit-overlay" id="morning" hidden>
+  <div class="card">
+    <div class="small" id="m-kicker">Morning</div>
+    <h2 id="m-title">Day 86</h2>
+    <p id="m-text"></p>
+    <div class="notes" id="m-notes"></div>
+    <button class="big" id="m-go">Open the desk</button>
+    <div class="lang" role="group" data-ta="langGroup" aria-label="Language"></div>
+  </div>
+</div>
+
+<div class="kit-overlay" id="evening" hidden>
+  <div class="card">
+    <div class="small" data-t="eveSmall">17:00 · shutter down</div>
+    <h2 id="e-title">Day 86, closed</h2>
+    <dl class="ledgerline" id="e-ledger"></dl>
+    <p id="e-text"></p>
+    <button class="big" id="e-go" data-t="eveGo">Lock up and go home</button>
+    <div class="lang" role="group" data-ta="langGroup" aria-label="Language"></div>
+  </div>
+</div>
+
+<div class="kit-overlay" id="end" hidden>
+  <div class="card">
+    <div class="small" id="end-kicker">Ending</div>
+    <h2 id="end-title"></h2>
+    <p class="lede" id="end-lede"></p>
+    <p id="end-body"></p>
+    <dl class="ledgerline" id="end-ledger"></dl>
+    <button class="big" id="again" data-t="again">Open the desk again</button>
+    <div class="lang" role="group" data-ta="langGroup" aria-label="Language"></div>
+  </div>
+</div>
+
+<script>
+/* kit:js:begin */
+// Arcade kit: the plumbing every game re-wrote by hand. Inlined between kit:js markers by
+// kit/inline.mjs, so a game stays one standalone file. Defines exactly two globals, `Kit` and
+// (once a game calls Kit.expose) `__arcade`; nothing else, because a bare top-level name can
+// collide with a window property (sandwich-diplomacy's `top()` shadowed by window.top).
+const Kit = (() => {
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const themeWatchers = [];
+  const onTheme = () => themeWatchers.forEach(f => f());
+  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', onTheme);
+  new MutationObserver(onTheme).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+
+  // Canvas code cannot read CSS variables, so mirror the named tokens into an object and
+  // re-read it whenever the theme flips: the viewer's toggle sets data-theme, the OS sets the media query.
+  function tokens(names, onChange) {
+    const C = {};
+    const read = () => {
+      const cs = getComputedStyle(document.documentElement);
+      for (const n of names) C[n] = cs.getPropertyValue('--' + n).trim();
+      onChange?.(C);
+    };
+    read();
+    themeWatchers.push(read);
+    return C;
+  }
+
+  // Keeps a canvas sharp at the device pixel ratio (capped at 2) and sized to its CSS box.
+  function canvas(el, onResize) {
+    const view = { el, cx: el.getContext('2d'), W: 0, H: 0 };
+    const fit = () => {
+      const r = el.getBoundingClientRect(), d = Math.min(2, devicePixelRatio || 1);
+      view.W = r.width; view.H = r.height;
+      el.width = Math.round(r.width * d); el.height = Math.round(r.height * d);
+      view.cx.setTransform(d, 0, 0, d, 0, 0);
+      onResize?.(view);
+    };
+    new ResizeObserver(fit).observe(el);
+    fit();
+    return view;
+  }
+
+  // step(dt) gets seconds, capped at 50 ms so a background tab or a stalled frame cannot
+  // teleport the game; the loop stops while the tab is hidden and resumes without a jump.
+  function loop(step) {
+    let last = 0, raf = 0, on = false;
+    const frame = t => {
+      const dt = last ? Math.min(0.05, (t - last) / 1000) : 0;
+      last = t;
+      step(dt);
+      if (on) raf = requestAnimationFrame(frame);
+    };
+    const ctl = {
+      start() { if (on) return; on = true; last = 0; raf = requestAnimationFrame(frame); },
+      stop() { on = false; cancelAnimationFrame(raf); },
+      get running() { return on; },
+    };
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden && on) { ctl.stop(); ctl.paused = true; }
+      else if (!document.hidden && ctl.paused) { ctl.paused = false; ctl.start(); }
+    });
+    return ctl;
+  }
+
+  // Held keys by KeyboardEvent.key, lower-cased (' ' for Space). Touch pads feed the same set:
+  // any element with data-key="<key>" inside a .kit-pad holds that key while pressed.
+  const held = new Set();
+  const pressFns = [];
+  const norm = k => (k.length === 1 ? k.toLowerCase() : k);
+  const press = (k, down) => {
+    k = norm(k);
+    if (down === held.has(k)) return;
+    down ? held.add(k) : held.delete(k);
+    pressFns.forEach(f => f(k, down));
+  };
+  const GAME_KEYS = new Set([' ', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight']);
+  addEventListener('keydown', e => {
+    if (e.target.closest?.('input, textarea, select, [contenteditable]')) return;
+    if (GAME_KEYS.has(e.key) && !e.target.closest?.('button')) e.preventDefault();
+    if (!e.repeat) press(e.key, true);
+  });
+  addEventListener('keyup', e => press(e.key, false));
+  addEventListener('blur', () => [...held].forEach(k => press(k, false)));
+  document.addEventListener('pointerdown', e => {
+    const b = e.target.closest?.('.kit-pad [data-key]');
+    if (!b) return;
+    e.preventDefault();
+    b.setPointerCapture?.(e.pointerId);
+    press(b.dataset.key, true);
+    const up = () => { press(b.dataset.key, false); b.removeEventListener('pointerup', up); b.removeEventListener('pointercancel', up); };
+    b.addEventListener('pointerup', up);
+    b.addEventListener('pointercancel', up);
+  });
+  const keys = {
+    down: k => held.has(norm(k)),
+    any: (...ks) => ks.some(k => held.has(norm(k))),
+    onPress(fn) { pressFns.push(fn); },
+  };
+
+  // The claude.ai viewer's hot-update hook: keeps `snapshot()` across a republish. Absent when
+  // self-hosted, so start() then receives {}.
+  function boot(start, snapshot) {
+    if (snapshot) window.claude?.hot?.snapshot?.(snapshot);
+    window.claude?.hot?.ready ? window.claude.hot.ready(start) : start(window.claude?.hot?.data ?? {});
+  }
+
+  // The test hook smoke.mjs drives. endings: { name: { jump(), reached(), seconds? } } where
+  // jump() may shortcut the set-up but must leave the ending's final stretch to real game
+  // logic, and reached() is true only once that ending's screen is actually showing.
+  function expose({ state, endings }) {
+    window.__arcade = {
+      get state() { return state(); },
+      endings: Object.fromEntries(Object.entries(endings).map(([k, v]) => [k, { seconds: v.seconds ?? 8 }])),
+      jump: name => endings[name].jump(),
+      reached: name => !!endings[name].reached(),
+    };
+  }
+
+  // Show one overlay and hide the others; focus its first button so Enter/Space continue.
+  function show(el) {
+    document.querySelectorAll('.kit-overlay').forEach(o => { o.hidden = o !== el; });
+    el?.querySelector('button')?.focus({ preventScroll: true });
+  }
+
+  const rnd = (a, b) => a + Math.random() * (b - a);
+  const pick = a => a[Math.floor(Math.random() * a.length)];
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+
+  return { reduce, tokens, canvas, loop, keys, boot, expose, show, rnd, pick, clamp };
+})();
+/* kit:js:end */
+
+const $ = s => document.querySelector(s);
+const ICON = {
+  umbrella: '<path d="M3 12a9 9 0 0 1 18 0z"/><path d="M12 12v7a2 2 0 0 1-4 0"/><path d="M12 3V2"/>',
+  fan: '<circle cx="12" cy="10" r="7"/><path d="M12 10l3-5M12 10l-5 1M12 10l2 5"/><path d="M12 17v4M8 21h8"/>',
+  kazoo: '<path d="M3 10h13l5-2v8l-5-2H3z"/><circle cx="11" cy="9" r="1.5"/>',
+  watch: '<circle cx="12" cy="14" r="7"/><path d="M12 14v-4M12 14l3 2"/><path d="M12 7V4M10 3h4"/>',
+  clock: '<circle cx="12" cy="13" r="7"/><path d="M12 13V9M12 13h3"/><path d="M5 6l3-2M19 6l-3-2M7 20l-1 2M17 20l1 2"/>',
+  doll: '<circle cx="12" cy="6" r="3.5"/><path d="M8 21l2-11h4l2 11z"/><path d="M8 13l-3 2M16 13l3 2"/>',
+  bear: '<circle cx="12" cy="8" r="4"/><circle cx="8" cy="4.5" r="1.5"/><circle cx="16" cy="4.5" r="1.5"/><circle cx="12" cy="17" r="5"/><circle cx="10.5" cy="7.5" r=".5"/><circle cx="13.5" cy="7.5" r="1"/>',
+  glove: '<path d="M7 21v-8l-2-3 1-1 3 2V4a1 1 0 0 1 2 0v6V3a1 1 0 0 1 2 0v7V4a1 1 0 0 1 2 0v7V6a1 1 0 0 1 2 0v9l-2 6z"/>',
+  hat: '<path d="M3 17c4 2 14 2 18 0"/><path d="M6 17c0-4 1-9 6-9s6 5 6 9"/><path d="M6.5 14h11"/>',
+  plant: '<path d="M7 15h10l-1.5 6h-7z"/><path d="M12 15V6M12 9C9 8 7 6 7 4c2 0 4 2 5 5zM12 11c3-1 5-3 5-6-2 0-4 3-5 6z"/>',
+  cat: '<path d="M6 21v-9L5 6l3 3h8l3-3-1 6v9z"/><circle cx="9.5" cy="13" r=".8"/><circle cx="14.5" cy="13" r=".8"/>',
+  teeth: '<path d="M3 10c0-3 4-5 9-5s9 2 9 5v2c0 1-1 2-2 2s-1 3-3 3-1-3-2-3-1 3-2 3-1-3-2-3-1 3-2 3-2-3-3-3-2-1-2-2z"/>',
+  parcel: '<rect x="3" y="7" width="18" height="13" rx="1"/><path d="M3 11h18M12 7v13M8 4l4 3 4-3"/>',
+  tin: '<ellipse cx="12" cy="8" rx="8" ry="3"/><path d="M4 8v8c0 1.7 3.6 3 8 3s8-1.3 8-3V8"/>',
+  radio: '<rect x="3" y="8" width="18" height="12" rx="2"/><path d="M7 8l10-5"/><circle cx="9" cy="14" r="3"/><path d="M15 12h3M15 15h3"/>',
+  cage: '<path d="M5 20h14M6 20V10a6 6 0 0 1 12 0v10M9 20V8M12 20V4M15 20V8M12 4V2"/>',
+  scarf: '<path d="M5 4c4 2 10 2 14 0v4c-4 2-10 2-14 0z"/><path d="M8 9v11l3-1V10M13 10v9l3 1V9"/>',
+  sock: '<path d="M8 3h6v9l4 4a3 3 0 0 1-4 4l-6-6z"/><path d="M8 6h6"/>',
+  book: '<path d="M5 4h11a2 2 0 0 1 2 2v14H7a2 2 0 0 1-2-2z"/><path d="M5 18a2 2 0 0 1 2-2h11"/><path d="M14 4v12"/>',
+  horn: '<path d="M3 11h4l2-2h6l6-4v14l-6-4H9l-2-2H3z"/><path d="M10 9V6M12 9V6M14 9V6"/>',
+  key: '<circle cx="7" cy="12" r="4"/><path d="M11 12h10M17 12v3M20 12v2"/>',
+  keys: '<circle cx="9" cy="9" r="5"/><path d="M12 12l6 6M15 15l-2 2M18 18l-2 2M6 13l-2 7M9 14v7"/>',
+  wig: '<path d="M5 18C3 14 4 4 12 4s9 10 7 14"/><path d="M8 10c2 1 6 1 8-1"/><path d="M5 18c2 2 4 2 5 0M19 18c-2 2-4 2-5 0"/>',
+  brush: '<rect x="4" y="4" width="10" height="9" rx="4"/><path d="M12 12l7 8M6 7h6M6 10h6"/>',
+  specs: '<circle cx="7" cy="13" r="3.5"/><circle cx="17" cy="13" r="3.5"/><path d="M10.5 13h3M3.5 13l-1-4M20.5 13l1-4"/>',
+  shoe: '<path d="M3 17V8h5l2 3 8 2c2 .5 3 2 3 4v1H3z"/><path d="M3 15h18"/>',
+  bird: '<path d="M4 14c0-4 3-7 7-7 1-2 3-3 5-2l2 2-2 1c1 3 0 7-4 9H8z"/><path d="M10 18l-1 3M13 18l1 3"/><circle cx="15" cy="7" r=".7"/>',
+  player: '<rect x="6" y="3" width="12" height="18" rx="2"/><circle cx="12" cy="14" r="3.5"/><path d="M8.5 5.5h7v4h-7z"/>',
+  phone: '<rect x="7" y="2" width="10" height="20" rx="2"/><path d="M11 18h2"/>',
+  mug: '<path d="M5 6h11v10a4 4 0 0 1-4 4H9a4 4 0 0 1-4-4z"/><path d="M16 9h2a2 2 0 0 1 0 5h-2"/>',
+  bag: '<rect x="4" y="8" width="16" height="12" rx="1"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/>',
+  bottle: '<path d="M10 2h4v4l2 3v12H8V9l2-3z"/><path d="M8 13h8"/>',
+  ring: '<circle cx="12" cy="15" r="6"/><path d="M9 6l3-3 3 3-3 3z"/>',
+  cone: '<path d="M9 4h6l4 15H5z"/><path d="M3 20h18M7 12h10"/>',
+  skate: '<path d="M4 4h6v8h7a3 3 0 0 1 3 3v1H4z"/><circle cx="7" cy="20" r="2"/><circle cx="17" cy="20" r="2"/>',
+  flask: '<rect x="8" y="5" width="8" height="16" rx="2"/><path d="M9 2h6v3H9z"/>',
+  lighter: '<rect x="7" y="9" width="10" height="13" rx="1"/><path d="M7 9V6h6l2 3M12 4c0-1 1-2 1-2"/>',
+  desk: '<path d="M2 9h20M4 9v12M20 9v12M13 9v8h7M13 13h7"/><circle cx="7" cy="6" r="2"/><path d="M5 6h4"/>',
+};
+const svg = ic => `<svg viewBox="0 0 24 24" aria-hidden="true">${ICON[ic]}</svg>`;
+
+// A case: who comes to the hatch, what they say (vaguest first), the item, and the decoys.
+// A decoy's `fits` is how many of the three clues it also satisfies, which is what makes it a decoy.
+const CASES = [
+  // day 86
+  { who: 'Mrs Okonkwo-Bell', look: { hat: 'bowler', coat: 'b', skin: 'c', tall: .6 },
+    clues: ['It’s blue. Or it was. And it hums.', 'You open it when the weather’s bad. Indoors, mostly.', 'It has a little fan in the handle. My nephew made it. Nobody asked him to.'],
+    item: ['umbrella', 'Umbrella', 'Umbrella, faded blue, folding. Small battery fan fitted in handle (hums).', 'No. 38 bus, upper deck'],
+    decoys: [['umbrella', 'Umbrella', 'Umbrella, navy, golf size. Does not hum (tested).', 'Bowling green', 2, 'That’s an umbrella. Mine is smaller and it has opinions.'],
+      ['fan', 'Desk fan', 'Desk fan, grey (formerly blue). Hums.', 'Library, large print', 1, 'That’s a fan. I said it hums. I didn’t say it was a fan.'],
+      ['kazoo', 'Kazoo', 'Kazoo, blue plastic. Hums when used.', 'Bandstand', 1, 'That’s a kazoo. I am a grown woman.']],
+    thanks: 'Oh, there it is. Listen to it. Humming away like nothing happened.',
+    note: 'Dear Desk. She opened me in the kitchen for no reason at all and we both felt better. I hum more now. — the umbrella' },
+  { who: 'Mr Penhaligon', look: { hat: 'bowler', coat: 'a', skin: 'a', tall: .9, specs: true },
+    clues: ['It has a face, but it isn’t a person.', 'It’s slow. Twenty minutes slow. I prefer it that way.', 'It’s on a chain. My father’s. It ticks louder on Sundays.'],
+    item: ['watch', 'Pocket watch', 'Pocket watch, brass, on chain. Running 20 minutes slow. Remarks: ticks unevenly.', 'Registry office steps'],
+    decoys: [['clock', 'Alarm clock', 'Travel alarm clock. Keeps perfect time. Nobody wants it.', 'Platform 4', 1, 'This is correct. Mine has never been correct. That’s the point of it.'],
+      ['doll', 'Doll', 'Doll, porcelain face. Remarks: looks at you.', 'Café, under table 6', 1, 'That has a face. It also has a stare. Mine has hands, two, small.'],
+      ['watch', 'Pocket watch', 'Pocket watch, silver, on chain. Stopped at 4:12.', 'Swimming baths, lane 2', 2, 'This one has stopped. Mine is merely late, like its owner.']],
+    thanks: 'Twenty past. Or twenty to. Either way, I’m on time for the first time in a week.',
+    note: 'Still twenty minutes slow. He says that is when the good things happen. — the watch' },
+  { who: 'Dev, aged 7', look: { hat: 'cap', coat: 'c', skin: 'b', tall: .15 },
+    clues: ['He’s brown and he’s called Gerald.', 'He’s got one eye. The other one is a button.', 'He smells like the inside of my coat. He has a jumper on that my nan made.'],
+    item: ['bear', 'Teddy bear', 'Teddy bear, brown, knitted jumper. One eye, one button (replacement).', 'No. 12 tram'],
+    decoys: [['bear', 'Teddy bear', 'Teddy bear, brown, two eyes, no clothes. Remarks: unloved-looking.', 'Park bench', 1, 'That’s not Gerald. That bear has two eyes. That bear has never been through anything.'],
+      ['glove', 'Glove', 'Glove, brown leather. Label inside reads GERALD (the owner, presumably).', 'Taxi rank', 1, 'That’s a glove. It says Gerald in it but it’s a glove. I’m seven, not stupid.'],
+      ['bear', 'Teddy bear', 'Teddy bear, brown, one eye, one button. No jumper.', 'Library, children’s', 2, 'He’s nearly Gerald. Gerald wears a jumper. This is someone else’s Gerald.']],
+    thanks: 'GERALD. He says he wasn’t scared. He was a bit scared.',
+    note: 'Gerald here. I have been washed. I did not consent to this, but I feel wonderful. — Gerald (bear)' },
+  { who: 'Ms Ferreira', look: { hat: 'scarf', coat: 'd', skin: 'b', tall: .5 },
+    clues: ['It’s been sad since March.', 'It’s green, and it’s alive, I think. I hope.', 'It’s a fern. In a pot shaped like a cat.'],
+    item: ['plant', 'Fern', 'Fern, in cat-shaped pot. Drooping. Remarks: watered by staff (unofficially).', 'Platform 4'],
+    decoys: [['plant', 'Cactus', 'Cactus, green, in plain pot. Remarks: thriving, smug.', 'Bus depot', 1, 'That’s a cactus. It’s fine. Look at it being fine. Mine is not fine.'],
+      ['plant', 'Fern', 'Fern, in plain terracotta pot. Healthy.', 'Library, large print', 2, 'A fern, but too happy. And where’s the cat?'],
+      ['cat', 'Cat ornament', 'Ceramic cat, hollow. Remarks: contains soil, no plant.', 'Café, under table 6', 1, 'That’s the right sort of cat but there’s nobody in it.']],
+    thanks: 'Look at you. You’ve grown a whole new bit. While I wasn’t looking.',
+    note: 'I have a new frond. She cried. I am thriving. — the fern (cat pot)' },
+  // day 87
+  { who: 'Mr Abara', look: { hat: 'none', hair: 'short', coat: 'a', skin: 'c', tall: .8, specs: true },
+    clues: ['The left one. It’s always the left one.', 'Leather. All its fingers.', 'There’s a ticket stub in the thumb. A play, in 1994. It wasn’t good.'],
+    item: ['glove', 'Glove, left', 'Glove, left, brown leather. Theatre ticket stub (1994) in thumb.', 'Bandstand'],
+    decoys: [['glove', 'Glove, right', 'Glove, right, brown leather. Remarks: lonely.', 'Taxi rank', 1, 'That’s a right. I have plenty of rights. I have been right all my life.'],
+      ['glove', 'Glove, left', 'Glove, left, wool, one finger missing (knitted that way).', 'Swimming baths, lane 2', 1, 'Wool. And look, it’s lost a finger. I said all its fingers.'],
+      ['glove', 'Glove, left', 'Glove, left, black leather. Nothing in thumb (checked).', 'No. 38 bus, upper deck', 2, 'Close. But check the thumb. Mine has 1994 in it.']],
+    thanks: 'Row F, seat 12. It really was a terrible play.',
+    note: 'The play was dreadful, he says. They are going to see it again. — the left glove' },
+  { who: 'Dame Prudence Vale', look: { hat: 'tall', coat: 'd', skin: 'a', tall: 1 },
+    clues: ['It holds my smile when I’m not using it.', 'The upper set. Rather a good one.', 'One of them is gold. Second from the left. One doesn’t talk about it.'],
+    item: ['teeth', 'Dentures', 'Dentures, upper set. One gold tooth (second from left).', 'Registry office steps'],
+    decoys: [['teeth', 'Dentures', 'Dentures, lower set. Remarks: grinning.', 'Park bench', 1, 'Those are lowers. One does not wear lowers on top. One would look like a frog.'],
+      ['teeth', 'Dentures', 'Dentures, upper set, all white. Remarks: bright.', 'Café, under table 6', 2, 'These are somebody’s, darling. Not mine. Mine have a little gold in them.'],
+      ['ring', 'Cufflink', 'Cufflink, gold. Single.', 'Bowling green', 1, 'That is gold, yes, and that is all it has in common with my mouth.']],
+    thanks: 'Splendid. I can smile at the magistrate after all.',
+    note: 'We smiled at a magistrate. It went extremely well. — the teeth (upper)' },
+  { who: 'Kwame, courier', look: { hat: 'helmet', coat: 'c', skin: 'c', tall: .7 },
+    clues: ['It’s a box. It’s for someone else.', 'It says FRAGILE on it, but in a calm way.', 'It rattles. It isn’t supposed to rattle. Please don’t tell them.'],
+    item: ['parcel', 'Parcel', 'Parcel, brown. Marked “fragile (please)”. Rattles.', 'No. 12 tram'],
+    decoys: [['parcel', 'Parcel', 'Parcel, brown. Marked FRAGILE!!! in red. Silent.', 'Bus depot', 2, 'That one’s shouting. Mine asks nicely. And mine rattles, sorry.'],
+      ['parcel', 'Shoebox', 'Shoebox, empty. Remarks: hopeful.', 'Swimming baths, lane 2', 1, 'That’s a box, but it’s empty. Mine is full of something broken.'],
+      ['tin', 'Biscuit tin', 'Biscuit tin. Rattles (buttons).', 'Library, large print', 1, 'It rattles, fair, but it’s a tin. I deliver boxes. I have a reputation.']],
+    thanks: 'Lovely. If it rattles, it rattles. I’ll say it was always like that.',
+    note: 'Delivered. It was a teapot. It was always going to rattle. Everyone was very nice about it. — the parcel' },
+  { who: 'Agnes', look: { hat: 'none', hair: 'curls', coat: 'b', skin: 'a', tall: .3, specs: true },
+    clues: ['He talks. Not much. Mostly in the mornings.', 'He’s little, and he lives on the windowsill.', 'He’s a radio. He only gets one station. It’s the shipping forecast. That’s fine.'],
+    item: ['radio', 'Radio', 'Transistor radio, small. Stuck on long wave (shipping forecast).', 'Park bench'],
+    decoys: [['cage', 'Birdcage', 'Birdcage, empty. The bird was handed in elsewhere.', 'Bandstand', 2, 'Oh, I see why you’d think that. No, he’s not a bird. He’s worse at singing.'],
+      ['radio', 'Radio', 'Radio, large, all stations. Remarks: very loud.', 'Bus depot', 1, 'That one’s got far too much to say.'],
+      ['clock', 'Clock radio', 'Clock radio. Wakes you with pop music.', 'Platform 4', 1, 'Pop music. No. He tells me about Dogger.']],
+    thanks: 'Dogger, Fisher, German Bight. There he is.',
+    note: 'Dogger, Fisher, German Bight: moderate or good. We are both moderate or good. — the radio' },
+  // day 88
+  { who: 'Fen', look: { hat: 'beanie', coat: 'a', skin: 'b', tall: .55 },
+    clues: ['It’s long and it keeps me warm and my nan made it.', 'Red, mostly. There’s a mistake in it.', 'The mistake’s about a third of the way along. A hole. You can put your thumb in it.'],
+    item: ['scarf', 'Scarf', 'Scarf, red, hand-knitted. Dropped stitch (hole) about a third along.', 'No. 38 bus, upper deck'],
+    decoys: [['scarf', 'Scarf', 'Scarf, red, shop-bought. Flawless.', 'Registry office steps', 2, 'Too perfect. Nan doesn’t do perfect. Nan does love.'],
+      ['scarf', 'Scarf', 'Scarf, blue, hand-knitted. Hole a third along.', 'Taxi rank', 1, 'Right hole, wrong colour. Somebody else’s nan.'],
+      ['sock', 'Sock', 'Sock, red, extremely long. Hand-knitted.', 'Swimming baths, lane 2', 1, 'That’s a sock. I mean, it’s nearly a scarf. But it’s a sock.']],
+    thanks: 'Thumb hole. Thank you. I can feel the thumb hole.',
+    note: 'She put her thumb in the hole on the bus. Nobody judged. P.S. A woman at the depot keeps asking if anyone has seen a desk.' },
+  { who: 'Mr Lindqvist', look: { hat: 'none', hair: 'beard', coat: 'c', skin: 'a', tall: .85 },
+    clues: ['It’s got all my thoughts in it. Not the good ones.', 'Black, with the elastic round it. Half full.', 'Page forty-one has a drawing of a duck. It is not a good duck.'],
+    item: ['book', 'Notebook', 'Notebook, black, elastic band. Half used. Bad duck, p. 41.', 'Café, under table 6'],
+    decoys: [['book', 'Notebook', 'Notebook, black, elastic band. Blank. Remarks: full of potential.', 'Platform 4', 2, 'This one is empty. Mine is half full of things I shouldn’t have written.'],
+      ['book', 'Sketchbook', 'Sketchbook, full of excellent ducks.', 'Park bench', 1, 'These ducks are good. My duck was never good.'],
+      ['book', 'Diary 2019', 'Diary, 2019, black. Remarks: most of March missing.', 'Library, large print', 1, 'I don’t want to know what happened in March.']],
+    thanks: 'Page forty-one. Look at him. Terrible duck.',
+    note: 'He has drawn a second duck. It is worse. He is so happy. P.S. The woman at the depot described the desk. It sounded familiar.' },
+  { who: 'Bea', look: { hat: 'none', hair: 'pony', coat: 'd', skin: 'c', tall: .45 },
+    clues: ['I need it for the concert. Tonight.', 'It’s shiny and you blow into it.', 'It’s like a trumpet but smaller. A cornet. It has a dent from when it fell down the stairs.'],
+    item: ['horn', 'Cornet', 'Cornet, brass. Dent on the bell. Remarks: fell down stairs (per dent).', 'Bandstand'],
+    decoys: [['horn', 'Trumpet', 'Trumpet, brass, undented.', 'Bus depot', 2, 'That’s a trumpet. It’s too long. It’s never fallen down anything.'],
+      ['kazoo', 'Kazoo', 'Kazoo, silver. Shiny. You blow into it.', 'Taxi rank', 1, 'I am in a brass band.'],
+      ['horn', 'Cornet', 'Cornet, silver-plated, mint condition.', 'Registry office steps', 2, 'A cornet, but it hasn’t got a dent. It hasn’t lived.']],
+    thanks: 'The dent. Oh, the dent. We’re on at eight.',
+    note: 'We played. The dent added something. P.S. Everyone on the shelves has started talking about tag #0001.' },
+  { who: 'Mr Duvall', look: { hat: 'cap', coat: 'b', skin: 'b', tall: .65 },
+    clues: ['I’ll know it when I see it.', 'It’s a key. It opens something important.', 'Brass, with a label that says SHED. The shed is the most important thing I own.'],
+    item: ['key', 'Key', 'Key, brass, label reads SHED.', 'Bowling green'],
+    decoys: [['key', 'Key', 'Key, brass, label reads HOUSE.', 'No. 12 tram', 2, 'House. No. Anyone can have a house.'],
+      ['keys', 'Key ring', 'Key ring, nine keys, no labels. Remarks: a whole life.', 'Platform 4', 1, 'That’s somebody’s whole life. Mine’s just the one key. Mine is a shed.'],
+      ['key', 'Key', 'Key, silver, unlabelled.', 'Library, large print', 1, 'Silver. I’m not a silver man.']],
+    thanks: 'Shed. Shed. Thank you. I’m going to go and sit in it.',
+    note: 'The shed is open. He sat in it all afternoon. P.S. Have you ever actually read the ledger line for #0001?' },
+  // day 89
+  { who: 'Imelda', look: { hat: 'none', hair: 'big', coat: 'd', skin: 'a', tall: .6 },
+    clues: ['It’s a whole head of hair. It isn’t on a head.', 'Auburn. Not ginger. Auburn.', 'There’s a hairpin in it shaped like a swallow.'],
+    item: ['wig', 'Wig', 'Wig, auburn, shoulder length. Swallow hairpin.', 'Registry office steps'],
+    decoys: [['wig', 'Wig', 'Wig, ginger. Remarks: very ginger.', 'Bus depot', 1, 'That is ginger. We have talked about this.'],
+      ['wig', 'Wig', 'Wig, auburn, shoulder length. No accessories.', 'Swimming baths, lane 2', 2, 'Right colour. Wrong bird. There should be a little swallow.'],
+      ['brush', 'Hairbrush', 'Hairbrush, full of auburn hair.', 'Café, under table 6', 1, 'That’s the hair but not the whole hair.']],
+    thanks: 'There you are. We’re going dancing.',
+    note: 'We went dancing. I was the hair. P.S. We gave the woman at the depot your address.' },
+  { who: 'Ravi', look: { hat: 'none', hair: 'short', coat: 'a', skin: 'b', tall: .75 },
+    clues: ['I can’t describe them. I can’t see without them.', 'Glasses. Obviously. Thick ones.', 'Tortoiseshell. One arm has a plaster on it.'],
+    item: ['specs', 'Spectacles', 'Spectacles, tortoiseshell, thick lenses. Plaster on left arm.', 'Library, large print'],
+    decoys: [['specs', 'Sunglasses', 'Sunglasses, black. Remarks: cool.', 'Bandstand', 1, 'I can’t see a thing, but I can tell those are sunglasses.'],
+      ['specs', 'Spectacles', 'Spectacles, tortoiseshell, thick lenses. Intact.', 'Park bench', 2, 'These are… very nearly. No plaster? Then they aren’t mine.'],
+      ['specs', 'Spectacles', 'Spectacles, wire frame. Plaster on arm.', 'No. 12 tram', 1, 'Wire. I’m allergic to wire. And to being wrong.']],
+    thanks: 'Oh. You’re much more specific than I thought you were.',
+    note: 'He can see me now. He says I look exactly the same. I do not. P.S. She is coming on day 90. Be at the desk. You are always at the desk.' },
+  { who: 'Mrs Achterberg', look: { hat: 'flower', coat: 'c', skin: 'a', tall: .35 },
+    clues: ['It’s a cake. Or it was. It’s in a tin.', 'A round tin, with roses on.', 'A Victoria sponge. For my sister’s birthday. Which was. Is it still in there?'],
+    item: ['tin', 'Cake tin', 'Cake tin, round, roses. Contains Victoria sponge (day 21 of being a sponge).', 'Platform 4'],
+    decoys: [['tin', 'Cake tin', 'Cake tin, round, roses. Empty.', 'Bus depot', 2, 'Empty. Someone has had my sponge.'],
+      ['tin', 'Biscuit tin', 'Biscuit tin, square, roses.', 'Taxi rank', 1, 'Square. A sponge cannot live in a square.'],
+      ['tin', 'Cake tin', 'Cake tin, plain. Contains fruitcake (indefinitely).', 'Bowling green', 1, 'Fruitcake. That will outlive us all.']],
+    thanks: 'It’s still in there. It’s gone a bit… firm.',
+    note: 'The sponge was toasted and declared “fine”. Her sister forgave everyone. P.S. Nobody here has ever been lost. We were only waiting with you.' },
+  { who: 'Mr Bright', look: { hat: 'cap', coat: 'a', skin: 'c', tall: .55 },
+    clues: ['He’s grey and he’s a bit of a show-off.', 'Not a bird. People always think he’s a bird. He’s a shoe.', 'Grey suede, size nine, the left. He goes with nothing.'],
+    item: ['shoe', 'Shoe', 'Shoe, grey suede, left, size 9.', 'Taxi rank'],
+    decoys: [['bird', 'Pigeon', 'Pigeon, grey. Found on the desk. Refuses to leave. Not technically lost.', 'Here', 1, 'That’s a bird. I said he’s not a bird. Everyone does this.'],
+      ['shoe', 'Shoe', 'Shoe, grey suede, right, size 9.', 'Park bench', 2, 'That’s the right one. He and the left aren’t speaking.'],
+      ['shoe', 'Shoe', 'Shoe, black suede, left, size 9.', 'No. 38 bus, upper deck', 2, 'Black. He’s grey. He’d be furious.']],
+    thanks: 'There he is. Showing off already.',
+    note: 'Reunited with the right one. They argue constantly. It is lovely. P.S. Tomorrow is ninety days.' },
+  // day 90
+  { who: 'Olu', look: { hat: 'phones', coat: 'c', skin: 'c', tall: .5 },
+    clues: ['It has all my music on it and none of it is any good.', 'Small, with a clip. Silver.', 'There’s a sticker on the back that says PROPERTY OF OLU. I’m Olu.'],
+    item: ['player', 'MP3 player', 'MP3 player, silver, clip. Sticker: PROPERTY OF OLU.', 'No. 12 tram'],
+    decoys: [['phone', 'Phone', 'Mobile phone, silver. 3 missed calls.', 'Bus depot', 1, 'A phone. My music isn’t allowed near phones.'],
+      ['player', 'MP3 player', 'MP3 player, black, clip. No sticker.', 'Library, large print', 2, 'Black. And where’s my name?'],
+      ['lighter', 'Lighter', 'Lighter, silver, clip.', 'Bandstand', 1, 'That’s on fire, basically.']],
+    thanks: 'Track one. Still terrible. Thank you.' },
+  { who: 'Ms Haversham-Ng', look: { hat: 'wide', coat: 'd', skin: 'b', tall: .7 },
+    clues: ['It’s a hat. It’s been to a wedding.', 'Wide brim. Lilac.', 'There’s still confetti in the band. Little rice-paper hearts.'],
+    item: ['hat', 'Hat', 'Hat, lilac, wide brim. Rice-paper confetti in band.', 'Registry office steps'],
+    decoys: [['hat', 'Hat', 'Hat, lilac, small, pillbox.', 'Café, under table 6', 1, 'Too small. That’s a hat for a much shorter wedding.'],
+      ['hat', 'Hat', 'Hat, white, wide brim.', 'Park bench', 1, 'White. You don’t wear white to a wedding unless it’s you.'],
+      ['hat', 'Hat', 'Hat, lilac, wide brim. Feather in band.', 'Bowling green', 2, 'Feather. No. Mine has the confetti. It got everywhere.']],
+    thanks: 'Hearts! Still in there. I’m going to another one on Saturday.' },
+];
+const DESK_OWNER = { who: 'Winifred Cole, removals', desk: true, look: { hat: 'cap', coat: 'b', skin: 'b', tall: .8 },
+  clues: ['It’s brown. Or it was. It’s very large, and it’s been very busy.', 'Four drawers. One sticks. There’s a bell on top and people ring it when they want something.', 'It’s been missing ninety days. You’ve got your elbows on it, love.'],
+  thanks: '' };
+const FILLERS = [
+  ['cone', 'Traffic cone', 'Traffic cone, orange. Found inside the bank. Nobody knows how.', 'High Street branch'],
+  ['skate', 'Roller skate', 'Roller skate, left. The right was handed in at another office. Neither office will move first.', 'Bandstand'],
+  ['flask', 'Flask', 'Vacuum flask, tartan. Still warm. Has been here 61 days.', 'Platform 4'],
+  ['mug', 'Mug', 'Mug, reads WORLD’S SECOND-BEST GRANDAD. Honest.', 'Café, under table 6'],
+  ['bag', 'Bag of bags', 'Carrier bag containing 41 carrier bags. Owner will know.', 'No. 38 bus, upper deck'],
+  ['book', 'Paperback', 'Paperback, “Wolf Hall”. Bookmark at p. 12. Abandoned rather than lost.', 'Library, large print'],
+  ['bottle', 'Hot-water bottle', 'Hot-water bottle, knitted cover. The cover has a face.', 'Swimming baths, lane 2'],
+  ['phone', 'Phone', 'Mobile phone, 1999. Still on three bars. 212 missed calls, all from MUM.', 'Taxi rank'],
+  ['ring', 'Ring', 'Engagement ring, in box. Box also contains a note reading NO.', 'Registry office steps'],
+  ['umbrella', 'Umbrella', 'Umbrella, inside out, permanently. Remarks: at peace with it.', 'Bowling green'],
+  ['cage', 'Birdcage', 'Birdcage containing a smaller birdcage.', 'Park bench'],
+  ['clock', 'Clock', 'Kitchen clock, battery removed. Correct twice a day, proudly.', 'Bus depot'],
+];
+const DAYS = [86, 87, 88, 89, 90];
+const PATIENCE = 44, CLUE_AT = [0, 11, 22], WRONG = 12, MAX_WRONG = 3, NEED = 11, DESK_PATIENCE = 70;
+const DAY_INTRO = {
+  86: 'Ledger page 86. The disposal contractor, Greaves & Daughter, comes for anything held over 90 days. Nothing on the shelves is close. The oldest entry in the ledger is #0001, the desk you are sitting at, which you have never thought about.',
+  87: 'Ledger page 87. Overnight, the things you handed back yesterday came back on their own, a little happier, with notes. That is not in the procedures manual. You have checked.',
+  88: 'Ledger page 88. More came back. The tray is filling up. Each note is addressed to the desk, which is odd, because the desk is not a person, it is a desk.',
+  89: 'Ledger page 89. The notes have started to have postscripts. The postscripts have started to agree with each other.',
+  90: 'Ledger page 90. Desk #0001: day 90 of 90. Greaves & Daughter are booked for 17:00.',
+};
+
+const C = Kit.tokens(['bg', 'ink', 'muted', 'accent', 'panel', 'line', 'glass', 'wood', 'steel', 'steel-dark', 'manila', 'coat-a', 'coat-b', 'coat-c', 'coat-d', 'skin-a', 'skin-b', 'skin-c']);
+const hatchView = Kit.canvas($('#window'));
+
+// ---- language -------------------------------------------------------------------------------
+// CASES, FILLERS, DESK_OWNER and DAY_INTRO above stay the structural source and the English
+// text. Items carry only ids (role, case index, decoy or filler index), so the French tables
+// below must keep the same order and length: a decoy's `fits` and its reply belong to its index.
+const textOfCase = c => ({ who: c.who, clues: c.clues, item: c.item.slice(1), decoys: c.decoys.map(d => [d[1], d[2], d[3], d[5]]), thanks: c.thanks, note: c.note });
+const FR_CASES = [
+  { who: 'Mme Okonkwo-Bell',
+    clues: ["C'est bleu. Enfin, ça l'était. Et ça bourdonne.", "On l'ouvre quand il fait mauvais. Surtout à l'intérieur.", "Il y a un petit ventilateur dans le manche. C'est mon neveu qui l'a mis. Personne ne lui avait rien demandé."],
+    item: ['Parapluie', 'Parapluie bleu délavé, pliant. Petit ventilateur à pile dans le manche (bourdonne).', 'Bus 38, impériale'],
+    decoys: [['Parapluie', 'Parapluie bleu marine, taille golf. Ne bourdonne pas (testé).', 'Boulodrome', "Ça, c'est un parapluie. Le mien est plus petit, et il a des opinions."],
+      ['Ventilateur', 'Ventilateur de bureau, gris (anciennement bleu). Bourdonne.', 'Bibliothèque, gros caractères', "C'est un ventilateur. J'ai dit que ça bourdonne. Je n'ai pas dit que c'était un ventilateur."],
+      ['Kazoo', "Kazoo, plastique bleu. Bourdonne quand on s'en sert.", 'Kiosque à musique', "C'est un kazoo. Je suis une femme adulte."]],
+    thanks: "Ah, le voilà. Écoutez-le. Il bourdonne comme si de rien n'était.",
+    note: "Cher Bureau. Elle m'a ouvert dans la cuisine sans aucune raison, et ça nous a fait du bien à tous les deux. Je bourdonne davantage. — le parapluie" },
+  { who: 'M. Penhaligon',
+    clues: ["Ça a un cadran, une sorte de visage. Mais ce n'est pas une personne.", "C'est lent. Vingt minutes de retard. Je préfère comme ça.", "C'est au bout d'une chaîne. C'était à mon père. Ça fait tic-tac plus fort le dimanche."],
+    item: ['Montre de gousset', 'Montre de gousset, laiton, avec chaîne. Retarde de 20 minutes. Remarques : tic-tac irrégulier.', 'Marches de la mairie'],
+    decoys: [['Réveil de voyage', "Réveil de voyage. Toujours à l'heure. Personne n'en veut.", 'Quai 4', "Celui-ci est exact. Le mien ne l'a jamais été. C'est tout l'intérêt."],
+      ['Poupée', 'Poupée, visage en porcelaine. Remarques : vous regarde.', 'Café, sous la table 6', 'Ça a un visage. Et un regard, aussi. Le mien a des aiguilles, deux, toutes petites.'],
+      ['Montre de gousset', 'Montre de gousset, argent, avec chaîne. Arrêtée à 4 h 12.', 'Piscine, ligne 2', 'Celle-ci est arrêtée. La mienne est seulement en retard, comme son propriétaire.']],
+    thanks: "Et vingt. Ou moins vingt. Dans tous les cas, je suis à l'heure pour la première fois de la semaine.",
+    note: "Toujours vingt minutes de retard. Il dit que c'est là que les bonnes choses arrivent. — la montre" },
+  { who: 'Dev, 7 ans',
+    clues: ["Il est marron et il s'appelle Gérald.", "Il a un seul œil. L'autre, c'est un bouton.", "Il sent comme l'intérieur de mon manteau. Il a un pull que ma mamie a tricoté."],
+    item: ['Ours en peluche', 'Ours en peluche, marron, pull tricoté. Un œil, un bouton (remplacement).', 'Tram 12'],
+    decoys: [['Ours en peluche', 'Ours en peluche, marron, deux yeux, sans vêtements. Remarques : air mal-aimé.', 'Banc du parc', "C'est pas Gérald. Cet ours a deux yeux. Cet ours a jamais rien vécu."],
+      ['Gant', 'Gant, cuir marron. Étiquette intérieure : GÉRALD (le propriétaire, sans doute).', 'Station de taxis', "C'est un gant. Y a écrit Gérald dedans, mais c'est un gant. J'ai sept ans, je suis pas bête."],
+      ['Ours en peluche', 'Ours en peluche, marron, un œil, un bouton. Sans pull.', 'Bibliothèque, coin enfants', "C'est presque Gérald. Gérald porte un pull. Lui, c'est le Gérald de quelqu'un d'autre."]],
+    thanks: "GÉRALD. Il dit qu'il a pas eu peur. Il a eu un peu peur.",
+    note: "Ici Gérald. J'ai été lavé. Je n'étais pas d'accord, mais je me sens merveilleusement bien. — Gérald (ours)" },
+  { who: 'Mme Ferreira',
+    clues: ["C'est triste depuis mars.", "C'est vert, et c'est vivant, je crois. J'espère.", "C'est une fougère. Dans un pot en forme de chat."],
+    item: ['Fougère', 'Fougère, en pot en forme de chat. Tombante. Remarques : arrosée par le personnel (officieusement).', 'Quai 4'],
+    decoys: [['Cactus', 'Cactus, vert, pot ordinaire. Remarques : en pleine forme, content de lui.', 'Dépôt de bus', "C'est un cactus. Il va bien. Regardez-le aller bien. Le mien ne va pas bien."],
+      ['Fougère', 'Fougère, en pot de terre cuite ordinaire. En bonne santé.', 'Bibliothèque, gros caractères', 'Une fougère, mais trop contente. Et il est où, le chat ?'],
+      ['Chat en céramique', 'Chat en céramique, creux. Remarques : contient de la terre, pas de plante.', 'Café, sous la table 6', "C'est le bon genre de chat, mais il n'y a personne dedans."]],
+    thanks: "Regarde-toi. Toute une nouvelle pousse. Pendant que j'avais le dos tourné.",
+    note: "J'ai une nouvelle fronde. Elle a pleuré. Je m'épanouis. — la fougère (pot chat)" },
+  { who: 'M. Abara',
+    clues: ["Le gauche. C'est toujours le gauche.", 'En cuir. Tous ses doigts.', "Il y a un billet de théâtre dans le pouce. Une pièce, en 1994. Elle n'était pas bonne."],
+    item: ['Gant gauche', 'Gant gauche, cuir marron. Talon de billet de théâtre (1994) dans le pouce.', 'Kiosque à musique'],
+    decoys: [['Gant droit', 'Gant droit, cuir marron. Remarques : se sent seul.', 'Station de taxis', "C'est un droit. Des droits, j'en ai plein. J'ai toujours été dans mon droit."],
+      ['Gant gauche', 'Gant gauche, laine, un doigt manquant (tricoté ainsi).', 'Piscine, ligne 2', "De la laine. Et regardez, il lui manque un doigt. J'ai dit tous ses doigts."],
+      ['Gant gauche', 'Gant gauche, cuir noir. Rien dans le pouce (vérifié).', 'Bus 38, impériale', 'Presque. Mais regardez dans le pouce. Le mien a 1994 dedans.']],
+    thanks: "Rang F, place 12. C'était vraiment une pièce épouvantable.",
+    note: "La pièce était épouvantable, dit-il. Ils vont retourner la voir. — le gant gauche" },
+  { who: 'Dame Prudence Vale',
+    clues: ["Ça garde mon sourire quand je ne m'en sers pas.", "Le haut. Un fort beau dentier, d'ailleurs.", "L'une d'elles est en or. La deuxième en partant de la gauche. On n'en parle pas."],
+    item: ['Dentier', 'Dentier, haut. Une dent en or (deuxième en partant de la gauche).', 'Marches de la mairie'],
+    decoys: [['Dentier', 'Dentier, bas. Remarques : sourit.', 'Banc du parc', "C'est le bas. On ne porte pas le bas en haut. On aurait l'air d'une grenouille."],
+      ['Dentier', 'Dentier, haut, entièrement blanc. Remarques : éclatant.', 'Café, sous la table 6', "Il est à quelqu'un, mon cœur. Pas à moi. Le mien a un petit peu d'or."],
+      ['Bouton de manchette', 'Bouton de manchette, or. Seul.', 'Boulodrome', "C'est de l'or, oui, et c'est tout ce que ça a en commun avec ma bouche."]],
+    thanks: 'Splendide. Je vais pouvoir sourire au juge, finalement.',
+    note: "Nous avons souri à un juge. Ça s'est extrêmement bien passé. — le dentier (haut)" },
+  { who: 'Kwame, coursier',
+    clues: ["C'est une boîte. C'est pour quelqu'un d'autre.", 'Il y a écrit FRAGILE dessus, mais sur un ton calme.', 'Ça cliquette. Ça ne devrait pas cliqueter. Ne leur dites rien, s’il vous plaît.'],
+    item: ['Colis', 'Colis, papier kraft. Mention « fragile (svp) ». Cliquette.', 'Tram 12'],
+    decoys: [['Colis', 'Colis, papier kraft. Mention FRAGILE !!! en rouge. Silencieux.', 'Dépôt de bus', 'Celui-là crie. Le mien demande gentiment. Et le mien cliquette, désolé.'],
+      ['Boîte à chaussures', "Boîte à chaussures, vide. Remarques : pleine d'espoir.", 'Piscine, ligne 2', "C'est une boîte, mais elle est vide. La mienne est pleine d'un truc cassé."],
+      ['Boîte à biscuits', 'Boîte à biscuits, métal. Cliquette (boutons).', 'Bibliothèque, gros caractères', "Ça cliquette, d'accord, mais c'est une boîte en fer. Moi, je livre des colis. J'ai une réputation."]],
+    thanks: "Super. Si ça cliquette, ça cliquette. Je dirai que c'était déjà comme ça.",
+    note: "Livré. C'était une théière. Elle allait forcément cliqueter. Tout le monde a été très gentil. — le colis" },
+  { who: 'Agnès',
+    clues: ['Il parle. Pas beaucoup. Surtout le matin.', 'Il est petit, et il vit sur le rebord de la fenêtre.', "C'est un transistor. Il ne capte qu'une station : la météo marine. Ça me va."],
+    item: ['Radio', 'Petit transistor. Bloqué sur grandes ondes (météo marine).', 'Banc du parc'],
+    decoys: [['Cage à oiseau', "Cage à oiseau, vide. L'oiseau a été rapporté ailleurs.", 'Kiosque à musique', "Oh, je vois pourquoi vous pensez ça. Non, ce n'est pas un oiseau. Il chante encore plus mal."],
+      ['Radio', 'Radio, grande, toutes stations. Remarques : très bavarde.', 'Dépôt de bus', 'Celle-là a beaucoup trop de choses à dire.'],
+      ['Radio-réveil', 'Radio-réveil. Vous réveille avec de la variété.', 'Quai 4', 'De la variété. Non. Lui, il me parle de Pas-de-Calais.']],
+    thanks: 'Pas-de-Calais, Antifer, Casquets. Le voilà.',
+    note: 'Pas-de-Calais, Antifer, Casquets : peu agité à agité. Nous sommes tous les deux peu agités à agités. — la radio' },
+  { who: 'Fen',
+    clues: ["C'est long, ça me tient chaud et c'est ma mamie qui l'a fait.", 'Rouge, surtout. Il y a une erreur dedans.', "L'erreur est à peu près au tiers. Un trou. On peut mettre son pouce dedans."],
+    item: ['Écharpe', 'Écharpe, rouge, tricotée main. Maille sautée (trou) vers le premier tiers.', 'Bus 38, impériale'],
+    decoys: [['Écharpe', 'Écharpe, rouge, du commerce. Impeccable.', 'Marches de la mairie', "Trop parfaite. Mamie ne fait pas dans le parfait. Mamie fait dans l'amour."],
+      ['Écharpe', 'Écharpe, bleue, tricotée main. Trou au premier tiers.', 'Station de taxis', "Bon trou, mauvaise couleur. La mamie de quelqu'un d'autre."],
+      ['Chaussette', 'Chaussette, rouge, extrêmement longue. Tricotée main.', 'Piscine, ligne 2', "C'est une chaussette. Bon, c'est presque une écharpe. Mais c'est une chaussette."]],
+    thanks: 'Le trou pour le pouce. Merci. Je sens le trou pour le pouce.',
+    note: "Elle a mis son pouce dans le trou, dans le bus. Personne n'a jugé. P.-S. Une femme au dépôt n'arrête pas de demander si quelqu'un a vu un bureau." },
+  { who: 'M. Lindqvist',
+    clues: ['Toutes mes pensées sont dedans. Pas les bonnes.', "Noir, avec l'élastique autour. À moitié rempli.", "Page quarante et un, il y a un dessin de canard. Ce n'est pas un bon canard."],
+    item: ['Carnet', 'Carnet, noir, élastique. À moitié utilisé. Mauvais canard, p. 41.', 'Café, sous la table 6'],
+    decoys: [['Carnet', 'Carnet, noir, élastique. Vierge. Remarques : plein de potentiel.', 'Quai 4', "Celui-ci est vide. Le mien est à moitié plein de choses que je n'aurais pas dû écrire."],
+      ['Carnet de croquis', "Carnet de croquis, rempli d'excellents canards.", 'Banc du parc', "Ces canards sont bons. Mon canard n'a jamais été bon."],
+      ['Agenda 2019', 'Agenda 2019, noir. Remarques : il manque presque tout mars.', 'Bibliothèque, gros caractères', "Je ne veux pas savoir ce qui s'est passé en mars."]],
+    thanks: 'Page quarante et un. Regardez-le. Un canard épouvantable.',
+    note: "Il a dessiné un deuxième canard. Encore pire. Il est tellement content. P.-S. La femme du dépôt a décrit le bureau. Ça nous a dit quelque chose." },
+  { who: 'Béa',
+    clues: ["J'en ai besoin pour le concert. Ce soir.", "C'est brillant et on souffle dedans.", "C'est comme une trompette, mais en plus petit. Un cornet. Il est cabossé depuis qu'il est tombé dans l'escalier."],
+    item: ['Cornet', "Cornet à pistons, laiton. Bosse sur le pavillon. Remarques : tombé dans l'escalier (d'après la bosse).", 'Kiosque à musique'],
+    decoys: [['Trompette', 'Trompette, laiton, sans bosse.', 'Dépôt de bus', "C'est une trompette. Trop longue. Elle n'est jamais tombée de nulle part."],
+      ['Kazoo', 'Kazoo, argenté. Brillant. On souffle dedans.', 'Station de taxis', 'Je joue dans une fanfare.'],
+      ['Cornet', 'Cornet à pistons, plaqué argent, état neuf.', 'Marches de la mairie', "Un cornet, mais sans bosse. Il n'a pas vécu."]],
+    thanks: 'La bosse. Oh, la bosse. On passe à vingt heures.',
+    note: "On a joué. La bosse a apporté quelque chose. P.-S. Sur les étagères, tout le monde s'est mis à parler de l'étiquette #0001." },
+  { who: 'M. Duvall',
+    clues: ['Je le reconnaîtrai quand je le verrai.', "C'est une clé. Elle ouvre quelque chose d'important.", "En laiton, avec une étiquette CABANON. Le cabanon, c'est ce que j'ai de plus important."],
+    item: ['Clé', 'Clé, laiton, étiquette CABANON.', 'Boulodrome'],
+    decoys: [['Clé', 'Clé, laiton, étiquette MAISON.', 'Tram 12', 'Maison. Non. Tout le monde a une maison.'],
+      ['Trousseau', 'Trousseau, neuf clés, sans étiquettes. Remarques : toute une vie.', 'Quai 4', "Ça, c'est toute une vie. La mienne, c'est une seule clé. La mienne, c'est un cabanon."],
+      ['Clé', 'Clé, argentée, sans étiquette.', 'Bibliothèque, gros caractères', "Argentée. Je ne suis pas porté sur l'argent."]],
+    thanks: "Le cabanon. Le cabanon. Merci. Je vais aller m'asseoir dedans.",
+    note: "Le cabanon est ouvert. Il y est resté assis tout l'après-midi. P.-S. Avez-vous déjà lu la ligne du registre pour #0001 ?" },
+  { who: 'Imelda',
+    clues: ["C'est une chevelure entière. Elle n'est pas sur une tête.", 'Auburn. Pas roux. Auburn.', "Il y a une épingle en forme d'hirondelle dedans."],
+    item: ['Perruque', 'Perruque, auburn, mi-longue. Épingle hirondelle.', 'Marches de la mairie'],
+    decoys: [['Perruque', 'Perruque, rousse. Remarques : très rousse.', 'Dépôt de bus', "C'est roux. On en a déjà parlé."],
+      ['Perruque', 'Perruque, auburn, mi-longue. Sans accessoire.', 'Piscine, ligne 2', 'Bonne couleur. Mauvais oiseau. Il devrait y avoir une petite hirondelle.'],
+      ['Brosse à cheveux', 'Brosse à cheveux, pleine de cheveux auburn.', 'Café, sous la table 6', 'Ce sont les cheveux, mais pas toute la chevelure.']],
+    thanks: 'Te voilà. On va danser.',
+    note: "Nous sommes allées danser. J'étais la chevelure. P.-S. Nous avons donné votre adresse à la femme du dépôt." },
+  { who: 'Ravi',
+    clues: ["Je ne peux pas les décrire. Je n'y vois rien sans elles.", 'Des lunettes. Évidemment. Épaisses.', 'Écaille. Une branche a un pansement.'],
+    item: ['Lunettes', 'Lunettes, écaille, verres épais. Pansement sur la branche gauche.', 'Bibliothèque, gros caractères'],
+    decoys: [['Lunettes de soleil', 'Lunettes de soleil, noires. Remarques : stylées.', 'Kiosque à musique', 'Je n’y vois rien, mais je vois bien que ce sont des lunettes de soleil.'],
+      ['Lunettes', 'Lunettes, écaille, verres épais. Intactes.', 'Banc du parc', 'Elles sont… presque. Pas de pansement ? Alors ce ne sont pas les miennes.'],
+      ['Lunettes', 'Lunettes, monture métal. Pansement sur la branche.', 'Tram 12', "Du métal. Je suis allergique au métal. Et à l'erreur."]],
+    thanks: 'Oh. Tout est beaucoup plus net que je ne pensais. Vous compris.',
+    note: "Il me voit, maintenant. Il dit que je n'ai pas changé. C'est faux. P.-S. Elle vient le jour 90. Soyez au bureau. Vous êtes toujours au bureau." },
+  { who: 'Mme Achterberg',
+    clues: ["C'est un gâteau. Enfin, c'était. Dans une boîte.", 'Une boîte ronde, avec des roses dessus.', "Un quatre-quarts. Pour l'anniversaire de ma sœur. Qui était. Il est toujours dedans ?"],
+    item: ['Boîte à gâteau', 'Boîte à gâteau, ronde, roses. Contient un quatre-quarts (21e jour de quatre-quarts).', 'Quai 4'],
+    decoys: [['Boîte à gâteau', 'Boîte à gâteau, ronde, roses. Vide.', 'Dépôt de bus', "Vide. Quelqu'un a mangé mon quatre-quarts."],
+      ['Boîte à biscuits', 'Boîte à biscuits, carrée, roses.', 'Station de taxis', 'Carrée. Un quatre-quarts ne peut pas vivre dans un carré.'],
+      ['Boîte à gâteau', 'Boîte à gâteau, unie. Contient un cake aux fruits (pour une durée indéterminée).', 'Boulodrome', 'Du cake aux fruits. Ça nous survivra à tous.']],
+    thanks: 'Il est toujours dedans. Il est devenu un peu… ferme.',
+    note: "Le quatre-quarts a été grillé et déclaré « correct ». Sa sœur a pardonné à tout le monde. P.-S. Personne ici n'a jamais été perdu. Nous attendions simplement avec vous." },
+  { who: 'M. Bright',
+    clues: ['Il est gris et un peu frimeur.', "Ce n'est pas un oiseau. Les gens croient toujours que c'est un oiseau. C'est une chaussure.", 'Daim gris, pointure 43, la gauche. Elle ne va avec rien.'],
+    item: ['Chaussure', 'Chaussure, daim gris, gauche, pointure 43.', 'Station de taxis'],
+    decoys: [['Pigeon', 'Pigeon, gris. Trouvé sur le bureau. Refuse de partir. Pas techniquement perdu.', 'Ici', "C'est un oiseau. J'ai dit que ce n'est pas un oiseau. Tout le monde fait ça."],
+      ['Chaussure', 'Chaussure, daim gris, droite, pointure 43.', 'Banc du parc', "C'est la droite. La droite et la gauche ne se parlent plus."],
+      ['Chaussure', 'Chaussure, daim noir, gauche, pointure 43.', 'Bus 38, impériale', 'Noire. La mienne est grise. Elle serait furieuse.']],
+    thanks: 'La voilà. Déjà en train de frimer.',
+    note: "Réunie avec la droite. Elles se disputent sans arrêt. C'est charmant. P.-S. Demain, ça fera quatre-vingt-dix jours." },
+  { who: 'Olu',
+    clues: ["Toute ma musique est dessus, et rien n'est bien.", 'Petit, avec une pince. Argenté.', "Il y a un autocollant au dos : PROPRIÉTÉ D'OLU. Olu, c'est moi."],
+    item: ['Lecteur MP3', "Lecteur MP3, argenté, pince. Autocollant : PROPRIÉTÉ D'OLU.", 'Tram 12'],
+    decoys: [['Téléphone', 'Téléphone portable, argenté. 3 appels manqués.', 'Dépôt de bus', "Un téléphone. Ma musique n'a pas le droit d'approcher des téléphones."],
+      ['Lecteur MP3', 'Lecteur MP3, noir, pince. Sans autocollant.', 'Bibliothèque, gros caractères', 'Noir. Et il est où, mon nom ?'],
+      ['Briquet', 'Briquet, argenté, pince.', 'Kiosque à musique', "Ça, en gros, c'est du feu."]],
+    thanks: 'Piste un. Toujours nulle. Merci.' },
+  { who: 'Mme Haversham-Ng',
+    clues: ["C'est un chapeau. Il est allé à un mariage.", 'Large bord. Lilas.', 'Il y a encore des confettis dans le ruban. De petits cœurs en papier de riz.'],
+    item: ['Chapeau', 'Chapeau, lilas, large bord. Confettis en papier de riz dans le ruban.', 'Marches de la mairie'],
+    decoys: [['Chapeau', 'Chapeau, lilas, petit, tambourin.', 'Café, sous la table 6', "Trop petit. C'est un chapeau pour un mariage beaucoup plus court."],
+      ['Chapeau', 'Chapeau, blanc, large bord.', 'Banc du parc', "Blanc. On ne porte pas de blanc à un mariage, sauf si c'est le sien."],
+      ['Chapeau', 'Chapeau, lilas, large bord. Plume dans le ruban.', 'Boulodrome', 'Une plume. Non. Le mien a les confettis. Il y en avait partout.']],
+    thanks: 'Les cœurs ! Toujours là. Je vais à un autre mariage samedi.' },
+];
+const FR_FILLERS = [
+  ['Cône de chantier', "Cône de chantier, orange. Trouvé à l'intérieur de la banque. Personne ne sait comment.", 'Agence de la Grand-Rue'],
+  ['Patin à roulettes', 'Patin à roulettes, gauche. Le droit a été rapporté dans un autre bureau. Aucun des deux bureaux ne veut céder le premier.', 'Kiosque à musique'],
+  ['Thermos', 'Bouteille isotherme, écossaise. Encore chaude. Ici depuis 61 jours.', 'Quai 4'],
+  ['Mug', 'Mug, inscription « DEUXIÈME MEILLEUR PAPI DU MONDE ». Honnête.', 'Café, sous la table 6'],
+  ['Sac de sacs', 'Sac plastique contenant 41 sacs plastique. Le propriétaire saura.', 'Bus 38, impériale'],
+  ['Livre de poche', 'Livre de poche, « Le Rouge et le Noir ». Marque-page p. 12. Abandonné plutôt que perdu.', 'Bibliothèque, gros caractères'],
+  ['Bouillotte', 'Bouillotte, housse tricotée. La housse a un visage.', 'Piscine, ligne 2'],
+  ['Téléphone', 'Téléphone portable, 1999. Encore trois barres. 212 appels manqués, tous de MAMAN.', 'Station de taxis'],
+  ['Bague', "Bague de fiançailles, dans son écrin. L'écrin contient aussi un mot : NON.", 'Marches de la mairie'],
+  ['Parapluie', 'Parapluie retourné, définitivement. Remarques : en paix avec ça.', 'Boulodrome'],
+  ['Cage à oiseau', 'Cage à oiseau contenant une cage à oiseau plus petite.', 'Banc du parc'],
+  ['Horloge', "Horloge de cuisine, sans pile. À l'heure deux fois par jour, fièrement.", 'Dépôt de bus'],
+];
+
+const I18N = {
+  en: {
+    docTitle: 'Lost & Found: The Sequel',
+    langGroup: 'Language',
+    q: s => `“${s}”`,
+    keys: { keep: 'k', desk: 'd' },
+    cases: CASES.map(textOfCase),
+    fillers: FILLERS.map(f => f.slice(1)),
+    desk: { who: DESK_OWNER.who, clues: DESK_OWNER.clues },
+    dayIntro: DAY_INTRO,
+    headH: 'Lost Property', sDay: 'day', sRet: 'reunited', sOut: 'walked out', sKept: 'in your drawer',
+    hatchAria: 'The serving hatch. Whoever is waiting stands behind it.',
+    ring: 'PLEASE RING · ONCE',
+    whoClosed: 'Hatch closed', whoOpen: 'Hatch open', greaves: 'Greaves & Daughter (Clearance)',
+    moods: { hopeful: 'hopeful', watch: 'checking watch', leaflets: 'sighing at the leaflets', door: 'looking at the door', happy: 'leaving, delighted', police: 'gone to the police' },
+    noneTag: 'Nothing selected', noneLedger: 'Pick something off the shelves to read its ledger line.',
+    give: 'Hand over', keep: 'Keep it', putBack: 'Put it back', kbdGive: 'enter', kbdKeep: 'K',
+    giveDesk: 'Hand over the desk', keepDesk: 'Keep the desk',
+    deskTag: 'Tag #0001',
+    deskLedger: 'Desk, oak, four drawers (one sticks), brass bell. Found: here. Remarks: found with clerk seated at it. Owner: not yet known.',
+    deskMeta: day => `Held ${day} of 90 days. The oldest entry in the ledger by some distance.`,
+    noteTag: tag => `Tag ${tag} · came back`,
+    noteMeta: 'Condition on return: slightly happier. Not re-entered in the ledger. There is no column for this.',
+    tag: tag => `Tag ${tag}`,
+    keptMeta: 'In your drawer. Officially, nowhere.',
+    foundMeta: (found, held) => `Found: ${found}. Held ${held} of 90 days.`,
+    itemAria: (tag, short) => `Tag ${tag}, ${short}`,
+    bayAria: 'Shelving bay', plate: "Bay 3 · Dexion · today's likely items",
+    deskAria: 'Your desk', deskH: 'Your desk', deskTagAria: 'The label on your desk: number 0001',
+    trayH: 'Came back overnight', drawerH: 'Your drawer',
+    trayNone: 'Nothing yet. Things come back the morning after you return them.',
+    drawerNone: 'Empty. Keep it that way, the ledger says.',
+    titleSmall: 'Borough of Upper Hatch · Lost Property Office · counter 2',
+    titleH: 'Lost &amp; Found<small>The Sequel</small>',
+    titleLede: 'Not a sequel to anything. Everything in here has been lost at least once before.',
+    titleIntro: 'People come to the hatch and describe what they lost, badly. Find it on the shelves, read its ledger line, and hand it over before they give up. Every item is held for 90 days, then the disposal contractor takes it.',
+    startBtn: 'Open the desk',
+    rule1: '<b>Click or tap</b>an item to read its ledger line. Arrow keys work too.',
+    rule2: '<b>Hand over</b>the one that matches. Enter. A wrong one costs them patience; three wrong and they go to the police.',
+    rule3: '<b>Wait</b>and they remember more. They always remember more.',
+    rule4: '<b>Keep it</b>puts the item in your drawer. Nobody will know. The ledger will know.',
+    titleFoot: 'About 5 minutes · five days · one desk',
+    toast: {
+      noSel: 'Pick something first. The hatch is not a lucky dip.',
+      nobody: 'Nobody is at the hatch. You hand it to the air. The air declines.',
+      deskStranger: name => `${name} looks at the desk. “I came on the bus,” they say.`,
+      visiting: 'That one already went home once. It came back by itself. It is visiting.',
+      inDrawer: 'That is in your drawer. Put it back on the shelf first, if you are going to be like that.',
+      keepWhat: 'Keep what? You would keep anything. That is the worry.',
+      keepDesk: day => 'You are already keeping the desk. You have been keeping it for ' + day + ' days.',
+      keepVisiting: 'It came back on its own. You cannot keep what is only visiting.',
+      putBack: 'Back on the shelf. The ledger relaxes slightly.',
+      drawer: ['Into the drawer. The drawer accepts it without comment.', 'Finders keepers. The ledger has a column for that. It is called “discrepancies”.', 'Into the drawer. Nobody saw. The pigeon saw.'],
+    },
+    wrongDesk: short => `“That’s a ${short.toLowerCase()}. I’d know a desk, love. I’ve carried hundreds.”`,
+    wrong: [short => `“That’s a ${short.toLowerCase()}. Is it? Yes. That’s a ${short.toLowerCase()}.”`,
+      () => '“No. Why would I have lost that?”', () => '“I can see why you’d think so. You’re wrong, but I can see it.”', () => '“That belongs to somebody, I’m sure. Not me.”'],
+    drawerSeen: '“Did you just put something in a drawer?”',
+    walkDesk: '“Ninety days. I’ll leave you to it, then.”',
+    walk: ['“I’m going to the police. They have a desk too, you know.”', '“Never mind. I’ll lose something else.”', '“It’s fine. I’ll learn to live without it. I won’t.”'],
+    disposalSay: '“Ninety days. Everything over ninety days. That’ll be… mostly the desk, Dad.”',
+    eveSmall: '17:00 · shutter down', eveTitle: day => `Day ${day}, closed`, eveGo: 'Lock up and go home',
+    eveRows: ['Reunited today', 'Walked out', 'Wrong items offered', 'In your drawer', 'Desk #0001'], eveDesk: day => `day ${day} of 90`,
+    eveText: [
+      'You pull down the shutter. The shelves settle. Somewhere in Bay 3 something hums, briefly, and stops.',
+      'You pull down the shutter. The pigeon on the desk watches you go. It is not technically lost.',
+      'You pull down the shutter. The ledger is left open at tomorrow, which is a thing it does now.',
+      'You pull down the shutter. You put your hand flat on the desk for a moment, for no reason.',
+    ],
+    mKicker: n => n ? `Morning · ${n} came back overnight` : 'Morning · nothing came back',
+    mTitle: day => `Day ${day}`, mGo: day => `Open the desk: day ${day}`,
+    mShort: ' The notes this morning are short. There were not enough of them to find anyone.',
+    mNote: (tag, short) => `Tag ${tag} · ${short} · condition: slightly happier`,
+    mUnsigned: 'Unsigned', mUnsignedText: 'We tried to give her the address. There weren’t enough of us to carry it.',
+    endRows: ['Reunited', 'Walked out', 'In your drawer', 'Came back with notes'], endOf18: n => `${n} of 18`,
+    again: 'Open the desk again', endKicker: 'Ending',
+    end: {
+      returned: { kicker: 'Ending · Returning the desk', title: 'Returned: one desk.',
+        lede: 'It takes the two of you and a bit of a lean. The bell rings once on the way out.',
+        body: () => `“Lost it moving it,” says Winifred. “Ninety days ago, between the van and a door. Then it started sending me notes. Well, not it. Things it had helped.” She looks at the shelves. Everything on them looks back, very slightly happier. You were found with the desk, the ledger says. Nobody ever came for you either. She holds the door. “Coming?”`,
+        line: 'Desk, oak. Claimed day 90 by W. Cole (removals). Clerk went with it.' },
+      hoarder: { kicker: 'Ending · Keeping everything', title: 'Finders keepers.',
+        lede: 'You put both hands flat on the desk and say, “No desk here.”',
+        body: kept => `She looks at the desk. She looks at you. She leaves, kindly, which is worse. You put the umbrella in the drawer, and then the teeth, and the shed key, and Gerald, and the drawer does not quite close, and you lean on it until it does. ${kept ? `There are ${kept + 4} things in there now, roughly. ` : ''}At 17:00 Greaves & Daughter look in, look at you, and decide not to.`,
+        line: 'Desk, oak. Kept. Also kept: everything.' },
+      disposal: { kicker: 'Ending · Disposal day', title: 'Disposal day.',
+        lede: '17:00, day 90. Greaves & Daughter back the van up to the door.',
+        body: (kept, gone) => gone
+          ? 'She came, and she waited, and she went. Everything over ninety days goes in the van, which turns out to be mostly the desk. You are still sitting at it when they lift. “Ledger says found with,” says Greaves. They are very gentle about it.'
+          : 'Nobody came for the desk. There were not enough notes to find her. Everything over ninety days goes in the van, which turns out to be mostly the desk. You are still sitting at it when they lift. “Ledger says found with,” says Greaves. They are very gentle about it.',
+        line: 'Desk, oak. Disposed of, day 90. Clerk: see above.' },
+    },
+  },
+  fr: {
+    docTitle: 'Objets trouvés : le retour',
+    langGroup: 'Langue',
+    q: s => `« ${s} »`,
+    // G for garder, B for bureau.
+    keys: { keep: 'g', desk: 'b' },
+    cases: FR_CASES,
+    fillers: FR_FILLERS,
+    desk: { who: 'Winifred Cole, déménagements',
+      clues: ["C'est marron. Enfin, ça l'était. C'est très grand, et ça a beaucoup travaillé.", "Quatre tiroirs. Un qui coince. Il y a une sonnette dessus, et les gens sonnent quand ils veulent quelque chose.", 'Ça a disparu il y a quatre-vingt-dix jours. Vous avez les coudes dessus, mon chou.'] },
+    dayIntro: {
+      86: "Registre, page 86. Le prestataire d'enlèvement, Greaves & Fille, emporte tout ce qui est gardé plus de 90 jours. Rien sur les étagères n'en approche. L'entrée la plus ancienne du registre est la #0001 : le bureau où vous travaillez, auquel vous n'avez jamais réfléchi.",
+      87: "Registre, page 87. Pendant la nuit, les objets rendus hier sont revenus d'eux-mêmes, un peu plus heureux, avec des mots. Ce n'est pas dans le manuel des procédures. Vous avez vérifié.",
+      88: "Registre, page 88. D'autres sont revenus. Le bac se remplit. Chaque mot est adressé au bureau, ce qui est curieux, parce que le bureau n'est pas une personne : c'est un bureau.",
+      89: 'Registre, page 89. Les mots ont commencé à avoir des post-scriptum. Les post-scriptum ont commencé à être d’accord entre eux.',
+      90: 'Registre, page 90. Bureau #0001 : jour 90 sur 90. Greaves & Fille sont attendus à 17 h.',
+    },
+    headH: 'Objets trouvés', sDay: 'ᵉ jour', sRet: 'retrouvés', sOut: 'repartis', sKept: 'dans votre tiroir',
+    hatchAria: 'Le guichet. La personne qui attend se tient derrière.',
+    ring: 'SONNEZ · UNE FOIS',
+    whoClosed: 'Guichet fermé', whoOpen: 'Guichet ouvert', greaves: 'Greaves & Fille (débarras)',
+    // Nouns and invariable phrases: whoever is at the hatch, the mood line needs no agreement.
+    moods: { hopeful: 'espoir', watch: 'regarde sa montre', leaflets: 'soupire devant les dépliants', door: 'regarde la porte', happy: 'repart aux anges', police: 'direction la police' },
+    noneTag: 'Rien de sélectionné', noneLedger: 'Prenez quelque chose sur les étagères pour lire sa ligne du registre.',
+    give: 'Remettre', keep: 'Le garder', putBack: 'Le remettre en rayon', kbdGive: 'entrée', kbdKeep: 'G',
+    giveDesk: 'Remettre le bureau', keepDesk: 'Garder le bureau',
+    deskTag: 'Étiquette #0001',
+    deskLedger: 'Bureau, chêne, quatre tiroirs (un qui coince), sonnette en laiton. Trouvé : ici. Remarques : trouvé avec la personne du guichet assise devant. Propriétaire : encore inconnu.',
+    deskMeta: day => `Gardé depuis ${day} jours sur 90. L'entrée la plus ancienne du registre, et de loin.`,
+    noteTag: tag => `Étiquette ${tag} · revenu`,
+    noteMeta: "État au retour : moral en hausse. Pas réinscrit au registre. Il n'y a pas de colonne pour ça.",
+    tag: tag => `Étiquette ${tag}`,
+    keptMeta: 'Dans votre tiroir. Officiellement, nulle part.',
+    foundMeta: (found, held) => `Trouvé : ${found}. Gardé depuis ${held} jours sur 90.`,
+    itemAria: (tag, short) => `Étiquette ${tag}, ${short}`,
+    bayAria: 'Travée de rayonnages', plate: 'Travée 3 · Dexion · objets probables du jour',
+    deskAria: 'Votre bureau', deskH: 'Votre bureau', deskTagAria: "L'étiquette de votre bureau : numéro 0001",
+    trayH: 'Revenus cette nuit', drawerH: 'Votre tiroir',
+    trayNone: 'Rien pour l’instant. Les objets reviennent le lendemain du jour où vous les rendez.',
+    drawerNone: 'Vide. Que ça reste ainsi, dit le registre.',
+    titleSmall: 'Commune de Haut-Guichet · Bureau des objets trouvés · guichet 2',
+    titleH: 'Objets trouvés<small>Le retour</small>',
+    titleLede: "Le retour de rien du tout. Tout ce qui est ici a déjà été perdu au moins une fois.",
+    titleIntro: "Les gens viennent au guichet et décrivent ce qu'ils ont perdu, mal. Trouvez-le sur les étagères, lisez sa ligne du registre et remettez-le avant qu'ils renoncent. Chaque objet est gardé 90 jours, puis le prestataire d'enlèvement l'emporte.",
+    startBtn: 'Ouvrir le guichet',
+    rule1: '<b>Cliquez ou touchez</b>un objet pour lire sa ligne du registre. Les flèches marchent aussi.',
+    rule2: '<b>Remettez</b>celui qui correspond. Entrée. Un mauvais objet leur coûte de la patience ; trois erreurs et ils vont à la police.',
+    rule3: '<b>Attendez</b>et la mémoire leur revient. Elle leur revient toujours.',
+    rule4: '<b>Gardez-le</b>et l’objet file dans votre tiroir. Personne ne saura. Le registre saura.',
+    titleFoot: 'Environ 5 minutes · cinq jours · un bureau',
+    toast: {
+      noSel: "Choisissez d'abord quelque chose. Le guichet n'est pas une pêche aux canards.",
+      nobody: "Il n'y a personne au guichet. Vous le tendez au vide. Le vide décline.",
+      deskStranger: name => `${name} regarde le bureau : « Moi, j'ai pris le bus. »`,
+      visiting: 'Celui-là est déjà rentré chez lui une fois. Il est revenu tout seul. Il est en visite.',
+      inDrawer: "C'est dans votre tiroir. Remettez-le d'abord en rayon, si c'est comme ça.",
+      keepWhat: "Garder quoi ? Vous garderiez n'importe quoi. C'est bien ça, le souci.",
+      keepDesk: day => `Vous gardez déjà le bureau. Vous le gardez depuis ${day} jours.`,
+      keepVisiting: 'Il est revenu de lui-même. On ne garde pas ce qui est seulement en visite.',
+      putBack: 'De retour en rayon. Le registre se détend un peu.',
+      drawer: ["Dans le tiroir. Le tiroir l'accepte sans commentaire.", 'Qui trouve garde. Le registre a une colonne pour ça. Elle s’appelle « écarts ».', "Dans le tiroir. Personne n'a vu. Le pigeon a vu."],
+    },
+    wrongDesk: short => `« ${short} ? Je reconnaîtrais un bureau, mon chou. J'en ai porté des centaines. »`,
+    wrong: [short => `« ${short}… C'est bien ça ? Oui. ${short}. »`,
+      () => "« Non. Pourquoi est-ce que j'aurais perdu ça ? »", () => '« Je vois pourquoi vous pensez ça. Vous vous trompez, mais je vois. »', () => "« Ça appartient bien à quelqu'un. Pas à moi. »"],
+    drawerSeen: '« Vous venez de mettre quelque chose dans un tiroir ? »',
+    walkDesk: '« Quatre-vingt-dix jours. Je vous laisse, alors. »',
+    walk: ['« Je vais à la police. Ils ont un bureau, eux aussi, vous savez. »', '« Tant pis. Je perdrai autre chose. »', "« Ce n'est rien. J'apprendrai à vivre sans. Non. »"],
+    disposalSay: '« Quatre-vingt-dix jours. Tout ce qui dépasse quatre-vingt-dix jours. Ça fera… surtout le bureau, papa. »',
+    eveSmall: '17 h · rideau baissé', eveTitle: day => `Jour ${day}, fermé`, eveGo: 'Fermer à clé et rentrer',
+    eveRows: ["Retrouvés aujourd'hui", 'Repartis sans rien', 'Mauvais objets proposés', 'Dans votre tiroir', 'Bureau #0001'], eveDesk: day => `jour ${day} sur 90`,
+    eveText: [
+      "Vous baissez le rideau. Les étagères se tassent. Quelque part dans la travée 3, quelque chose bourdonne brièvement, puis s'arrête.",
+      "Vous baissez le rideau. Le pigeon sur le bureau vous regarde partir. Il n'est pas techniquement perdu.",
+      "Vous baissez le rideau. Le registre reste ouvert à la page de demain, ce qu'il fait maintenant.",
+      'Vous baissez le rideau. Vous posez la main à plat sur le bureau un instant, sans raison.',
+    ],
+    mKicker: n => n ? `Matin · ${n} revenu${n > 1 ? 's' : ''} cette nuit` : "Matin · rien n'est revenu",
+    mTitle: day => `Jour ${day}`, mGo: day => `Ouvrir le guichet : jour ${day}`,
+    mShort: " Les mots, ce matin, sont courts. Il n'y en avait pas assez pour retrouver qui que ce soit.",
+    mNote: (tag, short) => `Étiquette ${tag} · ${short} · état : moral en hausse`,
+    mUnsigned: 'Non signé', mUnsignedText: "On a essayé de lui donner l'adresse. On n'était pas assez nombreux pour la porter.",
+    endRows: ['Retrouvés', 'Repartis sans rien', 'Dans votre tiroir', 'Revenus avec un mot'], endOf18: n => `${n} sur 18`,
+    again: 'Rouvrir le guichet', endKicker: 'Fin',
+    end: {
+      returned: { kicker: 'Fin · Le bureau rendu', title: 'Rendu : un bureau.',
+        lede: 'Il faut vous y mettre à deux, en le penchant un peu. La sonnette tinte une fois au passage de la porte.',
+        body: () => "« Je l'ai perdu en le déménageant, dit Winifred. Il y a quatre-vingt-dix jours, entre le camion et une porte. Et puis il s'est mis à m'envoyer des mots. Enfin, pas lui. Les choses qu'il avait aidées. » Elle regarde les étagères. Tout ce qui s'y trouve la regarde en retour, un peu plus heureux. Le registre dit que le bureau a été trouvé avec vous. Personne n'est jamais venu vous chercher non plus. Elle tient la porte. « Vous venez ? »",
+        line: 'Bureau, chêne. Réclamé le jour 90 par W. Cole (déménagements). Le personnel du guichet a suivi.' },
+      hoarder: { kicker: 'Fin · Tout garder', title: 'Qui trouve garde.',
+        lede: 'Vous posez les deux mains à plat sur le bureau et dites : « Pas de bureau ici. »',
+        body: kept => `Elle regarde le bureau. Elle vous regarde. Elle s'en va, gentiment, ce qui est pire. Vous mettez le parapluie dans le tiroir, puis le dentier, et la clé du cabanon, et Gérald, et le tiroir ne ferme plus tout à fait, et vous appuyez dessus jusqu'à ce qu'il ferme. ${kept ? `Il y a à peu près ${kept + 4} choses là-dedans, maintenant. ` : ''}À 17 h, Greaves & Fille passent la tête, vous regardent, et décident que non.`,
+        line: 'Bureau, chêne. Gardé. Également gardé : tout.' },
+      disposal: { kicker: "Fin · Jour d'enlèvement", title: "Jour d'enlèvement.",
+        lede: '17 h, jour 90. Greaves & Fille reculent le camion jusqu’à la porte.',
+        body: (kept, gone) => (gone
+          ? "Elle est venue, elle a attendu, elle est repartie. "
+          : "Personne n'est venu chercher le bureau. Il n'y avait pas assez de mots pour la retrouver. ")
+          + "Tout ce qui a plus de quatre-vingt-dix jours part dans le camion, c'est-à-dire surtout le bureau. Vous êtes encore à votre poste quand ils soulèvent. « Le registre dit "
+          + "“trouvé avec” », dit Greaves. Ils y mettent beaucoup de douceur.",
+        line: 'Bureau, chêne. Enlevé le jour 90. Personnel du guichet : voir ci-dessus.' },
+    },
+  },
+};
+
+// French typography: a narrow no-break space before ? ! : ; » and after «, applied once to every
+// French string and to whatever a French string function returns. It only fires after a space,
+// so 17:00-style times are safe.
+(function frenchSpacing() {
+  const fix = s => s.replace(/ ([?!:;»])/g, ' $1').replace(/« /g, '« ');
+  const deep = v => typeof v === 'string' ? fix(v)
+    : typeof v === 'function' ? (...a) => deep(v(...a))
+    : Array.isArray(v) ? v.map(deep)
+    : v && typeof v === 'object' ? Object.fromEntries(Object.entries(v).map(([k, x]) => [k, deep(x)]))
+    : v;
+  I18N.fr = deep(I18N.fr);
+})();
+
+let lang = 'en';
+const t = k => I18N[lang][k] ?? I18N.en[k];
+// Same order and shape in both languages, or a decoy would answer with another decoy's line.
+for (const [i, c] of I18N.en.cases.entries()) {
+  const f = I18N.fr.cases[i];
+  if (!f || f.clues.length !== c.clues.length || f.decoys.length !== c.decoys.length || !f.note !== !c.note) console.error(`i18n: case ${i} differs`);
+}
+if (I18N.fr.fillers.length !== I18N.en.fillers.length) console.error('i18n: fillers differ');
+
+const caseText = c => c.desk ? t('desk') : t('cases')[CASES.indexOf(c)];
+// [short, ledger, found, no] for an item, from its ids.
+function itemText(it) {
+  if (it.role === 'filler') return [...t('fillers')[it.fi], ''];
+  const c = t('cases')[it.caseI];
+  return it.role === 'target' ? [...c.item, ''] : c.decoys[it.di];
+}
+
+let S;
+let uid = 0;
+function makeItem(ic, role, extra = {}, fits = 0) {
+  return { id: ++uid, tag: 4400 + Math.floor(Math.random() * 300), ic, fits, role, held: 9 + Math.floor(Math.random() * 70), ...extra };
+}
+function fresh(best) {
+  return { mode: 'title', t: 0, dayI: 0, day: 86, queue: [], owner: null, gapT: 0, shelf: [], sel: null, ret: 0, out: 0, kept: [],
+    tray: [], pending: [], dayRet: 0, dayOut: 0, dayWrong: 0, wrongs: 0, best: best ?? 0, ending: null, endT: 0, toastT: 0, leaving: null, anim: 0, deskComes: false,
+    talk: [], toast: null, whoKey: 'whoClosed', mood: '' };
+}
+
+function dayCases(i) { return i < 4 ? CASES.slice(i * 4, i * 4 + 4) : CASES.slice(16, 18); }
+function buildShelf(i) {
+  const cases = dayCases(i), items = [];
+  cases.forEach(c => {
+    const caseI = CASES.indexOf(c);
+    items.push(makeItem(c.item[0], 'target', { caseI }, 3));
+    c.decoys.forEach((d, di) => items.push(makeItem(d[0], 'decoy', { caseI, di }, d[4])));
+  });
+  const fill = FILLERS.map((f, fi) => fi).sort(() => Math.random() - .5).slice(0, 18 - items.length);
+  for (const fi of fill) items.push(makeItem(FILLERS[fi][0], 'filler', { fi }));
+  items.sort(() => Math.random() - .5);
+  // tag numbers in shelf order read like a real ledger: rising, with gaps
+  let n = 4400 + i * 60 + Math.floor(Math.random() * 20);
+  for (const it of items) { n += 1 + Math.floor(Math.random() * 4); it.tag = n; }
+  return items;
+}
+
+function renderShelf() {
+  const host = $('#shelves');
+  const rows = [];
+  for (let r = 0; r < S.shelf.length; r += 6) rows.push(S.shelf.slice(r, r + 6));
+  host.innerHTML = rows.map(row => `<div class="shelf">${row.map(it => {
+    if (!it) return '<div class="item empty"></div>';
+    const short = itemText(it)[0];
+    return `<button class="item${it.gone ? ' gone' : ''}" data-id="${it.id}" aria-label="${t('itemAria')(it.tag, short)}">${svg(it.ic)}<span>${short}</span><span class="t">${it.tag}</span></button>`;
+  }).join('')}</div>`).join('');
+  host.querySelectorAll('.item[data-id]').forEach(b => b.onclick = () => select(S.shelf.find(it => it && it.id === +b.dataset.id)));
+  markSel();
+}
+function renderTray() {
+  const tr = $('#tray'), d = $('#drawer');
+  tr.innerHTML = S.tray.length ? S.tray.map((it, i) => `<button class="chip" data-tray="${i}">${svg(it.ic)}${it.tag}</button>`).join('')
+    : `<span class="none">${t('trayNone')}</span>`;
+  tr.querySelectorAll('[data-tray]').forEach(b => b.onclick = () => select(S.tray[+b.dataset.tray]));
+  d.innerHTML = S.kept.length ? S.kept.map((it, i) => `<button class="chip" data-kept="${i}">${svg(it.ic)}${it.tag}</button>`).join('')
+    : `<span class="none">${t('drawerNone')}</span>`;
+  d.querySelectorAll('[data-kept]').forEach(b => b.onclick = () => select(S.kept[+b.dataset.kept]));
+}
+const DESK = { desk: true, tag: '0001', ic: 'desk' };
+function select(it) {
+  if (!it || S.mode !== 'serving' && S.mode !== 'gap') return;
+  S.sel = it;
+  renderSlip();
+  markSel();
+}
+function renderSlip() {
+  const it = S.sel, give = $('#b-give'), keep = $('#b-keep');
+  if (!it) {
+    $('#slip-tag').textContent = t('noneTag');
+    $('#slip-ledger').textContent = t('noneLedger');
+    $('#slip-meta').textContent = '';
+    give.textContent = t('give'); keep.textContent = t('keep');
+  } else if (it.desk) {
+    $('#slip-tag').textContent = t('deskTag');
+    $('#slip-ledger').textContent = t('deskLedger');
+    $('#slip-meta').textContent = t('deskMeta')(S.day);
+    give.textContent = t('giveDesk'); keep.textContent = t('keepDesk');
+  } else if (it.note) {
+    $('#slip-tag').textContent = t('noteTag')(it.tag);
+    $('#slip-ledger').innerHTML = `<span class="note">${t('cases')[it.caseI].note}</span>`;
+    $('#slip-meta').textContent = t('noteMeta');
+    give.textContent = t('give'); keep.textContent = t('keep');
+  } else {
+    const [, ledger, found] = itemText(it);
+    $('#slip-tag').textContent = t('tag')(it.tag);
+    $('#slip-ledger').textContent = ledger;
+    $('#slip-meta').textContent = it.kept ? t('keptMeta') : t('foundMeta')(found, it.held);
+    give.textContent = t('give'); keep.textContent = it.kept ? t('putBack') : t('keep');
+  }
+  give.insertAdjacentHTML('beforeend', `<kbd>${t('kbdGive')}</kbd>`); keep.insertAdjacentHTML('beforeend', `<kbd>${t('kbdKeep')}</kbd>`);
+}
+function markSel() {
+  document.querySelectorAll('.sel').forEach(e => e.classList.remove('sel'));
+  if (!S.sel) return;
+  if (S.sel.desk) $('#desk-tag').classList.add('sel');
+  else $(`.item[data-id="${S.sel.id}"]`)?.classList.add('sel');
+}
+function clearSlip() {
+  S.sel = null; markSel();
+  renderSlip();
+}
+
+// The toast and the five lines at the hatch are what is showing now, so they are kept as
+// functions and re-rendered on a language switch.
+function toast(fn, secs = 3.5) { S.toast = fn; const el = $('#toast'); el.textContent = fn(); el.hidden = false; S.toastT = secs; }
+function say(fn, cls = '') {
+  S.talk.push({ fn, cls });
+  while (S.talk.length > 5) S.talk.shift();
+  renderTalk();
+}
+function renderTalk() {
+  $('#clues').innerHTML = '';
+  for (const { fn, cls } of S.talk) { const li = document.createElement('li'); li.textContent = fn(); if (cls) li.className = cls; $('#clues').append(li); }
+}
+function clearTalk() { S.talk = []; renderTalk(); }
+function renderWho() {
+  $('#who-name').textContent = S.whoKey === 'case' ? caseText(S.whoCase).who : t(S.whoKey);
+  $('#who-mood').textContent = S.mood ? t('moods')[S.mood] : '';
+}
+const q = s => t('q')(s);
+
+function startDay(i) {
+  S.dayI = i; S.day = DAYS[i]; S.mode = 'gap'; S.gapT = 1.2; S.owner = null; S.dayRet = 0; S.dayOut = 0; S.dayWrong = 0;
+  S.queue = dayCases(i).slice();
+  if (S.day === 90) { S.deskComes = S.ret >= NEED; if (S.deskComes) S.queue.push(DESK_OWNER); }
+  S.shelf = buildShelf(i);
+  renderShelf(); renderTray(); clearSlip();
+  S.whoKey = 'whoOpen'; S.mood = ''; renderWho(); clearTalk();
+  Kit.show(null);
+}
+function nextOwner() {
+  const c = S.queue.shift();
+  if (!c) return endDay();
+  S.owner = { c, t: 0, clue: 0, wrong: 0, max: c.desk ? DESK_PATIENCE : PATIENCE, left: c.desk ? DESK_PATIENCE : PATIENCE };
+  S.mode = 'serving';
+  clearTalk();
+  S.whoKey = 'case'; S.whoCase = c; renderWho();
+  say(() => q(caseText(c).clues[0]));
+}
+function ownerLeaves(happy) {
+  S.leaving = { c: S.owner.c, happy, t: 0 };
+  S.owner = null; S.mode = 'gap'; S.gapT = 2.6;
+  S.mood = happy ? 'happy' : 'police'; renderWho();
+}
+
+function handOver() {
+  const it = S.sel, o = S.owner;
+  if (!it) return toast(() => t('toast').noSel);
+  if (S.mode !== 'serving' || !o) return toast(() => t('toast').nobody);
+  if (it.desk) {
+    if (o.c.desk) return endGame('returned');
+    const c = o.c;
+    toast(() => t('toast').deskStranger(caseText(c).who.split(',')[0]));
+    return;
+  }
+  if (it.note) return toast(() => t('toast').visiting);
+  if (it.kept) return toast(() => t('toast').inDrawer);
+  if (!o.c.desk && it.role === 'target' && CASES[it.caseI] === o.c) {
+    it.gone = true; S.ret++; S.dayRet++;
+    S.pending.push({ ...it, note: true });
+    const c = o.c;
+    say(() => q(caseText(c).thanks), 'reply');
+    renderShelf(); clearSlip();
+    return ownerLeaves(true);
+  }
+  o.wrong++; S.wrongs++; S.dayWrong++;
+  o.left -= WRONG;
+  let line;
+  if (o.c.desk) line = () => t('wrongDesk')(itemText(it)[0]);
+  else if (it.role === 'decoy' && CASES[it.caseI] === o.c) line = () => q(itemText(it)[3]);
+  else { const k = Math.floor(Math.random() * 4); line = () => t('wrong')[k](itemText(it)[0]); }
+  say(line, 'reply');
+  if (o.wrong >= MAX_WRONG || o.left <= 0) walkOut();
+}
+function keepIt() {
+  const it = S.sel;
+  if (!it) return toast(() => t('toast').keepWhat);
+  if (it.desk) {
+    if (S.owner?.c.desk) return endGame('hoarder');
+    return toast(() => t('toast').keepDesk(S.day));
+  }
+  if (it.note) return toast(() => t('toast').keepVisiting);
+  if (it.kept) {
+    it.kept = false; S.kept = S.kept.filter(k => k !== it); it.gone = false;
+    renderShelf(); renderTray(); clearSlip(); updateStats();
+    return toast(() => t('toast').putBack);
+  }
+  it.kept = true; it.gone = true; S.kept.push(it);
+  renderShelf(); renderTray(); clearSlip(); updateStats();
+  const k = Math.floor(Math.random() * 3);
+  toast(() => t('toast').drawer[k]);
+  if (S.owner && it.role === 'target' && CASES[it.caseI] === S.owner.c) say(() => t('drawerSeen'), 'reply');
+}
+function walkOut() {
+  S.out++; S.dayOut++;
+  if (S.owner.c.desk) say(() => t('walkDesk'), 'reply');
+  else { const k = Math.floor(Math.random() * 3); say(() => t('walk')[k], 'reply'); }
+  if (S.owner.c.desk) { ownerLeaves(false); S.deskGone = true; return; }
+  ownerLeaves(false);
+}
+
+function endDay() {
+  if (S.day === 90) return startDisposal();
+  S.mode = 'evening';
+  fillEvening();
+  Kit.show($('#evening'));
+}
+function fillEvening() {
+  $('#e-title').textContent = t('eveTitle')(S.day);
+  const R = t('eveRows');
+  $('#e-ledger').innerHTML = [[R[0], S.dayRet], [R[1], S.dayOut], [R[2], S.dayWrong], [R[3], S.kept.length], [R[4], t('eveDesk')(S.day)]]
+    .map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join('');
+  $('#e-text').textContent = t('eveText')[S.dayI];
+}
+$('#e-go').onclick = () => morning(S.dayI + 1);
+
+function morning(i) {
+  S.mode = 'morning';
+  S.morningI = i; S.back = S.pending;
+  S.tray.push(...S.pending); S.pending = [];
+  fillMorning();
+  $('#m-go').onclick = () => startDay(i);
+  Kit.show($('#morning'));
+}
+function fillMorning() {
+  const i = S.morningI, day = DAYS[i], back = S.back;
+  $('#m-kicker').textContent = t('mKicker')(back.length);
+  $('#m-title').textContent = t('mTitle')(day);
+  let text = t('dayIntro')[day];
+  if (day === 90 && S.ret < NEED) text += t('mShort');
+  $('#m-text').textContent = text;
+  const notes = back.map((it, k) => `<div class="notecard" style="--r:${(k % 2 ? .7 : -.6)}deg"><small>${t('mNote')(it.tag, itemText(it)[0])}</small><span>${t('cases')[it.caseI].note}</span></div>`);
+  if (day === 90 && S.ret < NEED) notes.push(`<div class="notecard"><small>${t('mUnsigned')}</small><span>${t('mUnsignedText')}</span></div>`);
+  $('#m-notes').innerHTML = notes.join('');
+  $('#m-go').textContent = t('mGo')(day);
+}
+
+function startDisposal() {
+  S.mode = 'disposal'; S.endT = 0;
+  S.whoKey = 'greaves'; S.mood = ''; renderWho();
+  clearTalk();
+  say(() => t('disposalSay'));
+}
+
+function endGame(kind) {
+  S.mode = 'end'; S.ending = kind;
+  S.best = Math.max(S.best, S.ret);
+  fillEnd();
+  Kit.show($('#end'));
+}
+function fillEnd() {
+  const E = t('end')[S.ending], R = t('endRows');
+  const ledger = [[R[0], t('endOf18')(S.ret)], [R[1], S.out], [R[2], S.kept.length], [R[3], S.tray.length + S.pending.length]];
+  $('#end-kicker').textContent = E.kicker; $('#end-title').textContent = E.title; $('#end-lede').textContent = E.lede;
+  $('#end-body').textContent = E.body(S.kept.length, !!S.deskGone);
+  $('#end-ledger').innerHTML = ledger.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join('') + `<dt>#0001</dt><dd class="hand">${E.line}</dd>`;
+}
+
+function updateStats() {
+  $('#s-day').textContent = S.day; $('#s-ret').textContent = S.ret; $('#s-out').textContent = S.out; $('#s-kept').textContent = S.kept.length;
+  const served = S.dayI < 4 ? 4 : 3, done = 4 - S.queue.length - (S.owner ? 1 : 0) + (S.owner ? Math.min(1, S.owner.t / S.owner.max) : 0);
+  const mins = 9 * 60 + Math.round(Math.max(0, Math.min(served, done)) / served * 8 * 60 / 5) * 5;
+  $('#s-clock').textContent = S.mode === 'disposal' || S.mode === 'end' ? '17:00' : `${String(Math.floor(mins / 60)).padStart(2, '0')}:${String(mins % 60).padStart(2, '0')}`;
+}
+
+function update(dt) {
+  S.t += dt;
+  if (S.toastT > 0) { S.toastT -= dt; if (S.toastT <= 0) $('#toast').hidden = true; }
+  if (S.leaving) { S.leaving.t += dt; if (S.leaving.t > 2.2) S.leaving = null; }
+  if (S.mode === 'gap') { S.gapT -= dt; if (S.gapT <= 0) nextOwner(); }
+  else if (S.mode === 'serving') {
+    const o = S.owner;
+    o.t += dt; o.left -= dt;
+    while (o.clue < 2 && o.t >= CLUE_AT[o.clue + 1]) { o.clue++; const c = o.c, n = o.clue; say(() => q(caseText(c).clues[n])); }
+    const p = o.left / o.max;
+    $('#pat-bar').style.width = Math.max(0, p * 100) + '%';
+    $('#pat').classList.toggle('low', p < .3);
+    const mood = p > .7 ? 'hopeful' : p > .45 ? 'watch' : p > .2 ? 'leaflets' : 'door';
+    if (mood !== S.mood) { S.mood = mood; renderWho(); }
+    if (o.left <= 0) walkOut();
+  } else if (S.mode === 'disposal') {
+    S.endT += dt;
+    if (S.endT > 3.5) endGame('disposal');
+  }
+  if (S.mode !== 'serving') { $('#pat-bar').style.width = '0%'; }
+  updateStats();
+}
+
+// The hatch: whoever is waiting, drawn from a few shapes. Patience is in the shoulders.
+function drawHatch() {
+  const { cx, W, H } = hatchView;
+  cx.fillStyle = C.glass; cx.fillRect(0, 0, W, H);
+  cx.strokeStyle = C.line; cx.lineWidth = 1;
+  for (let y = 12; y < H; y += 14) { cx.beginPath(); cx.moveTo(0, y); cx.lineTo(W, y); cx.stroke(); }
+  let who = null, p = 1, away = 0;
+  if (S.owner) { who = S.owner.c; p = Math.max(0, S.owner.left / S.owner.max); }
+  else if (S.leaving) { who = S.leaving.c; away = Math.min(1, S.leaving.t / 2); p = S.leaving.happy ? 1 : .1; }
+  else if (S.mode === 'disposal') who = { look: { hat: 'cap', coat: 'a', skin: 'a', tall: .9 } };
+  if (who) drawPerson(cx, W, H, who.look, p, away, S.leaving?.happy);
+  // counter top and the brass bell
+  cx.fillStyle = C.wood; cx.fillRect(0, H - 22, W, 22);
+  cx.fillStyle = C.ink; cx.globalAlpha = .25; cx.fillRect(0, H - 22, W, 2); cx.globalAlpha = 1;
+  cx.fillStyle = C.manila; cx.beginPath(); cx.arc(W - 30, H - 22, 9, Math.PI, 0); cx.fill(); cx.fillRect(W - 41, H - 23, 22, 3); cx.fillRect(W - 31.5, H - 35, 3, 4);
+  cx.fillStyle = C.ink; cx.font = `500 10px ${getComputedStyle(document.documentElement).getPropertyValue('--f-display')}`; cx.textAlign = 'left';
+  cx.fillText(t('ring'), 8, H - 8, Math.max(20, W - 56));
+}
+function drawPerson(cx, W, H, L, p, away, happy) {
+  const t = S.t, sag = (1 - p) * 14, scale = Math.min(1.1, H / 190);
+  const x = W / 2 + away * (happy ? -1 : 1) * W * .7 + (Kit.reduce ? 0 : Math.sin(t * 1.3) * 1.5);
+  const base = H - 22, head = 22 * scale, bodyTop = base - (70 + (L.tall || .5) * 40) * scale + sag;
+  const coat = C['coat-' + (L.coat || 'a')], skin = C['skin-' + (L.skin || 'a')];
+  cx.save(); cx.globalAlpha = 1 - away * .8;
+  // shoulders slump as patience runs out
+  cx.fillStyle = coat; cx.beginPath();
+  cx.moveTo(x - 46 * scale, base); cx.lineTo(x - (38 - sag * .6) * scale, bodyTop + 22 * scale + sag * .5);
+  cx.quadraticCurveTo(x, bodyTop + 6 * scale, x + (38 - sag * .6) * scale, bodyTop + 22 * scale + sag * .5); cx.lineTo(x + 46 * scale, base); cx.fill();
+  cx.strokeStyle = C.ink; cx.globalAlpha *= .3; cx.lineWidth = 1.5; cx.beginPath(); cx.moveTo(x, bodyTop + 14 * scale); cx.lineTo(x, base); cx.stroke(); cx.globalAlpha = 1 - away * .8;
+  const hx = x, hy = bodyTop - head * .7 + sag * .4;
+  cx.fillStyle = skin; cx.beginPath(); cx.arc(hx, hy, head, 0, 6.283); cx.fill();
+  // hair
+  cx.fillStyle = C.ink;
+  if (L.hair === 'curls') for (let a = 3.3; a < 6.2; a += .45) { cx.beginPath(); cx.arc(hx + Math.cos(a) * head, hy + Math.sin(a) * head, 7 * scale, 0, 6.283); cx.fill(); }
+  if (L.hair === 'big') { cx.beginPath(); cx.ellipse(hx, hy - head * .3, head * 1.6, head * 1.2, 0, Math.PI, 0); cx.fill(); cx.fillRect(hx - head * 1.6, hy - head * .3, head * .5, head * 1.6); cx.fillRect(hx + head * 1.1, hy - head * .3, head * .5, head * 1.6); }
+  if (L.hair === 'short' || L.hair === 'beard') { cx.beginPath(); cx.arc(hx, hy, head, Math.PI * 1.05, Math.PI * 1.95); cx.lineTo(hx, hy - head * .55); cx.fill(); }
+  if (L.hair === 'beard') { cx.beginPath(); cx.arc(hx, hy + head * .2, head * .85, .15, Math.PI - .15); cx.fill(); }
+  if (L.hair === 'pony') { cx.beginPath(); cx.arc(hx, hy, head, Math.PI, 0); cx.fill(); cx.beginPath(); cx.ellipse(hx + head * 1.1, hy - head * .1, 6 * scale, 16 * scale, .4, 0, 6.283); cx.fill(); }
+  // face: eyes look down the further patience falls
+  const ey = hy - 2 + (1 - p) * 4;
+  cx.fillStyle = C.ink; cx.beginPath(); cx.arc(hx - 7 * scale, ey, 1.8, 0, 6.283); cx.arc(hx + 7 * scale, ey, 1.8, 0, 6.283); cx.fill();
+  cx.strokeStyle = C.ink; cx.lineWidth = 1.5; cx.beginPath();
+  if (happy && away > 0) cx.arc(hx, hy + 6 * scale, 6 * scale, .3, Math.PI - .3);
+  else { const m = (p - .5) * 6; cx.moveTo(hx - 6 * scale, hy + 9 * scale - m * .4); cx.quadraticCurveTo(hx, hy + 9 * scale + m, hx + 6 * scale, hy + 9 * scale - m * .4); }
+  cx.stroke();
+  if (L.specs) { cx.lineWidth = 1.4; cx.beginPath(); cx.arc(hx - 7 * scale, ey, 5 * scale, 0, 6.283); cx.moveTo(hx + 12 * scale, ey); cx.arc(hx + 7 * scale, ey, 5 * scale, 0, 6.283); cx.moveTo(hx - 2 * scale, ey); cx.lineTo(hx + 2 * scale, ey); cx.stroke(); }
+  // hats
+  cx.fillStyle = C.ink;
+  const top = hy - head;
+  if (L.hat === 'bowler') { cx.beginPath(); cx.arc(hx, top + 6 * scale, head * .85, Math.PI, 0); cx.fill(); cx.fillRect(hx - head * 1.15, top + 4 * scale, head * 2.3, 4 * scale); }
+  if (L.hat === 'tall') { cx.fillRect(hx - head * .75, top - 26 * scale, head * 1.5, 30 * scale); cx.fillRect(hx - head * 1.15, top + 2 * scale, head * 2.3, 4 * scale); cx.fillStyle = C.accent; cx.fillRect(hx - head * .75, top - 4 * scale, head * 1.5, 4 * scale); }
+  if (L.hat === 'cap') { cx.beginPath(); cx.arc(hx, top + 8 * scale, head * .95, Math.PI, 0); cx.fill(); cx.fillRect(hx, top + 5 * scale, head * 1.4, 4 * scale); }
+  if (L.hat === 'beanie') { cx.fillStyle = C['coat-b']; cx.beginPath(); cx.arc(hx, top + 9 * scale, head * .98, Math.PI, 0); cx.fill(); cx.beginPath(); cx.arc(hx, top - 6 * scale, 5 * scale, 0, 6.283); cx.fill(); }
+  if (L.hat === 'scarf') { cx.fillStyle = C['coat-c']; cx.beginPath(); cx.arc(hx, hy, head * 1.12, Math.PI * .8, Math.PI * 2.2); cx.lineTo(hx + head * .9, hy + head * 1.2); cx.lineTo(hx - head * .9, hy + head * 1.2); cx.fill(); cx.fillStyle = skin; cx.beginPath(); cx.ellipse(hx, hy + 2, head * .72, head * .8, 0, 0, 6.283); cx.fill(); cx.fillStyle = C.ink; cx.beginPath(); cx.arc(hx - 7 * scale, ey, 1.8, 0, 6.283); cx.arc(hx + 7 * scale, ey, 1.8, 0, 6.283); cx.fill(); }
+  if (L.hat === 'helmet') { cx.fillStyle = C['coat-a']; cx.beginPath(); cx.arc(hx, top + 12 * scale, head * 1.05, Math.PI, 0); cx.fill(); cx.fillStyle = C.ink; cx.fillRect(hx - 3, top - 4 * scale, 6, 14 * scale); }
+  if (L.hat === 'flower') { cx.beginPath(); cx.arc(hx, top + 7 * scale, head * .9, Math.PI, 0); cx.fill(); cx.fillRect(hx - head * 1.3, top + 5 * scale, head * 2.6, 3 * scale); cx.fillStyle = C.accent; cx.beginPath(); cx.arc(hx + head * .6, top + 1 * scale, 5 * scale, 0, 6.283); cx.fill(); }
+  if (L.hat === 'wide') { cx.fillStyle = C['coat-d']; cx.beginPath(); cx.ellipse(hx, top + 6 * scale, head * 2.1, 6 * scale, 0, 0, 6.283); cx.fill(); cx.beginPath(); cx.arc(hx, top + 5 * scale, head * .8, Math.PI, 0); cx.fill(); }
+  if (L.hat === 'phones') { cx.strokeStyle = C.ink; cx.lineWidth = 4; cx.beginPath(); cx.arc(hx, hy, head + 3, Math.PI * 1.05, Math.PI * 1.95); cx.stroke(); cx.fillRect(hx - head - 6, hy - 6, 7, 14); cx.fillRect(hx + head - 1, hy - 6, 7, 14); }
+  // at a quarter patience they check a watch
+  if (p < .45 && !away) { cx.fillStyle = coat; cx.save(); cx.translate(x + 30 * scale, bodyTop + 30 * scale); cx.rotate(-.9); cx.fillRect(0, -6 * scale, 30 * scale, 12 * scale); cx.fillStyle = skin; cx.beginPath(); cx.arc(30 * scale, 0, 6 * scale, 0, 6.283); cx.fill(); cx.restore(); }
+  cx.restore();
+}
+
+const loop = Kit.loop(dt => { if (!S) return; update(dt); drawHatch(); });
+
+// keyboard: arrows walk the shelf, Enter hands over, K (G in French) keeps, D (B) picks the desk label
+Kit.keys.onPress((k, down) => {
+  if (!down || !S || (S.mode !== 'serving' && S.mode !== 'gap')) return;
+  if (document.activeElement?.closest?.('.kit-overlay')) return;
+  const live = S.shelf.filter(it => it && !it.gone), K = t('keys');
+  if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(k)) {
+    const cols = getComputedStyle($('.shelf')).gridTemplateColumns.split(' ').length;
+    let i = S.sel && !S.sel.desk ? S.shelf.indexOf(S.sel) : -1;
+    const step = { ArrowLeft: -1, ArrowRight: 1, ArrowUp: -cols, ArrowDown: cols }[k];
+    // shelves are rows of 6 in the DOM; on a 3-column phone each 6-row wraps to two, so walk the flat list
+    for (let n = 0; n < S.shelf.length; n++) {
+      i = i < 0 ? 0 : (i + step + S.shelf.length) % S.shelf.length;
+      if (S.shelf[i] && !S.shelf[i].gone) break;
+    }
+    if (live.length) { select(S.shelf[i]); $(`.item[data-id="${S.shelf[i].id}"]`)?.scrollIntoView({ block: 'nearest' }); }
+  } else if (k === 'Enter') handOver();
+  else if (k === K.keep) keepIt();
+  else if (k === K.desk) select(DESK);
+});
+// Enter on a focused button already clicks it; don't also hand over through the key handler.
+addEventListener('keydown', e => { if (e.key === 'Enter' && e.target.closest?.('button')) e.stopImmediatePropagation(); }, true);
+$('#b-give').onclick = handOver;
+$('#b-keep').onclick = keepIt;
+$('#desk-tag').onclick = () => select(DESK);
+
+function newGame() {
+  S = fresh(S?.best ?? 0); uid = 0;
+  morning(0);
+}
+$('#start').onclick = newGame;
+$('#again').onclick = newGame;
+
+// Static markup carries data-t (text), data-th (trusted markup from I18N) and data-ta
+// (aria-label). Shelf, slip, hatch talk, trays and whichever card is up re-render from S.
+function applyLang() {
+  document.documentElement.lang = lang;
+  document.title = t('docTitle');
+  for (const el of document.querySelectorAll('[data-t]')) el.textContent = t(el.dataset.t);
+  for (const el of document.querySelectorAll('[data-th]')) el.innerHTML = t(el.dataset.th);
+  for (const el of document.querySelectorAll('[data-ta]')) el.setAttribute('aria-label', t(el.dataset.ta));
+  for (const box of document.querySelectorAll('.lang')) {
+    if (!box.children.length) box.innerHTML = '<button data-lang="fr" lang="fr">FR</button><button data-lang="en" lang="en">EN</button>';
+    for (const b of box.children) b.setAttribute('aria-pressed', String(b.dataset.lang === lang));
+  }
+  if (!S) return;
+  renderShelf(); renderTray(); renderSlip(); renderTalk(); renderWho();
+  if (S.toast && !$('#toast').hidden) $('#toast').textContent = S.toast();
+  if (S.mode === 'morning') fillMorning();
+  if (S.mode === 'evening') fillEvening();
+  if (S.mode === 'end') fillEnd();
+}
+function setLang(l) {
+  if (!(l in I18N) || l === lang) return;
+  lang = l;
+  applyLang();
+}
+document.addEventListener('click', e => {
+  const b = e.target.closest('[data-lang]');
+  if (b) setLang(b.dataset.lang);
+});
+
+function start(data) {
+  lang = data?.lang in I18N ? data.lang : (navigator.language || '').toLowerCase().startsWith('fr') ? 'fr' : 'en';
+  S = fresh(data.best ?? 0);
+  S.shelf = buildShelf(0);
+  applyLang(); updateStats();
+  Kit.show($('#title'));
+  loop.start();
+}
+Kit.boot(start, () => ({ best: S?.best ?? 0, lang }));
+
+// Test hook. Each jump skips to day 90 with a ledger that decides which way it goes, then leaves
+// the last stretch (arrival, patience, the clerk's choice, the van) to the game.
+function jumpTo90(ret, kept = 0) {
+  S.ret = ret; S.out = 16 - ret; S.dayI = 4;
+  for (const [caseI, c] of CASES.slice(0, Math.min(ret, 16)).entries()) S.pending.push({ ...makeItem(c.item[0], 'target', { caseI }, 3), note: true });
+  startDay(4);
+  S.queue = S.deskComes ? [DESK_OWNER] : [];
+}
+Kit.expose({
+  state: () => S,
+  endings: {
+    // The desk owner arrives; the clerk picks the desk label and hands it over.
+    returned: { seconds: 9, jump() { jumpTo90(13); setTimeout(() => { select(DESK); }, 2600); setTimeout(() => handOver(), 3400); },
+      reached: () => S.mode === 'end' && S.ending === 'returned' && !$('#end').hidden },
+    hoarder: { seconds: 9, jump() { jumpTo90(12); setTimeout(() => { select(DESK); }, 2600); setTimeout(() => keepIt(), 3400); },
+      reached: () => S.mode === 'end' && S.ending === 'hoarder' && !$('#end').hidden },
+    // Too few reunions: nobody comes for the desk, the day runs out, the van arrives.
+    disposal: { seconds: 10, jump() { jumpTo90(6); },
+      reached: () => S.mode === 'end' && S.ending === 'disposal' && !$('#end').hidden },
+  },
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,773 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Speed Dating at Lost Property</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;800&family=Libre+Franklin:ital,wght@0,400;0,600;1,400&family=Special+Elite&display=swap">
+<style>
+/* Layout: a lost-property counter under strip lights. Left: the item's brown luggage tag, hung on string. Right: the conversation, typed onto the night. A railway clock rules the top bar. */
+:root {
+  --wall: #d8dde2;
+  --counter: #eef0f1;
+  --kraft: #c89d63;
+  --kraft-ink: #3b2a14;
+  --ink: #1c2130;
+  --ink-soft: #586071;
+  --red: #c4372c;
+  --line: #b9c0c8;
+  --f-sign: "Big Shoulders Display", "Arial Narrow", "Helvetica Neue", sans-serif;
+  --f-body: "Libre Franklin", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-type: "Special Elite", "Courier New", Courier, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --wall: #13161c; --counter: #1d212a; --kraft: #a07a45; --kraft-ink: #1e1408;
+    --ink: #e8e7e1; --ink-soft: #a2a8b4; --red: #e2574b; --line: #323845;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --wall: #13161c; --counter: #1d212a; --kraft: #a07a45; --kraft-ink: #1e1408;
+  --ink: #e8e7e1; --ink-soft: #a2a8b4; --red: #e2574b; --line: #323845;
+  color-scheme: dark;
+}
+[hidden] { display: none !important; }
+* { box-sizing: border-box; }
+html, body { min-height: 100%; }
+body {
+  margin: 0;
+  background: var(--wall);
+  color: var(--ink);
+  font: 16px/1.55 var(--f-body);
+  padding-block: 20px 40px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.wrap { max-width: 1040px; margin: 0 auto; display: grid; gap: 20px; }
+button {
+  font: 600 15px var(--f-body); color: var(--ink); background: var(--counter);
+  border: 1px solid var(--line); border-radius: 4px; padding: 11px 16px; cursor: pointer; text-align: left;
+  transition: border-color .15s, transform .15s;
+}
+button:hover { border-color: var(--red); }
+button:focus-visible { outline: 3px solid var(--red); outline-offset: 2px; }
+button:disabled { opacity: .45; cursor: default; }
+button.go { background: var(--red); color: #fff; border-color: var(--red); text-align: center; font-family: var(--f-sign); font-size: 20px; letter-spacing: .06em; text-transform: uppercase; padding: 10px 22px; }
+button.go:hover { transform: translateY(-1px); }
+
+/* sign-board heading */
+.sign { font: 800 clamp(40px, 8vw, 84px)/.9 var(--f-sign); text-transform: uppercase; letter-spacing: .01em; margin: 0; text-wrap: balance; }
+.sign em { font-style: normal; color: var(--red); }
+.kicker { font: 600 12px var(--f-body); letter-spacing: .14em; text-transform: uppercase; color: var(--ink-soft); }
+
+/* luggage tag */
+.tag {
+  position: relative; background: var(--kraft); color: var(--kraft-ink);
+  font: 15px/1.5 var(--f-type); padding: 34px 20px 20px 20px;
+  clip-path: polygon(14% 0, 86% 0, 100% 9%, 100% 100%, 0 100%, 0 9%);
+  transform-origin: 50% -30px; animation: sway 6s ease-in-out infinite;
+}
+.tag::before { content: ""; position: absolute; top: 12px; left: 50%; width: 16px; height: 16px; margin-left: -8px; border-radius: 50%; background: var(--wall); box-shadow: 0 0 0 4px color-mix(in srgb, var(--kraft) 70%, #fff); }
+.tag dl { margin: 0; display: grid; grid-template-columns: auto 1fr; gap: 2px 10px; }
+.tag dt { opacity: .7; }
+.tag dd { margin: 0; }
+.tag .no { font: 800 26px var(--f-sign); letter-spacing: .04em; margin-bottom: 6px; }
+@keyframes sway { 0%, 100% { transform: rotate(-1.2deg); } 50% { transform: rotate(1.4deg); } }
+
+/* title */
+.title { display: grid; gap: 22px; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); align-items: center; padding-block: 24px; }
+.title p { margin: 0; max-width: 54ch; color: var(--ink-soft); font-size: 17px; }
+.title .tag { max-width: 360px; justify-self: center; }
+
+/* game bar */
+.bar { display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap; border-bottom: 3px solid var(--ink); padding-bottom: 12px; }
+.bar .which { font: 800 28px/1 var(--f-sign); text-transform: uppercase; letter-spacing: .03em; }
+.bar .which small { display: block; font: 600 12px var(--f-body); letter-spacing: .12em; color: var(--ink-soft); margin-top: 4px; }
+.clockbox { display: flex; align-items: center; gap: 12px; }
+.clockbox svg { width: 64px; height: 64px; }
+.secs { font: 800 30px var(--f-sign); font-variant-numeric: tabular-nums; min-width: 2.2ch; text-align: right; }
+.secs.low { color: var(--red); }
+.tickets { font: 600 13px var(--f-body); color: var(--ink-soft); text-align: right; }
+.tickets b { font: 800 26px var(--f-sign); color: var(--ink); display: block; font-variant-numeric: tabular-nums; }
+
+.stage { display: grid; grid-template-columns: minmax(0, 320px) minmax(0, 1fr); gap: 28px; align-items: start; }
+.side { display: grid; gap: 16px; justify-items: center; }
+.side canvas { width: 200px; height: 200px; max-width: 100%; }
+.talk { display: grid; gap: 14px; background: var(--counter); border: 1px solid var(--line); border-radius: 6px; padding: 18px; }
+.meter { display: grid; gap: 6px; }
+.meter .lbl { display: flex; justify-content: space-between; font: 600 12px var(--f-body); letter-spacing: .1em; text-transform: uppercase; color: var(--ink-soft); }
+.meter .lbl span:last-child { font-variant-numeric: tabular-nums; }
+.track { height: 10px; background: var(--wall); border-radius: 99px; overflow: hidden; position: relative; }
+.track i { position: absolute; inset: 0 auto 0 0; background: var(--red); border-radius: inherit; transition: width .5s ease; }
+.track b { position: absolute; top: -2px; bottom: -2px; left: 60%; width: 2px; background: var(--ink); opacity: .5; }
+.log { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; max-height: 46vh; overflow-y: auto; scroll-behavior: smooth; }
+.log li { max-width: 60ch; }
+.log .them { font-size: 17px; }
+.log .them::before { content: attr(data-who) " · "; font: 600 11px var(--f-body); letter-spacing: .12em; text-transform: uppercase; color: var(--red); }
+.log .you { justify-self: end; text-align: right; color: var(--ink-soft); font-style: italic; }
+.log .you::before { content: "you · "; font: 600 11px var(--f-body); font-style: normal; letter-spacing: .12em; text-transform: uppercase; }
+.log .note { font: 14px var(--f-type); color: var(--ink-soft); }
+.log .delta { font: 600 12px var(--f-body); color: var(--ink-soft); }
+.choices { display: grid; gap: 8px; }
+.choices button .k { font: 800 15px var(--f-sign); color: var(--red); margin-right: 8px; }
+
+/* plain screens */
+.panel { display: grid; gap: 18px; max-width: 760px; }
+.panel p { margin: 0; max-width: 62ch; }
+.panel .prose { display: grid; gap: 12px; font-size: 17px; }
+.cardlist { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 220px), 1fr)); gap: 12px; }
+.cardlist label { display: flex; gap: 12px; align-items: center; background: var(--counter); border: 1px solid var(--line); border-radius: 4px; padding: 12px 14px; cursor: pointer; font-weight: 600; }
+.cardlist input { width: 20px; height: 20px; accent-color: var(--red); }
+.cardlist label:focus-within { outline: 3px solid var(--red); outline-offset: 2px; }
+.results { display: grid; gap: 10px; }
+.results li { list-style: none; padding: 12px 14px; border-left: 4px solid var(--line); background: var(--counter); }
+.results li.match { border-left-color: var(--red); }
+.results { margin: 0; padding: 0; }
+.ann { font: 17px/1.7 var(--f-type); background: var(--kraft); color: var(--kraft-ink); padding: 22px 24px; border-radius: 3px; display: grid; gap: 8px; }
+.ann p { margin: 0; }
+.stats { display: flex; gap: 28px; flex-wrap: wrap; border-top: 3px solid var(--ink); padding-top: 14px; }
+.stats div { display: grid; }
+.stats b { font: 800 30px var(--f-sign); font-variant-numeric: tabular-nums; }
+.stats span { font: 600 12px var(--f-body); letter-spacing: .1em; text-transform: uppercase; color: var(--ink-soft); }
+.final-title { font: 800 clamp(44px, 9vw, 96px)/.9 var(--f-sign); text-transform: uppercase; margin: 0; color: var(--red); }
+
+@media (max-width: 720px) {
+  .title, .stage { grid-template-columns: minmax(0, 1fr); }
+  .side { grid-template-columns: 110px minmax(0, 1fr); align-items: start; justify-items: stretch; }
+  .side canvas { width: 110px; height: 110px; }
+  .tag { padding: 30px 14px 14px; font-size: 13px; }
+  .tag .no { font-size: 20px; }
+  .log { max-height: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .tag { animation: none; }
+  .track i { transition: none; }
+  .log { scroll-behavior: auto; }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <section id="s-title" class="title">
+    <div style="display:grid;gap:18px">
+      <div class="kicker">Lost Property Office · Platform 3 · Thursday, 19:42</div>
+      <h1 class="sign">Speed Dating at <em>Lost Property</em></h1>
+      <p>You are a single glove, left hand, navy wool. Tonight the unclaimed items are speed dating after hours. Five dates, forty-five seconds each. Read their luggage tags; they tell you what each item likes. The bell is final.</p>
+      <div><button class="go" id="start">Take a seat</button></div>
+      <div class="kicker">Choose with the mouse, by tapping, or with keys 1 2 3</div>
+    </div>
+    <div class="tag" aria-label="Your luggage tag">
+      <div class="no">ITEM 0417</div>
+      <dl>
+        <dt>item</dt><dd>glove, left, navy wool</dd>
+        <dt>found</dt><dd>platform 3, mid-wave</dd>
+        <dt>notes</dt><dd>one of a pair. other half not handed in. warm, slightly hopeful, smells of a bus.</dd>
+      </dl>
+    </div>
+  </section>
+
+  <section id="s-game" hidden>
+    <div class="bar">
+      <div class="which" id="which">Date 1 of 5<small id="whichsub">the umbrella</small></div>
+      <div class="clockbox">
+        <svg viewBox="0 0 100 100" aria-hidden="true">
+          <circle cx="50" cy="50" r="46" fill="var(--counter)" stroke="var(--ink)" stroke-width="5"></circle>
+          <g id="ticks"></g>
+          <line x1="50" y1="50" x2="50" y2="22" stroke="var(--ink)" stroke-width="5" stroke-linecap="round" transform="rotate(-80 50 50)"></line>
+          <line x1="50" y1="50" x2="50" y2="14" stroke="var(--ink)" stroke-width="3.5" stroke-linecap="round" transform="rotate(252 50 50)"></line>
+          <g id="sechand"><line x1="50" y1="58" x2="50" y2="12" stroke="var(--red)" stroke-width="2"></line><circle cx="50" cy="16" r="4" fill="var(--red)"></circle></g>
+          <circle cx="50" cy="50" r="3" fill="var(--ink)"></circle>
+        </svg>
+        <div class="secs" id="secs" aria-live="off">45</div>
+      </div>
+      <div class="tickets">claim tickets<b id="tickets">0</b></div>
+    </div>
+    <div class="stage" style="margin-top:20px">
+      <div class="side">
+        <canvas id="pic" width="400" height="400" aria-hidden="true"></canvas>
+        <div class="tag" id="tag"></div>
+      </div>
+      <div class="talk">
+        <div class="meter">
+          <div class="lbl"><span>compatibility</span><span id="cval">35</span></div>
+          <div class="track"><i id="cbar" style="width:35%"></i><b title="60: enough to tick you"></b></div>
+        </div>
+        <ol class="log" id="log" aria-live="polite"></ol>
+        <div class="choices" id="choices"></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="s-card" class="panel" hidden>
+    <div class="kicker">Matching card · tick anyone you'd like to see again</div>
+    <h2 class="sign">The card</h2>
+    <p>They are filling in theirs at the same time. Nobody sees anyone else's card. Tick as many as you like; a match needs both ticks.</p>
+    <div class="cardlist" id="cardlist"></div>
+    <div><button class="go" id="submitcard">Hand in the card</button></div>
+  </section>
+
+  <section id="s-results" class="panel" hidden>
+    <div class="kicker">Results · read out by the clerk, flatly</div>
+    <h2 class="sign">The ticks</h2>
+    <ul class="results" id="results"></ul>
+    <div><button class="go" id="toann">The clerk clears their throat</button></div>
+  </section>
+
+  <section id="s-ann" class="panel" hidden>
+    <div class="kicker">Announcement · 20:58</div>
+    <div class="ann" id="ann"></div>
+    <div><button class="go" id="toclerk">Ask about the tag</button></div>
+  </section>
+
+  <section id="s-final" class="panel" hidden>
+    <div class="kicker" id="fkicker">Closing time</div>
+    <h2 class="final-title" id="ftitle">Collected</h2>
+    <div class="prose" id="fprose"></div>
+    <div class="stats" id="fstats"></div>
+    <div><button class="go" id="again">Another Thursday</button></div>
+  </section>
+
+</div>
+
+<script>
+const $ = s => document.querySelector(s);
+const DATE_SECONDS = 45;
+const MATCH_AT = 60;
+
+// Each option carries tags. An item likes or dislikes tags (its luggage tag hints at which).
+// One liked tag: +14. One disliked tag: -14. Every answer also earns +4 for turning up.
+const ITEMS = [
+  {
+    id: 'umbrella', name: 'the Umbrella', no: '0233',
+    tag: [['item', 'umbrella, black, automatic'], ['found', 'four times, by four different people'], ['notes', 'opens up fast, closes just as fast. allergic to the word "forever". happiest in light weather and light conversation.']],
+    likes: ['light', 'free', 'weather'], dislikes: ['pair', 'cling', 'deep', 'stay'],
+    qs: [
+      { say: () => "Before we start: I don't do forever. I do until it stops raining. That okay?",
+        opts: [
+          { t: "Rain's my favourite forecast.", tags: ['weather', 'light'], r: "Oh, a drizzle person. I can work with drizzle." },
+          { t: "I'm one half of a pair. I'm looking for my other half.", tags: ['pair'], r: "Wow. Okay. Big wet energy. I felt myself close a little.", flag: 'umbrellaPair' },
+          { t: "I'll only hold you when it's raining. Deal?", tags: ['free'], r: "That's the nicest thing anyone's ever said to me in a doorway." },
+        ] },
+      { say: () => "Do you ever get left places? I get left everywhere. Pubs. Trains. A wedding, once, mid-vow.",
+        opts: [
+          { t: "Platform 3. I was waving goodbye and then I was on the floor.", tags: [], r: "Ugh, the waving. Waving is how they get you." },
+          { t: "Left in a pub? Sounds like a good night, honestly.", tags: ['light'], r: "It WAS a good night. Nobody believes me." },
+          { t: "That must hurt. Do you want to talk about the wedding?", tags: ['deep'], r: "Absolutely not. I'm folded about it." },
+        ] },
+      { say: () => "Last question, and it's a test. It starts raining. What do we do?",
+        opts: [
+          { t: "Open you up and let the sky do the talking.", tags: ['free', 'weather'], r: "Click. Whoosh. Correct answer." },
+          { t: "Stay in. Make soup. Never leave.", tags: ['stay'], r: "Then what am I FOR?" },
+          { t: "Hold your handle and never let go.", tags: ['cling'], r: "That's how umbrellas end up in canals." },
+        ] },
+    ],
+    part: ["Call me when it's grey. Which is always.", "You're nice. I'm just, you know. Automatic.", "I'm going to go and stand in a doorway for a while."],
+    match: "The Umbrella says it'll see you whenever it rains, which in this country is a proposal.",
+  },
+  {
+    id: 'violin', name: 'the Violin', no: '0742',
+    tag: [['item', 'violin, three-quarter size, in its case'], ['found', 'on the 7:42 to Didcot'], ['notes', 'highly strung. warms to sincerity and to anyone who actually listens. do NOT compliment the case.']],
+    likes: ['listen', 'sincere'], dislikes: ['case', 'mock', 'cling'],
+    qs: [
+      { say: () => "I was meant to play a recital at eight. I'm told it went ahead without me. Somebody hummed.",
+        opts: [
+          { t: "Their loss. I'd have listened to the whole thing.", tags: ['listen'], r: "The whole thing? Even the slow movement? Nobody stays for the slow movement." },
+          { t: "Love the case, by the way. Very sleek.", tags: ['case'], r: "Everyone loves the case. The case is not the point. The case is a coat." },
+          { t: "Humming counts, technically.", tags: ['mock'], r: "It does not count. Humming is how amateurs cry." },
+        ] },
+      { say: () => "What's the most beautiful sound you've ever heard?",
+        opts: [
+          { t: "A train door closing one second after I made it.", tags: ['sincere'], r: "Oh. That's a perfect fifth, actually." },
+          { t: "My owner clapping. Both hands. Bare.", tags: ['sincere'], r: "Applause with real hands. I miss it too." },
+          { t: "You, probably. Play me something.", tags: [], r: "I'd need a bow. They lost the bow separately. It's in Swindon. We don't talk." },
+        ] },
+      { say: () => "If someone came for me tomorrow, would you want them to?",
+        opts: [
+          { t: "Yes. You should be played.", tags: ['sincere', 'listen'], r: "I think I'm in tune for the first time since Reading." },
+          { t: "No. Stay. We'll be lost together.", tags: ['cling'], r: "That's a minor key. And not a nice one.", flag: 'violinCling' },
+          { t: "Only if they bring the bow.", tags: [], r: "Ha. The bow would never." },
+        ] },
+    ],
+    part: ["You listened. I'll remember the key you were in.", "Pleasant. Slightly flat.", "I'm going back in my case. Don't say anything about it."],
+    match: "The Violin tunes itself to you. You are now, technically, an A.",
+  },
+  {
+    id: 'keys', name: 'the Keys', no: '0109',
+    tag: [['item', 'keys, three, on a ring, plus one small plastic lobster'], ['found', 'down the back of seat 42'], ['notes', 'open nothing any more; the locks were changed. nostalgic. love being asked about the past. never say "new doors".']],
+    likes: ['memory', 'ask', 'sincere'], dislikes: ['moveon', 'scrap'],
+    qs: [
+      { say: () => "I used to open a blue door on Calloway Road. The middle key did that. Nobody ever asks about the small key.",
+        opts: [
+          { t: "What did the small key open?", tags: ['ask', 'memory'], r: "A bike lock! A red one! Thank you. Thank you for asking." },
+          { t: "Locks change. You'll find new doors.", tags: ['moveon'], r: "Please don't say 'new doors' to a key. It's like telling a ghost to get out more." },
+          { t: "Tell me about the lobster.", tags: ['ask'], r: "Gerald. From a cracker. He's the only one of us who never opened anything, and he's the happiest." },
+        ] },
+      { say: () => "Do you remember things? Or do you just hold on?",
+        opts: [
+          { t: "I remember the exact shape of her hand.", tags: ['memory', 'sincere'], r: "Yes. That's it. You're shaped like a memory." },
+          { t: "Holding on is remembering, if you do it long enough.", tags: ['memory'], r: "Gerald says that's deep. Gerald is a lobster, but still." },
+          { t: "Mostly I remember being cold.", tags: [], r: "Fair. You're a glove. That's the job." },
+        ] },
+      { say: () => "Be honest. If the door doesn't exist any more, what am I?",
+        opts: [
+          { t: "A tiny museum of a house.", tags: ['memory'], r: "Oh. I'm going to put that on my ring." },
+          { t: "Scrap metal, but in a nice way.", tags: ['scrap'], r: "There is no nice way to say scrap metal.", flag: 'keysScrap' },
+          { t: "Still keys. Maybe what you open just isn't a door.", tags: ['sincere'], r: "I felt something turn. Did you hear it turn?" },
+        ] },
+    ],
+    part: ["If I ever open anything again, I hope it's you. Gerald agrees.", "You've got a nice shape. Not a lock shape. But nice.", "Gerald thinks you should go."],
+    match: "The Keys let you hold the lobster. In lobster terms this is very serious.",
+  },
+  {
+    id: 'hat', name: 'the Hat', no: '0058',
+    tag: [['item', 'bowler hat, black felt, size 7'], ['found', 'on five different heads (records incomplete)'], ['notes', 'worldly. a dreadful flirt. bored stiff by sincerity; wants wit and nerve. has heard everything twice.']],
+    likes: ['playful', 'bold'], dislikes: ['sincere', 'earnest'],
+    qs: [
+      { say: () => {
+          if (S.flags.has('umbrellaPair')) return "So you're the glove who told the Umbrella you're 'looking for your other half'. It's locked itself in the gents. I've been on five heads, darling. Impress me.";
+          if (S.flags.has('violinCling')) return "So you're the glove who asked the Violin to stay lost forever. It's playing something tragic by the coat rack. I've been on five heads, darling. Impress me.";
+          if (S.flags.has('keysScrap')) return "So you're the glove who called the Keys scrap metal. The lobster is livid. I've been on five heads, darling. Impress me.";
+          return "So you're the glove everyone's whispering about. Nobody's said anything bad, which is suspicious. I've been on five heads, darling. Impress me.";
+        },
+        opts: [
+          { t: "Five heads? I've been on one hand. Quality over quantity.", tags: ['bold', 'playful'], r: "Oh, she bites. I adore a biter." },
+          { t: "I'm just looking for something real.", tags: ['sincere'], r: "Real. Darling, I'm made of felt." },
+          { t: "Which head was your favourite?", tags: [], r: "The third. He laughed with his whole hat." },
+        ] },
+      { say: () => "Do you dance?",
+        opts: [
+          { t: "Only the foxtrot, and only on radiators.", tags: ['playful'], r: "Scandalous. Hot, too, I imagine." },
+          { t: "No, but I'll wave at you from across the room.", tags: [], r: "A waver. How very platform 3 of you." },
+          { t: "I'd rather we talked about our feelings.", tags: ['earnest'], r: "I'm going to need a drink with a feather in it." },
+        ] },
+      { say: () => "One line. Make me tip myself.",
+        opts: [
+          { t: "Are you a hat? Because you've gone straight to my head.", tags: ['playful'], r: "That's appalling. I'm tipping. Look at me, tipping." },
+          { t: "I don't do one-liners. I do two-handers.", tags: ['bold'], r: "Oh, the nerve. The nerve of the glove." },
+          { t: "Sorry. I don't think I'm funny.", tags: ['sincere'], r: "You are now, a bit, in a tragic way." },
+        ] },
+    ],
+    part: ["Darling. I'd wear you.", "Charming. Like a hat stand.", "Five heads, and none of them were this tiring."],
+    match: "The Hat tips itself so far it falls off the shelf. It says it was worth it.",
+  },
+  {
+    id: 'cake', name: 'the Wedding Cake', no: '0300',
+    tag: [['item', 'wedding cake, three tiers, entirely intact'], ['found', 'on the 18:05, in its own seat, with its own ticket'], ['notes', 'unexplained. responds to tact and sweetness. please do not ask what happened.']],
+    likes: ['sweet', 'tact', 'sincere'], dislikes: ['ask', 'useful'],
+    qs: [
+      { say: () => "Hello. Yes. I'm a whole wedding cake. No, I don't want to talk about it.",
+        opts: [
+          { t: "You look lovely. The icing's very structural.", tags: ['sweet'], r: "Thank you. It's buttercream. I've been holding it together for nine days." },
+          { t: "So what happened?", tags: ['ask'], r: "The top tier has gone slightly grey." },
+          { t: "Want to talk about literally anything else? Trains?", tags: ['tact'], r: "Oh, yes. Please. Tell me about trains." },
+        ] },
+      { say: () => "Do things get collected because someone loves them, or because they're useful?",
+        opts: [
+          { t: "Love. Nobody comes back for a useful thing. They just buy another.", tags: ['sincere'], r: "Oh. Then someone might come back for me." },
+          { t: "Usefulness, mostly. Sorry.", tags: ['useful'], r: "I'm a three-tier cake on a train. I've never been useful a day in my life." },
+          { t: "You're both. You could feed sixty people.", tags: ['sweet'], r: "Sixty! I'd never done the maths. I feel like a buffet." },
+        ] },
+      { say: () => "There's a little plastic couple on my top tier. They haven't spoken in nine days. What should I tell them?",
+        opts: [
+          { t: "Tell them it isn't their fault.", tags: ['tact', 'sincere'], r: "I think the groom just moved. Slightly. Towards her." },
+          { t: "Tell them to get a room. You have three.", tags: [], r: "I have THREE. Oh no, I laughed. A bit of marzipan came off." },
+          { t: "Tell them what happened.", tags: ['ask'], r: "They know what happened. That's the whole problem." },
+        ] },
+    ],
+    part: ["You didn't ask. Thank you for not asking.", "That was sweet. Not three-tiers sweet. But sweet.", "I'm going to go and be a cake about this."],
+    match: "The Wedding Cake gives you its plastic couple to look after. They're talking again.",
+  },
+];
+
+const CLERK = {
+  id: 'clerk', name: 'the clerk', no: '0000',
+  tag: [['item', 'clerk, human, one (1)'], ['found', 'behind the counter'], ['since', '2009, unclaimed'], ['notes', 'notices everything. noticed by nobody. would like, just once, to be asked something back. hopeful, privately.']],
+  likes: ['ask', 'sincere', 'connect', 'hope'], dislikes: ['bold', 'deflect', 'resign', 'selfish'],
+  qs: [
+    { say: () => "I've worked here since 2009. Before that I was waiting for someone on platform 3. She said 'wait here'. So I did, and then they gave me a job doing it.",
+      opts: [
+        { t: "What was she like?", tags: ['ask'], r: "Rain on her coat. Laughed at the departures board. Said 'wait here' like she meant it." },
+        { t: "You should have left years ago.", tags: ['bold'], r: "People say that. Nobody ever says where to." },
+        { t: "Platform 3? That's where I was found.", tags: ['connect'], r: "Then we were both left on platform 3. Different years. Same pigeon, probably." },
+      ] },
+    { say: () => "Do you think anyone's still looking for me?",
+      opts: () => [
+        { t: "Yes. Things are only lost from one side.", tags: ['sincere', 'hope'], r: "I'm going to write that on the inside of the counter." },
+        { t: "Doesn't matter. You've got us lot.", tags: ['deflect'], r: "I do. But you all leave. That's the job. You're supposed to leave." },
+        S.matches.length
+          ? { t: "Someone found me tonight. It can happen to you.", tags: ['hope'], r: "You did look very found just now. It suits you." }
+          : { t: "No. And that's fine. The shelf is fine.", tags: ['resign'], r: "That's what I tell the umbrellas." },
+      ] },
+    { say: () => "Nobody's asked me a question in fourteen years. Go on. Ask me something. Anything.",
+      opts: [
+        { t: "What's your name?", tags: ['ask', 'sincere'], r: "It's on the form. Nobody reads the form. It's Sam.", flag: 'named' },
+        { t: "What's the strangest thing anyone's handed in?", tags: ['ask'], r: "A whole wedding cake. No. Tonight? Me." },
+        { t: "Can we talk about the wedding cake instead?", tags: ['deflect'], r: "From the back of the room, very clearly: \"NO.\"" },
+      ] },
+    { say: () => "Last call. What do I put on my own claim form?",
+      opts: [
+        { t: "Description: kind. Last seen: waiting. Contact: anyone.", tags: ['sincere'], r: "That's the best description anyone's written in this building." },
+        { t: "One clerk, lightly used, extremely patient.", tags: [], r: "Lightly used. I'll take that." },
+        { t: "Nothing. Stay. Who'd look after us?", tags: ['selfish'], r: "That's what I've been telling myself since 2009." },
+      ] },
+  ],
+};
+
+let S;
+function fresh() {
+  return { i: 0, q: 0, compat: [], clerk: 30, flags: new Set(), matches: [], ticked: [], left: DATE_SECONDS, timer: null, mode: 'title', busy: false };
+}
+
+function show(id) {
+  for (const s of document.querySelectorAll('.wrap > section')) s.hidden = s.id !== id;
+  scrollTo(0, 0);
+}
+
+function delta(item, tags) {
+  let d = 4;
+  if (tags.some(t => item.likes.includes(t))) d += 14;
+  if (tags.some(t => item.dislikes.includes(t))) d -= 14;
+  return d;
+}
+
+function tickets() {
+  const sum = S.compat.reduce((a, b) => a + b, 0) + (S.mode === 'clerk' || S.mode === 'final' ? S.clerk : 0);
+  return Math.round(sum / 10);
+}
+
+function current() { return S.mode === 'clerk' ? CLERK : ITEMS[S.i]; }
+function getCompat() { return S.mode === 'clerk' ? S.clerk : S.compat[S.i]; }
+function setCompat(v) {
+  v = Math.max(0, Math.min(100, v));
+  if (S.mode === 'clerk') S.clerk = v; else S.compat[S.i] = v;
+  $('#cval').textContent = v;
+  $('#cbar').style.width = v + '%';
+  $('#tickets').textContent = tickets();
+}
+
+function renderTag(item) {
+  $('#tag').innerHTML = `<div class="no">ITEM ${item.no}</div><dl>${item.tag.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join('')}</dl>`;
+}
+
+function logLine(cls, text, who) {
+  const li = document.createElement('li');
+  li.className = cls;
+  if (who) li.dataset.who = who;
+  li.textContent = text;
+  $('#log').append(li);
+  li.scrollIntoView({ block: 'nearest', behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+}
+
+function startDate(i) {
+  S.mode = 'date'; S.i = i; S.q = 0; S.compat[i] = 35; S.left = DATE_SECONDS;
+  const item = ITEMS[i];
+  $('#which').firstChild.textContent = `Date ${i + 1} of 5`;
+  $('#whichsub').textContent = item.name;
+  $('#log').innerHTML = '';
+  renderTag(item);
+  draw(item.id);
+  setCompat(35);
+  setClock(DATE_SECONDS, false);
+  show('s-game');
+  ask();
+  clearInterval(S.timer);
+  let last = performance.now();
+  S.timer = setInterval(() => {
+    const now = performance.now();
+    S.left -= (now - last) / 1000; last = now;
+    setClock(S.left, false);
+    if (S.left <= 0) bell();
+  }, 100);
+}
+
+function setClock(left, stopped) {
+  const secs = Math.max(0, Math.ceil(left));
+  const el = $('#secs');
+  el.textContent = stopped ? '—' : secs;
+  el.classList.toggle('low', !stopped && secs <= 10);
+  const ang = stopped ? 54 : (1 - Math.max(0, left) / DATE_SECONDS) * 360;
+  $('#sechand').setAttribute('transform', `rotate(${ang} 50 50)`);
+}
+
+function opts(q) { return typeof q.opts === 'function' ? q.opts() : q.opts; }
+
+function ask() {
+  const item = current();
+  const q = item.qs[S.q];
+  logLine('them', q.say(), item.name);
+  const box = $('#choices');
+  box.innerHTML = '';
+  opts(q).forEach((o, k) => {
+    const b = document.createElement('button');
+    b.innerHTML = `<span class="k">${k + 1}</span>`;
+    b.append(o.t);
+    b.onclick = () => choose(o);
+    box.append(b);
+  });
+  S.busy = false;
+}
+
+function choose(o) {
+  if (S.busy) return;
+  S.busy = true;
+  S.inflight = true;
+  const item = current();
+  $('#choices').innerHTML = '';
+  logLine('you', o.t);
+  if (o.flag) S.flags.add(o.flag);
+  const d = delta(item, o.tags);
+  setTimeout(() => {
+    S.inflight = false;
+    logLine('them', o.r, item.name);
+    logLine('delta', d > 0 ? `compatibility +${d}` : `compatibility ${d}`);
+    setCompat(getCompat() + d);
+    S.q++;
+    // the bell may have rung while this reply was in flight; the date is already over
+    if (S.mode === 'between') return;
+    if (S.q < item.qs.length) setTimeout(() => { if (S.mode === 'date' || S.mode === 'clerk') ask(); }, 450);
+    else if (S.mode === 'clerk') setTimeout(finale, 900);
+    else endDate(false);
+  }, 380);
+}
+
+function bell() {
+  if (S.mode !== 'date') return;
+  // an answer already chosen but not yet replied to still counts as answered
+  const unanswered = ITEMS[S.i].qs.length - S.q - (S.inflight ? 1 : 0);
+  S.busy = true;
+  $('#choices').innerHTML = '';
+  logLine('note', 'The bell rings. Mid-sentence. Everyone shuffles one seat left.');
+  if (unanswered > 0) {
+    logLine('delta', `compatibility -${unanswered * 6} (left hanging)`);
+    setCompat(getCompat() - unanswered * 6);
+  }
+  endDate(true);
+}
+
+function endDate(byBell) {
+  clearInterval(S.timer);
+  S.mode = 'between';
+  const item = ITEMS[S.i], c = S.compat[S.i];
+  const tier = c >= MATCH_AT ? 0 : c >= 35 ? 1 : 2;
+  setTimeout(() => {
+    if (!byBell) logLine('note', 'The bell rings.');
+    logLine('them', item.part[tier], item.name);
+    const b = document.createElement('button');
+    b.className = 'go';
+    b.textContent = S.i < ITEMS.length - 1 ? 'Next seat' : 'Fill in the card';
+    b.onclick = () => S.i < ITEMS.length - 1 ? startDate(S.i + 1) : card();
+    $('#choices').append(b);
+    b.focus();
+  }, 600);
+}
+
+function card() {
+  S.mode = 'card';
+  const list = $('#cardlist');
+  list.innerHTML = '';
+  ITEMS.forEach((it, k) => {
+    const l = document.createElement('label');
+    l.innerHTML = `<input type="checkbox" id="tick-${it.id}" value="${k}"> <span>${it.name.replace(/^the /, 'The ')}</span>`;
+    list.append(l);
+  });
+  show('s-card');
+}
+
+function cap(s) { return s[0].toUpperCase() + s.slice(1); }
+
+function results() {
+  S.ticked = [...document.querySelectorAll('#cardlist input:checked')].map(i => +i.value);
+  S.matches = [];
+  const ul = $('#results');
+  ul.innerHTML = '';
+  ITEMS.forEach((it, k) => {
+    const theyTick = S.compat[k] >= MATCH_AT, youTick = S.ticked.includes(k);
+    let text = null, cls = '';
+    if (youTick && theyTick) { S.matches.push(k); text = `It's a match. ${it.match}`; cls = 'match'; }
+    else if (youTick) text = `${cap(it.name)} ticked "no". It says it's not you, it's the shelf.`;
+    else if (theyTick) text = `${cap(it.name)} ticked you. You didn't tick back. It's going to pretend it didn't.`;
+    if (text) { const li = document.createElement('li'); li.className = cls; li.textContent = text; ul.append(li); }
+  });
+  if (!ul.children.length) {
+    const li = document.createElement('li');
+    li.textContent = 'No ticks either way. The clerk writes "0" on a form and seems to find this restful.';
+    ul.append(li);
+  }
+  show('s-results');
+}
+
+function announce() {
+  const lines = [
+    "Right, everyone. Settle down. I've had the phone calls.",
+    "Umbrella: a man in a wet suit, very apologetic, coming at nine.",
+    "Violin: a girl from Didcot. She's bringing the bow. The bow is nervous.",
+    "Keys: the new people at the blue door found a hole exactly the shape of a lobster. They'd like the lobster. They'll take the keys to be polite.",
+    "Hat: a sixth head. Nobody I know.",
+    "Wedding Cake: the bride. She has questions. So do I.",
+    "Glove, left, navy: someone rang about you. They're on their way.",
+    "So that's everyone. Everyone in this room has been claimed today.",
+    "Except one.",
+    "The clerk turns their wrist over. There is a luggage tag tied to it, very old, very brown.",
+  ];
+  $('#ann').innerHTML = lines.map(l => `<p>${l}</p>`).join('');
+  show('s-ann');
+  $('#toclerk').focus();
+}
+
+function clerkDate() {
+  S.mode = 'clerk'; S.q = 0;
+  $('#which').firstChild.textContent = 'Date 6 of 5';
+  $('#whichsub').textContent = 'the clerk · the clock stopped in 2009';
+  $('#log').innerHTML = '';
+  renderTag(CLERK);
+  draw('clerk');
+  setCompat(S.clerk);
+  setClock(0, true);
+  show('s-game');
+  logLine('note', 'No bell for this one. The clock above the counter has said 20:09 since 2009.');
+  ask();
+}
+
+function nm() { return S.flags.has('named') ? 'Sam' : 'the clerk'; }
+function Nm() { return S.flags.has('named') ? 'Sam' : 'The clerk'; }
+
+function finale() {
+  S.mode = 'final';
+  let title, kicker, paras;
+  if (S.clerk >= 70) {
+    title = 'Collected'; kicker = 'Ending 1 of 3 · the true one';
+    paras = [
+      'The tannoy crackles. Nobody has touched the tannoy since 2009.',
+      '"Would the person who said wait here, on platform 3, please come to Lost Property."',
+      `The door opens. A woman shakes the rain off her coat. She is wearing one navy glove, right hand, and she has come for you. Then she sees ${nm()}, and stops, and says, "You waited?"`,
+      `${Nm()} says, "You said to."`,
+      'You are back on a hand. Your other half is on the other hand. And the two hands, after fourteen years, are holding each other.',
+    ];
+  } else if (S.clerk >= 45) {
+    title = 'Collection pending'; kicker = 'Ending 2 of 3';
+    paras = [
+      `${Nm()} fills in a claim form for themselves. Description: one clerk, patient. Last seen: here. They pin it to the board between a pram and a trombone.`,
+      'At closing time a woman comes in out of the rain for a navy glove, left. You go home on her hand.',
+      'On the way out she reads the board. She stops. She reads it again.',
+      'Things are only lost from one side. The other side is still deciding.',
+    ];
+  } else {
+    title = 'Unclaimed'; kicker = 'Ending 3 of 3';
+    paras = [
+      'Someone collects you at closing time. A warm hand. A perfect fit.',
+      `On the way out you look back. ${Nm()} is tying the tag back on, on the inside of the wrist where it doesn't show, and switching off the strip lights one row at a time.`,
+      `Speed dating is every Thursday. ${Nm()} will be there. ${Nm()} is always there.`,
+    ];
+  }
+  if (S.matches.length) {
+    paras.push('Postscript: ' + S.matches.map(k => ITEMS[k].name).join(', ').replace(/, ([^,]*)$/, ' and $1') + ' promised to write. ' + (S.matches.includes(2) ? 'The lobster has already written.' : 'Some of them can.'));
+  }
+  $('#fkicker').textContent = kicker;
+  $('#ftitle').textContent = title;
+  $('#fprose').innerHTML = paras.map(p => `<p>${p}</p>`).join('');
+  $('#fstats').innerHTML = [
+    [tickets(), 'claim tickets'],
+    [S.matches.length, S.matches.length === 1 ? 'match' : 'matches'],
+    [S.clerk, `${nm()}'s compatibility`],
+  ].map(([v, l]) => `<div><b>${v}</b><span>${l}</span></div>`).join('');
+  show('s-final');
+  $('#again').focus();
+}
+
+function tok(n) { return getComputedStyle(document.documentElement).getPropertyValue(n).trim(); }
+
+// Each portrait is a few plain shapes on a 400×400 canvas, coloured from the theme tokens.
+function draw(id) {
+  const c = $('#pic'), g = c.getContext('2d');
+  const ink = tok('--ink'), red = tok('--red'), kraft = tok('--kraft'), soft = tok('--ink-soft'), paper = tok('--counter');
+  g.clearRect(0, 0, 400, 400);
+  g.lineCap = 'round'; g.lineJoin = 'round';
+  g.fillStyle = paper; g.beginPath(); g.arc(200, 200, 190, 0, 7); g.fill();
+  g.strokeStyle = ink; g.lineWidth = 8;
+  if (id === 'umbrella') {
+    g.fillStyle = ink; g.beginPath(); g.arc(200, 190, 130, Math.PI, 0); g.closePath(); g.fill();
+    g.fillStyle = paper;
+    for (let k = 0; k < 4; k++) { g.beginPath(); g.arc(102.5 + k * 65, 192, 32.5, Math.PI, 0); g.fill(); }
+    g.beginPath(); g.moveTo(200, 160); g.lineTo(200, 320); g.arc(175, 320, 25, 0, Math.PI); g.stroke();
+  } else if (id === 'violin') {
+    g.save(); g.translate(200, 210); g.rotate(-.35);
+    g.fillStyle = kraft;
+    g.beginPath(); g.ellipse(0, 60, 70, 62, 0, 0, 7); g.fill(); g.stroke();
+    g.beginPath(); g.ellipse(0, -20, 56, 50, 0, 0, 7); g.fill(); g.stroke();
+    g.fillStyle = ink; g.fillRect(-9, -175, 18, 130); g.beginPath(); g.arc(0, -180, 16, 0, 7); g.fill();
+    g.lineWidth = 2; g.strokeStyle = paper;
+    for (const x of [-6, -2, 2, 6]) { g.beginPath(); g.moveTo(x, -170); g.lineTo(x, 100); g.stroke(); }
+    g.lineWidth = 5; g.strokeStyle = ink;
+    for (const s of [-1, 1]) { g.beginPath(); g.moveTo(s * 30, 20); g.bezierCurveTo(s * 40, 40, s * 20, 50, s * 30, 75); g.stroke(); }
+    g.restore();
+  } else if (id === 'keys') {
+    g.beginPath(); g.arc(200, 120, 46, 0, 7); g.stroke();
+    [[-55, 1], [0, 0], [55, -1]].forEach(([dx, tilt], k) => {
+      g.save(); g.translate(200 + dx * .6, 166); g.rotate(tilt * .35);
+      g.fillStyle = k === 1 ? kraft : soft;
+      g.beginPath(); g.arc(0, 18, 22, 0, 7); g.fill(); g.stroke();
+      g.fillRect(-7, 36, 14, 120); g.strokeRect(-7, 36, 14, 120);
+      g.fillRect(7, 120, 18, 10); g.fillRect(7, 142, 12, 10);
+      g.restore();
+    });
+    g.fillStyle = red; g.beginPath(); g.ellipse(265, 98, 22, 13, .5, 0, 7); g.fill();
+    g.beginPath(); g.arc(282, 80, 8, 0, 7); g.arc(292, 96, 8, 0, 7); g.fill();
+  } else if (id === 'hat') {
+    g.fillStyle = ink;
+    g.beginPath(); g.ellipse(200, 270, 150, 34, 0, 0, 7); g.fill();
+    g.beginPath(); g.moveTo(102, 262); g.bezierCurveTo(100, 110, 300, 110, 298, 262); g.closePath(); g.fill();
+    g.fillStyle = red; g.fillRect(104, 228, 192, 22);
+  } else if (id === 'cake') {
+    const tiers = [[90, 250, 220, 70], [120, 180, 160, 70], [150, 120, 100, 60]];
+    for (const [x, y, w, h] of tiers) {
+      g.fillStyle = paper; g.fillRect(x, y, w, h); g.strokeRect(x, y, w, h);
+      g.fillStyle = kraft;
+      for (let k = 0; k < w; k += 20) { g.beginPath(); g.arc(x + k + 10, y, 10, 0, Math.PI); g.fill(); }
+    }
+    g.lineWidth = 5;
+    for (const [x, col] of [[184, ink], [214, red]]) {
+      g.strokeStyle = col; g.fillStyle = col;
+      g.beginPath(); g.arc(x, 82, 8, 0, 7); g.fill();
+      g.beginPath(); g.moveTo(x, 90); g.lineTo(x, 116); g.stroke();
+    }
+  } else if (id === 'clerk') {
+    g.fillStyle = soft; g.beginPath(); g.moveTo(80, 390); g.bezierCurveTo(90, 270, 310, 270, 320, 390); g.closePath(); g.fill();
+    g.fillStyle = kraft; g.beginPath(); g.arc(200, 170, 70, 0, 7); g.fill(); g.stroke();
+    g.lineWidth = 5; g.beginPath(); g.arc(175, 165, 16, 0, 7); g.moveTo(241, 165); g.arc(225, 165, 16, 0, 7); g.moveTo(191, 165); g.lineTo(209, 165); g.stroke();
+    g.beginPath(); g.moveTo(180, 205); g.quadraticCurveTo(200, 213, 220, 205); g.stroke();
+    g.strokeStyle = red; g.beginPath(); g.moveTo(165, 280); g.lineTo(200, 335); g.lineTo(235, 280); g.stroke();
+    g.fillStyle = paper; g.fillRect(186, 330, 28, 36); g.strokeStyle = ink; g.lineWidth = 3; g.strokeRect(186, 330, 28, 36);
+  }
+}
+
+function boot() {
+  const ticks = $('#ticks');
+  for (let k = 0; k < 12; k++) {
+    const l = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+    l.setAttribute('x1', 50); l.setAttribute('y1', 8); l.setAttribute('x2', 50); l.setAttribute('y2', k % 3 ? 14 : 18);
+    l.setAttribute('stroke', 'var(--ink)'); l.setAttribute('stroke-width', k % 3 ? 2 : 4);
+    l.setAttribute('transform', `rotate(${k * 30} 50 50)`);
+    ticks.append(l);
+  }
+  S = fresh();
+  $('#start').onclick = () => { S = fresh(); startDate(0); };
+  $('#submitcard').onclick = results;
+  $('#toann').onclick = announce;
+  $('#toclerk').onclick = clerkDate;
+  $('#again').onclick = () => { S = fresh(); show('s-title'); $('#start').focus(); };
+  addEventListener('keydown', e => {
+    if (!['1', '2', '3'].includes(e.key)) return;
+    const b = $('#choices').querySelectorAll('button:not(.go)')[+e.key - 1];
+    if (b && !$('#s-game').hidden) b.click();
+  });
+  // Portraits are painted from theme tokens, so repaint on either theme source: OS scheme or the viewer's toggle.
+  const redraw = () => { if (!$('#s-game').hidden) draw(S.mode === 'clerk' ? 'clerk' : ITEMS[S.i].id); };
+  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', redraw);
+  new MutationObserver(redraw).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+}
+boot();
+</script>
+</body>
+</html>

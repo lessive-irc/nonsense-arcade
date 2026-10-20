@@ -1,0 +1,1065 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Sandwich Diplomacy</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bungee&family=Chivo:ital,wght@0,400;0,700;1,400&family=Courier+Prime:wght@400;700&display=swap">
+<style>
+/* Layout: formica lunch counter. Left, the sandwich on its tray; right, the diplomatic desk with dossiers, rulebook and minutes. */
+:root {
+  --counter: #cfe6d8;
+  --speck: #a9cfba;
+  --tray: #e8f3ec;
+  --paper: #fdfdf8;
+  --ink: #14251d;
+  --ink-dim: #4d6a5c;
+  --tomato: #c63a22;
+  --mustard: #c98c06;
+  --basil: #2f7a45;
+  --line: #14251d29;
+  --scrim: #cfe6d8e8;
+  --f-display: "Bungee", "Arial Black", Impact, sans-serif;
+  --f-body: "Chivo", "Helvetica Neue", Arial, sans-serif;
+  --f-memo: "Courier Prime", "Courier New", ui-monospace, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --counter: #0f241c; --speck: #17362a; --tray: #132e23; --paper: #183429;
+    --ink: #e4f1e8; --ink-dim: #94b6a4; --tomato: #ff6b4f; --mustard: #f2bd3a;
+    --basil: #6fcf8c; --line: #e4f1e829; --scrim: #0f241ce8;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --counter: #0f241c; --speck: #17362a; --tray: #132e23; --paper: #183429;
+  --ink: #e4f1e8; --ink-dim: #94b6a4; --tomato: #ff6b4f; --mustard: #f2bd3a;
+  --basil: #6fcf8c; --line: #e4f1e829; --scrim: #0f241ce8;
+  color-scheme: dark;
+}
+[hidden] { display: none !important; }
+html, body { height: 100%; }
+body {
+  margin: 0;
+  background-color: var(--counter);
+  background-image:
+    radial-gradient(var(--speck) 1px, transparent 1.5px),
+    radial-gradient(var(--speck) 1px, transparent 1.5px);
+  background-size: 23px 23px, 37px 37px;
+  background-position: 0 0, 11px 17px;
+  color: var(--ink);
+  font: 15px/1.5 var(--f-body);
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  box-sizing: border-box;
+}
+*, *::before, *::after { box-sizing: inherit; }
+.app { min-height: 100%; display: grid; grid-template-rows: auto 1fr; gap: 14px; padding-block: 14px; }
+
+.bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px 28px; }
+.brand { font-family: var(--f-display); font-size: clamp(20px, 3.2vw, 28px); line-height: 1; letter-spacing: .01em; margin: 0; }
+.brand span { color: var(--tomato); }
+.stats { display: flex; flex-wrap: wrap; gap: 10px 26px; align-items: end; }
+.stat { display: grid; gap: 2px; }
+.stat .k { font-size: 10px; letter-spacing: .12em; text-transform: uppercase; color: var(--ink-dim); }
+.stat .v { font-family: var(--f-memo); font-weight: 700; font-size: 18px; font-variant-numeric: tabular-nums; }
+.tension { width: 180px; max-width: 42vw; }
+.meter { height: 10px; border-radius: 99px; background: var(--line); overflow: hidden; }
+.meter i { display: block; height: 100%; width: 0; background: var(--basil); border-radius: inherit; transition: width .3s, background .3s; }
+.meter.warn i { background: var(--mustard); }
+.meter.bad i { background: var(--tomato); }
+.tension .state { font-size: 12px; color: var(--ink-dim); }
+
+.stage { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 18px; min-height: 0; }
+.tower { position: relative; min-height: 380px; border-radius: 20px; background: var(--tray); box-shadow: inset 0 0 0 1.5px var(--line); overflow: hidden; }
+.tower canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: manipulation; cursor: pointer; }
+.hint { position: absolute; left: 14px; bottom: 10px; font-size: 11px; letter-spacing: .06em; color: var(--ink-dim); pointer-events: none; }
+
+.desk { display: flex; flex-direction: column; gap: 12px; min-height: 0; }
+.dossier { background: var(--paper); border: 1.5px solid var(--ink); border-radius: 4px; padding: 14px 16px; box-shadow: 4px 4px 0 var(--ink); display: grid; gap: 6px; }
+.dossier .head { display: flex; justify-content: space-between; gap: 8px; font-family: var(--f-memo); font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-dim); }
+.dossier .name { font-family: var(--f-display); font-size: 19px; line-height: 1.1; text-wrap: balance; }
+.dossier .rule { margin: 0; font-family: var(--f-memo); font-size: 14px; line-height: 1.45; }
+.chips { display: flex; flex-wrap: wrap; gap: 5px; }
+.chip { font-family: var(--f-memo); font-size: 11px; padding: 1px 7px; border-radius: 99px; border: 1px solid var(--line); color: var(--ink-dim); }
+.chip.sad { border-color: var(--tomato); color: var(--tomato); }
+.forecast { list-style: none; margin: 4px 0 0; padding: 8px 0 0; border-top: 1px dashed var(--line); display: grid; gap: 3px; font-size: 13px; }
+.forecast .lands { color: var(--ink-dim); font-size: 12px; }
+.feud { color: var(--tomato); }
+.ally { color: var(--basil); }
+
+.pair { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.mini { background: var(--paper); border: 1.5px solid var(--line); border-radius: 4px; padding: 10px 12px; display: grid; gap: 3px; align-content: start; }
+.mini .head { font-family: var(--f-memo); font-size: 10px; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-dim); }
+.mini .name { font-weight: 700; font-size: 14px; line-height: 1.2; }
+.mini .rule { margin: 0; font-size: 12px; color: var(--ink-dim); line-height: 1.35; }
+
+.actions { display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 8px; }
+button {
+  font: 700 13px var(--f-body); letter-spacing: .08em; text-transform: uppercase;
+  border-radius: 6px; padding: 12px 10px; cursor: pointer;
+  color: var(--ink); background: var(--paper); border: 1.5px solid var(--ink);
+  transition: transform .12s, box-shadow .12s;
+  box-shadow: 3px 3px 0 var(--ink);
+}
+button:hover:not(:disabled) { transform: translate(-1px, -1px); box-shadow: 4px 4px 0 var(--ink); }
+button:active:not(:disabled) { transform: translate(2px, 2px); box-shadow: 1px 1px 0 var(--ink); }
+button:focus-visible { outline: 3px solid var(--mustard); outline-offset: 2px; }
+button:disabled { opacity: .45; cursor: not-allowed; box-shadow: none; }
+button.primary { background: var(--tomato); color: var(--paper); }
+button kbd { font: 400 10px var(--f-memo); opacity: .75; margin-left: 4px; }
+
+details.book, .minutes { background: var(--paper); border: 1.5px solid var(--line); border-radius: 4px; padding: 10px 14px; }
+details.book summary, .minutes h3 { cursor: pointer; font-family: var(--f-memo); font-weight: 700; font-size: 12px; letter-spacing: .1em; text-transform: uppercase; margin: 0; }
+.minutes h3 { cursor: default; }
+.book ul, .minutes ul { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 6px; font-size: 13px; line-height: 1.35; }
+.book li { display: grid; gap: 1px; }
+.book .who { font-weight: 700; }
+.book .tags { font-family: var(--f-memo); font-size: 11px; color: var(--ink-dim); }
+.book em { font-style: normal; font-family: var(--f-memo); font-size: 10px; letter-spacing: .1em; text-transform: uppercase; color: var(--mustard); }
+.minutes li { display: grid; grid-template-columns: 14px 1fr; gap: 6px; }
+
+.overlay { position: fixed; inset: 0; z-index: 20; display: grid; place-items: center; overflow-y: auto; background: var(--scrim); padding-block: max(24px, env(safe-area-inset-top, 0px)) max(24px, env(safe-area-inset-bottom, 0px)); padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.memo { width: 100%; max-width: 560px; background: var(--paper); border: 2px solid var(--ink); border-radius: 4px; box-shadow: 8px 8px 0 var(--ink); padding: 26px 28px; display: grid; gap: 14px; }
+.memo .no { font-family: var(--f-memo); font-size: 12px; letter-spacing: .14em; text-transform: uppercase; color: var(--ink-dim); display: flex; justify-content: space-between; gap: 8px; border-bottom: 1px dashed var(--line); padding-bottom: 8px; }
+.memo h1 { font-family: var(--f-display); font-weight: 400; font-size: clamp(36px, 8vw, 58px); line-height: .95; margin: 0; text-wrap: balance; }
+.memo h1 span { color: var(--tomato); }
+.memo h2 { font-family: var(--f-display); font-weight: 400; font-size: clamp(22px, 4.4vw, 30px); line-height: 1.05; margin: 0; text-wrap: balance; }
+.memo p { margin: 0; max-width: 62ch; }
+.memo .small { font-size: 12px; color: var(--ink-dim); }
+.memo ul { margin: 0; padding-left: 18px; display: grid; gap: 4px; font-size: 14px; }
+.choices { display: grid; gap: 8px; }
+.choices button { text-transform: none; letter-spacing: 0; font-weight: 400; font-size: 14px; text-align: left; padding: 10px 14px; line-height: 1.35; }
+.choices button b { font-weight: 700; }
+.choices button small { display: block; font-family: var(--f-memo); font-size: 11px; color: var(--ink-dim); margin-top: 3px; }
+.memo .score { font-family: var(--f-memo); font-weight: 700; font-variant-numeric: tabular-nums; color: var(--tomato); }
+.lang { display: inline-flex; border: 1.5px solid var(--ink); border-radius: 4px; overflow: hidden; background: var(--paper); }
+.lang button { font: 700 11px var(--f-memo); letter-spacing: .1em; border: 0; border-radius: 0; padding: 4px 9px; box-shadow: none; background: transparent; color: var(--ink); }
+.lang button + button { border-left: 1.5px solid var(--ink); }
+.lang button:hover:not(:disabled), .lang button:active:not(:disabled) { transform: none; box-shadow: none; }
+.lang button[aria-pressed="true"] { background: var(--ink); color: var(--paper); }
+.memo > .lang { justify-self: end; }
+
+@media (min-width: 820px) {
+  .app { height: 100%; }
+  body { overflow: hidden; }
+  .desk { overflow-y: auto; padding: 2px 6px 8px 2px; }
+}
+@media (max-width: 819px) {
+  .stage { grid-template-columns: 1fr; }
+  .tower { height: 58vh; min-height: 340px; }
+}
+@media (max-width: 420px) {
+  .actions { grid-template-columns: 1fr 1fr; }
+  .actions .primary { grid-column: 1 / -1; }
+  .memo { padding: 20px 18px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  button, .meter i { transition: none; }
+}
+</style>
+</head>
+<body>
+
+<div class="app">
+  <header class="bar">
+    <h1 class="brand" data-th="brandHtml">Sandwich <span>Diplomacy</span></h1>
+    <div class="stats">
+      <div class="stat"><span class="k" data-t="calLbl">Diplomatic calories</span><span class="v" id="cal">0</span></div>
+      <div class="stat"><span class="k" data-t="layersLbl">Layers to summit</span><span class="v" id="layers">0 / 14</span></div>
+      <div class="stat tension">
+        <span class="k" data-t="tensionLbl">Tension</span>
+        <div class="meter" id="meter"><i id="fill"></i></div>
+        <span class="state" id="tstate">steady</span>
+      </div>
+      <div class="lang" role="group" data-ta="langGroup" aria-label="Language"></div>
+    </div>
+  </header>
+
+  <main class="stage">
+    <div class="tower" id="tower">
+      <canvas id="cv" data-ta="cvAria" aria-label="The sandwich tower. Tap or click to drop the swinging ingredient."></canvas>
+      <div class="hint" data-t="hint">tap the sandwich to drop</div>
+    </div>
+
+    <aside class="desk">
+      <section class="dossier" id="cur" aria-live="polite"></section>
+      <div class="pair">
+        <section class="mini" id="next"></section>
+        <section class="mini" id="held"></section>
+      </div>
+      <div class="actions">
+        <button id="drop" class="primary" data-th="dropBtn">Drop <kbd>space</kbd></button>
+        <button id="hold" data-th="holdBtn">Hold <kbd>H</kbd></button>
+        <button id="veto">Veto (3) <kbd>X</kbd></button>
+      </div>
+      <details class="book" open>
+        <summary data-t="bookH">Rulebook, as currently amended</summary>
+        <ul id="book"></ul>
+      </details>
+      <section class="minutes">
+        <h3 data-t="minutesH">Minutes</h3>
+        <ul id="log"></ul>
+      </section>
+    </aside>
+  </main>
+</div>
+
+<div class="overlay" id="o-title">
+  <div class="memo">
+    <div class="lang" role="group" data-ta="langGroup" aria-label="Language"></div>
+    <div class="no"><span data-t="memo1">Communiqué No. 1</span><span data-t="forLunch">For immediate lunch</span></div>
+    <h1 data-th="brandHtml">Sandwich <span>Diplomacy</span></h1>
+    <p data-t="titleP1">Ingredients swing over the sandwich one at a time. Drop each one on top. Every ingredient has a feud or an alliance, and it judges whoever it touches. Feuds raise tension, alliances ease it, and a lopsided stack raises it too.</p>
+    <p data-t="titleP2">Reach 14 layers before the tension tops out and the sandwich becomes a salad. Hold one ingredient aside, or veto three outright. The rulebook will be amended. You will be told.</p>
+    <button id="start" class="primary" data-t="startBtn">Open negotiations</button>
+    <p class="small" data-t="titleKeys">tap or space to drop · H to hold · X to veto</p>
+  </div>
+</div>
+
+<div class="overlay" id="o-treaty" hidden>
+  <div class="memo">
+    <div class="no"><span id="treaty-no">Communiqué</span><span data-t="treatyLbl">Treaty</span></div>
+    <h2 id="treaty-name">Treaty</h2>
+    <p id="treaty-text"></p>
+    <p class="small" data-t="treatySmall">The rulebook has been updated. Previous grudges are void. New grudges apply at once.</p>
+    <button id="ratify" class="primary" data-t="ratifyBtn">Ratify</button>
+  </div>
+</div>
+
+<div class="overlay" id="o-summit" hidden>
+  <div class="memo">
+    <div class="no"><span id="summit-no">Communiqué</span><span data-t="summitLbl">Emergency summit</span></div>
+    <h2 data-t="summitH">The sandwich has called a summit.</h2>
+    <p id="summit-text"></p>
+    <p data-t="summitP">It no longer requires a hand to stack it. It requires one more ingredient. That ingredient is you.</p>
+    <button id="accept" class="primary" data-t="acceptBtn">Accept the result</button>
+  </div>
+</div>
+
+<div class="overlay" id="o-feud" hidden>
+  <div class="memo">
+    <div class="no"><span id="feud-no">Communiqué</span><span data-t="feudLbl">Citizenship form</span></div>
+    <h2 data-t="feudH">Declare your feud.</h2>
+    <p data-t="feudP">Every ingredient in this sandwich has one. Choose yours. You will have to live with it.</p>
+    <p class="small" data-t="feudTags">Your tags: soft, sad. You have been through a lot.</p>
+    <div class="choices">
+      <button data-feud="0" data-th="feud0"><b>I refuse to touch anything sad.</b><small>applies to whoever is below and above you</small></button>
+      <button data-feud="1" data-th="feud1"><b>I will only sit above something loud.</b><small>applies to whoever is below you</small></button>
+      <button data-feud="2" data-th="feud2"><b>I love Cheese, and Cheese must be directly above me.</b><small>applies to whoever is above you</small></button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="o-gap" hidden>
+  <div class="memo">
+    <div class="no"><span id="gap-no">Communiqué</span><span data-t="gapLbl">Placement</span></div>
+    <h2 data-t="gapH">Where should the sandwich put you?</h2>
+    <p data-t="gapP">The sandwich is a democracy, so it lets you choose. Your neighbours' rules apply to you as well as yours to them.</p>
+    <p class="small" id="gap-feud"></p>
+    <div class="choices" id="gaps"></div>
+  </div>
+</div>
+
+<div class="overlay" id="o-end" hidden>
+  <div class="memo">
+    <div class="lang" role="group" data-ta="langGroup" aria-label="Language"></div>
+    <div class="no"><span id="end-no">Communiqué</span><span data-t="finalLbl">Final</span></div>
+    <h2 id="end-title"></h2>
+    <p id="end-sub"></p>
+    <ul id="end-list"></ul>
+    <p class="score" id="end-score"></p>
+    <button id="again" class="primary" data-t="againBtn">Make another sandwich</button>
+  </div>
+</div>
+
+<script>
+const $ = s => document.querySelector(s);
+const cv = $('#cv'), cx = cv.getContext('2d');
+const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const SUMMIT = 14, TREATY_EVERY = 3, SWING = 120;
+
+const ING = {
+  plate:     { tags: [], w: 260, h: 8, wt: 0, cal: 0 },
+  bread:     { tags: ['soft', 'bread'], w: 170, h: 22, wt: 1.2, cal: 80 },
+  lettuce:   { tags: ['green', 'crunchy'], w: 180, h: 14, wt: .4, cal: 5 },
+  tomato:    { tags: ['wet', 'round', 'sad'], w: 150, h: 16, wt: .9, cal: 22 },
+  cheese:    { tags: ['soft', 'smug'], w: 160, h: 10, wt: .8, cal: 113 },
+  pickle:    { tags: ['green', 'wet'], w: 130, h: 14, wt: .6, cal: 4 },
+  sock:      { tags: ['cloth', 'soft', 'sad'], w: 150, h: 20, wt: .5, cal: 0 },
+  accordion: { tags: ['loud'], w: 120, h: 26, wt: 1.4, cal: 0 },
+  egg:       { tags: ['wet', 'soft'], w: 140, h: 14, wt: .7, cal: 90 },
+  ham:       { tags: ['soft', 'pink'], w: 165, h: 12, wt: .9, cal: 46 },
+  onion:     { tags: ['round', 'crunchy', 'sad'], w: 120, h: 16, wt: .5, cal: 41 },
+  bacon:     { tags: ['crunchy', 'loud'], w: 175, h: 10, wt: .6, cal: 43 },
+  card:      { tags: ['paper', 'smug'], w: 90, h: 6, wt: .1, cal: 1 },
+  you:       { tags: ['soft', 'sad'], w: 130, h: 18, wt: 1, cal: 0 },
+};
+// Rules are logic only; their wording is I18N.*.rules[id], or I18N.*.treaties[id].rtext once amended.
+const BASE_RULES = {
+  bread:     { rule: { type: 'calm' } },
+  lettuce:   { rule: { type: 'notBelow', tag: 'wet' } },
+  tomato:    { rule: { type: 'notTouch', name: 'cheese' } },
+  cheese:    { rule: { type: 'loves', name: 'tomato' } },
+  pickle:    { rule: { type: 'needBelow', tag: 'sad' } },
+  sock:      { rule: { type: 'hated' } },
+  accordion: { rule: { type: 'needBelow', tag: 'soft' } },
+  egg:       { rule: { type: 'notBelow', tag: 'green' } },
+  ham:       { rule: { type: 'loves', name: 'cheese' } },
+  onion:     { rule: { type: 'needBelow', tag: 'crunchy' } },
+  bacon:     { rule: { type: 'notTouch', name: 'sock' } },
+  card:      { rule: { type: 'notTouch', tag: 'loud' } },
+};
+const TREATIES = [
+  { id: 'tomato', rule: { type: 'loves', name: 'cheese' } },
+  { id: 'pickle', rule: { type: 'notTouch', tag: 'round' } },
+  { id: 'sock', rule: { type: 'none' } },
+  { id: 'accordion', rule: { type: 'notTouch', name: 'bacon' } },
+  { id: 'lettuce', rule: { type: 'loves', tag: 'wet' } },
+  { id: 'egg', rule: { type: 'notTouch', name: 'ham' } },
+];
+const BAG = ['bread', 'bread', 'lettuce', 'tomato', 'cheese', 'pickle', 'sock', 'accordion', 'egg', 'ham', 'onion', 'bacon', 'card'];
+
+// Every player-visible string, per language. Logic keeps ingredient ids, tag ids and rule types;
+// messages are stored as thunks, so the minutes and an open memo re-read in the current language.
+// French sentences need articles and gender, so each French ingredient has a bare `name` (titles,
+// the rulebook) and `the` (with its article, mid-sentence). The player can be the object of any
+// rule ("vous"), which French cannot slot into "toucher X", so `o === 'you'` gets its own wording.
+const N = id => tx('ing')[id].name;
+const The = id => { const s = tx('ing')[id].the ?? tx('ing')[id].name; return s[0].toUpperCase() + s.slice(1); };
+const the = id => tx('ing')[id].the ?? tx('ing')[id].name;
+const tg = tag => tx('tags')[tag];
+const I18N = {
+  en: {
+    docTitle: 'Sandwich Diplomacy', langGroup: 'Language', brandHtml: 'Sandwich <span>Diplomacy</span>',
+    calLbl: 'Diplomatic calories', layersLbl: 'Layers to summit', tensionLbl: 'Tension',
+    tension: { steady: 'steady', wobbly: 'wobbly', salad: 'about to become a salad' },
+    cvAria: 'The sandwich tower. Tap or click to drop the swinging ingredient.', hint: 'tap the sandwich to drop',
+    dropBtn: 'Drop <kbd>space</kbd>', holdBtn: 'Hold <kbd>H</kbd>', vetoLbl: n => `Veto (${n}) `,
+    bookH: 'Rulebook, as currently amended', amended: 'amended', minutesH: 'Minutes',
+    logEmpty: 'The table is set. Nobody has said anything yet.',
+    memo1: 'Communiqué No. 1', memoNo: n => `Communiqué No. ${n}`, forLunch: 'For immediate lunch',
+    titleP1: 'Ingredients swing over the sandwich one at a time. Drop each one on top. Every ingredient has a feud or an alliance, and it judges whoever it touches. Feuds raise tension, alliances ease it, and a lopsided stack raises it too.',
+    titleP2: 'Reach 14 layers before the tension tops out and the sandwich becomes a salad. Hold one ingredient aside, or veto three outright. The rulebook will be amended. You will be told.',
+    startBtn: 'Open negotiations', titleKeys: 'tap or space to drop · H to hold · X to veto',
+    treatyLbl: 'Treaty', treatySmall: 'The rulebook has been updated. Previous grudges are void. New grudges apply at once.', ratifyBtn: 'Ratify',
+    summitLbl: 'Emergency summit', summitH: 'The sandwich has called a summit.',
+    summitText: (n, sock) => `After a short session, the ${n} layers vote to declare independence from you. The motion passes ${n - 1} to 1. ` +
+      (sock ? 'The Sock voted against, out of habit.' : 'The Plate voted against. The Plate always votes against.'),
+    summitP: 'It no longer requires a hand to stack it. It requires one more ingredient. That ingredient is you.', acceptBtn: 'Accept the result',
+    feudLbl: 'Citizenship form', feudH: 'Declare your feud.',
+    feudP: 'Every ingredient in this sandwich has one. Choose yours. You will have to live with it.',
+    feudTags: 'Your tags: soft, sad. You have been through a lot.',
+    feud0: '<b>I refuse to touch anything sad.</b><small>applies to whoever is below and above you</small>',
+    feud1: '<b>I will only sit above something loud.</b><small>applies to whoever is below you</small>',
+    feud2: '<b>I love Cheese, and Cheese must be directly above me.</b><small>applies to whoever is above you</small>',
+    feuds: ['I refuse to touch anything sad.', 'I will only sit above something loud.', 'I love Cheese, and Cheese must be directly above me.'],
+    yourFeud: f => `Your feud: ${f}`,
+    gapLbl: 'Placement', gapH: 'Where should the sandwich put you?',
+    gapP: "The sandwich is a democracy, so it lets you choose. Your neighbours' rules apply to you as well as yours to them.",
+    gapBtn: (lo, up) => `Above ${N(lo)}, below ${up ? N(up) : 'nothing (the sky)'}`,
+    describe: id => id === 'plate' ? 'The Plate: no tags, no opinions' : `${N(id)} (${ING[id].tags.map(tg).join(', ')}): ${ruleText(id)}`,
+    finalLbl: 'Final', againBtn: 'Make another sandwich',
+    ends: {
+      citizen: ['The sandwich accepts you as a citizen.', (g, n) => `You are layer ${g} of ${n}. Nobody objects. It is the nicest thing that has happened to you.`],
+      deport: ['The sandwich deports you.', (g, n) => `You lasted a moment as layer ${g} of ${n}. The complaints, in full:`],
+      salad: ['The sandwich collapsed into a salad.', (g, n) => `Talks broke down at ${n} layers. Historians will argue about whose fault it was. It was the Sock's.`],
+    },
+    endScore: (s, b) => `${s} diplomatic calories · best ${b}`,
+    nowSwinging: 'Now swinging', falling: 'Falling', waiting: 'Waiting for negotiations', nobody: 'Nobody',
+    landsOn: id => `If it lands on ${N(id)}:`, noObjections: 'No objections.',
+    nextUp: 'Next up', lobby: 'In the lobby', empty: 'Empty', lobbyHint: 'Press Hold to park the swinging ingredient here.',
+    youLabel: 'YOU',
+    ing: {
+      plate: { name: 'The Plate' }, bread: { name: 'Bread' }, lettuce: { name: 'Lettuce' }, tomato: { name: 'Existential Tomato' },
+      cheese: { name: 'Cheese' }, pickle: { name: 'Pickle' }, sock: { name: 'A Single Sock' }, accordion: { name: 'Tiny Accordion' },
+      egg: { name: 'Fried Egg' }, ham: { name: 'Ham' }, onion: { name: 'Onion Ring' }, bacon: { name: 'Bacon' },
+      card: { name: "A Lawyer's Business Card" }, you: { name: 'You' },
+    },
+    tags: { soft: 'soft', bread: 'bread', green: 'green', crunchy: 'crunchy', wet: 'wet', round: 'round', sad: 'sad',
+      smug: 'smug', cloth: 'cloth', loud: 'loud', pink: 'pink', paper: 'paper' },
+    rules: {
+      bread: 'A neutral venue. Placing it eases tension.',
+      lettuce: 'Will not lie on anything wet.',
+      tomato: 'Refuses to touch Cheese.',
+      cheese: 'Wants to sit on Tomato. Tomato does not want this.',
+      pickle: 'Will only sit above someone sad.',
+      sock: 'Neutral, and therefore hated by all. Anything touching it files a complaint.',
+      accordion: 'Must sit on something soft.',
+      egg: 'Refuses to sit above anything green.',
+      ham: 'Allied with Cheese. Happiest sitting on it.',
+      onion: 'Will only sit above something crunchy.',
+      bacon: 'Refuses to touch the Sock.',
+      card: 'Refuses to touch anything loud.',
+    },
+    treaties: {
+      tomato: { name: 'The Treaty of Rye', text: 'Tomato and Cheese reconcile. Tomato now loves sitting on Cheese. It is awkward for everyone.',
+        rtext: 'Loves sitting on Cheese, per the Treaty of Rye.' },
+      pickle: { name: 'The Pickle Accord', text: 'Pickle no longer needs anyone sad below it. It now refuses to touch anything round.',
+        rtext: 'Refuses to touch anything round.' },
+      sock: { name: 'The Sock Convention', text: 'The Sock is downgraded from hated to ignored. Nobody complains about it any more. The Sock is sadder than ever.',
+        rtext: 'Ignored by all. No complaints, no friends.' },
+      accordion: { name: 'The Accordion Amendment', text: 'The Accordion no longer needs softness. It now refuses to touch Bacon. Creative differences.',
+        rtext: 'Refuses to touch Bacon. Creative differences.' },
+      lettuce: { name: 'The Lettuce Act', text: 'Lettuce drops its objection to wet things. It now loves sitting on anything wet.',
+        rtext: 'Loves sitting on anything wet.' },
+      egg: { name: 'The Egg Protocol', text: 'Egg no longer minds green things. It now refuses to touch Ham, for reasons it will not discuss.',
+        rtext: 'Refuses to touch Ham. Will not discuss it.' },
+    },
+    m: {
+      notTouch: (me, o) => `${N(me)} refuses to touch ${N(o)}.`,
+      needBelow: (me, o, tag) => `${N(me)} needs something ${tg(tag)} below. ${N(o)} is not ${tg(tag)}.`,
+      notBelow: (me, o, tag) => `${N(me)} will not sit above ${N(o)}, which is ${tg(tag)}.`,
+      loves: (me, o) => `${N(me)} is delighted to sit on ${N(o)}.`,
+      hated: (me, o) => `${N(o)} files a complaint about the Sock.`,
+      calm: () => 'Bread calms the room.',
+      settles: (d, below) => `${N(d)} settles on ${N(below)}. No objections.`,
+      fellOff: id => `${N(id)} fell off the sandwich and is suing.`,
+      lobby: id => `${N(id)} is asked to wait in the lobby.`,
+      veto: (id, n) => `${N(id)} is sent home. ${n} veto${n === 1 ? '' : 'es'} left.`,
+      ratified: id => `${tx('treaties')[id].name} is ratified.`,
+      collapse: () => 'Talks break down. The sandwich collapses.',
+      sadTouch: n => `You refuse to touch anything sad. ${N(n)} is sad.`,
+      loudOk: n => `${N(n)} is loud enough for you.`,
+      loudNo: n => `You only sit above something loud. ${N(n)} is not loud.`,
+      cheeseOk: () => 'Cheese is directly above you. Cheese does not know. This is enough.',
+      cheeseNo: a => `You wanted Cheese above you. You got ${a ? N(a) : 'the sky'}.`,
+    },
+  },
+  fr: {
+    docTitle: 'Diplomatie du sandwich', langGroup: 'Langue', brandHtml: 'Diplomatie <span>du sandwich</span>',
+    calLbl: 'Calories diplomatiques', layersLbl: 'Couches avant le sommet', tensionLbl: 'Tension',
+    tension: { steady: 'stable', wobbly: 'branlant', salad: 'bientôt une salade' },
+    cvAria: "La tour du sandwich. Touchez ou cliquez pour lâcher l'ingrédient qui se balance.", hint: 'touchez le sandwich pour lâcher',
+    dropBtn: 'Lâcher <kbd>espace</kbd>', holdBtn: 'Garder <kbd>H</kbd>', vetoLbl: n => `Veto (${n}) `,
+    bookH: "Règlement, tel qu'amendé à ce jour", amended: 'amendé', minutesH: 'Procès-verbal',
+    logEmpty: "La table est mise. Personne n'a encore rien dit.",
+    memo1: 'Communiqué n° 1', memoNo: n => `Communiqué n° ${n}`, forLunch: 'Pour déjeuner immédiat',
+    titleP1: "Les ingrédients se balancent au-dessus du sandwich, un par un. Lâchez chacun d'eux sur le dessus. Chaque ingrédient a une querelle ou une alliance, et il juge tout ce qu'il touche. Les querelles font monter la tension, les alliances l'apaisent, et une pile de travers la fait monter aussi.",
+    // « Vous serez prévenu » would gender the player.
+    titleP2: "Atteignez 14 couches avant que la tension ne déborde et que le sandwich ne tourne à la salade. Mettez un ingrédient de côté, ou opposez votre veto à trois d'entre eux. Le règlement sera amendé. On vous préviendra.",
+    startBtn: 'Ouvrir les négociations', titleKeys: 'touchez ou Espace pour lâcher · H pour garder · X pour le veto',
+    treatyLbl: 'Traité', treatySmall: "Le règlement a été mis à jour. Les anciennes rancunes sont caduques. Les nouvelles s'appliquent immédiatement.", ratifyBtn: 'Ratifier',
+    summitLbl: "Sommet d'urgence", summitH: 'Le sandwich a convoqué un sommet.',
+    summitText: (n, sock) => `Après une brève séance, les ${n} couches votent leur indépendance vis-à-vis de vous. La motion passe par ${n - 1} voix contre 1. ` +
+      (sock ? 'La Chaussette a voté contre, par habitude.' : "L'Assiette a voté contre. L'Assiette vote toujours contre."),
+    summitP: "Il n'a plus besoin d'une main pour l'empiler. Il lui faut un ingrédient de plus. Cet ingrédient, c'est vous.", acceptBtn: 'Accepter le résultat',
+    feudLbl: 'Formulaire de citoyenneté', feudH: 'Déclarez votre querelle.',
+    feudP: 'Chaque ingrédient de ce sandwich en a une. Choisissez la vôtre. Il faudra vivre avec.',
+    // Nouns, not « mou, triste »: the adjectives would have to agree with the player.
+    feudTags: 'Vos tags : douceur, tristesse. Vous en avez vu de toutes les couleurs.',
+    feud0: '<b>Je refuse de toucher quoi que ce soit de triste.</b><small>concerne qui est en dessous et au-dessus de vous</small>',
+    feud1: '<b>Je ne me pose que sur quelque chose de bruyant.</b><small>concerne qui est en dessous de vous</small>',
+    feud2: "<b>J'aime le Fromage, et le Fromage doit être juste au-dessus de moi.</b><small>concerne qui est au-dessus de vous</small>",
+    feuds: ['Je refuse de toucher quoi que ce soit de triste.', 'Je ne me pose que sur quelque chose de bruyant.', "J'aime le Fromage, et le Fromage doit être juste au-dessus de moi."],
+    yourFeud: f => `Votre querelle : ${f}`,
+    gapLbl: 'Placement', gapH: 'Où le sandwich doit-il vous mettre ?',
+    gapP: "Le sandwich est une démocratie : il vous laisse choisir. Les règles de vos voisins s'appliquent à vous, comme les vôtres à eux.",
+    gapBtn: (lo, up) => `Sur ${the(lo)}, sous ${up ? the(up) : 'rien (le ciel)'}`,
+    describe: id => id === 'plate' ? "L'Assiette : aucun tag, aucune opinion" : `${N(id)} (${ING[id].tags.map(tg).join(', ')}) : ${ruleText(id)}`,
+    finalLbl: 'Final', againBtn: 'Faire un autre sandwich',
+    // Titles keep the sandwich as the subject: « citoyen », « expulsé » would gender the player.
+    ends: {
+      citizen: ['Le sandwich vous accorde la citoyenneté.', (g, n) => `Vous occupez la couche ${g} sur ${n}. Personne ne proteste. C'est ce qui vous est arrivé de plus gentil.`],
+      deport: ['Le sandwich vous expulse.', (g, n) => `Vous avez tenu un instant à la couche ${g} sur ${n}. Les plaintes, dans leur intégralité :`],
+      salad: ["Le sandwich s'est effondré en salade.", (g, n) => `Les pourparlers ont échoué à ${n} couches. Les historiens se disputeront sur les responsabilités. C'était la faute de la Chaussette.`],
+    },
+    endScore: (s, b) => `${s} calories diplomatiques · record ${b}`,
+    nowSwinging: 'Au bout du fil', falling: 'En chute', waiting: 'En attente des négociations', nobody: 'Personne',
+    landsOn: id => `En cas d'atterrissage sur ${the(id)} :`, noObjections: 'Aucune objection.',
+    nextUp: 'Au suivant', lobby: 'Dans le hall', empty: 'Vide', lobbyHint: "Appuyez sur Garder pour garer ici l'ingrédient qui se balance.",
+    youLabel: 'VOUS',
+    ing: {
+      plate: { name: "L'Assiette", the: "l'Assiette" }, bread: { name: 'Pain', the: 'le Pain' }, lettuce: { name: 'Laitue', the: 'la Laitue' },
+      tomato: { name: 'Tomate existentielle', the: 'la Tomate existentielle' }, cheese: { name: 'Fromage', the: 'le Fromage' },
+      pickle: { name: 'Cornichon', the: 'le Cornichon' }, sock: { name: 'Chaussette orpheline', the: 'la Chaussette orpheline' },
+      accordion: { name: 'Accordéon miniature', the: "l'Accordéon miniature" }, egg: { name: 'Œuf au plat', the: "l'Œuf au plat" },
+      ham: { name: 'Jambon', the: 'le Jambon' }, onion: { name: "Rondelle d'oignon", the: "la Rondelle d'oignon" },
+      bacon: { name: 'Bacon', the: 'le Bacon' }, card: { name: "Carte de visite d'avocat", the: "la Carte de visite d'avocat" },
+      you: { name: 'Vous', the: 'vous' },
+    },
+    tags: { soft: 'mou', bread: 'pain', green: 'vert', crunchy: 'croquant', wet: 'mouillé', round: 'rond', sad: 'triste',
+      smug: 'suffisant', cloth: 'tissu', loud: 'bruyant', pink: 'rose', paper: 'papier' },
+    rules: {
+      bread: 'Un terrain neutre. Le poser apaise la tension.',
+      lettuce: 'Refuse de se poser sur quoi que ce soit de mouillé.',
+      tomato: 'Refuse de toucher le Fromage.',
+      cheese: 'Veut se poser sur la Tomate. La Tomate ne veut pas.',
+      pickle: "Ne se pose que sur quelqu'un de triste.",
+      sock: 'Neutre, donc détestée de tous. Tout ce qui la touche porte plainte.',
+      accordion: 'Doit se poser sur quelque chose de mou.',
+      egg: 'Refuse de se poser sur quoi que ce soit de vert.',
+      ham: 'Allié du Fromage. Au comble du bonheur posé dessus.',
+      onion: 'Ne se pose que sur quelque chose de croquant.',
+      bacon: 'Refuse de toucher la Chaussette.',
+      card: 'Refuse de toucher quoi que ce soit de bruyant.',
+    },
+    // The Treaty of Rye is a bread joke on a real treaty name; Brest-Litovsk gets the same treatment.
+    treaties: {
+      tomato: { name: 'Le Traité de Brioche-Litovsk', text: "La Tomate et le Fromage se réconcilient. La Tomate adore désormais se poser sur le Fromage. C'est gênant pour tout le monde.",
+        rtext: 'Adore se poser sur le Fromage, selon le Traité de Brioche-Litovsk.' },
+      pickle: { name: "Les Accords du Cornichon", text: "Le Cornichon n'a plus besoin de quelqu'un de triste en dessous. Il refuse désormais de toucher tout ce qui est rond.",
+        rtext: 'Refuse de toucher tout ce qui est rond.' },
+      sock: { name: 'La Convention de la Chaussette', text: "La Chaussette passe de détestée à ignorée. Plus personne ne s'en plaint. La Chaussette n'a jamais été aussi triste.",
+        rtext: 'Ignorée de tous. Ni plaintes, ni amis.' },
+      accordion: { name: "L'Amendement Accordéon", text: "L'Accordéon n'a plus besoin de douceur. Il refuse désormais de toucher le Bacon. Divergences artistiques.",
+        rtext: 'Refuse de toucher le Bacon. Divergences artistiques.' },
+      lettuce: { name: 'La Loi Laitue', text: 'La Laitue lève son objection aux choses mouillées. Elle adore désormais se poser sur tout ce qui est mouillé.',
+        rtext: 'Adore se poser sur tout ce qui est mouillé.' },
+      egg: { name: "Le Protocole de l'Œuf", text: "L'Œuf ne craint plus les choses vertes. Il refuse désormais de toucher le Jambon, pour des raisons qu'il préfère taire.",
+        rtext: 'Refuse de toucher le Jambon. Ne souhaite pas en parler.' },
+    },
+    // « de + adjectif » (rien de mou, quelque chose de vert) and « c'est + adjectif » never agree,
+    // so no line depends on an ingredient's gender; « est ravi(e) » became « avec délice ».
+    m: {
+      notTouch: (me, o) => o === 'you' ? `${The(me)} refuse de vous toucher.` : `${The(me)} refuse de toucher ${the(o)}.`,
+      needBelow: (me, o, tag) => `${The(me)} a besoin de quelque chose de ${tg(tag)} en dessous. ${o === 'you' ? "Vous n'avez" : The(o) + " n'a"} rien de ${tg(tag)}.`,
+      notBelow: (me, o, tag) => `${The(me)} ne se posera pas sur ${the(o)} : c'est ${tg(tag)}.`,
+      loves: (me, o) => `${The(me)} se pose sur ${the(o)} avec délice.`,
+      hated: (me, o) => o === 'you' ? 'Vous portez plainte contre la Chaussette.' : `${The(o)} porte plainte contre la Chaussette.`,
+      calm: () => 'Le Pain apaise la salle.',
+      settles: (d, below) => `${The(d)} se pose sur ${the(below)}. Aucune objection.`,
+      fellOff: id => `${The(id)} a glissé du sandwich et porte plainte.`,
+      lobby: id => `${The(id)} patiente dans le hall.`,
+      veto: (id, n) => `Veto contre ${the(id)}. Il reste ${n} veto${n > 1 ? 's' : ''}.`,
+      ratified: id => `Ratification : ${tx('treaties')[id].name}.`,
+      collapse: () => "Les pourparlers échouent. Le sandwich s'effondre.",
+      sadTouch: n => `Vous refusez de toucher ce qui est triste. ${The(n)} est triste.`,
+      loudOk: n => `${The(n)} fait assez de bruit pour vous.`,
+      loudNo: n => `Vous ne vous posez que sur du bruyant. ${The(n)} ne fait pas de bruit.`,
+      cheeseOk: () => 'Le Fromage est juste au-dessus de vous. Le Fromage ne le sait pas. Cela suffit.',
+      cheeseNo: a => `Vous vouliez le Fromage au-dessus de vous. Vous avez eu ${a ? the(a) : 'le ciel'}.`,
+    },
+  },
+};
+
+// French typography: a narrow no-break space before ? ! : ; » and after «, applied once to every
+// French string (and to whatever a French string function returns).
+(function frenchSpacing() {
+  const fix = s => s.replace(/ ([?!:;»])/g, ' $1').replace(/« /g, '« ');
+  const deep = v => typeof v === 'string' ? fix(v)
+    : typeof v === 'function' ? (...a) => fix(v(...a))
+    : Array.isArray(v) ? v.map(deep)
+    : v && typeof v === 'object' ? Object.fromEntries(Object.entries(v).map(([k, x]) => [k, deep(x)]))
+    : v;
+  I18N.fr = deep(I18N.fr);
+})();
+
+let lang = 'en';
+// "tx", not "t": t is a treaty and a tag in the game code below.
+const tx = k => I18N[lang][k] ?? I18N.en[k];
+const msg = (key, ...a) => () => tx('m')[key](...a);
+const ruleText = id => G.amended.has(id) ? tx('treaties')[id].rtext : tx('rules')[id];
+const num = n => Math.round(n).toLocaleString(lang === 'fr' ? 'fr-FR' : undefined);
+
+function shuffle(a) { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
+
+let G;
+function fresh(best = 0) {
+  return { mode: 'title', layers: [{ id: 'plate', x: 0 }], cur: 'bread', next: null, held: null, holdUsed: false,
+    vetoes: 3, stress: 0, score: 0, best, phase: 0, t: 0, drop: null, log: [],
+    rules: JSON.parse(JSON.stringify(BASE_RULES)), amended: new Set(), treaties: shuffle(TREATIES.slice()),
+    lastTreatyAt: 0, placed: 0, bag: [], camY: 0, collapseT: 0, dir: 1, memo: 1, feud: 0, ended: false, end: null };
+}
+function drawIng() { if (!G.bag.length) G.bag = shuffle(BAG.slice()); return G.bag.pop(); }
+function topLayer() { return G.layers[G.layers.length - 1]; }
+function topY() { let y = 0; for (let i = 1; i < G.layers.length; i++) y += ING[G.layers[i].id].h; return y; }
+function lean() { let l = 0; for (let i = 1; i < G.layers.length; i++) l += ING[G.layers[i].id].wt * G.layers[i].x / 120; return l; }
+function inst() { return Math.abs(lean()) / 3.2 + G.stress / 6; }
+function swingX() { return SWING * Math.sin(G.phase); }
+
+// selfUpper: true when `self` sits on top of `other`. Most rules only bind the upper party.
+function check(selfId, otherId, selfUpper, out) {
+  const r = G.rules[selfId];
+  if (!r) return;
+  const o = ING[otherId], rule = r.rule;
+  const hit = rule.name ? otherId === rule.name : rule.tag ? o.tags.includes(rule.tag) : false;
+  switch (rule.type) {
+    case 'notTouch': if (hit) out.push(['feud', msg('notTouch', selfId, otherId)]); break;
+    case 'needBelow': if (selfUpper && !hit) out.push(['feud', msg('needBelow', selfId, otherId, rule.tag)]); break;
+    case 'notBelow': if (selfUpper && hit) out.push(['feud', msg('notBelow', selfId, otherId, rule.tag)]); break;
+    case 'loves': if (selfUpper && hit) out.push(['ally', msg('loves', selfId, otherId)]); break;
+    case 'hated': out.push(['feud', msg('hated', selfId, otherId)]); break;
+    case 'calm': if (selfUpper) out.push(['ally', msg('calm')]); break;
+  }
+}
+function judge(lower, upper) { const out = []; check(upper, lower, true, out); check(lower, upper, false, out); return out; }
+
+function log(k, msg) { G.log.unshift({ k, msg }); G.log.length = Math.min(G.log.length, 8); }
+
+function drop() {
+  if (G.mode !== 'play' || G.drop || !G.cur) return;
+  G.drop = { id: G.cur, x: swingX(), y: topY() + craneGap(G.cur), vy: 0, off: false };
+  G.cur = null;
+  hud();
+}
+function craneGap(id) { return 110 + ING[id].h; }
+
+function place(id, x) {
+  const below = topLayer().id, ev = judge(below, id), d = ING[id];
+  G.layers.push({ id, x });
+  for (const [k, m] of ev) {
+    if (k === 'feud') G.stress += 1;
+    else { G.stress = Math.max(0, G.stress - .6); G.score += 40; }
+    log(k, m);
+  }
+  if (!ev.length) log('calm', msg('settles', id, below));
+  G.score += d.cal;
+  G.placed++;
+  after();
+}
+function fallOff(id) {
+  G.stress += 1.5;
+  log('feud', msg('fellOff', id));
+  after();
+}
+function after() {
+  if (inst() >= 1) return collapse();
+  if (G.layers.length - 1 >= SUMMIT) return summit();
+  if (G.placed && G.placed % TREATY_EVERY === 0 && G.treaties.length && G.lastTreatyAt !== G.placed) {
+    G.lastTreatyAt = G.placed;
+    return treaty();
+  }
+  advance();
+}
+function advance() { G.cur = G.next; G.next = drawIng(); G.holdUsed = false; hud(); }
+
+function hold() {
+  if (G.mode !== 'play' || G.holdUsed || !G.cur) return;
+  if (!G.held) { G.held = G.cur; G.cur = G.next; G.next = drawIng(); }
+  else [G.held, G.cur] = [G.cur, G.held];
+  G.holdUsed = true;
+  log('calm', msg('lobby', G.held));
+  hud();
+}
+function veto() {
+  if (G.mode !== 'play' || G.vetoes <= 0 || !G.cur) return;
+  G.vetoes--;
+  log('calm', msg('veto', G.cur, G.vetoes));
+  G.cur = G.next; G.next = drawIng(); G.holdUsed = false;
+  hud();
+}
+
+// Each memo number is kept on its element, so a language switch can re-print it.
+function memoNo(el) { $(el).dataset.n = ++G.memo; $(el).textContent = tx('memoNo')(G.memo); }
+function show(id) {
+  for (const o of document.querySelectorAll('.overlay')) o.hidden = o.id !== id;
+  if (id) $('#' + id + ' button:not([data-lang])')?.focus();
+}
+
+function treaty() {
+  const t = G.treaties.shift();
+  G.pending = t;
+  G.mode = 'modal';
+  memoNo('#treaty-no');
+  renderTreaty();
+  hud();
+  show('o-treaty');
+}
+function renderTreaty() {
+  const tt = tx('treaties')[G.pending.id];
+  $('#treaty-name').textContent = tt.name;
+  $('#treaty-text').textContent = tt.text;
+}
+function ratify() {
+  const t = G.pending;
+  G.rules[t.id] = { rule: t.rule };
+  G.amended.add(t.id);
+  log('ally', msg('ratified', t.id));
+  G.mode = 'play';
+  show(null);
+  advance();
+}
+
+function collapse() {
+  G.mode = 'collapse'; G.collapseT = 0; G.dir = Math.sign(lean()) || 1;
+  log('feud', msg('collapse'));
+  hud();
+}
+// end: { kind, g, n, list } with list a set of message thunks; renderEnd() reads it per language.
+function finish(end, bonus) {
+  if (G.ended) return;
+  G.ended = true;
+  G.score += bonus;
+  G.best = Math.max(G.best, G.score);
+  G.mode = 'end';
+  G.end = end;
+  memoNo('#end-no');
+  renderEnd();
+  hud();
+  show('o-end');
+}
+function renderEnd() {
+  const e = G.end, [title, sub] = tx('ends')[e.kind];
+  $('#end-title').textContent = title;
+  $('#end-sub').textContent = sub(e.g, e.n);
+  $('#end-list').replaceChildren(...e.list.map(m => Object.assign(document.createElement('li'), { textContent: m() })));
+  $('#end-list').hidden = !e.list.length;
+  $('#end-score').textContent = tx('endScore')(num(G.score), num(G.best));
+}
+
+function summit() {
+  G.mode = 'modal';
+  memoNo('#summit-no');
+  renderSummit();
+  hud();
+  show('o-summit');
+}
+function renderSummit() {
+  const n = G.layers.length - 1, sock = G.layers.some(l => l.id === 'sock');
+  $('#summit-text').textContent = tx('summitText')(n, sock);
+}
+function pickFeud(i) {
+  G.feud = i;
+  memoNo('#gap-no');
+  renderGaps();
+  show('o-gap');
+}
+function renderGaps() {
+  $('#gap-feud').textContent = tx('yourFeud')(tx('feuds')[G.feud]);
+  const box = $('#gaps');
+  box.replaceChildren();
+  for (let g = G.layers.length; g >= 1; g--) {
+    const lo = G.layers[g - 1].id, up = G.layers[g] ? G.layers[g].id : null;
+    const b = document.createElement('button');
+    const describe = tx('describe');
+    b.innerHTML = `<b>${tx('gapBtn')(lo, up)}</b><small>${describe(lo)}</small>` +
+      (up ? `<small>${describe(up)}</small>` : '');
+    b.onclick = () => insertYou(g);
+    box.append(b);
+  }
+}
+function insertYou(g) {
+  show(null);
+  G.layers.splice(g, 0, { id: 'you', x: G.layers[g - 1].x });
+  const below = G.layers[g - 1].id, above = G.layers[g + 1] ? G.layers[g + 1].id : null, out = [];
+  if (G.feud === 0) {
+    for (const n of [below, above]) if (n && ING[n].tags.includes('sad')) out.push(['feud', msg('sadTouch', n)]);
+  } else if (G.feud === 1) {
+    if (ING[below].tags.includes('loud')) out.push(['ally', msg('loudOk', below)]);
+    else out.push(['feud', msg('loudNo', below)]);
+  } else {
+    if (above === 'cheese') out.push(['ally', msg('cheeseOk')]);
+    else out.push(['feud', msg('cheeseNo', above)]);
+  }
+  check(below, 'you', false, out);
+  if (above) check(above, 'you', true, out);
+  for (const [k, m] of out) log(k, m);
+  G.mode = 'ending';
+  hud();
+  const feuds = out.filter(e => e[0] === 'feud').map(e => e[1]);
+  const allies = out.length - feuds.length;
+  const n = G.layers.length - 1;
+  setTimeout(() => {
+    if (!feuds.length) finish({ kind: 'citizen', g, n, list: out.map(e => e[1]) }, 500 + allies * 40);
+    else finish({ kind: 'deport', g, n, list: feuds }, 100);
+  }, reduce ? 200 : 1300);
+}
+
+function hud() {
+  $('#cal').textContent = num(G.score);
+  $('#layers').textContent = `${Math.min(G.layers.length - 1, SUMMIT)} / ${SUMMIT}`;
+  const i = Math.min(1, inst());
+  $('#fill').style.width = (i * 100) + '%';
+  $('#meter').className = 'meter' + (i >= .75 ? ' bad' : i >= .45 ? ' warn' : '');
+  $('#tstate').textContent = tx('tension')[i >= .75 ? 'salad' : i >= .45 ? 'wobbly' : 'steady'];
+  const playing = G.mode === 'play';
+  $('#drop').disabled = !playing || !G.cur;
+  $('#hold').disabled = !playing || !G.cur || G.holdUsed;
+  $('#veto').disabled = !playing || !G.cur || G.vetoes <= 0;
+  $('#veto').firstChild.textContent = tx('vetoLbl')(G.vetoes);
+
+  const id = G.cur || (G.drop && G.drop.id);
+  const cur = $('#cur');
+  if (id) {
+    const d = ING[id];
+    const chips = d.tags.map(t => `<span class="chip${t === 'sad' ? ' sad' : ''}">${tg(t)}</span>`).join('');
+    let fc = '';
+    if (G.cur) {
+      const ev = judge(topLayer().id, G.cur);
+      fc = `<ul class="forecast"><li class="lands">${tx('landsOn')(topLayer().id)}</li>` +
+        (ev.length ? ev.map(([k, m]) => `<li class="${k}">${k === 'feud' ? '✗' : '✓'} ${m()}</li>`).join('') : `<li>${tx('noObjections')}</li>`) + '</ul>';
+    }
+    cur.innerHTML = `<div class="head"><span>${G.cur ? tx('nowSwinging') : tx('falling')}</span><span>${d.cal} kcal</span></div>` +
+      `<div class="name">${N(id)}</div><div class="chips">${chips}</div><p class="rule">${G.rules[id] ? ruleText(id) : ''}</p>${fc}`;
+  } else {
+    cur.innerHTML = `<div class="head"><span>${tx('nowSwinging')}</span><span></span></div><div class="name">${G.mode === 'title' ? tx('waiting') : tx('nobody')}</div>`;
+  }
+  const mini = (el, label, mid, lobby) => {
+    $(el).innerHTML = `<div class="head">${label}</div>` + (mid
+      ? `<div class="name">${N(mid)}</div><p class="rule">${ruleText(mid)}</p>`
+      : `<div class="name">${tx('empty')}</div><p class="rule">${lobby ? tx('lobbyHint') : ''}</p>`);
+  };
+  mini('#next', tx('nextUp'), G.next, false);
+  mini('#held', tx('lobby'), G.held, true);
+
+  $('#book').innerHTML = Object.keys(BASE_RULES).map(k =>
+    `<li><span class="who">${N(k)} ${G.amended.has(k) ? `<em>${tx('amended')}</em>` : ''}</span>` +
+    `<span class="tags">${ING[k].tags.map(tg).join(' · ')}</span><span>${ruleText(k)}</span></li>`).join('');
+  $('#log').innerHTML = G.log.length
+    ? G.log.map(e => `<li class="${e.k === 'calm' ? '' : e.k}"><span>${e.k === 'feud' ? '✗' : e.k === 'ally' ? '✓' : '·'}</span><span>${e.msg()}</span></li>`).join('')
+    : `<li><span>·</span><span>${tx('logEmpty')}</span></li>`;
+}
+
+let W = 0, H = 0;
+function resize() {
+  const r = cv.getBoundingClientRect(), dpr = Math.min(2, devicePixelRatio || 1);
+  W = r.width; H = r.height;
+  cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
+  cx.setTransform(dpr, 0, 0, dpr, 0, 0);
+}
+new ResizeObserver(resize).observe($('#tower'));
+
+function scale() { return Math.min(W / 400, H / 440, 1.5); }
+
+function rr(x, y, w, h, r) { cx.beginPath(); if (cx.roundRect) cx.roundRect(x, y, w, h, r); else cx.rect(x, y, w, h); }
+function dot(x, y, r) { cx.beginPath(); cx.arc(x, y, r, 0, 6.283); cx.fill(); }
+function band(w, h, amp, freq, fill) {
+  cx.beginPath(); cx.moveTo(-w / 2, 0);
+  for (let x = -w / 2; x <= w / 2; x += 4) cx.lineTo(x, -h + Math.sin(x * freq) * amp);
+  for (let x = w / 2; x >= -w / 2; x -= 4) cx.lineTo(x, Math.sin(x * freq + 1) * amp * .5);
+  cx.closePath(); cx.fillStyle = fill; cx.fill();
+}
+function face(x, y) {
+  cx.fillStyle = '#2a1a12'; dot(x - 4, y - 1.5, 1.3); dot(x + 4, y - 1.5, 1.3);
+  cx.strokeStyle = '#2a1a12'; cx.lineWidth = 1.1;
+  cx.beginPath(); cx.arc(x, y + 4, 3, 1.15 * Math.PI, 1.85 * Math.PI); cx.stroke();
+}
+const DRAW = {
+  plate(w, h) {
+    cx.fillStyle = '#ffffff'; cx.beginPath(); cx.ellipse(0, -h / 2, w / 2, h, 0, 0, 6.283); cx.fill();
+    cx.strokeStyle = '#00000030'; cx.lineWidth = 1.5; cx.stroke();
+    cx.strokeStyle = '#00000014'; cx.beginPath(); cx.ellipse(0, -h / 2, w / 2 - 22, h - 3, 0, 0, 6.283); cx.stroke();
+  },
+  bread(w, h) {
+    rr(-w / 2, -h, w, h, 9); cx.fillStyle = '#b9772f'; cx.fill();
+    rr(-w / 2 + 5, -h + 4, w - 10, h - 8, 6); cx.fillStyle = '#f0d29b'; cx.fill();
+    cx.fillStyle = '#d6ac69'; for (let i = 0; i < 7; i++) dot(-w / 2 + 18 + i * (w - 36) / 6, -h / 2 + (i % 2 ? 2 : -2), 1.6);
+  },
+  lettuce(w, h) {
+    band(w, h, 3.5, .25, '#6fb34a');
+    cx.strokeStyle = '#4c8a2e'; cx.lineWidth = 1.2; cx.beginPath();
+    for (let x = -w / 2 + 10; x < w / 2 - 6; x += 22) { cx.moveTo(x, -2); cx.lineTo(x + 8, -h + 4); }
+    cx.stroke();
+  },
+  tomato(w, h) {
+    rr(-w / 2, -h, w, h, 8); cx.fillStyle = '#d9452b'; cx.fill();
+    cx.fillStyle = '#f6b48f';
+    for (let i = 0; i < 6; i++) { if (i === 2 || i === 3) continue; cx.beginPath(); cx.ellipse(-w / 2 + 16 + i * (w - 32) / 5, -h / 2, 3, 1.6, 0, 0, 6.283); cx.fill(); }
+  },
+  cheese(w, h) {
+    cx.fillStyle = '#f2c230'; cx.fillRect(-w / 2, -h, w, h);
+    cx.beginPath();
+    for (const [x, d] of [[-w * .3, 9], [w * .05, 13], [w * .33, 7]]) { cx.moveTo(x - 6, 0); cx.lineTo(x + 6, 0); cx.lineTo(x, d); cx.closePath(); }
+    cx.fill();
+    cx.fillStyle = '#d9a71b'; for (const x of [-w * .38, -w * .1, w * .2, w * .42]) dot(x, -h / 2, 2);
+  },
+  pickle(w, h) {
+    for (let i = 0; i < 3; i++) {
+      const x = -w / 3 + i * w / 3;
+      cx.fillStyle = '#557a25'; cx.beginPath(); cx.ellipse(x, -h / 2, w / 6.2, h / 2, 0, 0, 6.283); cx.fill();
+      cx.fillStyle = '#9cc25a'; cx.beginPath(); cx.ellipse(x, -h / 2, w / 6.2 - 3, h / 2 - 2.5, 0, 0, 6.283); cx.fill();
+      cx.fillStyle = '#e4efc4'; for (const dx of [-5, 0, 5]) dot(x + dx, -h / 2, 1.2);
+    }
+  },
+  sock(w, h) {
+    cx.fillStyle = '#8e7cc3'; rr(-w / 2, -h, w * .78, h, 4); cx.fill();
+    cx.beginPath(); cx.ellipse(w / 2 - w * .2, -h / 2, w * .2, h / 2, 0, 0, 6.283); cx.fill();
+    cx.fillStyle = '#e8e2f5'; for (let x = -w / 2 + 12; x < -w * .05; x += 14) cx.fillRect(x, -h, 5, h);
+    cx.fillStyle = '#6b5aa0'; cx.fillRect(-w / 2, -h, 8, h);
+  },
+  accordion(w, h) {
+    cx.fillStyle = '#b8322a'; rr(-w / 2, -h, 14, h, 3); cx.fill(); rr(w / 2 - 14, -h, 14, h, 3); cx.fill();
+    cx.fillStyle = '#222'; cx.fillRect(-w / 2 + 14, -h + 2, w - 28, h - 4);
+    cx.strokeStyle = '#f3efe6'; cx.lineWidth = 1.4; cx.beginPath();
+    for (let x = -w / 2 + 18; x < w / 2 - 18; x += 8) { cx.moveTo(x, -h + 3); cx.lineTo(x + 4, -h / 2); cx.lineTo(x, -3); }
+    cx.stroke();
+    cx.fillStyle = '#f2c230'; dot(-w / 2 + 7, -h / 2, 2.4); dot(w / 2 - 7, -h / 2, 2.4);
+  },
+  egg(w, h) {
+    cx.fillStyle = '#fbf8f0'; cx.beginPath();
+    for (let a = 0; a <= 6.3; a += .3) { const rx = w / 2 * (1 + Math.sin(a * 3) * .05), ry = h / 2; const px = Math.cos(a) * rx, py = -h / 2 + Math.sin(a) * ry; a ? cx.lineTo(px, py) : cx.moveTo(px, py); }
+    cx.closePath(); cx.fill(); cx.strokeStyle = '#00000018'; cx.lineWidth = 1; cx.stroke();
+    cx.fillStyle = '#f2a91a'; cx.beginPath(); cx.ellipse(w * .08, -h / 2 - 1, 15, h / 2 - 1, 0, 0, 6.283); cx.fill();
+  },
+  ham(w, h) {
+    band(w, h, 2.5, .12, '#e58c9b');
+    cx.strokeStyle = '#f7cbd2'; cx.lineWidth = 2; cx.beginPath();
+    cx.moveTo(-w / 2 + 10, -h / 2); cx.bezierCurveTo(-w / 6, -h, w / 6, 0, w / 2 - 12, -h / 2); cx.stroke();
+  },
+  onion(w, h) {
+    cx.beginPath();
+    cx.ellipse(0, -h / 2, w / 2, h / 2, 0, 0, 6.283);
+    cx.ellipse(0, -h / 2, w / 2 - 16, h / 2 - 5, 0, 0, 6.283);
+    cx.fillStyle = '#efe4c6'; cx.fill('evenodd');
+    cx.strokeStyle = '#c4b385'; cx.lineWidth = 1.2; cx.stroke();
+  },
+  bacon(w, h) {
+    band(w, h, 3, .18, '#b5432f');
+    cx.strokeStyle = '#f0c9a8'; cx.lineWidth = 2.2; cx.beginPath();
+    for (let x = -w / 2; x <= w / 2; x += 4) { const y = -h / 2 + Math.sin(x * .18) * 2; x === -w / 2 ? cx.moveTo(x, y) : cx.lineTo(x, y); }
+    cx.stroke();
+  },
+  card(w, h) {
+    cx.fillStyle = '#fbfbf7'; cx.fillRect(-w / 2, -h, w, h);
+    cx.strokeStyle = '#333'; cx.lineWidth = .8; cx.strokeRect(-w / 2, -h, w, h);
+    cx.fillStyle = '#333'; cx.fillRect(-w / 2 + 8, -h + 2.5, w * .45, 1);
+  },
+  you(w, h) {
+    rr(-w / 2, -h, w, h, 7); cx.fillStyle = '#e8c7a8'; cx.fill();
+    cx.strokeStyle = '#7a5a40'; cx.lineWidth = 1.5; cx.stroke();
+    cx.fillStyle = '#7a5a40'; cx.font = '700 8px Chivo, Arial, sans-serif'; cx.textAlign = 'right';
+    cx.fillText(tx('youLabel'), w / 2 - 8, -h / 2 + 3);
+  },
+};
+const FACE_X = { sock: -.18, onion: .43 };
+
+function render() {
+  const ink = getComputedStyle(document.documentElement).getPropertyValue('--ink').trim() || '#14251d';
+  cx.clearRect(0, 0, W, H);
+  const s = scale(), baseY = H - 26;
+  const sx = x => W / 2 + x * s, sy = y => baseY - (y - G.camY) * s;
+  const drawAt = (id, x, y) => {
+    const d = ING[id];
+    cx.save(); cx.translate(sx(x), sy(y)); cx.scale(s, s);
+    DRAW[id](d.w, d.h);
+    if (d.tags.includes('sad')) face((FACE_X[id] || 0) * d.w, -d.h / 2);
+    cx.restore();
+  };
+
+  const i = Math.min(1.2, inst());
+  let angle = 0, slide = 0;
+  if (G.mode === 'collapse' || (G.mode === 'end' && G.collapseT > 0)) {
+    const c = G.collapseT;
+    angle = G.dir * (.08 + c * c * .8); slide = G.dir * c * c * 22;
+  } else {
+    angle = (Math.sign(lean()) || 0) * i * .05 + (reduce ? 0 : Math.sin(G.t * 3.2) * i * .035);
+  }
+  const px = sx(0), py = sy(0);
+  cx.save(); cx.translate(px, py); cx.rotate(angle); cx.translate(-px, -py);
+  drawAt('plate', 0, -ING.plate.h);
+  let y = 0;
+  for (let k = 1; k < G.layers.length; k++) {
+    const L = G.layers[k];
+    drawAt(L.id, L.x + slide * k, y);
+    y += ING[L.id].h;
+  }
+  cx.restore();
+
+  if (G.mode === 'play' && G.cur) {
+    const x = swingX(), cy = topY() + craneGap(G.cur), d = ING[G.cur];
+    cx.strokeStyle = ink; cx.globalAlpha = .5; cx.lineWidth = 1;
+    cx.beginPath(); cx.moveTo(sx(x), 0); cx.lineTo(sx(x), sy(cy + d.h)); cx.stroke();
+    cx.setLineDash([3, 5]); cx.globalAlpha = .25;
+    cx.beginPath(); cx.moveTo(sx(x), sy(cy)); cx.lineTo(sx(x), sy(topY())); cx.stroke();
+    cx.setLineDash([]); cx.globalAlpha = 1;
+    drawAt(G.cur, x, cy);
+  }
+  if (G.drop) drawAt(G.drop.id, G.drop.x, G.drop.y);
+}
+
+function update(dt) {
+  G.t += dt;
+  if (G.mode === 'play') {
+    G.phase += dt * (1.3 + .09 * (G.layers.length - 1));
+    const d = G.drop;
+    if (d) {
+      d.vy -= 1100 * dt; d.y += d.vy * dt;
+      if (d.off) d.x += Math.sign(d.x - topLayer().x || 1) * 80 * dt;
+      const t = topLayer();
+      if (!d.off && d.y <= topY()) {
+        if (Math.abs(d.x - t.x) > ING[t.id].w / 2) d.off = true;
+        else { G.drop = null; place(d.id, d.x); }
+      }
+      if (d.off && d.y < G.camY - 420) { G.drop = null; fallOff(d.id); }
+    }
+  } else if (G.mode === 'collapse') {
+    G.collapseT += dt;
+    if (G.collapseT > (reduce ? .3 : 1.5)) {
+      finish({ kind: 'salad', g: 0, n: G.layers.length - 1, list: [] }, 0);
+    }
+  }
+  const s = scale() || 1;
+  const target = Math.max(0, topY() - (H - 26 - H * .55) / s);
+  G.camY += (target - G.camY) * Math.min(1, dt * 4);
+}
+
+let last = 0;
+function frame(now) {
+  const dt = Math.min(.05, (now - last) / 1000 || 0); last = now;
+  update(dt);
+  render();
+  requestAnimationFrame(frame);
+}
+
+function begin() {
+  G = fresh(G.best);
+  G.next = drawIng();
+  G.mode = 'play';
+  show(null);
+  hud();
+}
+
+cv.addEventListener('pointerdown', e => { e.preventDefault(); drop(); });
+addEventListener('keydown', e => {
+  if (G.mode !== 'play') return;
+  const onBtn = e.target.closest && e.target.closest('button, summary');
+  const k = e.key.toLowerCase();
+  if ((k === ' ' || k === 'enter' || k === 'arrowdown') && !onBtn) { e.preventDefault(); drop(); }
+  else if (k === 'h') hold();
+  else if (k === 'x') veto();
+});
+$('#drop').onclick = drop;
+$('#hold').onclick = hold;
+$('#veto').onclick = veto;
+$('#start').onclick = begin;
+$('#again').onclick = begin;
+$('#ratify').onclick = ratify;
+$('#accept').onclick = () => { memoNo('#feud-no'); show('o-feud'); };
+for (const b of document.querySelectorAll('[data-feud]')) b.onclick = () => pickFeud(+b.dataset.feud);
+
+// ---- language ------------------------------------------------------------------------------
+// Static markup carries data-t / data-th / data-ta; memo numbers, the HUD (dossiers, rulebook,
+// minutes) and whichever memo is open are re-rendered. The canvas redraws every frame.
+function applyLang() {
+  document.documentElement.lang = lang;
+  document.title = tx('docTitle');
+  for (const el of document.querySelectorAll('[data-t]')) el.textContent = tx(el.dataset.t);
+  for (const el of document.querySelectorAll('[data-th]')) el.innerHTML = tx(el.dataset.th);
+  for (const el of document.querySelectorAll('[data-ta]')) el.setAttribute('aria-label', tx(el.dataset.ta));
+  for (const el of document.querySelectorAll('[data-n]')) el.textContent = tx('memoNo')(+el.dataset.n);
+  for (const box of document.querySelectorAll('.lang')) {
+    if (!box.children.length) box.innerHTML = '<button type="button" data-lang="fr" lang="fr">FR</button><button type="button" data-lang="en" lang="en">EN</button>';
+    for (const b of box.children) b.setAttribute('aria-pressed', String(b.dataset.lang === lang));
+  }
+  if (!G) return;
+  if (!$('#o-treaty').hidden) renderTreaty();
+  if (!$('#o-summit').hidden) renderSummit();
+  if (!$('#o-gap').hidden) renderGaps();
+  if (G.end) renderEnd();
+  hud();
+}
+function setLang(l) {
+  if (!(l in I18N) || l === lang) return;
+  lang = l;
+  applyLang();
+}
+document.addEventListener('click', e => {
+  const b = e.target.closest('[data-lang]');
+  if (b) setLang(b.dataset.lang);
+});
+
+function start(data) {
+  lang = data?.lang in I18N ? data.lang : (navigator.language || '').toLowerCase().startsWith('fr') ? 'fr' : 'en';
+  G = fresh(data.best || 0);
+  G.next = drawIng();
+  resize();
+  applyLang();
+  requestAnimationFrame(frame);
+}
+window.claude?.hot?.snapshot?.(() => ({ best: Math.max(G?.best || 0, G?.score || 0), lang }));
+window.claude?.hot?.ready ? window.claude.hot.ready(start) : start(window.claude?.hot?.data ?? {});
+</script>
+</body>
+</html>

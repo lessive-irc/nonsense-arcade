@@ -1,0 +1,1247 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Floor 7½</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Limelight&family=Josefin+Sans:wght@400;600;700&family=Azeret+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: a live cutaway of the building on the left, a brass operator's panel on the right (stacks below on phones). Single world by choice: an enamel-green lift interior with brass fittings. */
+:root {
+  --enamel: #0f3d35;
+  --enamel-deep: #07241f;
+  --enamel-hi: #17503f;
+  --brass: #c9a24b;
+  --brass-hi: #ecd59a;
+  --ivory: #efe8d6;
+  --oxblood: #b03a49;
+  --verdigris: #79bba9;
+  --amber: #e9a83c;
+  --f-display: "Limelight", "Didot", "Bodoni 72", Georgia, serif;
+  --f-body: "Josefin Sans", "Futura", "Century Gothic", system-ui, sans-serif;
+  --f-mono: "Azeret Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  color-scheme: dark;
+}
+[hidden] { display: none !important; }
+html, body { height: 100%; }
+body {
+  margin: 0;
+  box-sizing: border-box;
+  overflow: hidden;
+  background: var(--enamel-deep);
+  color: var(--ivory);
+  font-family: var(--f-body);
+  font-size: 15px;
+  padding-block: max(16px, env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-bottom, 0px));
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.app {
+  position: relative;
+  height: 100%;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 340px);
+  gap: 16px;
+}
+.stage {
+  min-height: 0;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  border-radius: 4px;
+  overflow: hidden;
+  background: var(--enamel);
+  box-shadow: inset 0 0 0 1px var(--brass), 0 0 0 4px var(--enamel-deep), 0 0 0 5px #c9a24b66;
+}
+.ticker {
+  height: 72px;
+  overflow: hidden;
+  display: grid;
+  align-content: start;
+  gap: 4px;
+  padding: 10px 12px 6px;
+  border-bottom: 1px solid #c9a24b55;
+  background: var(--enamel-deep);
+}
+.ticker p {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.35;
+  color: #efe8d6aa;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ticker p:first-child { color: var(--ivory); }
+.ticker p:first-child::before { content: "▸ "; color: var(--brass); }
+.well { position: relative; min-height: 0; }
+#shaft { display: block; width: 100%; height: 100%; touch-action: none; cursor: pointer; }
+.caption {
+  position: absolute; left: 0; right: 0; top: 38%;
+  padding: 0 24px;
+  text-align: center;
+  font-family: var(--f-display);
+  font-size: clamp(20px, 3.4vw, 34px);
+  line-height: 1.2;
+  color: var(--brass-hi);
+  text-wrap: balance;
+  text-shadow: 0 2px 0 var(--enamel-deep), 0 0 24px var(--enamel-deep);
+  pointer-events: none;
+}
+.panel {
+  min-height: 0;
+  overflow: auto;
+  display: grid;
+  align-content: start;
+  gap: 16px;
+  padding: 16px;
+  border-radius: 4px;
+  background: linear-gradient(180deg, var(--enamel-hi), var(--enamel) 40%);
+  box-shadow: inset 0 0 0 1px var(--brass), 0 0 0 4px var(--enamel-deep), 0 0 0 5px #c9a24b66;
+}
+.dial { display: block; width: 100%; height: 132px; }
+.stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; text-align: center; }
+.stat b {
+  display: block;
+  font-family: var(--f-mono);
+  font-weight: 600;
+  font-size: 20px;
+  font-variant-numeric: tabular-nums;
+  color: var(--brass-hi);
+}
+.stat span { font-size: 10px; letter-spacing: .14em; text-transform: uppercase; color: var(--verdigris); }
+.stat b.pips { letter-spacing: .12em; font-size: 15px; line-height: 1.6; }
+.controls { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+.btn {
+  aspect-ratio: 1;
+  border: 0;
+  border-radius: 50%;
+  cursor: pointer;
+  display: grid;
+  place-content: center;
+  gap: 2px;
+  font: 700 20px var(--f-body);
+  color: var(--enamel-deep);
+  background: radial-gradient(circle at 35% 30%, var(--brass-hi), var(--brass) 55%, #8a6b2a);
+  box-shadow: 0 3px 0 #5a4418, inset 0 0 0 2px #00000022;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  transition: transform .08s, box-shadow .08s;
+}
+.btn small { font-size: 9px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; }
+.btn:active, .btn.on { transform: translateY(2px); box-shadow: 0 1px 0 #5a4418, inset 0 0 0 2px #00000033; }
+.btn:focus-visible, .cta:focus-visible, .lamp:focus-visible { outline: 2px solid var(--ivory); outline-offset: 3px; }
+.panel.operated .btn { opacity: .3; pointer-events: none; }
+.lamps { display: flex; flex-wrap: wrap; gap: 8px; }
+.lamp {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 5px 10px;
+  border-radius: 99px;
+  border: 1px solid #c9a24b66;
+  background: transparent;
+  color: var(--ivory);
+  font: 600 10px var(--f-body);
+  letter-spacing: .1em;
+  text-transform: uppercase;
+}
+.lamp em { font-style: normal; }
+button.lamp { cursor: pointer; }
+.lamp i { width: 8px; height: 8px; border-radius: 50%; background: #ffffff22; transition: background .1s, box-shadow .1s; }
+.lamp.lit i { background: var(--amber); box-shadow: 0 0 8px var(--amber); }
+.lamp.bad i { background: var(--oxblood); box-shadow: 0 0 8px var(--oxblood); }
+.lamp.good i { background: var(--verdigris); box-shadow: 0 0 8px var(--verdigris); }
+h3 { margin: 0 0 8px; font-family: var(--f-display); font-weight: 400; font-size: 17px; letter-spacing: .04em; color: var(--brass-hi); }
+.riders { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.riders li { display: grid; gap: 3px; padding: 8px 10px; border-left: 2px solid var(--brass); background: #07241f99; }
+.riders .who { display: flex; justify-content: space-between; gap: 8px; font-weight: 600; font-size: 13px; }
+.riders .to { font-family: var(--f-mono); font-size: 12px; color: var(--brass-hi); white-space: nowrap; }
+.riders .line { font-size: 13px; color: #efe8d6bb; line-height: 1.35; }
+.riders .bar { height: 3px; background: #ffffff14; }
+.riders .bar i { display: block; height: 100%; background: var(--verdigris); }
+.riders .bar i.low { background: var(--oxblood); }
+.riders li.empty { border-left-color: #c9a24b44; color: #efe8d699; font-size: 13px; }
+.rules ol { margin: 0; padding-left: 20px; display: grid; gap: 7px; font-size: 13px; line-height: 1.45; color: #efe8d6cc; }
+.rules li::marker { font-family: var(--f-mono); color: var(--brass); }
+.rules li.new { color: var(--brass-hi); }
+.keys { margin: 0; font-size: 11px; line-height: 1.6; letter-spacing: .04em; color: var(--verdigris); }
+.overlay {
+  position: absolute; inset: 0; z-index: 5;
+  display: grid; place-items: center;
+  padding: 24px;
+  border-radius: 4px;
+  background:
+    repeating-conic-gradient(from 0deg at 50% 100%, #c9a24b14 0deg 4deg, transparent 4deg 9deg),
+    radial-gradient(ellipse at 50% 100%, #17503fee, #07241ff5 70%);
+}
+.card { display: grid; gap: 18px; justify-items: center; text-align: center; max-width: 560px; }
+.card h1 {
+  margin: 0;
+  font-family: var(--f-display); font-weight: 400;
+  font-size: clamp(72px, 15vw, 150px);
+  line-height: .9;
+  color: var(--brass-hi);
+  text-shadow: 0 4px 0 #5a4418;
+}
+.card h1 span { color: var(--amber); }
+.card h2 { margin: 0; font-family: var(--f-display); font-weight: 400; font-size: clamp(26px, 4.4vw, 40px); line-height: 1.1; color: var(--brass-hi); text-wrap: balance; }
+.card p { margin: 0; max-width: 48ch; font-size: 15px; line-height: 1.6; color: #efe8d6cc; text-wrap: pretty; }
+.card .tag { font-size: 11px; letter-spacing: .24em; text-transform: uppercase; color: var(--verdigris); }
+.card .stat-line { font-family: var(--f-mono); font-size: 13px; font-variant-numeric: tabular-nums; color: var(--amber); }
+.cta {
+  font: 700 14px var(--f-body);
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  padding: 14px 28px 12px;
+  border: 0;
+  border-radius: 2px;
+  cursor: pointer;
+  background: var(--brass);
+  color: var(--enamel-deep);
+  box-shadow: 0 0 0 1px var(--enamel-deep), 0 0 0 3px var(--brass);
+  transition: background .15s;
+}
+.cta:hover { background: var(--brass-hi); }
+.lang { display: inline-flex; border: 1px solid #c9a24b66; border-radius: 99px; overflow: hidden; }
+.lang button { border: 0; background: transparent; padding: 5px 10px; font: 600 10px var(--f-body); letter-spacing: .14em; color: var(--verdigris); cursor: pointer; }
+.lang button + button { border-left: 1px solid #c9a24b44; }
+.lang button:hover { color: var(--ivory); }
+.lang button[aria-pressed="true"] { background: var(--brass); color: var(--enamel-deep); }
+.lang button:focus-visible { outline: 2px solid var(--ivory); outline-offset: -2px; }
+@media (max-width: 760px) {
+  .app { grid-template-columns: 1fr; grid-template-rows: minmax(0, 1fr) auto; gap: 10px; }
+  .panel { max-height: 46vh; padding: 12px; gap: 12px; }
+  .dial { display: none; }
+  .controls { order: -2; }
+  .stats { order: -1; }
+  .btn { aspect-ratio: auto; height: 54px; border-radius: 27px; font-size: 17px; }
+  .ticker { height: 56px; padding: 8px 10px 4px; }
+  .ticker p { font-size: 12px; }
+  .ticker p:nth-child(3) { display: none; }
+  .keys { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .btn, .cta, .lamp i { transition: none; }
+}
+</style>
+</head>
+<body>
+
+<div class="app" id="app">
+  <section class="stage">
+    <div class="ticker" id="ticker" aria-live="polite"></div>
+    <div class="well">
+      <canvas id="shaft" data-ta="shaftAria" aria-label="Cutaway of the building: floors, the elevator shaft and waiting passengers. Tap a floor to send the car there."></canvas>
+      <div class="caption" id="caption" hidden></div>
+    </div>
+  </section>
+
+  <aside class="panel" id="panel">
+    <canvas class="dial" id="dial" aria-hidden="true"></canvas>
+    <div class="stats">
+      <div class="stat"><b id="spirits">0</b><span data-t="statSpirits">lifted spirits</span></div>
+      <div class="stat"><b id="delivered">0</b><span data-t="statDelivered">delivered</span></div>
+      <div class="stat"><b id="pips" class="pips">○○○○○</b><span data-t="statComplaints">complaints</span></div>
+    </div>
+    <div class="controls">
+      <button class="btn" id="up" data-ta="upAria" aria-label="Move up (hold)">▲<small data-t="up">up</small></button>
+      <button class="btn" id="down" data-ta="downAria" aria-label="Move down (hold)">▼<small data-t="down">down</small></button>
+      <button class="btn" id="doors" data-ta="doorsAria" aria-label="Open doors">◫<small data-t="doors">doors</small></button>
+      <button class="btn" id="side" data-ta="sideAria" aria-label="Slide sideways">⇄<small data-t="side">side</small></button>
+    </div>
+    <button class="cta" id="still" hidden>Hold still</button>
+    <div class="lamps">
+      <span class="lamp" id="l-door"><i></i><em>doors shut</em></span>
+      <span class="lamp" id="l-yest" hidden><i></i><em>yesterday locked</em></span>
+      <span class="lamp" id="l-cloud" hidden><i></i><em data-t="cloudLamp">cloud in doorway</em></span>
+      <button class="lamp" id="mute" data-ta="muteAria" aria-label="Toggle elevator music"><i></i><em>muzak · off</em></button>
+      <div class="lang" role="group" data-ta="langGroup" aria-label="Language"></div>
+    </div>
+    <div>
+      <h3 data-t="inCar">In the car</h3>
+      <ul class="riders" id="riders"></ul>
+    </div>
+    <div class="rules">
+      <h3 data-t="regs">Building regulations</h3>
+      <ol id="rules"></ol>
+    </div>
+    <p class="keys" data-t="keys">↑ ↓ move · space doors · ← → sideways · M music · tap a floor to send the car</p>
+  </aside>
+
+  <div class="overlay" id="title">
+    <div class="card">
+      <div class="tag" data-t="titleTag">Operator's shift · night</div>
+      <h1 data-th="titleH">Floor 7<span>½</span></h1>
+      <p data-t="titleP">You run the only elevator in a building that should not exist. Hold ▲ or ▼ to move, stop level with a floor, open the doors. Deliver passengers before their patience runs out. The building will add regulations as it goes.</p>
+      <button class="cta" id="start" data-t="clockIn">Clock in</button>
+      <div class="lang" role="group" data-ta="langGroup" aria-label="Language"></div>
+    </div>
+  </div>
+
+  <div class="overlay" id="over" hidden>
+    <div class="card">
+      <div class="tag" data-t="overTag">Notice of reassignment</div>
+      <h2 data-t="overH">You have been reassigned to the stairs.</h2>
+      <p data-t="overP">Five complaints. The stairs have no buttons and nobody talks to them. You will settle in.</p>
+      <div class="stat-line" id="over-stat"></div>
+      <button class="cta" id="again" data-t="again">Clock in again</button>
+      <div class="lang" role="group" data-ta="langGroup" aria-label="Language"></div>
+    </div>
+  </div>
+
+  <div class="overlay" id="end" hidden>
+    <div class="card">
+      <div class="tag" data-t="endTag">End of shift</div>
+      <h2 data-t="endH">The building thanks you for your service.</h2>
+      <p id="end-sub"></p>
+      <div class="stat-line" id="end-stat"></div>
+      <button class="cta" id="again2" data-t="again">Clock in again</button>
+      <div class="lang" role="group" data-ta="langGroup" aria-label="Language"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const $ = s => document.querySelector(s);
+const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const cv = $('#shaft'), cx = cv.getContext('2d');
+const dv = $('#dial'), dx = dv.getContext('2d');
+let W = 0, H = 0, DW = 0, DH = 0;
+
+function fit(c, ctx) {
+  const r = c.getBoundingClientRect(), d = Math.min(2, devicePixelRatio || 1);
+  c.width = Math.max(1, r.width * d); c.height = Math.max(1, r.height * d);
+  ctx.setTransform(d, 0, 0, d, 0, 0);
+  return [r.width, r.height];
+}
+function resize() { [W, H] = fit(cv, cx); [DW, DH] = fit(dv, dx); }
+addEventListener('resize', resize);
+
+const CAP = 4, SPEED = 2.4, MAX_COMPLAINTS = 5, FINAL_AT = 26, TOP = 10, BOTTOM = -3;
+// Every player-visible string, per language. Logic keeps ids (stop keys, name and line indexes);
+// text is looked up when shown, so a switch mid-shift re-labels the riders, rules and lamps.
+// Ticker lines already printed stay in the language they were printed in.
+const I18N = {
+  en: {
+    docTitle: 'Floor 7½', langGroup: 'Language',
+    shaftAria: 'Cutaway of the building: floors, the elevator shaft and waiting passengers. Tap a floor to send the car there.',
+    statSpirits: 'lifted spirits', statDelivered: 'delivered', statComplaints: 'complaints',
+    up: 'up', down: 'down', doors: 'doors', side: 'side',
+    upAria: 'Move up (hold)', downAria: 'Move down (hold)', doorsAria: 'Open doors', sideAria: 'Slide sideways',
+    holdStill: 'Hold still', heldStill: n => `Held still ×${n}`,
+    doorsShut: 'doors shut', doorsOpen: 'doors open', yestLocked: 'yesterday locked', yestOpen: 'yesterday open',
+    cloudLamp: 'cloud in doorway', muteAria: 'Toggle elevator music',
+    muzak: ['muzak · off', 'muzak · in tune', 'muzak · slightly sour', 'muzak · wrong', 'muzak · very wrong'],
+    inCar: 'In the car', regs: 'Building regulations',
+    keys: '↑ ↓ move · space doors · ← → sideways · M music · tap a floor to send the car',
+    titleTag: "Operator's shift · night", titleH: 'Floor 7<span>½</span>',
+    titleP: 'You run the only elevator in a building that should not exist. Hold ▲ or ▼ to move, stop level with a floor, open the doors. Deliver passengers before their patience runs out. The building will add regulations as it goes.',
+    clockIn: 'Clock in', again: 'Clock in again',
+    overTag: 'Notice of reassignment', overH: 'You have been reassigned to the stairs.',
+    overP: 'Five complaints. The stairs have no buttons and nobody talks to them. You will settle in.',
+    endTag: 'End of shift', endH: 'The building thanks you for your service.',
+    endSub: (r, h) => `It has operated you between ${r} floors and you held still ${h} times. It did not say which floors. It did say thank you.`,
+    statLine: (s, d, b) => `${s} lifted spirits · ${d} delivered · best ${b}`,
+    names: ['Mr. Pemberton-Hinge', 'a damp accountant', 'Gloria, twice', 'the 3:15', 'an unconvinced pigeon',
+      'Dr. Lintel', "someone's aunt", 'a very tall child', 'the previous tenant', 'Ms. Ventricle', 'a retired echo',
+      'Barnaby (laminated)', 'two raccoons in a coat', 'the night auditor', 'a man made of coats', 'a man made of coats'],
+    cloudName: 'a small cloud', finalName: 'a passenger in your uniform',
+    normal: ['{n}, please.', 'Floor {n}. I have an appointment with a lamp.', '{n}. Quickly. My soup is cooling.',
+      'Take me to {n}. I hear it is carpeted.', '{n}, and do not look at my hat.', 'Floor {n}. I live there on weekends.'],
+    lobbyLine: 'The lobby. I have seen enough.', basementLine: 'The basement. I am collecting echoes.',
+    half: ['Seven and a half. I am late for the half.', '7½, please. The other half is booked.'],
+    b2: ["The basement's basement. Don't ask.", 'Below the basement. Further. Yes, there.'],
+    mother: ['The floor my mother warned me about.', 'The one my mother warned me about. Hurry.'],
+    yest: ['Yesterday. I left the oven on.', 'Yesterday, please. I said something wrong there.'],
+    annex: ['{a} East. It is new.', 'The sideways floor. {a} East.'],
+    whoosh: 'Whoosh. ', finalLine: 'The floor where the elevator operator lives, please.',
+    rules: [
+      'Stop level with a floor, then open the doors.',
+      'Capacity is 4. A man made of coats counts as 2.',
+      'Waiting passengers run out of patience; riders lose theirs at half speed. Five complaints and you are reassigned to the stairs.',
+      'Floor 7½ exists only on the way down. Come from above and stop between 7 and 8.',
+      "The basement's basement is below the basement.",
+      'Everyone\'s mother warned them about floor 4. A "mum" ticket means floor 4.',
+      'Yesterday is the top floor. Its doors open only if you have been below the lobby since your last visit.',
+      'Clouds weigh nothing, but while one is aboard nobody else can get in.',
+      'The building has grown a floor sideways. Level with it, press ⇄, then open the doors. It moves sometimes.',
+      'No more passengers are coming. Except one.',
+    ],
+    reveal: ['There is a small room down here. Someone is working a lever.', 'They are wearing your uniform.',
+      'It is you. You have been operating you.', 'The building would like a turn.',
+      'The building is operating you now. Please hold still.'],
+    thanksStiller: 'Thank you. Hold stiller.', thanksMoved: 'Thank you. You are doing very well at being moved.',
+    // Stop names: bare (rider destinations) and with the preposition the delivery line needs.
+    stop: (k, a) => ({ OP: 'where the operator lives', B2: "the basement's basement", B1: 'the basement', 0: 'the lobby',
+      7.5: 'floor 7½', Y: 'Yesterday', ANNEX: `${a} East` })[k] ?? `floor ${k}`,
+    at: (k, a) => `at ${I18N.en.stop(k, a)}`,
+    mumDest: 'floor 4 (mum)',
+    origin: k => ({ 0: 'Lobby', B1: 'Basement', B2: "Basement's basement" })[k] ?? `Floor ${k}`,
+    tag: { L: 'L', B: 'B', 'B²': 'B²', mum: 'mum', Y: 'Y' },
+    row: { opOpen: 'the operator lives here', rock: 'bedrock', b2: "basement's basement", b1: 'basement', lobby: 'lobby',
+      mother: 'mother warned you', yest: 'yesterday', yestOpen: 'yesterday · open', yestLocked: 'yesterday · locked',
+      building: 'under construction' },
+    short: { B2: 'B²', B1: 'B', 0: 'L', Y: 'Y' },
+    halfLive: '7½ ↓', halfDead: '7½ (↓ only)', atLever: 'you, at the lever', you: 'you',
+    empty: (l, c) => `The car is empty. It hums to itself. Load ${l} of ${c}.`,
+    q: s => `“${s}”`,
+    logSpawn: (o, n, l) => `${o}: ${n}. “${l}”`,
+    logCloudBlocks: 'A cloud is filling the doorway. Nobody else can get in.',
+    logFull: n => `The car is full. ${n} will wait.`,
+    logOpFloor: 'A floor you have never seen lights up below everything.',
+    logDeliver: (n, at, g) => `${n} got out ${at}. +${g} lifted spirits.`,
+    logPhase2: 'The building has added floors, including half of one. Read the regulations.',
+    logPhase3: 'Yesterday has opened at the top of the shaft. Clouds have started using the lift.',
+    logPhase4: a => `The building grew a floor sideways at ${a} East.`,
+    logComplain: (n, how) => `${n} ${how}. A complaint has been filed.`,
+    stairs: 'took the stairs, loudly', hatch: 'left through the ceiling hatch',
+    logStopFirst: 'Stop first. The doors are not a sunroof.',
+    logNoFloor: 'The doors refuse. There is no floor here, only shaft.',
+    logBricked: 'Yesterday is bricked up. Go below the lobby first, then come back up.',
+    logNoSide: 'There is no sideways yet. Give it time.',
+    logLevelFirst: a => `Level with floor ${a} first, then go sideways.`,
+    logDrift: '7½ is not there on the way up. You drift on to 8.',
+    logInAnnex: 'You are in the annex. Press ⇄ to slide back to the shaft.',
+    logAnnexMoved: a => `The annex moved to ${a} East. Nobody asked it to.`,
+    logStarted: 'Your shift has started. The lobby is filling up.',
+    logSlideFirst: 'You are in the annex. Press ⇄ to slide back first.',
+    logHiring: 'A building that should not exist is hiring an elevator operator.',
+  },
+  fr: {
+    docTitle: 'Étage 7½', langGroup: 'Langue',
+    shaftAria: "Coupe de l'immeuble : les étages, la gaine de l'ascenseur et les passagers qui attendent. Touchez un étage pour y envoyer la cabine.",
+    statSpirits: 'moral remonté', statDelivered: 'livrés', statComplaints: 'plaintes',
+    up: 'haut', down: 'bas', doors: 'portes', side: 'côté',
+    upAria: 'Monter (maintenir)', downAria: 'Descendre (maintenir)', doorsAria: 'Ouvrir les portes', sideAria: 'Glisser de côté',
+    holdStill: 'Ne bougez plus', heldStill: n => `Pas bougé ×${n}`,
+    doorsShut: 'portes fermées', doorsOpen: 'portes ouvertes', yestLocked: 'hier verrouillé', yestOpen: 'hier ouvert',
+    cloudLamp: "nuage dans l'entrée", muteAria: "Couper ou remettre la musique d'ascenseur",
+    muzak: ['musique · coupée', 'musique · juste', 'musique · un peu aigre', 'musique · fausse', 'musique · très fausse'],
+    inCar: 'Dans la cabine', regs: "Règlement de l'immeuble",
+    keys: '↑ ↓ bouger · espace portes · ← → de côté · M musique · touchez un étage pour y envoyer la cabine',
+    titleTag: 'Poste de nuit · ascenseur', titleH: 'Étage 7<span>½</span>',
+    titleP: "Vous conduisez le seul ascenseur d'un immeuble qui ne devrait pas exister. Maintenez ▲ ou ▼ pour bouger, arrêtez la cabine au niveau d'un étage, ouvrez les portes. Livrez les passagers avant que leur patience s'épuise. L'immeuble ajoutera des règles en cours de route.",
+    clockIn: 'Pointer', again: 'Pointer à nouveau',
+    overTag: 'Avis de réaffectation', overH: "On vous réaffecte à l'escalier.",
+    overP: "Cinq plaintes. L'escalier n'a pas de boutons et personne ne lui parle. Vous vous y ferez.",
+    endTag: 'Fin de service', endH: "L'immeuble vous remercie de vos services.",
+    // « fait » before an infinitive never agrees, so this stays ungendered.
+    endSub: (r, h) => `Il vous a fait passer par ${r} étage${r > 1 ? 's' : ''}, et ${h} fois vous n'avez pas bougé. Il n'a pas dit quels étages. Il a bien dit merci.`,
+    statLine: (s, d, b) => `${s} de moral remonté · ${d} livrés · record ${b}`,
+    names: ['M. Pemberton-Gond', 'un comptable humide', 'Gloria, deux fois', 'le 15 h 15', 'un pigeon pas convaincu',
+      'Dr Linteau', "la tante de quelqu'un", 'un enfant très grand', "l'ancien locataire", 'Mme Ventricule', 'un écho à la retraite',
+      'Barnabé (plastifié)', 'deux ratons laveurs dans un manteau', "l'auditeur de nuit", 'un homme fait de manteaux', 'un homme fait de manteaux'],
+    cloudName: 'un petit nuage', finalName: "quelqu'un qui porte votre uniforme",
+    normal: ["{n}, s'il vous plaît.", "Étage {n}. J'ai rendez-vous avec une lampe.", '{n}. Vite. Ma soupe refroidit.',
+      "Au {n}. Il paraît que c'est moquetté.", '{n}, et ne regardez pas mon chapeau.', "Étage {n}. J'y habite le week-end."],
+    lobbyLine: "Le hall. J'en ai assez vu.", basementLine: 'Le sous-sol. Je collectionne les échos.',
+    half: ['Sept et demi. Je suis en retard pour la demie.', "7½, s'il vous plaît. L'autre moitié est réservée."],
+    b2: ['Le sous-sol du sous-sol. Ne demandez pas.', 'Sous le sous-sol. Plus bas. Oui, là.'],
+    mother: ['Le 4e. Ma mère en parlait à voix basse.', 'Celui dont ma mère disait de se méfier. Vite.'],
+    yest: ["Hier. J'ai oublié d'éteindre le four.", "Hier, s'il vous plaît. J'y ai dit une bêtise."],
+    annex: ["{a} Est. C'est nouveau.", "L'étage de côté. {a} Est."],
+    whoosh: 'Pfiou. ', finalLine: "L'étage où habite la personne qui conduit l'ascenseur, s'il vous plaît.",
+    rules: [
+      "Arrêtez la cabine au niveau d'un étage, puis ouvrez les portes.",
+      'Capacité : 4. Un homme fait de manteaux compte pour 2.',
+      "Les passagers qui attendent perdent patience ; ceux qui sont à bord, deux fois moins vite. Cinq plaintes et c'est la réaffectation à l'escalier.",
+      "L'étage 7½ n'existe qu'à la descente. Arrivez d'en haut et arrêtez-vous entre 7 et 8.",
+      'Le sous-sol du sous-sol est sous le sous-sol.',
+      'Toutes les mères ont mis en garde contre le 4e. Un ticket « maman » veut dire étage 4.',
+      'Hier est le dernier étage. Ses portes ne s\'ouvrent que si la cabine est descendue sous le hall depuis la dernière visite.',
+      "Les nuages ne pèsent rien, mais tant qu'il y en a un à bord, personne d'autre ne peut monter.",
+      "L'immeuble s'est fait pousser un étage de côté. Mettez-vous à son niveau, appuyez sur ⇄, puis ouvrez les portes. Il bouge parfois.",
+      'Plus aucun passager ne viendra. Sauf un.',
+    ],
+    reveal: ["Il y a une petite pièce, tout en bas. Quelqu'un actionne un levier.", 'Cette personne porte votre uniforme.',
+      "C'est vous. Depuis le début, c'est vous qui vous conduisiez.", "L'immeuble aimerait essayer à son tour.",
+      "C'est l'immeuble qui vous conduit, maintenant. Ne bougez plus, s'il vous plaît."],
+    thanksStiller: 'Merci. Bougez encore moins.', thanksMoved: 'Merci. Vous vous laissez déplacer à merveille.',
+    stop: (k, a) => ({ OP: 'chez la personne qui conduit', B2: 'le sous-sol du sous-sol', B1: 'le sous-sol', 0: 'le hall',
+      7.5: "l'étage 7½", Y: 'Hier', ANNEX: `${a} Est` })[k] ?? `l'étage ${k}`,
+    at: (k, a) => ({ OP: 'chez la personne qui conduit', B2: 'au sous-sol du sous-sol', B1: 'au sous-sol', 0: 'au hall',
+      7.5: "à l'étage 7½", Y: 'à Hier', ANNEX: `au ${a} Est` })[k] ?? `à l'étage ${k}`,
+    mumDest: 'étage 4 (maman)',
+    origin: k => ({ 0: 'Hall', B1: 'Sous-sol', B2: 'Sous-sol du sous-sol' })[k] ?? `Étage ${k}`,
+    tag: { L: '0', B: 'S', 'B²': 'S²', mum: 'maman', Y: 'H' },
+    row: { opOpen: 'ici vit qui conduit', rock: 'roche', b2: 'sous-sol du sous-sol', b1: 'sous-sol', lobby: 'hall',
+      mother: 'maman avait prévenu', yest: 'hier', yestOpen: 'hier · ouvert', yestLocked: 'hier · verrouillé',
+      building: 'en travaux' },
+    short: { B2: 'S²', B1: 'S', 0: '0', Y: 'H' },
+    halfLive: '7½ ↓', halfDead: '7½ (↓ seulement)', atLever: 'vous, au levier', you: 'vous',
+    empty: (l, c) => `La cabine est vide. Elle fredonne toute seule. Charge ${l} sur ${c}.`,
+    q: s => `« ${s} »`,
+    logSpawn: (o, n, l) => `${o} : ${n}. « ${l} »`,
+    logCloudBlocks: "Un nuage bouche l'entrée. Personne d'autre ne peut monter.",
+    logFull: n => `La cabine est pleine. ${cap(n)} attendra.`,
+    logOpFloor: "Un étage que vous n'aviez jamais vu s'allume sous tout le reste.",
+    // Present tense: « descend » agrees with nobody, whoever the passenger is.
+    logDeliver: (n, at, g) => `${cap(n)} descend ${at}. +${g} au moral.`,
+    logPhase2: "L'immeuble a ajouté des étages, dont un demi. Lisez le règlement.",
+    logPhase3: "Hier a ouvert en haut de la gaine. Les nuages se sont mis à prendre l'ascenseur.",
+    logPhase4: a => `L'immeuble s'est fait pousser un étage de côté : ${a} Est.`,
+    logComplain: (n, how) => `${cap(n)} ${how}. Une plainte a été déposée.`,
+    stairs: "a pris l'escalier, bruyamment", hatch: 'a filé par la trappe du plafond',
+    logStopFirst: "Arrêtez-vous d'abord. Les portes ne sont pas un toit ouvrant.",
+    logNoFloor: "Les portes refusent. Il n'y a pas d'étage ici, rien que la gaine.",
+    logBricked: "Hier est muré. Descendez d'abord sous le hall, puis remontez.",
+    logNoSide: "Il n'y a pas encore de côté. Laissez-lui le temps.",
+    logLevelFirst: a => `Mettez-vous d'abord au niveau de l'étage ${a}, puis glissez de côté.`,
+    logDrift: "Le 7½ n'existe pas à la montée. La cabine file jusqu'au 8.",
+    logInAnnex: "Vous êtes dans l'annexe. Appuyez sur ⇄ pour regagner la gaine.",
+    logAnnexMoved: a => `L'annexe est passée au ${a} Est. Personne ne le lui a demandé.`,
+    logStarted: 'Votre service commence. Le hall se remplit.',
+    logSlideFirst: "Vous êtes dans l'annexe. Appuyez d'abord sur ⇄ pour revenir.",
+    logHiring: 'Un immeuble qui ne devrait pas exister cherche quelqu\'un pour conduire son ascenseur.',
+  },
+};
+const cap = s => s[0].toUpperCase() + s.slice(1);
+
+// French typography: a narrow no-break space before ? ! : ; » and after «, applied once to every
+// French string (and to whatever a French string function returns).
+(function frenchSpacing() {
+  const fix = s => s.replace(/ ([?!:;»])/g, '\u202f$1').replace(/« /g, '«\u202f');
+  const deep = v => typeof v === 'string' ? fix(v)
+    : typeof v === 'function' ? (...a) => fix(v(...a))
+    : Array.isArray(v) ? v.map(deep)
+    : v && typeof v === 'object' ? Object.fromEntries(Object.entries(v).map(([k, x]) => [k, deep(x)]))
+    : v;
+  I18N.fr = deep(I18N.fr);
+})();
+
+let lang = 'en';
+const t = k => I18N[lang][k] ?? I18N.en[k];
+for (const k of ['names', 'normal', 'half', 'b2', 'mother', 'yest', 'annex', 'rules', 'reveal', 'muzak']) {
+  if (I18N.en[k].length !== I18N.fr[k].length) console.error(`i18n: ${k} differs in length`);
+}
+
+const COATS = 14;   // names 14 and 15: a man made of coats counts as 2
+const RULE_PHASE = [1, 1, 1, 2, 2, 2, 3, 3, 4, 5];
+const REVEAL_AT = [0, 3, 6, 9, 12];
+const pick = a => a[Math.floor(Math.random() * a.length)];
+const pickI = n => Math.floor(Math.random() * n);
+
+let S, best = 0;
+function fresh() {
+  return {
+    mode: 'title', t: 0,
+    car: { y: 0, x: 0, xT: 0, vy: 0, door: 0, open: false, openT: 0, ex: 0, target: null, lastDir: 0 },
+    waiting: [], riders: [], spirits: 0, complaints: 0, delivered: 0, phase: 1, spawnT: 1.5,
+    dipped: false, annex: null, annexT: 45, finalSpawned: false, opOpen: false,
+    revealT: 0, auto: 0, held: 0, ridden: 0, id: 0, lastTarget: null, sideNag: 0,
+  };
+}
+
+function stops() {
+  const L = [];
+  if (S.opOpen) L.push({ key: 'OP', y: -3, x: 0 });
+  if (S.phase >= 2) L.push({ key: 'B2', y: -2, x: 0 });
+  L.push({ key: 'B1', y: -1, x: 0 });
+  L.push({ key: '0', y: 0, x: 0 });
+  for (let n = 1; n <= 9; n++) L.push({ key: String(n), y: n, x: 0 });
+  if (S.phase >= 2) L.push({ key: '7.5', y: 7.5, x: 0 });
+  if (S.phase >= 3) L.push({ key: 'Y', y: 10, x: 0 });
+  if (S.annex !== null) L.push({ key: 'ANNEX', y: S.annex, x: 1 });
+  return L;
+}
+const stopBy = k => stops().find(s => s.key === k);
+const minY = () => S.opOpen ? -3 : S.phase >= 2 ? -2 : -1;
+const maxY = () => S.phase >= 3 ? 10 : 9;
+const yOf = k => k === 'B1' ? -1 : k === 'B2' ? -2 : Number(k);
+const originName = k => t('origin')(k);
+const tagOf = p => p.to === 'ANNEX' ? S.annex + 'E' : t('tag')[p.tag] ?? p.tag;
+// Passengers carry ids: a name index (or cloud / final) and a line thunk read in the current language.
+const nameOf = p => p.final ? t('finalName') : p.cloud ? t('cloudName') : t('names')[p.ni];
+const lineOf = p => (p.cloud ? t('whoosh') : '') + p.say();
+const load = () => S.riders.reduce((a, p) => a + p.weight, 0);
+function here() {
+  const c = S.car;
+  if (c.x !== c.xT) return null;
+  return stops().find(s => Math.abs(s.y - c.y) < 0.06 && s.x === c.xT) || null;
+}
+function destName(p) {
+  if (p.tag === 'mum') return t('mumDest');
+  return t('stop')(p.to, S.annex);
+}
+
+const ticker = $('#ticker');
+function log(msg) {
+  const p = document.createElement('p');
+  p.textContent = msg;
+  ticker.prepend(p);
+  while (ticker.children.length > 3) ticker.lastChild.remove();
+}
+
+function renderRules() {
+  const cur = S.finalSpawned ? 5 : S.phase;
+  $('#rules').innerHTML = t('rules').map((text, i) => [RULE_PHASE[i], text]).filter(r => r[0] <= cur)
+    .map(r => `<li class="${r[0] === cur && cur > 1 ? 'new' : ''}">${r[1]}</li>`).join('');
+}
+
+// A line table entry, chosen once by index, filled with a floor number or the annex.
+const lineFrom = (key, n) => { const i = pickI(t(key).length); return () => t(key)[i].replace('{n}', n).replace('{a}', n); };
+
+function spawn() {
+  const origins = ['0', '0', 'B1', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
+  if (S.phase >= 2) origins.push('B2');
+  const from = pick(origins);
+  const pool = [];
+  for (let n = 0; n <= 9; n++) {
+    const k = String(n);
+    if (k === from) continue;
+    pool.push({ to: k, w: 1, tag: n === 0 ? 'L' : k,
+      say: n === 0 ? () => t('lobbyLine') : lineFrom('normal', n) });
+  }
+  if (from !== 'B1') pool.push({ to: 'B1', w: 1, tag: 'B', say: () => t('basementLine') });
+  if (S.phase >= 2) {
+    pool.push({ to: '7.5', w: 3, tag: '7½', say: lineFrom('half') });
+    if (from !== 'B2') pool.push({ to: 'B2', w: 2, tag: 'B²', say: lineFrom('b2') });
+    if (from !== '4') pool.push({ to: '4', w: 2, tag: 'mum', say: lineFrom('mother') });
+  }
+  if (S.phase >= 3) pool.push({ to: 'Y', w: 3, tag: 'Y', say: lineFrom('yest') });
+  if (S.annex !== null) pool.push({ to: 'ANNEX', w: 3, tag: 'E', say: lineFrom('annex', S.annex) });
+  let r = Math.random() * pool.reduce((a, b) => a + b.w, 0), d = pool[0];
+  for (const p of pool) { r -= p.w; if (r <= 0) { d = p; break; } }
+  const cloud = S.phase >= 3 && Math.random() < 0.18;
+  const ni = pickI(t('names').length);
+  const max = Math.max(30, 50 - S.phase * 4);
+  const p = { id: ++S.id, from, to: d.to, tag: d.tag, ni, cloud, max, pat: max, say: d.say,
+    weight: cloud ? 0 : ni >= COATS ? 2 : 1 };
+  S.waiting.push(p);
+  log(t('logSpawn')(originName(from), nameOf(p), lineOf(p)));
+  if (S.car.open) { const st = here(); if (st && st.key === from) exchange(st, true); }
+}
+
+function spawnFinal() {
+  S.finalSpawned = true;
+  const p = { id: ++S.id, from: '0', to: 'OP', tag: '?', ni: -1, cloud: false,
+    weight: 1, max: 999, pat: 999, final: true, say: () => t('finalLine') };
+  S.waiting.push(p);
+  log(t('logSpawn')(originName('0'), nameOf(p), lineOf(p)));
+  renderRules();
+}
+
+function exchange(st, quiet) {
+  const out = S.riders.filter(p => p.to === st.key);
+  S.riders = S.riders.filter(p => p.to !== st.key);
+  for (const p of out) deliver(p, st);
+  if (S.mode !== 'play') return;
+  for (const p of S.waiting.filter(w => w.from === st.key)) {
+    if (S.riders.some(r => r.cloud)) { if (!quiet) log(t('logCloudBlocks')); break; }
+    if (load() + p.weight > CAP) { if (!quiet) log(t('logFull')(nameOf(p))); break; }
+    S.riders.push(p);
+    S.waiting = S.waiting.filter(w => w !== p);
+    if (p.final) {
+      S.opOpen = true;
+      log(t('logOpFloor'));
+    }
+  }
+}
+
+function deliver(p, st) {
+  if (p.final) return startReveal();
+  const special = ['7.5', 'B2', 'Y', 'ANNEX'].includes(st.key) || p.tag === 'mum';
+  const gain = 10 + Math.ceil(20 * Math.max(0, p.pat) / p.max) + (special ? 6 : 0);
+  S.spirits += gain;
+  S.delivered++;
+  log(t('logDeliver')(nameOf(p), t('at')(st.key, S.annex), gain));
+  const ph = S.delivered < 6 ? 1 : S.delivered < 12 ? 2 : S.delivered < 18 ? 3 : 4;
+  if (ph > S.phase) {
+    S.phase = ph;
+    if (ph === 2) log(t('logPhase2'));
+    if (ph === 3) log(t('logPhase3'));
+    if (ph === 4) {
+      S.annex = 2 + Math.floor(Math.random() * 7);
+      log(t('logPhase4')(S.annex));
+    }
+    renderRules();
+  }
+}
+
+function complain(p, how) {
+  S.complaints++;
+  log(t('logComplain')(nameOf(p), t(how)));
+  if (S.complaints >= MAX_COMPLAINTS) gameOver();
+}
+
+function closeDoors() { S.car.open = false; }
+
+function openDoors() {
+  if (S.mode !== 'play') return;
+  const c = S.car;
+  if (c.open) { closeDoors(); return; }
+  if (Math.abs(c.vy) > 0.3 || c.x !== c.xT) { log(t('logStopFirst')); return; }
+  const st = here();
+  if (!st) { log(t('logNoFloor')); return; }
+  if (st.key === 'Y' && !S.dipped) { log(t('logBricked')); return; }
+  c.open = true; c.openT = 0; c.ex = 0;
+  ding();
+  if (st.key === 'Y') S.dipped = false;
+  exchange(st, false);
+}
+
+function side() {
+  if (S.mode !== 'play') return;
+  const c = S.car;
+  if (S.annex === null) { log(t('logNoSide')); return; }
+  if (c.open) closeDoors();
+  if (c.xT === 0) {
+    if (Math.abs(c.y - S.annex) < 0.06 && Math.abs(c.vy) < 0.3) c.xT = 1;
+    else log(t('logLevelFirst')(S.annex));
+  } else if (c.x === 1) c.xT = 0;
+}
+
+function nudge(d) {
+  if (S.mode !== 'play' || S.car.xT !== 0) return;
+  const ys = stops().filter(s => s.x === 0).map(s => s.y).sort((a, b) => a - b);
+  const y = S.car.target ?? S.car.y;
+  const next = d > 0 ? ys.find(v => v > y + 0.05) : [...ys].reverse().find(v => v < y - 0.05);
+  if (next !== undefined) S.car.target = next;
+}
+
+function startReveal() {
+  S.mode = 'reveal';
+  S.revealT = 0;
+  S.waiting = [];
+  S.riders = [];
+  $('#caption').hidden = false;
+}
+
+function gameOver() {
+  S.mode = 'over';
+  best = Math.max(best, S.spirits);
+  fillEnds();
+  $('#over').hidden = false;
+  $('#again').focus();
+}
+
+function fillEnds() {
+  const line = t('statLine')(S.spirits, S.delivered, best);
+  $('#over-stat').textContent = line;
+  $('#end-stat').textContent = line;
+  $('#end-sub').textContent = t('endSub')(S.ridden, S.held);
+}
+
+function finish() {
+  S.mode = 'end';
+  best = Math.max(best, S.spirits);
+  $('#caption').hidden = true;
+  $('#still').hidden = true;
+  fillEnds();
+  $('#end').hidden = false;
+  $('#again2').focus();
+}
+
+const keys = {}, hold = { up: false, down: false };
+function inDir() {
+  return (hold.up || keys.arrowup || keys.w ? 1 : 0) - (hold.down || keys.arrowdown || keys.s ? 1 : 0);
+}
+
+function update(dt) {
+  S.t += dt;
+  const c = S.car, play = S.mode === 'play', operated = S.mode === 'operated';
+  const dir = play ? inDir() : 0;
+  let moved = 0, reached = false;
+
+  if (c.x !== c.xT) {
+    const s = Math.sign(c.xT - c.x);
+    c.x += s * dt * 1.4;
+    if ((s > 0 && c.x >= c.xT) || (s < 0 && c.x <= c.xT)) c.x = c.xT;
+  } else if (dir && c.xT === 1) {
+    S.sideNag -= dt;
+    if (S.sideNag <= 0) { log(t('logInAnnex')); S.sideNag = 3; }
+  } else if (dir) {
+    if (c.open) closeDoors();
+    else if (c.door < 0.03) { c.target = null; c.lastDir = dir; moved = dir * SPEED * dt; }
+  } else if (c.target !== null && c.xT === 0) {
+    if (c.open) closeDoors();
+    else if (c.door < 0.03) {
+      const d = c.target - c.y, sp = Math.min(SPEED, Math.abs(d) * 4 + 0.5) * dt;
+      if (d) c.lastDir = Math.sign(d);
+      if (Math.abs(d) <= sp) { moved = d; reached = true; } else moved = Math.sign(d) * sp;
+    }
+  } else if (!c.open && c.xT === 0) {
+    // the car settles onto the nearest floor; 7½ only catches it on the way down
+    let near = Math.round(c.y);
+    if (S.phase >= 2 && c.lastDir === -1 && Math.abs(c.y - 7.5) < 0.3) near = 7.5;
+    const d = near - c.y;
+    moved = Math.abs(d) < 0.004 ? d : d * Math.min(1, dt * 7);
+  }
+  const ny = Math.max(minY(), Math.min(maxY(), c.y + moved));
+  c.vy = dt ? (ny - c.y) / dt : 0;
+  c.y = ny;
+  if (reached) {
+    S.lastTarget = c.target;
+    c.target = null;
+    if (operated) { S.ridden++; c.open = true; c.openT = 0; ding(); S.auto = 1.1; }
+    else if (S.lastTarget === 7.5 && c.lastDir === 1) log(t('logDrift'));
+  }
+  if (S.phase >= 3 && c.y < -0.5) S.dipped = true;
+
+  c.door += ((c.open ? 1 : 0) - c.door) * Math.min(1, dt * (reduce ? 20 : 6));
+  if (c.open) {
+    c.openT += dt; c.ex += dt;
+    if (play && c.ex > 0.6) { c.ex = 0; const st = here(); if (st) exchange(st, true); }
+    if (play && c.openT > 2.4) closeDoors();
+    if (operated && c.openT > 0.9) closeDoors();
+  }
+
+  if (play) {
+    for (const p of S.waiting) p.pat -= dt;
+    for (const p of S.riders) p.pat -= dt * 0.5;
+    const gone = [];
+    S.waiting = S.waiting.filter(p => (p.pat > 0 || p.final) || (gone.push([p, 'stairs']), false));
+    S.riders = S.riders.filter(p => (p.pat > 0 || p.final) || (gone.push([p, 'hatch']), false));
+    for (const [p, how] of gone) { if (S.mode === 'play') complain(p, how); }
+
+    if (S.delivered >= FINAL_AT && !S.finalSpawned) spawnFinal();
+    if (!S.finalSpawned) {
+      S.spawnT -= dt;
+      if (S.spawnT <= 0 && S.waiting.length < 16) {
+        spawn();
+        S.spawnT = Math.max(2.4, 6.2 - S.delivered * 0.15) * (0.8 + Math.random() * 0.4);
+      }
+    }
+    if (S.annex !== null) {
+      S.annexT -= dt;
+      if (S.annexT <= 0 && c.xT === 0 && c.x === 0) {
+        let a = S.annex;
+        while (a === S.annex) a = 2 + Math.floor(Math.random() * 7);
+        S.annex = a; S.annexT = 45;
+        log(t('logAnnexMoved')(a));
+      }
+    }
+  }
+
+  if (S.mode === 'reveal' || operated) {
+    S.revealT += dt;
+    let line = t('reveal')[0];
+    REVEAL_AT.forEach((at, i) => { if (S.revealT >= at) line = t('reveal')[i]; });
+    if (S.held > 0 && operated && S.revealT > 14) line = S.held > 3 ? t('thanksStiller') : t('thanksMoved');
+    $('#caption').textContent = line;
+    if (S.mode === 'reveal' && S.revealT >= 12) {
+      S.mode = 'operated';
+      c.open = false;
+      $('#panel').classList.add('operated');
+      $('#still').hidden = false;
+      $('#still').focus();
+    }
+    if (operated && c.target === null && !c.open && c.door < 0.03) {
+      S.auto -= dt;
+      if (S.auto <= 0) c.target = pick(stops().filter(s => s.x === 0 && Math.abs(s.y - c.y) > 0.5)).y;
+    }
+    if (S.revealT > 30) finish();
+  }
+}
+
+function rowState(f) {
+  if (f === -3) return S.opOpen ? 'op' : 'rock';
+  if (f === -2) return S.phase >= 2 ? 'on' : 'build';
+  if (f === 10) return S.phase >= 3 ? 'on' : 'build';
+  return 'on';
+}
+function rowLabel(f) {
+  const R = t('row'), sh = t('short');
+  if (f === -3) return S.opOpen ? ['?', R.opOpen] : ['', R.rock];
+  if (f === -2) return [sh.B2, R.b2];
+  if (f === -1) return [sh.B1, R.b1];
+  if (f === 0) return [sh[0], R.lobby];
+  if (f === 4 && S.phase >= 2) return ['4', R.mother];
+  if (f === 10) return [sh.Y, S.phase < 3 ? R.yest : S.dipped ? R.yestOpen : R.yestLocked];
+  return [String(f), ''];
+}
+const rowH = () => (H - 16) / (TOP - BOTTOM + 1);
+const py = y => 8 + (TOP - y + 0.5) * rowH();
+function geo() {
+  const LW = Math.min(130, Math.max(64, W * 0.25));
+  const SX = LW + 6, SW = Math.max(40, Math.min(82, W * 0.15));
+  return { LW, SX, SW, QX: SX + SW * 2 + 12 };
+}
+
+function hatch(x, y, w, h, col) {
+  cx.save();
+  cx.beginPath(); cx.rect(x, y, w, h); cx.clip();
+  cx.strokeStyle = col; cx.lineWidth = 1;
+  for (let i = -h; i < w; i += 9) { cx.beginPath(); cx.moveTo(x + i, y + h); cx.lineTo(x + i + h, y); cx.stroke(); }
+  cx.restore();
+}
+
+function drawToken(p, x, y, r) {
+  const frac = Math.max(0, Math.min(1, p.pat / p.max));
+  if (p.cloud) {
+    cx.fillStyle = '#f4f1ea';
+    for (const [dx, dy, s] of [[-r * .5, r * .1, .62], [r * .5, r * .1, .62], [0, -r * .25, .78]]) {
+      cx.beginPath(); cx.arc(x + dx, y + dy, r * s, 0, 6.28); cx.fill();
+    }
+  } else if (p.weight === 2) {
+    cx.fillStyle = '#8a7a5c';
+    cx.fillRect(x - r * 1.05, y - r * 1.05, r * 2.1, r * 2.1);
+  } else {
+    cx.fillStyle = p.final ? '#c9a24b' : '#efe8d6';
+    cx.beginPath(); cx.arc(x, y, r * .78, 0, 6.28); cx.fill();
+  }
+  if (!p.final) {
+    cx.strokeStyle = frac > .45 ? '#79bba9' : frac > .22 ? '#e9a83c' : '#b03a49';
+    cx.lineWidth = 2.5;
+    cx.beginPath(); cx.arc(x, y, r + 2, -Math.PI / 2, -Math.PI / 2 + 6.283 * frac); cx.stroke();
+  }
+}
+
+function draw() {
+  if (!W || !H) return;
+  const rh = rowH(), c = S.car, { LW, SX, SW, QX } = geo();
+  cx.fillStyle = '#0f3d35'; cx.fillRect(0, 0, W, H);
+  cx.fillStyle = '#ffffff06';
+  for (let x = QX; x < W; x += 28) cx.fillRect(x, 0, 1, H);
+
+  const top = py(TOP) - rh / 2, bottom = py(BOTTOM) + rh / 2;
+  cx.fillStyle = '#07241f'; cx.fillRect(SX, top, SW, bottom - top);
+  cx.fillStyle = '#c9a24b55'; cx.fillRect(SX + 3, top, 1.5, bottom - top); cx.fillRect(SX + SW - 4.5, top, 1.5, bottom - top);
+
+  const bigPx = Math.max(11, Math.min(rh * 0.6, 22)), smallPx = Math.max(9, Math.min(11, rh * 0.34));
+  for (let f = BOTTOM; f <= TOP; f++) {
+    const y = py(f), st = rowState(f), [short, name] = rowLabel(f);
+    cx.fillStyle = '#c9a24b55'; cx.fillRect(0, y + rh / 2 - .5, W, 1);
+    if (st === 'rock') hatch(0, y - rh / 2, W, rh, '#c9a24b22');
+    if (st === 'build') hatch(0, y - rh / 2, LW, rh, '#c9a24b26');
+    if (st === 'op') { cx.fillStyle = '#b03a4922'; cx.fillRect(0, y - rh / 2, W, rh); }
+    const dim = st === 'build' || st === 'rock';
+    cx.textBaseline = 'middle';
+    cx.font = `${bigPx}px Limelight, Georgia, serif`;
+    cx.fillStyle = dim ? '#efe8d644' : f === 10 ? '#ecd59a' : '#efe8d6';
+    cx.fillText(short, 10, y + 1);
+    if (LW > 84 && name) {
+      cx.font = `600 ${smallPx}px "Josefin Sans", system-ui, sans-serif`;
+      cx.fillStyle = dim ? '#79bba966' : '#79bba9';
+      cx.fillText(st === 'build' ? t('row').building : name, 10 + bigPx * 1.5, y + 1, LW - bigPx * 1.5 - 12);
+    }
+  }
+
+  if (S.phase >= 2) {
+    const y = py(7.5), live = c.lastDir === -1;
+    cx.save();
+    cx.globalAlpha = live ? 1 : .35;
+    cx.setLineDash([4, 4]); cx.strokeStyle = '#e9a83c'; cx.lineWidth = 1.5;
+    cx.beginPath(); cx.moveTo(SX, y); cx.lineTo(W, y); cx.stroke();
+    cx.setLineDash([]);
+    cx.font = `600 ${smallPx}px "Azeret Mono", monospace`;
+    const label = live ? t('halfLive') : t('halfDead');
+    const tw = cx.measureText(label).width;
+    cx.fillStyle = '#07241f'; cx.fillRect(SX + SW + 4, y - smallPx * .75, tw + 8, smallPx * 1.5);
+    cx.fillStyle = '#e9a83c'; cx.fillText(label, SX + SW + 8, y + 1);
+    cx.restore();
+  }
+
+  if (S.annex !== null) {
+    const y = py(S.annex);
+    cx.fillStyle = '#07241f'; cx.fillRect(SX + SW, y - rh * .48, SW, rh * .96);
+    cx.strokeStyle = '#c9a24b'; cx.lineWidth = 1; cx.strokeRect(SX + SW + .5, y - rh * .48 + .5, SW - 1, rh * .96 - 1);
+    cx.font = `600 ${smallPx}px "Azeret Mono", monospace`;
+    cx.fillStyle = '#c9a24b88'; cx.fillText(S.annex + 'E', SX + SW * 1.5 - 8, y + 1);
+  }
+
+  const r = Math.max(5, Math.min(10, rh * 0.28));
+  const step = r * 2 + 40;
+  const groups = {};
+  for (const p of S.waiting) (groups[p.from] ||= []).push(p);
+  cx.font = `600 ${Math.max(9, Math.min(11, rh * .36))}px "Azeret Mono", monospace`;
+  for (const k in groups) {
+    const list = groups[k], y = py(yOf(k));
+    const maxN = Math.max(1, Math.floor((W - QX - 30) / step));
+    list.slice(0, maxN).forEach((p, i) => {
+      const x = QX + i * step + r + 2;
+      drawToken(p, x, y, r);
+      const t = tagOf(p), tw = cx.measureText(t).width;
+      cx.fillStyle = '#07241f'; cx.fillRect(x + r + 5, y - 7, tw + 8, 14);
+      cx.fillStyle = p.final ? '#e9a83c' : '#ecd59a'; cx.fillText(t, x + r + 9, y + 1);
+    });
+    if (list.length > maxN) {
+      cx.fillStyle = '#efe8d6aa';
+      cx.fillText('+' + (list.length - maxN), QX + maxN * step + 2, y + 1);
+    }
+  }
+
+  if (S.opOpen && S.mode !== 'play') {
+    const y = py(-3), rw = Math.min(170, W - QX - 10);
+    cx.fillStyle = '#2a1418'; cx.fillRect(QX, y - rh * .45, rw, rh * .9);
+    cx.strokeStyle = '#b03a49'; cx.strokeRect(QX + .5, y - rh * .45 + .5, rw - 1, rh * .9 - 1);
+    const fx = QX + 22, sway = reduce ? 0 : Math.sin(S.t * 3) * .25;
+    cx.strokeStyle = '#c9a24b'; cx.lineWidth = 2;
+    cx.beginPath(); cx.moveTo(fx + 14, y + rh * .35); cx.lineTo(fx + 14 + Math.sin(sway) * rh * .5, y - rh * .2); cx.stroke();
+    cx.fillStyle = '#c9a24b'; cx.fillRect(fx - 4, y - rh * .05, 8, rh * .38);
+    cx.fillStyle = '#efe8d6'; cx.beginPath(); cx.arc(fx, y - rh * .18, Math.max(3, rh * .12), 0, 6.28); cx.fill();
+    cx.font = `600 ${smallPx}px "Josefin Sans", system-ui, sans-serif`;
+    cx.fillStyle = '#ecd59a'; cx.fillText(t('atLever'), fx + 30, y + 1, rw - 60);
+  }
+
+  const w = SW - 8, h = rh * 0.86, CX = SX + 4 + c.x * SW, CY = py(c.y), ct = CY - h / 2;
+  cx.fillStyle = '#c9a24b'; cx.fillRect(CX, ct, w, h);
+  cx.fillStyle = '#17503f'; cx.fillRect(CX + 2, ct + 2, w - 4, h - 4);
+  const dr = Math.max(2.5, Math.min(4.5, h * .12));
+  S.riders.forEach((p, i) => {
+    const px = CX + 8 + (i % 4) * (dr * 2.6), pyy = CY + (i < 4 ? 0 : dr * 2.4);
+    cx.fillStyle = p.cloud ? '#f4f1ea' : p.final ? '#e9a83c' : '#efe8d6';
+    cx.beginPath(); cx.arc(px, pyy, p.weight === 2 ? dr * 1.3 : dr, 0, 6.28); cx.fill();
+  });
+  if (S.mode === 'operated' || S.mode === 'end') {
+    cx.font = `600 ${smallPx}px "Josefin Sans", system-ui, sans-serif`;
+    cx.fillStyle = '#ecd59a'; cx.fillText(t('you'), CX + 6, CY + 1, w - 10);
+  }
+  const pw = (w - 4) / 2 * (1 - c.door);
+  cx.fillStyle = '#a8833a';
+  cx.fillRect(CX + 2, ct + 2, pw, h - 4);
+  cx.fillRect(CX + w - 2 - pw, ct + 2, pw, h - 4);
+  if (pw > 1) { cx.fillStyle = '#5a4418'; cx.fillRect(CX + 2 + pw - 1, ct + 2, 1, h - 4); cx.fillRect(CX + w - 2 - pw, ct + 2, 1, h - 4); }
+  cx.fillStyle = c.open ? '#e9a83c' : '#5a4418';
+  cx.beginPath(); cx.arc(CX + w / 2, ct - 4, 2.5, 0, 6.28); cx.fill();
+}
+
+function drawDial() {
+  if (!DW || !DH) return;
+  const w = DW, h = DH;
+  dx.clearRect(0, 0, w, h);
+  const ox = w / 2, oy = h - 6, R = Math.max(30, Math.min(w / 2 - 10, h - 12));
+  const ang = v => Math.PI + (v - BOTTOM) / (TOP - BOTTOM) * Math.PI;
+  dx.beginPath(); dx.arc(ox, oy, R, Math.PI, 0); dx.closePath();
+  dx.fillStyle = '#07241f'; dx.fill();
+  dx.lineWidth = 3; dx.strokeStyle = '#c9a24b'; dx.stroke();
+  dx.lineWidth = 1; dx.strokeStyle = '#c9a24b22';
+  for (let i = 1; i < 24; i++) {
+    const a = Math.PI + i / 24 * Math.PI;
+    dx.beginPath(); dx.moveTo(ox + Math.cos(a) * R * .2, oy + Math.sin(a) * R * .2);
+    dx.lineTo(ox + Math.cos(a) * R * .58, oy + Math.sin(a) * R * .58); dx.stroke();
+  }
+  dx.font = '600 10px "Azeret Mono", monospace';
+  dx.textAlign = 'center'; dx.textBaseline = 'middle';
+  for (let f = BOTTOM; f <= TOP; f++) {
+    const a = ang(f), st = rowState(f);
+    dx.strokeStyle = '#c9a24b'; dx.lineWidth = 1.5;
+    dx.beginPath(); dx.moveTo(ox + Math.cos(a) * (R - 7), oy + Math.sin(a) * (R - 7));
+    dx.lineTo(ox + Math.cos(a) * (R - 2), oy + Math.sin(a) * (R - 2)); dx.stroke();
+    const lab = rowLabel(f)[0] || '·';
+    dx.fillStyle = st === 'build' || st === 'rock' ? '#efe8d640' : st === 'op' ? '#b03a49' : '#efe8d6';
+    dx.fillText(lab, ox + Math.cos(a) * (R - 17), oy + Math.sin(a) * (R - 17));
+  }
+  if (S.phase >= 2) {
+    const a = ang(7.5);
+    dx.strokeStyle = '#e9a83c'; dx.lineWidth = 2;
+    dx.beginPath(); dx.moveTo(ox + Math.cos(a) * (R - 9), oy + Math.sin(a) * (R - 9));
+    dx.lineTo(ox + Math.cos(a) * (R - 2), oy + Math.sin(a) * (R - 2)); dx.stroke();
+  }
+  const a = ang(S.car.y);
+  dx.strokeStyle = '#ecd59a'; dx.lineWidth = 2.5; dx.lineCap = 'round';
+  dx.beginPath(); dx.moveTo(ox, oy); dx.lineTo(ox + Math.cos(a) * (R - 26), oy + Math.sin(a) * (R - 26)); dx.stroke();
+  dx.fillStyle = '#c9a24b'; dx.beginPath(); dx.arc(ox, oy, 6, 0, 6.28); dx.fill();
+  dx.textAlign = 'start';
+}
+
+function wrongness() {
+  if (!S) return 0;
+  if (S.mode === 'reveal' || S.mode === 'operated' || S.mode === 'end') return 1;
+  return Math.min(1, (S.phase - 1) * 0.22 + S.complaints * 0.06);
+}
+function renderUI() {
+  $('#spirits').textContent = S.spirits;
+  $('#delivered').textContent = S.delivered;
+  $('#pips').textContent = '●'.repeat(S.complaints) + '○'.repeat(Math.max(0, MAX_COMPLAINTS - S.complaints));
+  const ld = $('#l-door');
+  ld.className = 'lamp' + (S.car.open ? ' lit' : '');
+  ld.querySelector('em').textContent = S.car.open ? t('doorsOpen') : t('doorsShut');
+  const ly = $('#l-yest');
+  ly.hidden = S.phase < 3;
+  ly.className = 'lamp' + (S.dipped ? ' good' : '');
+  ly.querySelector('em').textContent = S.dipped ? t('yestOpen') : t('yestLocked');
+  $('#l-cloud').hidden = !S.riders.some(p => p.cloud);
+  $('#l-cloud').className = 'lamp bad';
+  const w = wrongness();
+  $('#mute').querySelector('em').textContent = t('muzak')[!AC || muted ? 0 : w < .15 ? 1 : w < .4 ? 2 : w < .75 ? 3 : 4];
+  const ul = $('#riders');
+  ul.innerHTML = S.riders.length ? S.riders.map(p => {
+    const f = Math.max(0, Math.min(1, p.pat / p.max));
+    return `<li><div class="who"><span>${lang === 'fr' ? cap(nameOf(p)) : nameOf(p)}</span><span class="to">→ ${destName(p)}</span></div>`
+      + `<div class="line">${t('q')(lineOf(p))}</div>`
+      + (p.final ? '' : `<div class="bar"><i class="${f < .25 ? 'low' : ''}" style="width:${(f * 100).toFixed(0)}%"></i></div>`)
+      + '</li>';
+  }).join('') : `<li class="empty">${t('empty')(load(), CAP)}</li>`;
+}
+
+let AC = null, master = null, muted = false, nextT = 0, stepI = 0;
+const PROG = [[50, 53, 57, 60], [43, 47, 50, 53], [48, 52, 55, 59], [45, 49, 52, 55]];
+const MEL = [74, null, 72, 74, null, 77, 76, null, 74, null, 71, null, 67, null, null, null,
+  72, null, 76, 79, null, 76, 74, null, 73, null, 76, null, 69, null, null, null];
+const mtof = m => 440 * Math.pow(2, (m - 69) / 12);
+function voice(m, t, dur, type, g, det = 0) {
+  const o = AC.createOscillator(), a = AC.createGain();
+  o.type = type; o.frequency.value = mtof(m); o.detune.value = det;
+  a.gain.setValueAtTime(0.0001, t);
+  a.gain.exponentialRampToValueAtTime(g, t + 0.02);
+  a.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  o.connect(a).connect(master);
+  o.start(t); o.stop(t + dur + 0.05);
+}
+function playStep(i, t) {
+  const w = wrongness(), det = () => (Math.random() - .5) * w * 60 + w * 25 * Math.sin(t * .3);
+  const ch = PROG[i >> 3], b = i % 8;
+  if (b === 0) ch.forEach(m => voice(m, t, 1.9, 'triangle', 0.045, det()));
+  if (b === 0 || b === 4) {
+    const root = ch[0] > 46 ? ch[0] - 12 : ch[0];
+    voice(root + (b === 4 ? 7 : 0), t, 0.45, 'sine', 0.14, det());
+    const delay = Math.max(0, (t - AC.currentTime) * 1000);
+    setTimeout(() => { if (!muted) { const el = $('#mute'); el.classList.add('lit'); setTimeout(() => el.classList.remove('lit'), 110); } }, delay);
+  }
+  let m = MEL[i];
+  if (m != null) {
+    if (Math.random() < w * 0.3) m += Math.random() < .5 ? 1 : -1;
+    voice(m, t, 0.32, 'sine', 0.065, det());
+  }
+}
+function sched() {
+  if (!AC) return;
+  while (nextT < AC.currentTime + 0.25) {
+    playStep(stepI, nextT);
+    const w = wrongness(), bpm = 100 * (1 + w * 0.07 * Math.sin(nextT * .9));
+    nextT += 60 / bpm / 2;
+    stepI = (stepI + 1) % 32;
+  }
+}
+function startAudio() {
+  if (AC) { AC.resume?.(); return; }
+  const C = window.AudioContext || window.webkitAudioContext;
+  if (!C) return;
+  AC = new C();
+  master = AC.createGain();
+  master.gain.value = muted ? 0 : 0.13;
+  master.connect(AC.destination);
+  nextT = AC.currentTime + 0.1;
+  setInterval(sched, 50);
+}
+function ding() {
+  if (!AC || muted) return;
+  const t = AC.currentTime;
+  voice(88, t, 0.5, 'sine', 0.1);
+  voice(84, t + 0.16, 0.8, 'sine', 0.1);
+}
+function toggleMute() {
+  if (!AC) { startAudio(); muted = false; return; }
+  muted = !muted;
+  master.gain.setTargetAtTime(muted ? 0 : 0.13, AC.currentTime, 0.05);
+}
+
+function begin() {
+  S = fresh();
+  S.mode = 'play';
+  startAudio();
+  ['#title', '#over', '#end', '#caption', '#still'].forEach(s => { $(s).hidden = true; });
+  $('#panel').classList.remove('operated');
+  $('#still').textContent = t('holdStill');
+  ticker.innerHTML = '';
+  log(t('logStarted'));
+  renderRules();
+  renderUI();
+}
+
+function holdBtn(el, k) {
+  const off = () => { hold[k] = false; el.classList.remove('on'); };
+  el.addEventListener('pointerdown', e => {
+    e.preventDefault(); hold[k] = true; el.classList.add('on'); startAudio();
+    try { el.setPointerCapture(e.pointerId); } catch (_) { /* capture is optional */ }
+  });
+  el.addEventListener('pointerup', off);
+  el.addEventListener('pointercancel', off);
+  el.addEventListener('lostpointercapture', off);
+  el.addEventListener('click', e => { if (e.detail === 0) nudge(k === 'up' ? 1 : -1); });
+}
+holdBtn($('#up'), 'up');
+holdBtn($('#down'), 'down');
+// a focused button would otherwise fire a second time from the same key press
+let lastKeyAct = 0;
+const fromKey = e => e.detail === 0 && performance.now() - lastKeyAct < 400;
+$('#doors').addEventListener('click', e => { if (!fromKey(e)) openDoors(); });
+$('#side').addEventListener('click', e => { if (!fromKey(e)) side(); });
+$('#mute').addEventListener('click', toggleMute);
+$('#start').addEventListener('click', begin);
+$('#again').addEventListener('click', begin);
+$('#again2').addEventListener('click', begin);
+$('#still').addEventListener('click', () => { S.held++; stillLabel(); });
+function stillLabel() { $('#still').textContent = S.held ? t('heldStill')(S.held) : t('holdStill'); }
+
+cv.addEventListener('pointerdown', e => {
+  if (S.mode !== 'play') return;
+  startAudio();
+  const r = cv.getBoundingClientRect(), yy = e.clientY - r.top;
+  const y = TOP - (yy - 8) / rowH() + 0.5;
+  const want = S.phase >= 2 && Math.abs(y - 7.5) < 0.22 ? 7.5 : Math.round(y);
+  const st = stops().find(s => s.x === 0 && s.y === want);
+  if (!st) return;
+  if (S.car.xT !== 0) { log(t('logSlideFirst')); return; }
+  if (S.car.open) closeDoors();
+  S.car.target = st.y;
+});
+
+addEventListener('keydown', e => {
+  const k = e.key.toLowerCase();
+  const game = S && S.mode === 'play';
+  if (['arrowup', 'arrowdown', 'w', 's'].includes(k)) { keys[k] = true; if (game) e.preventDefault(); startAudio(); }
+  else if ((k === ' ' || k === 'e') && game) { e.preventDefault(); lastKeyAct = performance.now(); if (!e.repeat) openDoors(); }
+  else if (['arrowleft', 'arrowright', 'a', 'd'].includes(k) && game) { e.preventDefault(); lastKeyAct = performance.now(); if (!e.repeat) side(); }
+  else if (k === 'm' && !e.repeat) toggleMute();
+});
+addEventListener('keyup', e => { keys[e.key.toLowerCase()] = false; });
+addEventListener('blur', () => { for (const k in keys) keys[k] = false; hold.up = hold.down = false; });
+
+let last = 0, uiT = 0;
+function frame(now) {
+  const dt = Math.min(.05, (now - last) / 1000 || 0);
+  last = now;
+  if (['play', 'reveal', 'operated'].includes(S.mode)) update(dt);
+  else S.t += dt;
+  draw();
+  drawDial();
+  uiT -= dt;
+  if (uiT <= 0) { uiT = .2; renderUI(); }
+  requestAnimationFrame(frame);
+}
+
+// ---- language ------------------------------------------------------------------------------
+// Static markup carries data-t / data-th / data-ta; the rules, riders, lamps, end cards and the
+// Hold-still button are re-rendered; the canvases and the reveal caption redraw every frame.
+function applyLang() {
+  document.documentElement.lang = lang;
+  document.title = t('docTitle');
+  for (const el of document.querySelectorAll('[data-t]')) el.textContent = t(el.dataset.t);
+  for (const el of document.querySelectorAll('[data-th]')) el.innerHTML = t(el.dataset.th);
+  for (const el of document.querySelectorAll('[data-ta]')) el.setAttribute('aria-label', t(el.dataset.ta));
+  for (const box of document.querySelectorAll('.lang')) {
+    if (!box.children.length) box.innerHTML = '<button type="button" data-lang="fr" lang="fr">FR</button><button type="button" data-lang="en" lang="en">EN</button>';
+    for (const b of box.children) b.setAttribute('aria-pressed', String(b.dataset.lang === lang));
+  }
+  if (!S) return;
+  renderRules();
+  renderUI();
+  stillLabel();
+  if (S.mode === 'over' || S.mode === 'end') fillEnds();
+}
+function setLang(l) {
+  if (!(l in I18N) || l === lang) return;
+  lang = l;
+  applyLang();
+}
+document.addEventListener('click', e => {
+  const b = e.target.closest('[data-lang]');
+  if (b) setLang(b.dataset.lang);
+});
+
+function start(data) {
+  best = data.best || 0;
+  lang = data?.lang in I18N ? data.lang : (navigator.language || '').toLowerCase().startsWith('fr') ? 'fr' : 'en';
+  S = fresh();
+  resize();
+  applyLang();
+  log(t('logHiring'));
+  requestAnimationFrame(frame);
+}
+window.claude?.hot?.snapshot?.(() => ({ best: Math.max(best, S?.spirits || 0), lang }));
+window.claude?.hot?.ready ? window.claude.hot.ready(start) : start(window.claude?.hot?.data ?? {});
+</script>
+</body>
+</html>

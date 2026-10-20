@@ -1,0 +1,1334 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Queue Simulator Deluxe</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400;0,600;0,700;1,400&family=Martian+Mono:wght@400;600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Doto:wght@700;900&display=swap">
+<style>
+/* Layout: a municipal waiting hall seen side-on. The take-a-number board runs across the top (the red LED is the one loud thing), the queue fills the middle behind belt barriers, your controls sit underneath like a counter. */
+:root {
+  --bg: #ebe7ef;          /* institutional wall, a little lilac */
+  --panel: #f7f5f9;
+  --ink: #1f1c27;
+  --muted: #625c6e;
+  --accent: #2c3b7a;      /* belt-barrier navy */
+  --line: #2c3b7a30;
+  --led: #ff3a1e;         /* the now-serving display, and nothing else */
+  --led-bg: #151116;
+  --led-off: #3b1712;
+  --ticket: #f3a9ba;      /* take-a-number paper */
+  --lino: #c8c0b1;
+  --lino-2: #b7ae9d;
+  --chrome: #9aa0ab;
+  --you: #d9a21c;         /* your raincoat */
+  --coat-1: #6c7b91; --coat-2: #a0665c; --coat-3: #5f7f63; --coat-4: #857452; --coat-5: #7a6492;
+  --skin-1: #e3bfa0; --skin-2: #b98563; --skin-3: #8a5a3c;
+  --trouser: #3a3644;
+  --f-led: "Doto", "Martian Mono", ui-monospace, monospace;
+  --f-body: "Instrument Sans", "Segoe UI", system-ui, sans-serif;
+  --f-mono: "Martian Mono", ui-monospace, Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #18161d; --panel: #211e28; --ink: #e9e5f0; --muted: #9e97aa; --accent: #93a3ea; --line: #93a3ea2e;
+    --led: #ff4d2e; --led-bg: #0b090c; --led-off: #2c120e; --ticket: #c97f92; --lino: #2b2831; --lino-2: #24212a;
+    --chrome: #6f7582; --you: #d9a21c; --coat-1: #55627a; --coat-2: #87554d; --coat-3: #4d6a52; --coat-4: #6e6045; --coat-5: #64527a;
+    --skin-1: #c9a68a; --skin-2: #a07255; --skin-3: #7a4f35; --trouser: #121016;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #18161d; --panel: #211e28; --ink: #e9e5f0; --muted: #9e97aa; --accent: #93a3ea; --line: #93a3ea2e;
+  --led: #ff4d2e; --led-bg: #0b090c; --led-off: #2c120e; --ticket: #c97f92; --lino: #2b2831; --lino-2: #24212a;
+  --chrome: #6f7582; --you: #d9a21c; --coat-1: #55627a; --coat-2: #87554d; --coat-3: #4d6a52; --coat-4: #6e6045; --coat-5: #64527a;
+  --skin-1: #c9a68a; --skin-2: #a07255; --skin-3: #7a4f35; --trouser: #121016;
+  color-scheme: dark;
+}
+/* kit:css:begin */
+/* Arcade kit: structure only, never a look. Inlined between kit:css markers by kit/inline.mjs.
+   The game's own :root must define --bg --ink --muted --accent --panel --line (light), and
+   redefine them in both dark blocks; everything here reads those tokens. */
+*, *::before, *::after { box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  -webkit-tap-highlight-color: transparent;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+button { font: inherit; color: inherit; cursor: pointer; }
+button:disabled { cursor: default; }
+:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+canvas { display: block; max-width: 100%; touch-action: none; }
+
+/* Full-stage screens (title, twist, end). Sit inside a position:relative stage. */
+.kit-overlay {
+  position: absolute; inset: 0; z-index: 5;
+  display: grid; place-items: center; padding: 24px;
+  background: color-mix(in srgb, var(--bg) 88%, transparent);
+  overflow-y: auto;
+}
+.kit-overlay[hidden] { display: none; }
+
+/* Touch pad: shown only on coarse pointers; buttons carry data-key (see Kit.keys). */
+.kit-pad { display: none; gap: 10px; justify-content: center; padding-block: 10px; user-select: none; }
+.kit-pad [data-key] { min-width: 56px; min-height: 56px; touch-action: none; border: 1px solid var(--line); background: var(--panel); }
+@media (pointer: coarse) { .kit-pad { display: flex; } }
+
+.kit-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+
+@media (prefers-reduced-motion: reduce) {
+  .kit-deco, .kit-deco * { animation: none !important; transition: none !important; }
+}
+/* kit:css:end */
+[hidden] { display: none !important; }
+body { font-family: var(--f-body); padding-block: 10px; overflow: hidden; }
+.hall { position: relative; height: calc(100dvh - 20px); max-width: 1200px; margin: 0 auto; display: grid; grid-template-rows: auto 1fr auto; border: 1px solid var(--line); background: var(--bg); overflow: hidden; }
+
+.board { display: flex; flex-wrap: wrap; align-items: stretch; gap: 10px 14px; padding: 10px 12px; border-bottom: 3px solid var(--accent); }
+.led { background: var(--led-bg); padding: 6px 12px 7px; display: grid; gap: 1px; min-width: 150px; box-shadow: inset 0 0 0 2px #000; }
+.led-l { font-family: var(--f-mono); font-size: 9.5px; letter-spacing: .14em; color: var(--led); opacity: .8; }
+.led b { position: relative; font-family: var(--f-led); font-weight: 900; font-size: 40px; line-height: 1; color: var(--led); text-shadow: 0 0 8px color-mix(in srgb, var(--led) 60%, transparent); letter-spacing: .06em; font-variant-numeric: tabular-nums; }
+.led b::before { content: "888"; position: absolute; left: 0; top: 0; color: var(--led-off); text-shadow: none; z-index: -1; }
+.led b { z-index: 0; isolation: isolate; }
+.tix { position: relative; background: var(--ticket); color: #2a1a1f; padding: 6px 14px 7px 18px; display: grid; gap: 1px; min-width: 120px;
+  -webkit-mask: radial-gradient(circle 4px at 0 50%, #0000 98%, #000) left / 51% 12px repeat-y, linear-gradient(#000 0 0) right / 50% 100% no-repeat;
+          mask: radial-gradient(circle 4px at 0 50%, #0000 98%, #000) left / 51% 12px repeat-y, linear-gradient(#000 0 0) right / 50% 100% no-repeat; }
+.tix span { font-family: var(--f-mono); font-size: 9.5px; letter-spacing: .14em; }
+.tix b { font-family: var(--f-led); font-weight: 900; font-size: 34px; line-height: 1; }
+.tix i { font-style: normal; font-family: var(--f-mono); font-size: 10.5px; }
+.meters { flex: 1; min-width: 220px; display: grid; gap: 7px; align-content: center; }
+.meter { display: grid; grid-template-columns: 7.5em 1fr 2.6em; align-items: center; gap: 8px; font-family: var(--f-mono); font-size: 10.5px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.meter b { color: var(--ink); text-align: right; font-variant-numeric: tabular-nums; }
+.mbar { position: relative; height: 10px; background: var(--line); }
+.mbar i { display: block; height: 100%; width: 0; background: var(--accent); transition: width .3s; }
+.mbar i.low { background: var(--led); }
+.mbar em { position: absolute; left: 90%; top: -3px; bottom: -3px; width: 2px; background: var(--ink); opacity: .45; }
+
+.stage { position: relative; min-height: 0; overflow: hidden; }
+.stage canvas { width: 100%; height: 100%; }
+.overheard { position: absolute; left: 12px; right: 12px; bottom: 10px; display: flex; gap: 10px; align-items: baseline; pointer-events: none; }
+.overheard b { flex: none; font-family: var(--f-mono); font-size: 9.5px; letter-spacing: .14em; color: var(--panel); background: var(--accent); padding: 2px 6px; }
+.overheard span { font-size: 14.5px; font-style: italic; line-height: 1.35; background: color-mix(in srgb, var(--panel) 82%, transparent); padding: 2px 8px; text-wrap: pretty; }
+
+.req { position: absolute; left: 12px; top: 12px; width: min(430px, calc(100% - 24px)); background: var(--panel); border: 1.5px solid var(--ink); box-shadow: 5px 5px 0 var(--accent); display: grid; gap: 8px; padding: 10px 12px 12px; z-index: 3; }
+.req-h { display: flex; justify-content: space-between; gap: 8px; font-family: var(--f-mono); font-size: 10px; letter-spacing: .1em; text-transform: uppercase; color: var(--accent); }
+.req h3 { margin: 0; font-size: 18px; line-height: 1.15; }
+.req p { margin: 0; font-size: 15px; line-height: 1.45; text-wrap: pretty; }
+.stub { justify-self: start; font-family: var(--f-led); font-weight: 900; font-size: 18px; background: var(--ticket); color: #2a1a1f; padding: 1px 8px; }
+.req .row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.yn { font-weight: 700; font-size: 15px; padding: 10px 8px; border: 1.5px solid var(--ink); background: var(--panel); }
+.yn.y { background: var(--accent); color: var(--panel); border-color: var(--accent); }
+.yn kbd { font-family: var(--f-mono); font-size: 10.5px; opacity: .75; margin-left: 6px; }
+.rtick { height: 4px; background: var(--line); }
+.rtick i { display: block; height: 100%; width: 100%; background: var(--accent); }
+
+.etq { position: absolute; right: 12px; top: 12px; width: 250px; background: color-mix(in srgb, var(--panel) 92%, transparent); border: 1px solid var(--chrome); border-radius: 6px; box-shadow: inset 0 0 0 4px color-mix(in srgb, var(--chrome) 25%, transparent); padding: 10px 12px 12px; z-index: 2; }
+.etq h4 { margin: 0 0 6px; font-family: var(--f-mono); font-size: 10.5px; letter-spacing: .12em; text-transform: uppercase; color: var(--accent); display: flex; justify-content: space-between; }
+.etq ol { margin: 0; padding-left: 18px; display: grid; gap: 4px; font-size: 12.5px; line-height: 1.35; }
+.etq .mine { margin: 8px 0 0; font-family: var(--f-mono); font-size: 10.5px; color: var(--muted); }
+.etq-close { display: none; }
+
+.ctl { border-top: 3px solid var(--accent); padding: 10px 12px; display: grid; gap: 8px; background: var(--panel); }
+.status { margin: 0; font-size: 14.5px; line-height: 1.4; min-height: 2.8em; color: var(--ink); text-wrap: pretty; }
+.ctl-row { display: flex; gap: 8px; flex-wrap: wrap; }
+.shuffle { flex: 1 1 260px; font-weight: 700; font-size: 17px; letter-spacing: .02em; padding: 14px 16px; background: var(--accent); color: var(--panel); border: 0; box-shadow: 0 4px 0 var(--ink); touch-action: manipulation; user-select: none; -webkit-user-select: none; }
+.shuffle:active, .shuffle.down { transform: translateY(3px); box-shadow: 0 1px 0 var(--ink); }
+.shuffle:disabled { opacity: .5; }
+.ghost { font-weight: 600; font-size: 14px; padding: 10px 14px; background: transparent; border: 1.5px solid var(--accent); color: var(--accent); }
+.ghost.warn { border-color: var(--led); color: var(--led); }
+kbd { font-family: var(--f-mono); font-size: 10.5px; opacity: .75; margin-left: 6px; }
+
+.kit-overlay { background: color-mix(in srgb, var(--bg) 90%, transparent); }
+/* the twist and the ending sit at the top of the hall, so the queue stays visible underneath */
+.kit-overlay.low { place-items: start start; padding: 12px; background: linear-gradient(to bottom, color-mix(in srgb, var(--bg) 85%, transparent) 25%, transparent 60%); }
+.slip { width: min(580px, 100%); background: var(--panel); border: 1.5px solid var(--ink); box-shadow: 6px 6px 0 var(--accent); padding: 16px 18px 18px; display: grid; gap: 12px; }
+.slip .kicker { font-family: var(--f-mono); font-size: 10.5px; letter-spacing: .14em; text-transform: uppercase; color: var(--accent); }
+.slip h1, .slip h2 { margin: 0; font-family: var(--f-led); font-weight: 900; line-height: .95; letter-spacing: .02em; }
+.slip h1 { font-size: clamp(40px, 8vw, 70px); }
+.slip h2 { font-size: clamp(30px, 5.4vw, 46px); text-wrap: balance; }
+.slip p { margin: 0; font-size: 15.5px; line-height: 1.55; text-wrap: pretty; }
+.slip .lede { font-size: 18px; font-style: italic; }
+.slip ul { margin: 0; padding-left: 18px; display: grid; gap: 4px; font-size: 14.5px; line-height: 1.45; }
+.slip .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.slip .fine { font-family: var(--f-mono); font-size: 10.5px; color: var(--muted); }
+.slip .reveal { font-size: clamp(17px, 2.4vw, 21px); line-height: 1.5; min-height: 3em; }
+.go { font-weight: 700; font-size: 16px; padding: 12px 18px; background: var(--accent); color: var(--panel); border: 0; box-shadow: 0 4px 0 var(--ink); }
+.go:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--ink); }
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 0; border-top: 1px dashed var(--muted); }
+.stats div { display: grid; padding: 7px 0 0; }
+.stats span { font-family: var(--f-mono); font-size: 9.5px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+.stats b { font-family: var(--f-led); font-weight: 900; font-size: 24px; }
+.lang { display: flex; align-self: center; flex: 0 0 auto; border: 1.5px solid var(--accent); background: var(--panel); }
+.lang button { font-family: var(--f-mono); font-size: 10.5px; letter-spacing: .1em; padding: 6px 9px; border: 0; background: transparent; color: var(--muted); }
+.lang button + button { border-left: 1px solid var(--line); }
+.lang button:hover { color: var(--ink); }
+.lang button[aria-pressed="true"] { background: var(--accent); color: var(--panel); }
+.slip .row .lang { margin-left: auto; }
+@media (min-width: 521px) { .board .lang { order: 5; } }
+
+@media (max-width: 900px) {
+  .etq { display: none; }
+  .etq.open { display: block; z-index: 4; }
+  .etq-close { display: inline; font: inherit; color: var(--accent); background: none; border: 0; padding: 0; text-decoration: underline; }
+}
+@media (min-width: 901px) { #etq-btn { display: none; } }
+@media (max-width: 520px) {
+  .board { gap: 8px 10px; padding: 8px 10px; }
+  .led { min-width: 0; flex: 1; }
+  .led b { font-size: 32px; }
+  .tix b { font-size: 28px; }
+  .meters { min-width: 100%; }
+  .overheard span { font-size: 13px; }
+  .req p { font-size: 14px; }
+  .req h3 { font-size: 16px; }
+  .status { font-size: 13.5px; }
+  .shuffle { font-size: 16px; padding: 13px 12px; }
+  .ghost { padding: 9px 10px; font-size: 13px; }
+  .yn kbd, .ghost kbd { display: none; }
+}
+</style>
+</head>
+<body>
+
+<div class="hall" id="hall">
+  <header class="board">
+    <div class="led" role="status" data-ta="nowServingAria" aria-label="Now serving"><span class="led-l" data-t="nowServing">NOW SERVING</span><b id="led">226</b></div>
+    <div class="tix"><span data-t="yourTicket">YOUR TICKET</span><b>247</b><i id="ahead">19 ahead of you</i></div>
+    <div class="lang" role="group" data-ta="langGroup" aria-label="Language"></div>
+    <div class="meters">
+      <div class="meter"><span data-t="mDignity">Dignity</span><div class="mbar" data-tt="capTitle" title="Ordinary conduct tops out at 90"><i id="dig"></i><em></em></div><b id="dign">45</b></div>
+      <div class="meter"><span data-t="mMood">Queue mood</span><div class="mbar"><i id="mood"></i></div><b id="moodn">60</b></div>
+    </div>
+  </header>
+
+  <div class="stage" id="stage">
+    <canvas id="scene" data-ta="sceneAria" aria-label="A queue in a waiting hall, seen side-on. You are the one in the yellow raincoat."></canvas>
+    <div class="overheard" aria-live="off"><b data-t="overheardTag">OVERHEARD</b><span id="oh">“Is this the back? Someone said this was the back.”</span></div>
+
+    <div class="req" id="req" hidden role="dialog" aria-labelledby="req-who">
+      <div class="req-h"><span id="req-kind">A request</span><span id="req-rule"></span></div>
+      <h3 id="req-who"></h3>
+      <p id="req-say"></p>
+      <span class="stub" id="req-stub" hidden></span>
+      <div class="row"><button class="yn y" id="yes">Let them in <kbd>Y</kbd></button><button class="yn" id="no">No <kbd>N</kbd></button></div>
+      <div class="rtick"><i id="req-tick"></i></div>
+    </div>
+
+    <aside class="etq" id="etq" data-ta="etqAria" aria-label="Queue etiquette">
+      <h4><span data-t="etqHead">Queue etiquette · laminated</span><button class="etq-close" id="etq-close" data-t="etqClose">close</button></h4>
+      <ol id="etq-list">
+        <li>A lower ticket goes in front of a higher one. No ticket, no place.</li>
+        <li>“Just a quick question” is never quick.</li>
+        <li>“I’m with them” counts only if they wave back.</li>
+        <li>A bag may hold a place for one shuffle. Not two. Not since Tuesday.</li>
+        <li>Anyone may leave through you. Nobody may arrive through you.</li>
+      </ol>
+      <p class="mine" data-t="etqMine">Your ticket: 247. Silence counts as yes.</p>
+    </aside>
+
+    <div class="kit-overlay low" id="reveal" hidden>
+      <article class="slip">
+        <span class="kicker" id="rev-k">The front</span>
+        <p class="reveal" id="rev-line"></p>
+        <div class="row"><button class="go" id="rev-go">Go on</button><span class="fine" id="rev-n"></span>
+          <div class="lang" role="group" data-ta="langGroup" aria-label="Language"></div></div>
+      </article>
+    </div>
+  </div>
+
+  <footer class="ctl">
+    <p class="status" id="news" aria-live="polite">When the person in front of you steps forward, shuffle forward to close the gap. Not before. Not much after.</p>
+    <div class="ctl-row">
+      <button class="shuffle" id="shuffle" tabindex="-1" data-ta="shuffleAria" aria-label="Shuffle forward (Space)" data-th="shuffleBtn">Shuffle forward <kbd>Space</kbd></button>
+      <button class="ghost" id="etq-btn" data-th="etqBtn">Etiquette <kbd>E</kbd></button>
+      <button class="ghost" id="leave">Leave the queue <kbd>L</kbd></button>
+    </div>
+  </footer>
+
+  <div class="kit-overlay" id="title">
+    <article class="slip">
+      <span class="kicker" data-t="titleKicker">Hall B · Please take a ticket</span>
+      <h1 data-t="titleH">Queue Simulator Deluxe</h1>
+      <p class="lede" data-t="titleLede">There is a queue. You are in it. Nobody knows what it is for, and it has never mattered less.</p>
+      <ul data-th="titleList">
+        <li><b>Shuffle forward</b> (Space, the button, or a click on the hall) the moment the person in front steps up. Too early and you tread on a heel. Too late and somebody takes the gap.</li>
+        <li>People will ask to cut in. <b>Y</b> lets them in, <b>N</b> does not. The laminated etiquette card says who deserves it.</li>
+        <li>Your <b>dignity</b> and the queue’s <b>mood</b> both matter. Lose either and you leave in disgrace.</li>
+      </ul>
+      <div class="row"><button class="go" id="start" data-t="startBtn">Take a ticket and join the queue</button><span class="fine" data-t="titleFine">about 4 minutes · Space, Y, N, E, L</span>
+        <div class="lang" role="group" data-ta="langGroup" aria-label="Language"></div></div>
+    </article>
+  </div>
+
+  <div class="kit-overlay low" id="end" hidden>
+    <article class="slip">
+      <span class="kicker" id="end-k">Hall B</span>
+      <h2 id="end-title"></h2>
+      <p class="lede" id="end-lede"></p>
+      <div class="stats" id="end-stats"></div>
+      <div class="row"><button class="go" id="again" data-t="againBtn">Take another ticket</button><span class="fine" id="end-best"></span>
+        <div class="lang" role="group" data-ta="langGroup" aria-label="Language"></div></div>
+    </article>
+  </div>
+</div>
+
+<script>
+/* kit:js:begin */
+// Arcade kit: the plumbing every game re-wrote by hand. Inlined between kit:js markers by
+// kit/inline.mjs, so a game stays one standalone file. Defines exactly two globals, `Kit` and
+// (once a game calls Kit.expose) `__arcade`; nothing else, because a bare top-level name can
+// collide with a window property (sandwich-diplomacy's `top()` shadowed by window.top).
+const Kit = (() => {
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const themeWatchers = [];
+  const onTheme = () => themeWatchers.forEach(f => f());
+  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', onTheme);
+  new MutationObserver(onTheme).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+
+  // Canvas code cannot read CSS variables, so mirror the named tokens into an object and
+  // re-read it whenever the theme flips: the viewer's toggle sets data-theme, the OS sets the media query.
+  function tokens(names, onChange) {
+    const C = {};
+    const read = () => {
+      const cs = getComputedStyle(document.documentElement);
+      for (const n of names) C[n] = cs.getPropertyValue('--' + n).trim();
+      onChange?.(C);
+    };
+    read();
+    themeWatchers.push(read);
+    return C;
+  }
+
+  // Keeps a canvas sharp at the device pixel ratio (capped at 2) and sized to its CSS box.
+  function canvas(el, onResize) {
+    const view = { el, cx: el.getContext('2d'), W: 0, H: 0 };
+    const fit = () => {
+      const r = el.getBoundingClientRect(), d = Math.min(2, devicePixelRatio || 1);
+      view.W = r.width; view.H = r.height;
+      el.width = Math.round(r.width * d); el.height = Math.round(r.height * d);
+      view.cx.setTransform(d, 0, 0, d, 0, 0);
+      onResize?.(view);
+    };
+    new ResizeObserver(fit).observe(el);
+    fit();
+    return view;
+  }
+
+  // step(dt) gets seconds, capped at 50 ms so a background tab or a stalled frame cannot
+  // teleport the game; the loop stops while the tab is hidden and resumes without a jump.
+  function loop(step) {
+    let last = 0, raf = 0, on = false;
+    const frame = t => {
+      const dt = last ? Math.min(0.05, (t - last) / 1000) : 0;
+      last = t;
+      step(dt);
+      if (on) raf = requestAnimationFrame(frame);
+    };
+    const ctl = {
+      start() { if (on) return; on = true; last = 0; raf = requestAnimationFrame(frame); },
+      stop() { on = false; cancelAnimationFrame(raf); },
+      get running() { return on; },
+    };
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden && on) { ctl.stop(); ctl.paused = true; }
+      else if (!document.hidden && ctl.paused) { ctl.paused = false; ctl.start(); }
+    });
+    return ctl;
+  }
+
+  // Held keys by KeyboardEvent.key, lower-cased (' ' for Space). Touch pads feed the same set:
+  // any element with data-key="<key>" inside a .kit-pad holds that key while pressed.
+  const held = new Set();
+  const pressFns = [];
+  const norm = k => (k.length === 1 ? k.toLowerCase() : k);
+  const press = (k, down) => {
+    k = norm(k);
+    if (down === held.has(k)) return;
+    down ? held.add(k) : held.delete(k);
+    pressFns.forEach(f => f(k, down));
+  };
+  const GAME_KEYS = new Set([' ', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight']);
+  addEventListener('keydown', e => {
+    if (e.target.closest?.('input, textarea, select, [contenteditable]')) return;
+    if (GAME_KEYS.has(e.key) && !e.target.closest?.('button')) e.preventDefault();
+    if (!e.repeat) press(e.key, true);
+  });
+  addEventListener('keyup', e => press(e.key, false));
+  addEventListener('blur', () => [...held].forEach(k => press(k, false)));
+  document.addEventListener('pointerdown', e => {
+    const b = e.target.closest?.('.kit-pad [data-key]');
+    if (!b) return;
+    e.preventDefault();
+    b.setPointerCapture?.(e.pointerId);
+    press(b.dataset.key, true);
+    const up = () => { press(b.dataset.key, false); b.removeEventListener('pointerup', up); b.removeEventListener('pointercancel', up); };
+    b.addEventListener('pointerup', up);
+    b.addEventListener('pointercancel', up);
+  });
+  const keys = {
+    down: k => held.has(norm(k)),
+    any: (...ks) => ks.some(k => held.has(norm(k))),
+    onPress(fn) { pressFns.push(fn); },
+  };
+
+  // The claude.ai viewer's hot-update hook: keeps `snapshot()` across a republish. Absent when
+  // self-hosted, so start() then receives {}.
+  function boot(start, snapshot) {
+    if (snapshot) window.claude?.hot?.snapshot?.(snapshot);
+    window.claude?.hot?.ready ? window.claude.hot.ready(start) : start(window.claude?.hot?.data ?? {});
+  }
+
+  // The test hook smoke.mjs drives. endings: { name: { jump(), reached(), seconds? } } where
+  // jump() may shortcut the set-up but must leave the ending's final stretch to real game
+  // logic, and reached() is true only once that ending's screen is actually showing.
+  function expose({ state, endings }) {
+    window.__arcade = {
+      get state() { return state(); },
+      endings: Object.fromEntries(Object.entries(endings).map(([k, v]) => [k, { seconds: v.seconds ?? 8 }])),
+      jump: name => endings[name].jump(),
+      reached: name => !!endings[name].reached(),
+    };
+  }
+
+  // Show one overlay and hide the others; focus its first button so Enter/Space continue.
+  function show(el) {
+    document.querySelectorAll('.kit-overlay').forEach(o => { o.hidden = o !== el; });
+    el?.querySelector('button')?.focus({ preventScroll: true });
+  }
+
+  const rnd = (a, b) => a + Math.random() * (b - a);
+  const pick = a => a[Math.floor(Math.random() * a.length)];
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+
+  return { reduce, tokens, canvas, loop, keys, boot, expose, show, rnd, pick, clamp };
+})();
+/* kit:js:end */
+const $ = s => document.querySelector(s);
+const C = Kit.tokens(['bg', 'panel', 'ink', 'muted', 'accent', 'line', 'led', 'led-bg', 'ticket', 'lino', 'lino-2', 'chrome', 'you',
+  'coat-1', 'coat-2', 'coat-3', 'coat-4', 'coat-5', 'skin-1', 'skin-2', 'skin-3', 'trouser']);
+const view = Kit.canvas($('#scene'));
+const rootCss = getComputedStyle(document.documentElement);
+const FONT = { mono: rootCss.getPropertyValue('--f-mono').trim(), led: rootCss.getPropertyValue('--f-led').trim() };
+const MY_TICKET = 247, START_AHEAD = 19, DIG_CAP = 90;
+
+// The requests carry only what the game logic reads; their words are I18N.<lang>.requests[i]
+// (who, what they say, the outcome of yes, the outcome of no), in the same order.
+const REQUESTS = [
+  // stage 0: the back of the queue, where things are still about bread
+  { st: 0, legit: false, rule: 2 },
+  { st: 0, legit: true, rule: 3 },
+  { st: 0, legit: false, rule: 3 },
+  { st: 0, ticket: 231, legit: true, rule: 1 },
+  { st: 0, ticket: 412, legit: false, rule: 1 },
+  { st: 0, legit: false, rule: 2 },
+  { st: 0, ticket: 49, legit: true, rule: 1 },
+  // stage 1: the middle, where the purpose starts to come loose
+  { st: 1, legit: false, rule: 4, kind: 'bag' },
+  { st: 1, legit: true, rule: 4, kind: 'bag' },
+  { st: 1, legit: false, rule: 1 },
+  { st: 1, ticket: 238, legit: true, rule: 1 },
+  { st: 1, legit: false, rule: 1 },
+  { st: 1, ticket: 1, legit: true, rule: 1 },
+  { st: 1, legit: false, rule: 1 },
+  // stage 2: near the front, where it has stopped being about anything you could put on a form
+  { st: 2, ticket: 247, legit: false, rule: 1 },
+  { st: 2, legit: true, rule: 5, keep: true },
+  { st: 2, ticket: 248, legit: false, rule: 1 },
+  { st: 2, ticket: 239, legit: true, rule: 1, kind: 'dog' },
+  { st: 2, legit: false, rule: 1 },
+  { st: 2, ticket: 241, legit: true, rule: 1 },
+];
+REQUESTS.forEach((r, i) => { r.i = i; });
+// Requests to follow you, rather than to pass you: only offered once your dignity is very high.
+// Their words are I18N.<lang>.followers[i].
+const FOLLOWERS = [{ fi: 0 }, { fi: 1 }, { fi: 2 }, { fi: 3 }];
+
+const I18N = { en: {
+requests: [
+  ['A man with a lanyard', '“Sorry, can I just ask a quick question? It’s really quick. It’s about the queue.”',
+    'It is not quick. It is about his ex-wife, and the queue, and his ex-wife’s feelings about the queue. He is now ahead of you.', '“No problem,” he says, which is a problem, and goes to the back.'],
+  ['A woman with two coffees', '“I was here, I just went for coffees.” She points at a man ahead. He turns round and waves with the hand that has no coffee in it.',
+    'She rejoins her husband. He takes the coffee. It is the correct coffee. You feel part of something.', 'Her husband looks at you over his shoulder. He will be doing that for the rest of the queue.'],
+  ['A man in a gilet', '“I’m with them.” He points at a woman ahead. She does not look round. She has never been with a gilet in her life.',
+    'He stands beside the woman. She edges away. He edges with her. They are, technically, together now.', 'He nods slowly, as if you have taught him something, and walks to the back.'],
+  ['A small child', '“My mum said to stand here. I’m number 231.”',
+    'The child slots in ahead of you and stands extremely still, the way you were taught to.', 'The child goes to the back, holding ticket 231 up to everyone, as evidence.'],
+  ['A man with a ticket', '“I’ve got a ticket! Is it close? It feels close.”',
+    'Number 412 stands in front of number 247. The display flickers, as if wincing.', '“Fair,” says 412, and goes off to find the four hundreds.'],
+  ['A courier', '“Just dropping something off, won’t be a sec.” He is not holding anything. He has never held anything.',
+    'He drops off nothing, ahead of you, for quite a long time.', 'He leaves to drop off nothing somewhere else.'],
+  ['An elderly man', '“I was in this queue in 1987. I only stepped out for a moment.” He shows you a ticket so faded it is nearly a feeling.',
+    'He steps back into his place, which was roughly here, roughly then. The queue makes room. It remembers him.', 'He goes to the back. He will reach the front in about 2031. He seems to accept this.'],
+  ['A tote bag', 'A tote bag is standing on its own in front of you, holding a place. Its label says BACK IN 1 SHUFFLE. The label is dated last Tuesday.',
+    'You let the bag in. The bag does not thank you. Bags never do.', 'You move the bag to the back. It goes quietly. Most bags do.'],
+  ['A rucksack', 'A rucksack is holding a place. Its label says BACK IN 1 SHUFFLE, and its owner is right there, tying a shoelace, waving at you.',
+    'The owner finishes the shoelace and reclaims the rucksack’s place. The system works. You are the system.', 'You move the rucksack. Its owner watches you do it, mid-shoelace, for the rest of their life.'],
+  ['A man who would like to know', '“Excuse me, what is this queue for?” You realise you don’t know. “Then I’ll join it here,” he says, pointing at the space in front of you.',
+    'He joins in front of you, for no reason, which is the only reason anyone is here.', '“You don’t know either,” he says, and goes to the back, where he will not know with everyone else.'],
+  ['A nun', '“I believe I’m just ahead of you.” She has a look of total peace and a ticket.',
+    'She slips in ahead of you. The queue feels holier. It moves at about the same speed.', 'She goes to the back. She forgives you immediately, which is worse.'],
+  ['A woman reading a book called The Queue', '“Can I stand here? I’m at the bit where they join the queue.” She has no ticket. She has a bookmark.',
+    'She stands ahead of you and reads about standing ahead of someone.', 'She goes to the back and turns the page. In the book, somebody also says no.'],
+  ['A man in hi-vis', '“Queue maintenance. I need to stand here a second.” He has a clipboard and the oldest ticket you have ever seen.',
+    'He stands there a second, writes “queue: fine”, and stays. Ticket 0001 has seniority over everybody.', 'He writes something about you on the clipboard and goes to the back to maintain it.'],
+  ['Your old maths teacher', '“Is that you? You’ve grown. Can I just pop in here?” She has no ticket. She has never needed one.',
+    'She pops in, then asks you what seven eights are. You get it wrong, in a queue, in front of everyone.', 'She gives you a look you last saw in 1998. Your dignity holds. It was a long-division look.'],
+  ['Someone who looks very like you', '“I’m you, from further back in the queue. Can we swap?” Their ticket has your number on it.',
+    'You swap. Nothing changes. You are still you, and still here, but now you know.', 'They nod. They understand. They would have said no as well.'],
+  ['A woman in a long coat', '“I’m not cutting in. I’m cutting out. May I leave through you?”',
+    'She walks through the space where you are standing. It’s fine. It’s lovely, actually. She is gone.', 'She goes the long way round, which, in a queue, is the whole queue.'],
+  ['The person directly behind you', '“Can I be in front of you? Just for a bit. Just to see what it’s like.” Their ticket is 248.',
+    'They stand in front of you. They report that it is like standing behind someone, but further on.', '“Thought so,” they say, settling back. “Just checking you’re still you.”'],
+  ['A small dog', 'A small dog sits down in front of you with a ticket in its mouth. It is a very good ticket.',
+    'The dog takes its place. It does not need to know what the queue is for. It is a good dog.', 'The dog goes to the back. Everyone watches it go. Everyone.'],
+  ['A philosopher', '“If I join in front of you, were you ever really behind me?” He has no ticket. He regards tickets as a construct.',
+    'He joins, and immediately asks the person ahead whether they are really ahead.', '“Fair,” he says, and goes to the back to think about the back.'],
+  ['A man coming back from the front', '“I’ve been to the front. I need to go again.” He is crying, very slightly, in a good way.',
+    'He steps in ahead of you. He doesn’t say what is there. He just says, “You’ll see.”', 'He goes to the back. “You’ll see,” he says anyway, kindly.'],
+],
+followers: [
+  ['A man in a cardigan', '“I don’t want to be in front of you. I want to queue behind you. Specifically you. Is that allowed?”',
+    'He moves in behind you. Then his wife does. Then her book club.', 'He nods and queues behind somebody else, visibly settling for less.'],
+  ['Three pensioners', '“We’ve been watching you shuffle. We’d like to queue in your style. May we follow you, closely, for the rest of our lives?”',
+    'They fall in behind you and shuffle exactly when you do. It is like having a tail made of grandparents.', '“Quite right,” they say. “Humility. We’ll write that down.”'],
+  ['A school trip', 'A teacher asks whether her class may queue behind you, for their project on dignity. Thirty children hold up thirty clipboards.',
+    'Thirty children queue behind you in total silence. One of them is taking notes on your posture.', 'The class goes to observe a lesser queuer. You hear one say, “Not like the yellow one.”'],
+  ['The very back of the queue', 'A message is passed forward to you, hand to hand, from the very back: “Is it all right if we are all behind you?”',
+    'You pass back a single word. It travels the length of the hall. Somewhere a long way off, someone sighs with relief.', 'You pass back a polite no. The back of the queue respects it. The back of the queue respects everything you do now.'],
+],
+overheard: [
+  ['“I heard it’s for passports.”', '“It’s for the bank. Or the bakery. One of the Bs.”', '“My sister did this queue in March. She won’t talk about it.”',
+    '“It moves, though. You’ve got to give it that. It moves.”', '“Is this the back? Someone said this was the back.”', '“I’m only here because everyone else was.”',
+    '“I left the oven on. It’s fine. It’s a slow oven.”', '“Forty minutes, they reckon. They always reckon forty minutes.”', '“I’ve brought two sandwiches. One is for later in the queue.”'],
+  ['“Does anyone actually know what it’s for?”', '“It doesn’t matter what it’s for. It matters that we’re in it.”', '“My grandfather queued here. He said the front was worth it. He never said why.”',
+    '“I don’t think there’s a counter. I think there’s just more front.”', '“Someone at the back is already telling people about you.”', '“I joined for bread. I stay for something else now.”',
+    '“I can’t see the front. I can only feel it.”', '“If you leave, do you stop having been in it?”'],
+  ['“They’re looking at you. Don’t turn round. They’re looking at you in a good way.”', '“Nearly. Nearly. Oh, I can’t watch. I’m watching.”',
+    '“I’ve been in this queue so long I’ve forgotten the start. I think that is the start: forgetting it.”', '“Someone said the front is a mirror. They said it as a joke. Nobody laughed.”',
+    '“Whatever happens, I’m glad I was behind you.”', '“Shh. Shh. This is the good bit.”', '“The woman at the back has started crying a bit. The happy kind, I think.”'],
+],
+grumbles: ['Somebody behind you tuts. It travels down the line like a wave.', 'A long sigh passes from the back to the front and returns, louder.',
+  '“Unbelievable,” says someone, quietly enough to be about you.', 'The queue has gone very still, which is how queues shout.'],
+say: {
+  perfect: ['You close the gap the moment it opens. Somewhere behind you, someone nods.', 'One shuffle, exactly one person long. The hall approves.', 'A seamless shuffle. The person behind you moves with you, as one.',
+    'You arrive in the gap like you were always in it.', 'Textbook. A woman behind you says “textbook” to her husband.'],
+  good: ['A sound shuffle. Nobody will remember it, which is the point.', 'Adequate. The queue moves on, and so do you.'],
+  late: ['You leave a gap the size of a person for a whole second. The person behind you says “Hm.”', 'You notice the gap a little late. So does everyone.', 'A gap was seen. It was seen by many.'],
+  heel: ['You shuffle into the back of a man in a cagoule. He says nothing, loudly.', 'You tread on a heel. Its owner turns, looks, turns back. You have been logged.',
+    'Too soon. You are now standing slightly inside someone’s coat.', 'You lurch forward into nothing. The person in front had only adjusted their scarf.'],
+  cut: ['A man in a gilet steps into the gap. He does not look at you. He knows.', 'A woman with a pram takes the gap. She wasn’t even queuing. She was passing.',
+    'A gap that size is an invitation, and a man in a lanyard has accepted it.', 'Someone fills the gap with the speed of long practice. You are now one further back.'],
+  feint: ['The person in front shifts their weight and stays put. A classic feint.', 'They lean. They do not go. Never trust a lean.'],
+},
+mirror: [
+  'The last person ahead of you is served. They step through the front and do not come back, which is normal, for a front.',
+  'You step up. There is no counter. There is no clerk. There is a mirror: tall, municipal, chrome-framed, with a small laminated sign that says NOW SERVING.',
+  'In it you see yourself, in a yellow raincoat, holding ticket 247. Behind you, in the glass, you see the queue. All of it. Every one of them is looking at you.',
+  'Nobody in this queue was waiting for the front. They were waiting for you to get there.',
+  'They cheer.',
+],
+transcend: [
+  'Your dignity reaches a level not recorded in this building since the decimalisation queue of 1971.',
+  'The people behind you stop shuffling. They don’t need to. They are already exactly where they should be, which is after you.',
+  'The front recedes. It was never the point. The point was the line, and the line, it turns out, is you.',
+],
+docTitle: 'Queue Simulator Deluxe',
+langGroup: 'Language',
+nowServingAria: 'Now serving', nowServing: 'NOW SERVING', yourTicket: 'YOUR TICKET',
+ahead: n => `${n} ahead of you`, nobodyAhead: 'nobody ahead',
+mDignity: 'Dignity', mMood: 'Queue mood', capTitle: 'Ordinary conduct tops out at 90',
+sceneAria: 'A queue in a waiting hall, seen side-on. You are the one in the yellow raincoat.',
+overheardTag: 'OVERHEARD',
+reqDefault: 'A request', reqFollow: 'A request to follow you', reqAhead: 'A request to go ahead of you',
+ruleFollow: 'not on the card', ruleSee: 'see etiquette',
+stub: n => 'TICKET ' + n,
+yesFollow: 'Allow it', yesAhead: 'Let them in', noFollow: 'Decline, modestly', noAhead: 'No',
+yesBtn: 'Let them in <kbd>Y</kbd>', noBtn: 'No <kbd>N</kbd>',
+silent: 'You say nothing. In a queue, that means yes. ',
+ruleWrong: n => ' (Etiquette, rule ' + n + '.)', ruleEntitled: n => ' (They were entitled to it: rule ' + n + '.)',
+etqAria: 'Queue etiquette', etqHead: 'Queue etiquette · laminated', etqClose: 'close',
+etq: ['A lower ticket goes in front of a higher one. No ticket, no place.', '“Just a quick question” is never quick.', '“I’m with them” counts only if they wave back.',
+  'A bag may hold a place for one shuffle. Not two. Not since Tuesday.', 'Anyone may leave through you. Nobody may arrive through you.'],
+etqMine: 'Your ticket: 247. Silence counts as yes.',
+theFront: 'The front', goOn: 'Go on', takeBow: 'Take a bow', becomeQueue: 'Become the queue',
+revCount: (i, n) => `${i} / ${n}`,
+intro: 'When the person in front of you steps forward, shuffle forward to close the gap. Not before. Not much after.',
+shuffleBtn: 'Shuffle forward <kbd>Space</kbd>', shuffleAria: 'Shuffle forward (Space)',
+etqBtn: 'Etiquette <kbd>E</kbd>', leaveBtn: 'Leave the queue <kbd>L</kbd>', reallyLeave: 'Really leave? <kbd>L</kbd>',
+titleKicker: 'Hall B · Please take a ticket', titleH: 'Queue Simulator Deluxe',
+titleLede: 'There is a queue. You are in it. Nobody knows what it is for, and it has never mattered less.',
+titleList: '<li><b>Shuffle forward</b> (Space, the button, or a click on the hall) the moment the person in front steps up. Too early and you tread on a heel. Too late and somebody takes the gap.</li>'
+  + '<li>People will ask to cut in. <b>Y</b> lets them in, <b>N</b> does not. The laminated etiquette card says who deserves it.</li>'
+  + '<li>Your <b>dignity</b> and the queue’s <b>mood</b> both matter. Lose either and you leave in disgrace.</li>',
+startBtn: 'Take a ticket and join the queue', titleFine: 'about 4 minutes · Space, Y, N, E, L',
+hallB: 'Hall B', againBtn: 'Take another ticket', best: b => `best dignity this session: ${b}`,
+fall: { dignity: 'Something in you gives way. You step out of the line.', mood: 'The queue turns, as one, to look at you.', left: 'You step out of the line.' },
+frontNews: 'Nobody is ahead of you. This has never happened to you before, in any queue.',
+digFull: 'Your dignity: 100',
+transcendNews: 'Your dignity is full. There is nowhere further for it to go, so it goes outward.',
+floats: { perfect: 'seamless', good: 'fine', late: 'a gap was seen', heel: 'heel', cut: 'gap taken' },
+ends: {
+  mirror: ['NOW SERVING 247', 'The cheer goes on for some time. Somebody at the back starts a slow clap that becomes a fast clap. You bow, and in the mirror, so do you. The queue, satisfied, begins to disperse, then thinks better of it and queues to leave.', 'Hall B · the front'],
+  queue: ['You have become the queue', 'People now stand in you, in an orderly fashion. Some of them have brought bags. Every few minutes the whole of you shuffles forward one place, perfectly. Your purpose remains unknown. It is going extremely well.', 'Hall B · everywhere'],
+  dignity: ['Left in disgrace', 'You walk the length of the queue to the door. Nobody watches you go, out of kindness, which is worse. A man in a gilet takes your place without looking up. He knows.', 'Hall B · the door'],
+  mood: ['Asked to leave', 'The queue has asked you to leave. It asked politely, in a single murmur, from forty mouths. You go. The murmur says thank you.', 'Hall B · the door'],
+  left: ['You left the queue', 'You leave of your own free will. Behind you, the queue closes like water. Somebody says, very quietly, “Well.”', 'Hall B · the door'],
+  none: ['Left in disgrace', '', 'Hall B'],
+},
+statNames: ['Dignity', 'Queue mood', 'Seamless shuffles', 'Heels trodden', 'Gaps taken', 'Fair calls', 'Let in', 'Followers'],
+canvas: { counter: 'COUNTER 4', closed: 'CLOSED SINCE 2009', wait: ['PLEASE WAIT', 'HERE'], tried: ['HAVE YOU', 'TRIED', 'WAITING?'], serving: 'NOW SERVING', front: 'THE FRONT' },
+} };
+
+I18N.fr = {
+requests: [
+  ['Un homme avec un badge autour du cou', '« Pardon, je peux juste poser une petite question ? C’est très rapide. C’est au sujet de la file. »',
+    'Ce n’est pas rapide. C’est au sujet de son ex-femme, et de la file, et de ce que son ex-femme pense de la file. Il est maintenant devant vous.', '« Pas de problème », dit-il, ce qui en pose un, et il part au fond.'],
+  ['Une femme avec deux cafés', '« J’étais là, je suis juste allée chercher des cafés. » Elle désigne un homme devant. Il se retourne et fait coucou avec la main qui ne tient pas de café.',
+    'Elle rejoint son mari. Il prend le café. C’est le bon café. Vous avez le sentiment de faire partie de quelque chose.', 'Son mari vous regarde par-dessus son épaule. Il va faire ça jusqu’au bout de la file.'],
+  ['Un homme en doudoune sans manches', '« Je suis avec eux. » Il montre une femme devant. Elle ne se retourne pas. Elle n’a jamais été avec une doudoune sans manches de sa vie.',
+    'Il se place à côté de la femme. Elle s’écarte. Il s’écarte avec elle. Ils sont, techniquement, ensemble désormais.', 'Il hoche lentement la tête, comme si vous lui aviez appris quelque chose, et part au fond.'],
+  ['Un petit enfant', '« Ma maman m’a dit de me mettre là. J’ai le numéro 231. »',
+    'L’enfant se glisse devant vous et reste extrêmement immobile, comme on vous l’a appris.', 'L’enfant part au fond en brandissant le ticket 231 devant tout le monde, comme pièce à conviction.'],
+  ['Un homme avec un ticket', '« J’ai un ticket ! C’est bientôt ? J’ai l’impression que c’est bientôt. »',
+    'Le numéro 412 se tient devant le numéro 247. L’écran clignote, comme s’il grimaçait.', '« Normal », dit 412, et il part chercher les quatre-cents.'],
+  ['Un livreur', '« Je dépose juste un truc, j’en ai pour une seconde. » Il ne tient rien. Il n’a jamais rien tenu.',
+    'Il ne dépose rien du tout, devant vous, pendant un bon moment.', 'Il s’en va ne rien déposer ailleurs.'],
+  ['Un vieux monsieur', '« J’étais dans cette file en 1987. Je ne suis sorti qu’un instant. » Il vous montre un ticket si pâli que c’est presque un sentiment.',
+    'Il reprend sa place, qui était à peu près ici, à peu près à l’époque. La file lui fait de la place. Elle se souvient de lui.', 'Il part au fond. Il arrivera en tête vers 2031. Il semble l’accepter.'],
+  ['Un sac en toile', 'Un sac en toile tient debout tout seul devant vous et garde une place. Son étiquette dit DE RETOUR DANS 1 PAS. L’étiquette est datée de mardi dernier.',
+    'Vous laissez passer le sac. Le sac ne vous remercie pas. Les sacs ne remercient jamais.', 'Vous déplacez le sac au fond. Il se laisse faire. La plupart des sacs se laissent faire.'],
+  ['Un sac à dos', 'Un sac à dos garde une place. Son étiquette dit DE RETOUR DANS 1 PAS, et son propriétaire est juste là, en train de lacer sa chaussure, en vous faisant signe.',
+    'Le propriétaire finit son lacet et reprend la place du sac à dos. Le système fonctionne. Le système, c’est vous.', 'Vous déplacez le sac à dos. Son propriétaire vous regarde faire, le lacet à moitié noué, pour le restant de ses jours.'],
+  ['Un homme qui aimerait savoir', '« Excusez-moi, c’est pour quoi, cette file ? » Vous vous rendez compte que vous n’en savez rien. « Alors je me mets là », dit-il en désignant la place devant vous.',
+    'Il se met devant vous, sans raison, ce qui est la seule raison pour laquelle tout le monde est là.', '« Vous non plus, vous ne savez pas », dit-il, et il part au fond, où il ne saura pas avec tout le monde.'],
+  ['Une religieuse', '« Je crois que je suis juste devant vous. » Elle a un air de paix absolue, et un ticket.',
+    'Elle se glisse devant vous. La file semble plus sainte. Elle avance à peu près à la même vitesse.', 'Elle part au fond. Elle vous pardonne immédiatement, ce qui est pire.'],
+  ['Une femme qui lit un livre intitulé La File', '« Je peux me mettre là ? J’en suis au passage où ils font la queue. » Elle n’a pas de ticket. Elle a un marque-page.',
+    'Elle se place devant vous et lit l’histoire de quelqu’un qui se place devant quelqu’un.', 'Elle part au fond et tourne la page. Dans le livre aussi, quelqu’un dit non.'],
+  ['Un homme en gilet fluo', '« Maintenance de la file. Je dois me mettre là une seconde. » Il a un bloc-notes et le plus vieux ticket que vous ayez jamais vu.',
+    'Il reste là une seconde, note « file : RAS », et ne repart pas. Le ticket 0001 a l’ancienneté sur tout le monde.', 'Il note quelque chose sur vous dans son bloc-notes et part au fond pour l’entretenir.'],
+  ['Votre ancienne prof de maths', '« C’est toi ? Comme tu as grandi. Je peux me glisser là ? » Elle n’a pas de ticket. Elle n’en a jamais eu besoin.',
+    'Elle se glisse devant, puis vous demande combien font sept fois huit. Vous vous trompez, dans une file, devant tout le monde.', 'Elle vous lance un regard que vous n’aviez plus vu depuis 1998. Votre dignité tient bon. C’était un regard de division posée.'],
+  ['Quelqu’un qui vous ressemble beaucoup', '« Je suis vous, en provenance de plus loin dans la file. On échange ? » Son ticket porte votre numéro.',
+    'Vous échangez. Rien ne change. Vous êtes toujours vous, et toujours là, mais maintenant vous savez.', 'Un hochement de tête. Ça se comprend : à votre place, la réponse aurait été non aussi.'],
+  ['Une femme en long manteau', '« Je ne passe pas devant. Je sors. Je peux sortir en passant par vous ? »',
+    'Elle traverse l’espace où vous vous tenez. Ça va. C’est même plutôt agréable. Elle est partie.', 'Elle fait le grand tour, ce qui, dans une file, veut dire toute la file.'],
+  ['La personne juste derrière vous', '« Je peux passer devant vous ? Juste un peu. Juste pour voir ce que ça fait. » Son ticket : 248.',
+    'Elle passe devant vous. Elle rapporte que ça fait comme être derrière quelqu’un, mais plus loin.', '« C’est bien ce que je pensais », dit-elle en reprenant sa place. « Je vérifiais juste que vous étiez toujours vous. »'],
+  ['Un petit chien', 'Un petit chien s’assoit devant vous, un ticket dans la gueule. C’est un très bon ticket.',
+    'Le chien prend sa place. Il n’a pas besoin de savoir à quoi sert la file. C’est un bon chien.', 'Le chien part au fond. Tout le monde le regarde partir. Tout le monde.'],
+  ['Un philosophe', '« Si je me mets devant vous, avez-vous jamais vraiment été derrière moi ? » Il n’a pas de ticket. Pour lui, les tickets sont une construction sociale.',
+    'Il se met devant, et demande aussitôt à la personne de devant si elle est vraiment devant.', '« Soit », dit-il, et il part au fond pour réfléchir au fond.'],
+  ['Un homme qui revient de la tête de file', '« J’ai été en tête. Il faut que j’y retourne. » Il pleure, très légèrement, mais en bien.',
+    'Il se met devant vous. Il ne dit pas ce qu’il y a là-bas. Il dit juste : « Vous verrez. »', 'Il part au fond. « Vous verrez », dit-il quand même, gentiment.'],
+],
+followers: [
+  ['Un homme en gilet', '« Je ne veux pas être devant vous. Je veux faire la queue derrière vous. Vous, précisément. C’est permis ? »',
+    'Il se place derrière vous. Puis sa femme. Puis son club de lecture.', 'Il hoche la tête et fait la queue derrière quelqu’un d’autre, en se contentant visiblement de moins.'],
+  ['Trois retraités', '« On vous regarde avancer depuis un moment. On aimerait faire la queue à votre façon. Pouvons-nous vous suivre, de près, pour le restant de nos jours ? »',
+    'Ils se mettent derrière vous et avancent exactement en même temps que vous. C’est comme avoir une traîne en grands-parents.', '« Très juste », disent-ils. « L’humilité. On le note. »'],
+  ['Une sortie scolaire', 'Une enseignante demande si sa classe peut faire la queue derrière vous, pour un exposé sur la dignité. Trente enfants brandissent trente bloc-notes.',
+    'Trente enfants font la queue derrière vous dans un silence total. L’un d’eux prend des notes sur votre posture.', 'La classe part observer quelqu’un de moins doué pour la queue. Vous entendez un enfant dire : « Pas comme le ciré jaune. »'],
+  ['Le fond de la file', 'Un message vous parvient de main en main, depuis le tout dernier rang : « Est-ce que ça vous dérange si on est tous derrière vous ? »',
+    'Vous renvoyez un seul mot. Il parcourt toute la longueur du hall. Quelque part, très loin, quelqu’un soupire de soulagement.', 'Vous renvoyez un non poli. Le fond de la file le respecte. Le fond de la file respecte tout ce que vous faites, désormais.'],
+],
+overheard: [
+  ['« Il paraît que c’est pour les passeports. »', '« C’est pour la banque. Ou la boulangerie. Un truc en B. »', '« Ma sœur a fait cette file en mars. Elle refuse d’en parler. »',
+    '« Ça avance, quand même. Faut lui reconnaître ça. Ça avance. »', '« C’est ici, la fin ? Quelqu’un m’a dit que c’était ici, la fin. »', '« Je suis là seulement parce que tout le monde y était. »',
+    '« J’ai laissé le four allumé. C’est pas grave. C’est un four lent. »', '« Quarante minutes, paraît-il. On dit toujours quarante minutes. »', '« J’ai apporté deux sandwichs. Un pour plus tard dans la file. »'],
+  ['« Quelqu’un sait vraiment à quoi elle sert ? »', '« Peu importe à quoi elle sert. Ce qui compte, c’est qu’on y soit. »', '« Mon grand-père faisait cette queue. Il disait que la tête de file valait le coup. Il n’a jamais dit pourquoi. »',
+    '« Je crois pas qu’il y ait un guichet. Je crois qu’il y a juste encore plus de devant. »', '« Quelqu’un au fond parle déjà de vous. »', '« Je suis venu pour du pain. Maintenant je reste pour autre chose. »',
+    '« Je ne vois pas la tête de file. Je la sens, c’est tout. »', '« Si on part, est-ce qu’on cesse d’y avoir été ? »'],
+  ['« Ils vous regardent. Vous retournez pas. Ils vous regardent en bien. »', '« Presque. Presque. Oh, je peux pas regarder. Je regarde. »',
+    '« Je suis dans cette file depuis si longtemps que j’ai oublié le début. Je crois que le début, c’est ça : l’oublier. »', '« Quelqu’un a dit que la tête de file était un miroir. Pour rire. Personne n’a ri. »',
+    '« Quoi qu’il arrive, ça m’a fait plaisir d’être derrière vous. »', '« Chut. Chut. C’est le meilleur moment. »', '« La dame du fond s’est mise à pleurer un peu. De joie, je crois. »'],
+],
+grumbles: ['Quelqu’un derrière vous fait « tss ». Ça remonte la file comme une vague.', 'Un long soupir part du fond vers l’avant et revient, plus fort.',
+  '« Incroyable », dit quelqu’un, juste assez bas pour que ce soit sur vous.', 'La file s’est figée, ce qui, pour une file, revient à crier.'],
+say: {
+  perfect: ['Vous comblez le trou à l’instant où il s’ouvre. Quelque part derrière vous, quelqu’un approuve d’un signe de tête.', 'Un pas, pile la longueur d’une personne. Le hall approuve.', 'Un pas impeccable. La personne derrière vous avance avec vous, d’un seul mouvement.',
+    'Vous arrivez dans le trou comme si vous y aviez toujours été.', 'Du grand art. Une femme derrière vous dit « du grand art » à son mari.'],
+  good: ['Un pas correct. Personne ne s’en souviendra, et c’est le but.', 'Convenable. La file avance, et vous aussi.'],
+  late: ['Vous laissez un trou de la taille d’une personne pendant une seconde entière. La personne derrière vous fait « Hm. »', 'Vous remarquez le trou un peu tard. Tout le monde aussi.', 'Un trou a été vu. Par beaucoup de monde.'],
+  heel: ['Vous avancez dans le dos d’un homme en K-way. Il ne dit rien, très fort.', 'Vous marchez sur un talon. Son propriétaire se retourne, regarde, se retourne. C’est noté quelque part.',
+    'Trop tôt. Vous voilà un peu à l’intérieur du manteau de quelqu’un.', 'Vous vous jetez en avant dans le vide. La personne devant n’avait fait que rajuster son écharpe.'],
+  cut: ['Un homme en doudoune sans manches se glisse dans le trou. Il ne vous regarde pas. Il sait.', 'Une femme avec une poussette prend le trou. Elle ne faisait même pas la queue. Elle passait.',
+    'Un trou de cette taille est une invitation, et un homme avec un badge autour du cou l’a acceptée.', 'Quelqu’un comble le trou avec l’aisance de l’habitude. Vous voilà une place plus loin.'],
+  feint: ['La personne devant vous change d’appui et ne bouge pas. Une feinte classique.', 'Elle se penche. Elle ne part pas. Ne vous fiez jamais à quelqu’un qui se penche.'],
+},
+mirror: [
+  'La dernière personne devant vous est servie. Elle passe la tête de file et ne revient pas, ce qui est normal, pour une tête de file.',
+  'Vous avancez. Il n’y a pas de guichet. Il n’y a pas d’employé. Il y a un miroir : haut, municipal, cadre chromé, avec un petit panneau plastifié qui dit AU GUICHET.',
+  'Dedans, vous vous voyez, en ciré jaune, le ticket 247 à la main. Derrière vous, dans la glace, vous voyez la file. Toute la file. Chacun vous regarde.',
+  'Personne dans cette file n’attendait la tête de file. Tout le monde attendait que vous y arriviez.',
+  'Tout le monde applaudit.',
+],
+transcend: [
+  'Votre dignité atteint un niveau jamais enregistré dans ce bâtiment depuis la file du passage au nouveau franc, en 1960.',
+  'Les gens derrière vous cessent d’avancer. Inutile. Ils sont déjà exactement là où ils doivent être, c’est-à-dire après vous.',
+  'La tête de file s’éloigne. Ce n’était jamais le but. Le but, c’était la file, et la file, il se trouve que c’est vous.',
+],
+docTitle: 'Simulateur de queue Deluxe',
+langGroup: 'Langue',
+nowServingAria: 'Numéro appelé', nowServing: 'AU GUICHET', yourTicket: 'VOTRE TICKET',
+ahead: n => `${n} devant vous`, nobodyAhead: 'personne devant',
+mDignity: 'Dignité', mMood: 'Ambiance', capTitle: 'Une conduite ordinaire plafonne à 90',
+sceneAria: 'Une file d’attente dans un hall, vue de profil. Vous, c’est le ciré jaune.',
+overheardTag: 'ENTENDU',
+reqDefault: 'Une demande', reqFollow: 'Demande pour vous suivre', reqAhead: 'Demande pour passer devant',
+ruleFollow: 'hors étiquette', ruleSee: 'voir l’étiquette',
+stub: n => 'TICKET ' + n,
+yesFollow: 'Accepter', yesAhead: 'Laisser passer', noFollow: 'Refuser, modestement', noAhead: 'Non',
+yesBtn: 'Laisser passer <kbd>Y</kbd>', noBtn: 'Non <kbd>N</kbd>',
+silent: 'Vous ne dites rien. Dans une file, qui ne dit mot consent. ',
+ruleWrong: n => ' (Étiquette, règle ' + n + '.)', ruleEntitled: n => ' (C’était leur droit : règle ' + n + '.)',
+etqAria: 'Étiquette de la file', etqHead: 'Étiquette de la file · plastifiée', etqClose: 'fermer',
+etq: ['Un petit numéro passe devant un grand. Pas de ticket, pas de place.', '« Juste une petite question », ce n’est jamais petit.', '« Je suis avec eux » ne vaut que s’ils font coucou en retour.',
+  'Un sac peut garder une place le temps d’un pas. Pas deux. Plus depuis mardi.', 'Tout le monde peut partir en passant par vous. Personne ne peut arriver en passant par vous.'],
+etqMine: 'Votre ticket : 247. Qui ne dit mot consent.',
+theFront: 'La tête de file', goOn: 'Continuer', takeBow: 'Saluer', becomeQueue: 'Devenir la file',
+revCount: (i, n) => `${i} / ${n}`,
+intro: 'Quand la personne devant vous avance, avancez d’un pas pour combler le trou. Pas avant. Pas trop après.',
+shuffleBtn: 'Avancer d’un pas <kbd>Espace</kbd>', shuffleAria: 'Avancer d’un pas (Espace)',
+etqBtn: 'Étiquette <kbd>E</kbd>', leaveBtn: 'Quitter la file <kbd>L</kbd>', reallyLeave: 'Vraiment partir ? <kbd>L</kbd>',
+titleKicker: 'Hall B · Prenez un ticket, s’il vous plaît', titleH: 'Simulateur de queue Deluxe',
+titleLede: 'Il y a une file d’attente. Vous êtes dedans. Personne ne sait à quoi elle sert, et ça n’a jamais eu moins d’importance.',
+titleList: '<li><b>Avancez d’un pas</b> (Espace, le bouton, ou un clic dans le hall) dès que la personne devant avance. Trop tôt, et vous marchez sur un talon. Trop tard, et quelqu’un prend le trou.</li>'
+  + '<li>Des gens vont demander à passer devant. <b>Y</b> les laisse passer, <b>N</b> refuse. L’étiquette plastifiée dit qui le mérite.</li>'
+  + '<li>Votre <b>dignité</b> et l’<b>ambiance</b> de la file comptent toutes les deux. Si l’une tombe, c’est la sortie, en disgrâce.</li>',
+startBtn: 'Prendre un ticket et faire la queue', titleFine: 'environ 4 minutes · Espace, Y, N, E, L',
+hallB: 'Hall B', againBtn: 'Reprendre un ticket', best: b => `meilleure dignité de la session : ${b}`,
+fall: { dignity: 'Quelque chose cède en vous. Vous sortez de la file.', mood: 'La file se retourne, comme un seul homme, pour vous regarder.', left: 'Vous sortez de la file.' },
+frontNews: 'Personne devant vous. Une première, toutes files confondues.',
+digFull: 'Votre dignité : 100',
+transcendNews: 'Votre dignité est pleine. Elle ne peut pas monter plus haut, alors elle s’étend.',
+floats: { perfect: 'impeccable', good: 'correct', late: 'un trou a été vu', heel: 'talon', cut: 'trou volé' },
+ends: {
+  mirror: ['AU GUICHET 247', 'L’ovation dure un bon moment. Au fond, quelqu’un lance un applaudissement lent qui devient rapide. Vous saluez, et dans le miroir, votre reflet aussi. La file, satisfaite, commence à se disperser, puis se ravise et fait la queue pour sortir.', 'Hall B · la tête de file'],
+  queue: ['La file, c’est vous', 'Des gens font désormais la queue en vous, en bon ordre. Certains ont apporté des sacs. Toutes les quelques minutes, toute la file que vous êtes avance d’une place, parfaitement. Votre raison d’être reste inconnue. Tout se passe extrêmement bien.', 'Hall B · partout'],
+  dignity: ['Départ dans la disgrâce', 'Vous longez toute la file jusqu’à la porte. Personne ne vous regarde partir, par gentillesse, ce qui est pire. Un homme en doudoune sans manches prend votre place sans lever les yeux. Il sait.', 'Hall B · la porte'],
+  mood: ['Invitation à partir', 'La file vous a demandé de partir. Poliment, en un seul murmure, par quarante bouches. Vous partez. Le murmure dit merci.', 'Hall B · la porte'],
+  left: ['Vous avez quitté la file', 'Vous partez de votre plein gré. Derrière vous, la file se referme comme de l’eau. Quelqu’un dit, très bas : « Eh bien. »', 'Hall B · la porte'],
+  none: ['Départ dans la disgrâce', '', 'Hall B'],
+},
+statNames: ['Dignité', 'Ambiance', 'Pas impeccables', 'Talons écrasés', 'Trous volés', 'Bonnes décisions', 'Laissés passer', 'Disciples'],
+canvas: { counter: 'GUICHET 4', closed: 'FERMÉ DEPUIS 2009', wait: ['MERCI D’ATTENDRE', 'ICI'], tried: ['AVEZ-VOUS', 'ESSAYÉ', 'D’ATTENDRE ?'], serving: 'AU GUICHET', front: 'TÊTE DE FILE' },
+};
+
+// French typography: a narrow no-break space before ? ! : ; » and after «, applied once to every
+// French string (and to whatever a French string function returns).
+(function frenchSpacing() {
+  const fix = s => s.replace(/ ([?!:;»])/g, '\u202f$1').replace(/« /g, '«\u202f');
+  const deep = v => typeof v === 'string' ? fix(v)
+    : typeof v === 'function' ? (...a) => fix(v(...a))
+    : Array.isArray(v) ? v.map(deep)
+    : v && typeof v === 'object' ? Object.fromEntries(Object.entries(v).map(([k, x]) => [k, deep(x)]))
+    : v;
+  I18N.fr = deep(I18N.fr);
+})();
+
+let lang = 'en';
+const t = k => I18N[lang][k] ?? I18N.en[k];
+// The two closing sequences, told apart by identity; their lines are read through t() by index.
+const MIRROR = I18N.en.mirror, TRANSCEND = I18N.en.transcend;
+// Tables indexed across a mid-game switch (request, overheard counter, random picks) must match.
+(function checkShapes(a, b, path) {
+  if (Array.isArray(a) && (!Array.isArray(b) || a.length !== b.length)) console.error(`i18n: ${path} differs in length`);
+  if (a && typeof a === 'object') for (const k of Object.keys(a)) checkShapes(a[k], b?.[k], `${path}.${k}`);
+})(I18N.en, I18N.fr, 'I18N');
+
+let S;
+const LOOKS = { coats: ['coat-1', 'coat-2', 'coat-3', 'coat-4', 'coat-5'], skins: ['skin-1', 'skin-2', 'skin-3'] };
+function person(ticket, kind = 'person') {
+  return { kind, ticket, coat: Kit.pick(LOOKS.coats), skin: Kit.pick(LOOKS.skins), hat: Math.floor(Math.random() * 4), h: Kit.rnd(.86, 1.12), w: Kit.rnd(.9, 1.15), k: 0, tk: 0, ph: Math.random() * 6 };
+}
+function fresh(best = 0) {
+  const q = [];
+  for (let i = 0; i < START_AHEAD; i++) q.push(person(228 + i, Math.random() < .08 && i > 2 ? 'bag' : 'person'));
+  q.forEach((p, i) => { p.k = p.tk = i + 1; });
+  const behind = [];
+  for (let i = 0; i < 18; i++) { const p = person(248 + i); behind.push(p); }
+  const S0 = {
+    mode: 'title', t: 0, best, q, behind, me: START_AHEAD + 1, meT: START_AHEAD + 1, serving: 227, served: [],
+    dig: 45, mood: 60, cyc: { phase: 'idle', t: 0, dur: 2.4 }, cycN: 0, req: null, used: new Set(), fUsed: 0, reqCool: 2,
+    heelCool: 0, ohT: 6, ohI: [0, 0, 0], grumbleT: 0, float: null, revI: 0, rev: null, mirror: false, cheer: false,
+    ending: null, cause: null, leaveArm: 0, auto: null, autoT: 0, leaving: 0, confetti: [], lean: 0,
+    n: { perfect: 0, good: 0, late: 0, heel: 0, cut: 0, letIn: 0, refused: 0, right: 0, wrong: 0, followers: 0 },
+  };
+  behind.forEach((p, i) => { p.k = p.tk = S0.me + 1 + i; });
+  return S0;
+}
+
+function stage() { return S.q.length > 13 ? 0 : S.q.length > 6 ? 1 : 2; }
+// The status line and the overheard strip take a function of the current language, kept so a
+// language switch says the same thing again; pickSay chooses the line once, by index.
+let newsNow = () => t('intro'), ohNow = () => t('overheard')[0][4];
+function tell(line) { newsNow = line; $('#news').textContent = line(); }
+function overhear(line) { ohNow = line; $('#oh').textContent = line(); }
+function pickSay(kind) { const i = Math.floor(Math.random() * I18N.en.say[kind].length); return () => t('say')[kind][i]; }
+function floatText(key, good) { S.float = { key, good, t: 1.1 }; }
+function gain(which, d, capOk = false) {
+  if (which === 'dig') {
+    const cap = capOk ? 100 : Math.max(DIG_CAP, S.dig);
+    S.dig = Kit.clamp(S.dig + d, 0, d > 0 ? cap : 100);
+  } else S.mood = Kit.clamp(S.mood + d, 0, 100);
+}
+
+function hud() {
+  $('#led').textContent = String(S.serving).padStart(3, '0').slice(-3);
+  $('#ahead').textContent = S.q.length ? t('ahead')(S.q.length) : t('nobodyAhead');
+  const d = Math.round(S.dig), m = Math.round(S.mood);
+  $('#dig').style.width = d + '%'; $('#dig').classList.toggle('low', d < 20);
+  $('#mood').style.width = m + '%'; $('#mood').classList.toggle('low', m < 20);
+  $('#dign').textContent = d; $('#moodn').textContent = m;
+}
+
+function startGame() {
+  S = fresh(S ? S.best : 0);
+  S.mode = 'queue';
+  Kit.show(null);
+  $('#req').hidden = true; $('#etq').hidden = false;
+  $('#shuffle').disabled = false;
+  $('#leave').classList.remove('warn'); leaveLabel();
+  tell(() => t('intro'));
+  overhear(() => t('overheard')[0][0]);
+  hud();
+}
+function leaveLabel() { $('#leave').innerHTML = t(S.leaveArm > 0 ? 'reallyLeave' : 'leaveBtn'); }
+$('#start').onclick = startGame;
+$('#again').onclick = startGame;
+
+// Every press of shuffle lands here, from the key, the button, a click on the hall, or the autopilot.
+function shuffle() {
+  if (S.mode !== 'queue' || S.req) return;
+  const c = S.cyc;
+  if (c.phase === 'go') {
+    const late = c.t;
+    let kind;
+    if (late < .5) { kind = 'perfect'; gain('dig', 1.5); }
+    else if (late < 1.0) kind = 'good';
+    else { kind = 'late'; gain('dig', -2); gain('mood', -2); }
+    S.n[kind]++;
+    tell(pickSay(kind));
+    floatText(kind, kind !== 'late');
+    S.meT = S.q.length + 1;
+    S.behind.forEach((p, i) => { p.tk = S.meT + 1 + i; });
+    c.phase = 'step'; c.t = 0;
+  } else if (c.phase === 'idle' || c.phase === 'cue') {
+    if (S.heelCool > 0) return;
+    S.heelCool = .45; S.n.heel++;
+    gain('dig', -3); gain('mood', -2);
+    tell(pickSay('heel'));
+    floatText('heel', false);
+  }
+  hud();
+  checkFall();
+}
+
+function serveFront() {
+  const p = S.q.shift();
+  if (!p) return;
+  S.serving = p.ticket ?? S.serving;
+  S.served.push({ ...p, fade: 1 });
+  S.q.forEach((o, i) => { o.tk = i + 1; });
+}
+
+function openRequest() {
+  const followerP = S.dig >= 80 ? .5 + (S.dig - 80) / 20 : 0;
+  let r = null;
+  if (Math.random() < followerP && S.fUsed < FOLLOWERS.length) { r = { ...FOLLOWERS[S.fUsed++], follower: true }; }
+  else {
+    const st = stage();
+    const pool = REQUESTS.filter(x => !S.used.has(x) && x.st === st);
+    const any = pool.length ? pool : REQUESTS.filter(x => !S.used.has(x) && x.st <= st);
+    if (!any.length) return false;
+    r = Kit.pick(any); S.used.add(r);
+  }
+  S.req = { r, left: 7, lim: 7 };
+  renderReq();
+  $('#req').hidden = false;
+  $('#shuffle').disabled = true;
+  return true;
+}
+
+// who, say, yes-outcome, no-outcome of a request or a follower, in the current language
+const reqText = r => r.follower ? t('followers')[r.fi] : t('requests')[r.i];
+function renderReq() {
+  const r = S.req.r, [who, say] = reqText(r);
+  $('#req-kind').textContent = t(r.follower ? 'reqFollow' : 'reqAhead');
+  $('#req-rule').textContent = t(r.follower ? 'ruleFollow' : 'ruleSee');
+  $('#req-who').textContent = who;
+  $('#req-say').textContent = say;
+  $('#req-stub').hidden = r.ticket == null;
+  if (r.ticket != null) $('#req-stub').textContent = t('stub')(String(r.ticket).padStart(4, '0'));
+  $('#yes').innerHTML = t(r.follower ? 'yesFollow' : 'yesAhead') + '<kbd>Y</kbd>';
+  $('#no').innerHTML = t(r.follower ? 'noFollow' : 'noAhead') + '<kbd>N</kbd>';
+}
+
+function answer(yes, silent) {
+  if (!S.req || S.mode !== 'queue') return;
+  const r = S.req.r;
+  S.req = null;
+  $('#req').hidden = true;
+  $('#shuffle').disabled = false;
+  const parts = [() => (silent ? t('silent') : '') + reqText(r)[yes ? 2 : 3]];
+  if (r.follower) {
+    if (yes) { gain('dig', 6, true); gain('mood', 5); S.n.followers++; for (let i = 0; i < 3; i++) S.behind.unshift(Object.assign(person(0), { k: S.me + 1 }));
+      S.behind.length = Math.min(S.behind.length, 26);
+      S.behind.forEach((o, i) => { o.tk = S.meT + 1 + i; }); }
+  } else {
+    const right = yes === r.legit;
+    S.n[right ? 'right' : 'wrong']++;
+    if (r.legit && yes) { gain('dig', 2); gain('mood', 8); }
+    else if (r.legit) { gain('dig', -4); gain('mood', -12); }
+    else if (yes) { gain('dig', -8); gain('mood', 2); }
+    else { gain('dig', 3); gain('mood', 4); }
+    if (yes && !r.keep) {
+      S.n.letIn++;
+      const p = person(r.ticket ?? null, r.kind === 'bag' ? 'bag' : 'person');
+      if (r.kind === 'dog') p.kind = 'dog';
+      p.k = S.me - .3; p.tk = S.q.length + 1;
+      S.q.push(p);
+      S.meT = S.q.length + 1;
+      S.behind.forEach((o, i) => { o.tk = S.meT + 1 + i; });
+    } else if (!yes) S.n.refused++;
+    if (!right && !r.legit) parts.push(() => t('ruleWrong')(r.rule));
+    if (!right && r.legit) parts.push(() => t('ruleEntitled')(r.rule));
+  }
+  tell(() => parts.map(f => f()).join(''));
+  hud();
+  checkFall();
+}
+$('#yes').onclick = e => { e.currentTarget.blur(); answer(true); };
+$('#no').onclick = e => { e.currentTarget.blur(); answer(false); };
+
+function setEtq(open) { $('#etq').classList.toggle('open', open); }
+$('#etq-btn').onclick = e => { e.currentTarget.blur(); setEtq(!$('#etq').classList.contains('open')); };
+$('#etq-close').onclick = () => setEtq(false);
+
+// Leaving takes two presses: the first only asks.
+function leave() {
+  if (S.mode !== 'queue') return;
+  if (S.leaveArm > 0) return fall('left');
+  S.leaveArm = 3;
+  $('#leave').classList.add('warn');
+  leaveLabel();
+}
+$('#leave').onclick = e => { e.currentTarget.blur(); leave(); };
+
+function checkFall() {
+  if (S.mode !== 'queue') return;
+  if (S.dig >= 100) return transcend();
+  if (S.dig <= 0) return fall('dignity');
+  if (S.mood <= 0) return fall('mood');
+}
+
+function fall(cause) {
+  S.mode = 'falling'; S.cause = cause; S.leaving = 0; $('#etq').hidden = true;
+  S.req = null; $('#req').hidden = true; $('#shuffle').disabled = true;
+  tell(() => t('fall')[cause]);
+}
+
+function reachFront() {
+  S.mode = 'reveal'; S.rev = MIRROR; S.revI = 0; S.mirror = false;
+  tell(() => t('frontNews'));
+  showReveal();
+}
+function transcend() {
+  S.mode = 'reveal'; S.rev = TRANSCEND; S.revI = 0;
+  S.req = null; $('#req').hidden = true;
+  tell(() => t('transcendNews'));
+  showReveal();
+}
+function paintReveal() {
+  const mirror = S.rev === MIRROR;
+  $('#rev-k').textContent = t(mirror ? 'theFront' : 'digFull');
+  $('#rev-line').textContent = t(mirror ? 'mirror' : 'transcend')[S.revI];
+  $('#rev-n').textContent = t('revCount')(S.revI + 1, S.rev.length);
+  const lastOne = S.revI === S.rev.length - 1;
+  $('#rev-go').textContent = t(lastOne ? (mirror ? 'takeBow' : 'becomeQueue') : 'goOn');
+}
+function showReveal() {
+  $('#shuffle').disabled = true; $('#etq').hidden = true;
+  paintReveal();
+  if (S.rev === MIRROR) { if (S.revI >= 1) S.mirror = true; if (S.revI >= 4) S.cheer = true; if (S.revI >= 1) S.serving = MY_TICKET; hud(); }
+  Kit.show($('#reveal'));
+}
+function revealNext() {
+  if (S.mode !== 'reveal') return;
+  if (S.revI < S.rev.length - 1) { S.revI++; showReveal(); return; }
+  end(S.rev === MIRROR ? 'mirror' : 'queue');
+}
+$('#rev-go').onclick = revealNext;
+
+function end(kind) {
+  S.mode = 'end'; S.ending = kind;
+  S.best = Math.max(S.best, Math.round(S.dig));
+  paintEnd();
+  Kit.show($('#end'));
+}
+function paintEnd() {
+  const kind = S.ending, ends = t('ends');
+  const T = kind === 'disgrace' ? ends[S.cause] || ends.none : ends[kind];
+  $('#end-title').textContent = T[0];
+  $('#end-lede').textContent = T[1];
+  $('#end-k').textContent = T[2];
+  const vals = [Math.round(S.dig), Math.round(S.mood), S.n.perfect, S.n.heel, S.n.cut, `${S.n.right}/${S.n.right + S.n.wrong}`, S.n.letIn, S.n.followers];
+  $('#end-stats').innerHTML = t('statNames').map((k, i) => `<div><span>${k}</span><b>${vals[i]}</b></div>`).join('');
+  $('#end-best').textContent = t('best')(S.best);
+}
+
+Kit.keys.onPress((k, down) => {
+  if (!down || !S) return;
+  if (S.mode === 'queue') {
+    if (k === ' ' || k === 'ArrowUp' || k === 'ArrowRight') shuffle();
+    else if (k === 'y' && S.req) answer(true);
+    else if (k === 'n' && S.req) answer(false);
+    else if (k === 'l') leave();
+  }
+  if (k === 'e') setEtq(!$('#etq').classList.contains('open'));
+});
+const shBtn = $('#shuffle');
+shBtn.addEventListener('pointerdown', e => { e.preventDefault(); shBtn.classList.add('down'); shuffle(); });
+addEventListener('pointerup', () => shBtn.classList.remove('down'));
+$('#scene').addEventListener('pointerdown', e => { e.preventDefault(); shuffle(); });
+
+// The autopilot presses the real inputs. { react: () => s, bite: chance to press on a lean,
+// acc: chance of the fair call, follow: accept followers, mash: presses per second while idle, lateP }
+function autopilot(dt) {
+  const a = S.auto;
+  S.autoT += dt;
+  if (S.mode === 'reveal' && S.autoT > .7) { S.autoT = 0; return revealNext(); }
+  if (S.mode !== 'queue') return;
+  if (S.req) {
+    if (S.autoT > (a.think ?? 1.4)) {
+      S.autoT = 0;
+      const r = S.req.r;
+      answer(r.follower ? !!a.follow : (Math.random() < a.acc ? r.legit : !r.legit));
+    }
+    return;
+  }
+  const c = S.cyc;
+  if (c.phase !== c.seen) { c.seen = c.phase; a.at = null; a.bit = false; }
+  if (c.phase === 'cue' && !a.bit) { a.bit = true; if (Math.random() < a.bite) a.at = Kit.rnd(.15, .3); }
+  if (c.phase === 'go' && a.at == null) a.at = Math.random() < (a.lateP || 0) ? Kit.rnd(1, 2.2) : a.react();
+  if ((c.phase === 'cue' || c.phase === 'go') && a.at != null && c.t >= a.at) { a.at = 1e9; shuffle(); }
+  if (c.phase === 'idle' && a.mash && Math.random() < a.mash * dt) shuffle();
+}
+
+function update(dt) {
+  S.t += dt;
+  if (S.auto) autopilot(dt);
+  if (S.heelCool > 0) S.heelCool -= dt;
+  if (S.float) { S.float.t -= dt; if (S.float.t <= 0) S.float = null; }
+  if (S.leaveArm > 0) { S.leaveArm -= dt; if (S.leaveArm <= 0) { $('#leave').classList.remove('warn'); leaveLabel(); } }
+  // everyone walks toward their target slot at a steady shuffle
+  const walk = (o, key, tkey) => { const d = o[tkey] - o[key]; o[key] += Math.sign(d) * Math.min(Math.abs(d), dt * 2.3); };
+  S.q.forEach(p => walk(p, 'k', 'tk'));
+  S.behind.forEach(p => walk(p, 'k', 'tk'));
+  walk(S, 'me', 'meT');
+  S.served = S.served.filter(p => { p.k -= dt * 1.5; p.fade -= dt * 1.2; return p.fade > 0; });
+  if (S.mode === 'falling') {
+    S.leaving += dt;
+    if (S.leaving > 1.6) end('disgrace');
+    return;
+  }
+  if (S.mode !== 'queue') return;
+
+  S.ohT -= dt;
+  if (S.ohT <= 0) {
+    S.ohT = 7.5;
+    if (S.mood < 30 && Math.random() < .5) { const i = Math.floor(Math.random() * I18N.en.grumbles.length); overhear(() => t('grumbles')[i]); }
+    else { const st = stage(), i = S.ohI[st]++ % I18N.en.overheard[st].length; overhear(() => t('overheard')[st][i]); }
+  }
+  if (S.req) {
+    S.req.left -= dt;
+    $('#req-tick').style.width = Math.max(0, S.req.left / S.req.lim * 100) + '%';
+    if (S.req.left <= 0) answer(true, true);
+    return;
+  }
+
+  const c = S.cyc;
+  c.t += dt;
+  S.lean = c.phase === 'cue' ? Math.min(1, c.t / .25) : Math.max(0, S.lean - dt * 4);
+  if (c.phase === 'idle' && c.t >= c.dur) {
+    S.cycN++;
+    S.reqCool--;
+    if (S.reqCool <= 0 && Math.random() < .55 && openRequest()) { S.reqCool = 2; c.t = 0; c.dur = Kit.rnd(1.2, 2); return; }
+    c.phase = 'cue'; c.t = 0; c.dur = Kit.rnd(.35, .7); c.fake = S.cycN > 2 && Math.random() < .28;
+  } else if (c.phase === 'cue' && c.t >= c.dur) {
+    if (c.fake) { c.phase = 'idle'; c.t = 0; c.dur = Kit.rnd(.8, 1.6); tell(pickSay('feint')); }
+    else { serveFront(); c.phase = 'go'; c.t = 0; }
+  } else if (c.phase === 'go' && c.t >= 1.8) {
+    // nobody shuffled: someone from the side takes the gap
+    S.n.cut++;
+    const p = person(null); p.k = S.me - .5; p.tk = S.q.length + 1;
+    S.q.push(p);
+    gain('dig', -5);
+    tell(pickSay('cut')); floatText('cut', false);
+    c.phase = 'idle'; c.t = 0; c.dur = Kit.rnd(2, 3.6);
+    hud(); checkFall();
+  } else if (c.phase === 'step' && c.t >= .45) {
+    if (!S.q.length) return reachFront();
+    c.phase = 'idle'; c.t = 0; c.dur = Kit.rnd(2, 3.8);
+  }
+}
+
+// Drawing. Slot 0 is the front; slot k sits k places back. Your slot is S.me, drawn at 40% of the width.
+function draw(dt) {
+  const { cx, W, H } = view;
+  if (!W || !H) return;
+  const floorY = H * .8, sc = Math.min(H * .38, 200), sp = Kit.clamp(sc * .4, 34, 76);
+  const X = k => W * .4 + (S.me - k) * sp;
+  cx.fillStyle = C.bg; cx.fillRect(0, 0, W, H);
+  // institutional two-tone wall: a darker dado below a rail
+  const dado = floorY - sc * .78;
+  cx.fillStyle = C.line; cx.fillRect(0, dado, W, floorY - dado);
+  cx.fillStyle = C.chrome; cx.fillRect(0, dado - 3, W, 3);
+  // wall furniture, fixed to slots so it slides past as you advance
+  const cv = t('canvas');
+  cx.textAlign = 'center'; cx.textBaseline = 'middle';
+  for (let k = 2; k < 70; k += 3) {
+    const x = X(k + .5);
+    if (x < -120 || x > W + 120) continue;
+    const kind = (k / 3 | 0) % 6, top = floorY - sc * 1.5;
+    if (kind === 4) {
+      cx.fillStyle = C.muted; cx.globalAlpha = .35; cx.font = `900 ${Math.round(sc * .32)}px ${FONT.led}`;
+      cx.fillText('HALL B →', x, top + sc * .1); cx.globalAlpha = 1; continue;
+    }
+    if (kind === 5) {
+      cx.fillStyle = C.panel; cx.fillRect(x - 40, top + 4, 80, 26); cx.strokeStyle = C.muted; cx.lineWidth = 1; cx.strokeRect(x - 40, top + 4, 80, 26);
+      cx.fillStyle = C.muted; cx.font = `600 8px ${FONT.mono}`; cx.fillText(cv.counter, x, top + 12, 74); cx.fillText(cv.closed, x, top + 22, 74); continue;
+    }
+    if (kind === 0) {
+      cx.fillStyle = C.panel; cx.fillRect(x - 46, top, 92, 34); cx.strokeStyle = C.accent; cx.lineWidth = 2; cx.strokeRect(x - 46, top, 92, 34);
+      cx.fillStyle = C.accent; cx.font = `600 9px ${FONT.mono}`;
+      cx.fillText(cv.wait[0], x, top + 12, 86); cx.fillText(cv.wait[1], x, top + 24, 86);
+    } else if (kind === 1) {
+      const r = Math.min(22, sc * .12), cyy = top + r;
+      cx.fillStyle = C.panel; cx.beginPath(); cx.arc(x, cyy, r, 0, 7); cx.fill(); cx.strokeStyle = C.ink; cx.lineWidth = 2; cx.stroke();
+      const a = S.t * .7, b = S.t * .06;
+      cx.beginPath(); cx.moveTo(x, cyy); cx.lineTo(x + Math.sin(a) * r * .8, cyy - Math.cos(a) * r * .8); cx.moveTo(x, cyy); cx.lineTo(x + Math.sin(b) * r * .5, cyy - Math.cos(b) * r * .5); cx.stroke();
+    } else if (kind === 2) {
+      cx.fillStyle = C.ticket; cx.fillRect(x - 30, top - 6, 60, 78); cx.fillStyle = C.ink; cx.globalAlpha = .75;
+      cx.font = `600 8px ${FONT.mono}`;
+      cv.tried.forEach((s, i) => cx.fillText(s, x, top + 12 + i * 12, 56)); cx.globalAlpha = 1;
+    } else {
+      cx.fillStyle = C['coat-3']; cx.beginPath(); cx.ellipse(x, floorY - sc * .62, sc * .12, sc * .2, 0, 0, 7); cx.fill();
+      cx.fillStyle = C.chrome; cx.fillRect(x - sc * .07, floorY - sc * .44, sc * .14, sc * .2);
+    }
+  }
+  // the front: a doorway with a curtain, then, once you are there, a mirror
+  const fx = X(0);
+  if (fx < W + 200) drawFront(cx, fx, floorY, sc, sp);
+  // floor
+  cx.fillStyle = C.lino; cx.fillRect(0, floorY, W, H - floorY);
+  cx.strokeStyle = C['lino-2']; cx.lineWidth = 1;
+  for (let k = Math.floor(S.me - W / sp); k < S.me + W / sp + 2; k += .5) { const x = X(k); cx.beginPath(); cx.moveTo(x, floorY); cx.lineTo(x - 12, H); cx.stroke(); }
+  // belt barrier behind the line
+  const beltY = floorY - sc * .52;
+  for (let k = Math.ceil(S.me - W * .62 / sp); k <= S.me + W * .42 / sp + 1; k++) {
+    if (k < 1) continue;
+    const x = X(k - .5);
+    cx.fillStyle = C.chrome; cx.fillRect(x - 2, beltY - 4, 4, floorY - beltY + 4);
+    cx.beginPath(); cx.ellipse(x, floorY, 9, 3, 0, 0, 7); cx.fill();
+    cx.beginPath(); cx.arc(x, beltY - 5, 4, 0, 7); cx.fill();
+    if (k > 1) { cx.fillStyle = C.accent; cx.fillRect(x, beltY - 6, sp, 5); }
+  }
+  // people: behind you (back to front), the served walking off, the queue ahead, then you
+  const cheer = S.cheer && !Kit.reduce;
+  for (let i = S.behind.length - 1; i >= 0; i--) { const p = S.behind[i], x = X(p.k); if (x > -60 && x < W + 60) drawPerson(cx, x, floorY, sc, p, { cheer: S.cheer, t: S.t }); }
+  for (const p of S.served) { cx.globalAlpha = Math.max(0, p.fade); drawPerson(cx, X(p.k), floorY, sc, p, { t: S.t }); cx.globalAlpha = 1; }
+  // once you are the queue, the front and everyone heading for it recede
+  const recede = S.ending === 'queue' || (S.mode === 'reveal' && S.rev === TRANSCEND);
+  if (recede) cx.globalAlpha = .3;
+  S.q.forEach((p, i) => { const x = X(p.k); if (x > -60 && x < W + 60) drawPerson(cx, x, floorY, sc, p, { t: S.t, lean: i === S.q.length - 1 ? S.lean : 0, cheer: S.cheer }); });
+  cx.globalAlpha = 1;
+  let youX = X(S.me), alpha = 1;
+  if (S.mode === 'falling' || (S.mode === 'end' && S.ending === 'disgrace')) { const u = Math.min(1, S.leaving / 1.4); youX -= u * W * .5; alpha = 1 - u * .8; }
+  cx.globalAlpha = alpha;
+  drawPerson(cx, youX, floorY, sc, { kind: 'you', h: 1.02, w: 1.05, hat: 0, skin: 'skin-1', coat: 'you', ph: 0 }, { t: S.t, you: true, glow: S.ending === 'queue' || (S.mode === 'reveal' && S.rev === TRANSCEND) });
+  cx.globalAlpha = 1;
+  // the queue ending: everyone behind you joined into one line
+  if (S.ending === 'queue' || (S.mode === 'reveal' && S.rev === TRANSCEND)) {
+    cx.strokeStyle = C.you; cx.lineWidth = 3; cx.globalAlpha = .7;
+    cx.beginPath(); cx.moveTo(youX, floorY - sc * .95); cx.lineTo(0, floorY - sc * .95); cx.stroke(); cx.globalAlpha = 1;
+  }
+  if (S.float) {
+    cx.globalAlpha = Math.min(1, S.float.t * 2);
+    cx.fillStyle = S.float.good ? C.accent : C.led; cx.font = `600 12px ${FONT.mono}`;
+    cx.fillText(t('floats')[S.float.key].toUpperCase(), youX, floorY - sc * 1.12 - (1.1 - S.float.t) * 22, W * .8);
+    cx.globalAlpha = 1;
+  }
+  if (cheer) confetti(cx, W, H, dt);
+}
+
+function drawFront(cx, x, floorY, sc, sp) {
+  const w = sp * (S.mirror ? 2.2 : 1.25), h = sc * 1.35, l = x - sp * .2, top = floorY - h;
+  cx.fillStyle = C.chrome; cx.fillRect(l - 6, top - 6, w + 12, h + 6);
+  if (S.mirror) {
+    cx.fillStyle = C.panel; cx.fillRect(l, top, w, h);
+    cx.save(); cx.beginPath(); cx.rect(l, top, w, h); cx.clip();
+    // the reflection: you, then the queue behind you, all facing back out of the glass
+    const mx = l + w * .35;
+    for (let i = Math.min(6, S.behind.length) - 1; i >= 0; i--) {
+      cx.globalAlpha = .5 - i * .05;
+      drawPerson(cx, mx + (i + 1) * sp * .5, floorY - sc * .05, sc * .78, S.behind[i], { t: S.t, cheer: S.cheer, flip: true });
+    }
+    cx.globalAlpha = .75;
+    drawPerson(cx, mx, floorY, sc * .9, { kind: 'you', h: 1.02, w: 1.05, hat: 0, skin: 'skin-1', coat: 'you', ph: 0 }, { t: S.t, you: true, flip: true });
+    cx.globalAlpha = .25; cx.strokeStyle = C.bg; cx.lineWidth = 10;
+    cx.beginPath(); cx.moveTo(l - 10, top + h * .3); cx.lineTo(l + w * .7, top - 10); cx.stroke();
+    cx.beginPath(); cx.moveTo(l, top + h * .55); cx.lineTo(l + w, top + h * .1); cx.stroke();
+    cx.restore(); cx.globalAlpha = 1;
+  } else {
+    cx.fillStyle = C['led-bg']; cx.fillRect(l, top, w, h);
+    cx.fillStyle = C.accent;
+    for (let i = 0; i < 6; i++) { const fx = l + i * w / 6; cx.beginPath(); cx.moveTo(fx, top); cx.quadraticCurveTo(fx + w / 12, top + h * .5 + Math.sin(S.t + i) * 4, fx, floorY); cx.lineTo(fx + w / 6 - 3, floorY); cx.quadraticCurveTo(fx + w / 12, top + h * .5, fx + w / 6 - 3, top); cx.fill(); }
+  }
+  cx.fillStyle = C['led-bg']; cx.fillRect(l + w * .1, top - 40, w * .8, 26);
+  cx.fillStyle = C.led; cx.font = `900 13px ${FONT.led}`;
+  cx.fillText(t('canvas')[S.mirror ? 'serving' : 'front'], l + w / 2, top - 27, w * .76);
+}
+
+function drawPerson(cx, x, floorY, sc, p, o) {
+  const h = sc * (p.h || 1), w = h * .3 * (p.w || 1), t = o.t || 0;
+  const bob = Kit.reduce || o.still ? 0 : Math.sin(t * 1.3 + (p.ph || 0)) * h * .006;
+  const dir = o.flip ? -1 : 1;
+  if (p.kind === 'bag') {
+    cx.fillStyle = C[p.coat] || C.muted;
+    cx.fillRect(x - w * .45, floorY - h * .22, w * .9, h * .22);
+    cx.strokeStyle = C.ink; cx.lineWidth = 2; cx.beginPath(); cx.arc(x, floorY - h * .22, w * .25, Math.PI, 0); cx.stroke();
+    return;
+  }
+  if (p.kind === 'dog') {
+    cx.fillStyle = C['coat-4'];
+    cx.beginPath(); cx.ellipse(x, floorY - h * .1, w * .5, h * .06, 0, 0, 7); cx.fill();
+    cx.beginPath(); cx.arc(x + w * .45 * dir, floorY - h * .17, h * .05, 0, 7); cx.fill();
+    cx.fillStyle = C.ticket; cx.fillRect(x + w * .6 * dir - 4, floorY - h * .16, 9, 5);
+    return;
+  }
+  const lean = (o.lean || 0) * h * .03 * dir;
+  cx.save(); cx.translate(x, floorY);
+  // legs
+  cx.fillStyle = C.trouser;
+  cx.fillRect(-w * .32, -h * .32, w * .26, h * .32); cx.fillRect(w * .06, -h * .32, w * .26, h * .32);
+  // coat
+  const top = -h * .8 + bob;
+  cx.fillStyle = C[p.coat] || C.muted;
+  cx.beginPath(); cx.roundRect(-w / 2 + lean, top, w, h * .52, [w * .35, w * .35, 4, 4]); cx.fill();
+  // arms: down, or up for the cheer
+  cx.strokeStyle = C[p.coat] || C.muted; cx.lineWidth = Math.max(4, w * .2); cx.lineCap = 'round';
+  if (o.cheer) {
+    const wave = Kit.reduce ? 0 : Math.sin(t * 9 + (p.ph || 0)) * h * .04;
+    cx.beginPath(); cx.moveTo(-w * .4, top + h * .08); cx.lineTo(-w * .7, top - h * .14 + wave); cx.moveTo(w * .4, top + h * .08); cx.lineTo(w * .7, top - h * .14 - wave); cx.stroke();
+  } else {
+    cx.beginPath(); cx.moveTo(w * .1 * dir + lean, top + h * .1); cx.lineTo(w * .42 * dir + lean, top + h * .36); cx.stroke();
+  }
+  // head
+  const hr = h * .085, hy = top - hr * .95;
+  cx.fillStyle = C[p.skin] || C['skin-1'];
+  cx.beginPath(); cx.arc(lean * 1.5, hy, hr, 0, 7); cx.fill();
+  cx.beginPath(); cx.arc(lean * 1.5 + hr * .9 * dir, hy + hr * .1, hr * .22, 0, 7); cx.fill();
+  if (p.hat === 1) { cx.fillStyle = C.trouser; cx.fillRect(-hr * 1.05 + lean * 1.5, hy - hr * .95, hr * 2.1, hr * .5); cx.fillRect(lean * 1.5, hy - hr * .6, hr * 1.4 * dir, hr * .18); }
+  else if (p.hat === 2) { cx.fillStyle = C['coat-2']; cx.beginPath(); cx.arc(lean * 1.5, hy - hr * .2, hr * 1.02, Math.PI, 0); cx.fill(); }
+  if (o.you) {
+    cx.fillStyle = C.you; cx.beginPath(); cx.arc(lean * 1.5, hy - hr * .25, hr * 1.06, Math.PI * 1.05, -.05); cx.fill();
+    if (!o.cheer) { cx.fillStyle = C.ticket; cx.fillRect(w * .42 * dir - 5, top + h * .34, 10, 13); }
+    if (o.glow) { cx.strokeStyle = C.you; cx.lineWidth = 2; cx.globalAlpha *= .6; cx.beginPath(); cx.ellipse(0, -h * .5, w * 1.3, h * .62, 0, 0, 7); cx.stroke(); }
+  }
+  cx.restore();
+}
+
+function confetti(cx, W, H, dt) {
+  if (S.confetti.length < 70 && Math.random() < dt * 40) S.confetti.push({ x: Math.random() * W, y: -10, v: Kit.rnd(40, 110), a: Math.random() * 6, s: Kit.rnd(-3, 3) });
+  cx.fillStyle = C.ticket;
+  S.confetti = S.confetti.filter(c => {
+    c.y += c.v * dt; c.a += c.s * dt; c.x += Math.sin(c.a) * 20 * dt;
+    cx.save(); cx.translate(c.x, c.y); cx.rotate(c.a); cx.fillRect(-5, -3, 10, 6); cx.restore();
+    return c.y < H + 10;
+  });
+}
+
+const loop = Kit.loop(dt => {
+  if (S.mode === 'queue' || S.mode === 'falling' || S.auto) update(dt);
+  else {
+    S.t += dt;
+    const walk = (o, key, tkey) => { const d = o[tkey] - o[key]; o[key] += Math.sign(d) * Math.min(Math.abs(d), dt * 2.3); };
+    S.q.forEach(p => walk(p, 'k', 'tk')); walk(S, 'me', 'meT');
+  }
+  draw(dt);
+});
+
+// Set up a queue partway along, for jumps: n people ahead, given dignity and mood.
+function jumpQueue(n, dig, mood, auto) {
+  startGame();
+  S.q.splice(0, S.q.length - n);
+  S.q.forEach((p, i) => { p.k = p.tk = i + 1; });
+  S.me = S.meT = n + 1;
+  S.behind.forEach((p, i) => { p.k = p.tk = S.me + 1 + i; });
+  S.serving = 246 - n; S.dig = dig; S.mood = mood; S.cycN = 5; S.auto = auto;
+  hud();
+}
+const competent = () => ({ react: () => Math.max(.08, .2 + (Math.random() - .5) * .12), bite: .05, acc: .9, think: 1.4 });
+
+Kit.expose({
+  state: () => S,
+  endings: {
+    mirror: { seconds: 50, jump() { jumpQueue(2, 60, 70, { ...competent(), follow: false }); }, reached: () => S.ending === 'mirror' && !$('#end').hidden },
+    disgrace: { seconds: 20, jump() { jumpQueue(10, 14, 50, { ...competent(), bite: 1, mash: 2 }); }, reached: () => S.ending === 'disgrace' && !$('#end').hidden },
+    queue: { seconds: 50, jump() { jumpQueue(14, 88, 70, { ...competent(), follow: true }); }, reached: () => S.ending === 'queue' && !$('#end').hidden },
+  },
+});
+
+// Static markup carries data-t (text), data-th (trusted markup from I18N), data-ta (aria-label)
+// and data-tt (title). The HUD, status line, overheard strip, an open request, the reveal and
+// the end slip are repainted here; the canvas reads t() every frame.
+function applyLang() {
+  document.documentElement.lang = lang;
+  document.title = t('docTitle');
+  for (const el of document.querySelectorAll('[data-t]')) el.textContent = t(el.dataset.t);
+  for (const el of document.querySelectorAll('[data-th]')) el.innerHTML = t(el.dataset.th);
+  for (const el of document.querySelectorAll('[data-ta]')) el.setAttribute('aria-label', t(el.dataset.ta));
+  for (const el of document.querySelectorAll('[data-tt]')) el.title = t(el.dataset.tt);
+  for (const box of document.querySelectorAll('.lang')) {
+    if (!box.children.length) box.innerHTML = '<button type="button" data-lang="fr" lang="fr">FR</button><button type="button" data-lang="en" lang="en">EN</button>';
+    for (const b of box.children) b.setAttribute('aria-pressed', String(b.dataset.lang === lang));
+  }
+  $('#etq-list').innerHTML = t('etq').map(s => `<li>${s}</li>`).join('');
+  $('#news').textContent = newsNow();
+  $('#oh').textContent = ohNow();
+  if (!S) return;
+  hud();
+  leaveLabel();
+  if (S.req) renderReq();
+  if (S.mode === 'reveal') paintReveal();
+  if (S.mode === 'end') paintEnd();
+}
+function setLang(l) {
+  if (!(l in I18N) || l === lang) return;
+  lang = l;
+  applyLang();
+}
+document.addEventListener('click', e => {
+  const b = e.target.closest('[data-lang]');
+  if (b) setLang(b.dataset.lang);
+});
+
+function start(data) {
+  lang = data?.lang in I18N ? data.lang : (navigator.language || '').toLowerCase().startsWith('fr') ? 'fr' : 'en';
+  S = fresh(data.best || 0);
+  applyLang();
+  Kit.show($('#title'));
+  loop.start();
+}
+Kit.boot(start, () => ({ best: S ? S.best : 0, lang }));
+</script>
+</body>
+</html>

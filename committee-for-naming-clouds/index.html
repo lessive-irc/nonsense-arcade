@@ -1,0 +1,1584 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>The Committee for Naming Clouds</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Instrument+Sans:wght@400;600;700&family=Cutive+Mono&display=swap">
+<style>
+/* Layout: the Upper Room of Bramley Library. One tall sash window full of sky (the only bold
+   thing), the committee round the table beneath it, the typed minutes pinned down the right. */
+:root {
+  --bg: #e6eaec;
+  --panel: #f8f9f7;
+  --ink: #1e2830;
+  --muted: #5c6973;
+  --line: #1e283030;
+  --accent: #b0283a;
+  --sky-hi: #2f7fc4;
+  --sky-lo: #9ccbee;
+  --cloud: #ffffff;
+  --cloud-shade: #c4d3df;
+  --frame: #f3f1ea;
+  --roof: #41525f;
+  --f-display: "Instrument Serif", "Iowan Old Style", Georgia, serif;
+  --f-body: "Instrument Sans", "Segoe UI", system-ui, sans-serif;
+  --f-type: "Cutive Mono", "Courier New", ui-monospace, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #10161b; --panel: #182027; --ink: #dde4e8; --muted: #8b98a2; --line: #dde4e826; --accent: #f0677a;
+    --sky-hi: #0b1a2c; --sky-lo: #26496d; --cloud: #c7d3df; --cloud-shade: #4a5f74; --frame: #2a333b; --roof: #060b10;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #10161b; --panel: #182027; --ink: #dde4e8; --muted: #8b98a2; --line: #dde4e826; --accent: #f0677a;
+  --sky-hi: #0b1a2c; --sky-lo: #26496d; --cloud: #c7d3df; --cloud-shade: #4a5f74; --frame: #2a333b; --roof: #060b10;
+  color-scheme: dark;
+}
+/* kit:css:begin */
+/* Arcade kit: structure only, never a look. Inlined between kit:css markers by kit/inline.mjs.
+   The game's own :root must define --bg --ink --muted --accent --panel --line (light), and
+   redefine them in both dark blocks; everything here reads those tokens. */
+*, *::before, *::after { box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  -webkit-tap-highlight-color: transparent;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+button { font: inherit; color: inherit; cursor: pointer; }
+button:disabled { cursor: default; }
+:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+canvas { display: block; max-width: 100%; touch-action: none; }
+
+/* Full-stage screens (title, twist, end). Sit inside a position:relative stage. */
+.kit-overlay {
+  position: absolute; inset: 0; z-index: 5;
+  display: grid; place-items: center; padding: 24px;
+  background: color-mix(in srgb, var(--bg) 88%, transparent);
+  overflow-y: auto;
+}
+.kit-overlay[hidden] { display: none; }
+
+/* Touch pad: shown only on coarse pointers; buttons carry data-key (see Kit.keys). */
+.kit-pad { display: none; gap: 10px; justify-content: center; padding-block: 10px; user-select: none; }
+.kit-pad [data-key] { min-width: 56px; min-height: 56px; touch-action: none; border: 1px solid var(--line); background: var(--panel); }
+@media (pointer: coarse) { .kit-pad { display: flex; } }
+
+.kit-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+
+@media (prefers-reduced-motion: reduce) {
+  .kit-deco, .kit-deco * { animation: none !important; transition: none !important; }
+}
+/* kit:css:end */
+[hidden] { display: none !important; }
+.kit-overlay { position: fixed; align-items: safe center; }
+body { font-family: var(--f-body); font-size: 15px; line-height: 1.45; padding-block: 14px; min-height: 100dvh; }
+.room { position: relative; max-width: 1260px; margin: 0 auto; min-height: calc(100dvh - 28px); display: grid; gap: 14px 22px; grid-template-columns: minmax(0, 1fr) 340px; grid-template-areas: "sky minutes" "chamber minutes"; grid-template-rows: auto 1fr; }
+
+.sky { grid-area: sky; position: relative; }
+.sky canvas { width: 100%; height: clamp(220px, 42vh, 380px); border: 2px solid var(--ink); background: var(--sky-lo); }
+.item-line { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; margin-top: 8px; flex-wrap: wrap; }
+.item-line h2 { margin: 0; font-family: var(--f-display); font-weight: 400; font-size: 26px; line-height: 1.1; }
+.item-line h2 em { color: var(--muted); }
+.item-line .genus { font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
+.life { height: 6px; background: var(--line); margin-top: 6px; }
+.life i { display: block; height: 100%; width: 100%; background: var(--ink); transform-origin: left; }
+.life i.low { background: var(--accent); }
+
+.chamber { grid-area: chamber; display: grid; gap: 12px; align-content: start; }
+.seats { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 8px; }
+.seat { text-align: left; background: var(--panel); border: 1.5px solid var(--line); border-radius: 3px; padding: 8px 9px 7px; display: grid; gap: 2px; min-height: 84px; align-content: start; position: relative; }
+.seat b { font-family: var(--f-display); font-weight: 400; font-size: 19px; line-height: 1.05; }
+.seat small { font-size: 10.5px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.seat span.st { font-size: 12.5px; line-height: 1.3; }
+.seat kbd { position: absolute; right: 6px; top: 5px; font-family: var(--f-type); font-size: 11px; color: var(--muted); }
+.seat.off, .seat.away { border-color: var(--accent); border-style: dashed; }
+.seat.off span.st, .seat.away span.st { color: var(--accent); }
+.seat.named, .seat.gone { opacity: .5; border-style: dotted; }
+.seat.named span.st { font-family: var(--f-display); font-style: italic; font-size: 15px; }
+.seat.voted-for { box-shadow: inset 0 -4px 0 var(--ink); }
+.seat.voted-against { box-shadow: inset 0 -4px 0 var(--accent); }
+.hand { position: absolute; right: 8px; bottom: 6px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; }
+
+.floor-head { display: flex; justify-content: space-between; gap: 12px; align-items: baseline; flex-wrap: wrap; }
+.floor-head h3 { margin: 0; font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+.quorum { font-size: 13px; font-variant-numeric: tabular-nums; }
+.quorum.no { color: var(--accent); font-weight: 700; }
+.floor { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; min-height: 76px; }
+.motion { text-align: left; background: var(--panel); border: 1.5px solid var(--ink); border-radius: 3px; padding: 8px 10px; display: grid; gap: 3px; align-content: start; }
+.motion small { font-size: 11px; color: var(--muted); }
+.motion span { font-family: var(--f-display); font-size: 20px; line-height: 1.1; }
+.motion.sel { background: var(--ink); color: var(--panel); }
+.motion.sel small { color: inherit; opacity: .8; }
+.motion:disabled { opacity: .45; }
+.floor-empty { grid-column: 1 / -1; color: var(--muted); font-style: italic; align-self: center; }
+
+.chairbar { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px 14px; align-items: center; border-top: 2px solid var(--ink); padding-top: 10px; }
+.record { font-size: 14px; line-height: 1.4; min-height: 2.8em; }
+.record b { font-weight: 700; }
+.acts { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+.gavel { display: inline-flex; align-items: center; gap: 10px; font-weight: 700; font-size: 16px; padding: 12px 18px; background: var(--ink); color: var(--panel); border: 0; border-radius: 3px; box-shadow: 3px 3px 0 var(--line); }
+.gavel svg { width: 22px; height: 22px; flex: none; }
+.gavel:disabled { background: var(--line); color: var(--muted); box-shadow: none; }
+.gavel.hot { background: var(--accent); color: #fff; }
+.gavel kbd, .plain kbd { font-family: var(--f-type); font-size: 11px; opacity: .7; }
+.plain { font-weight: 600; font-size: 14px; padding: 10px 14px; background: var(--panel); border: 1.5px solid var(--ink); border-radius: 3px; }
+.room-say { font-size: 14px; font-style: italic; color: var(--muted); min-height: 1.5em; margin: 0; }
+
+/* The minutes: typed, numbered, pinned. */
+.minutes { grid-area: minutes; background: var(--panel); border: 1.5px solid var(--line); box-shadow: 4px 4px 0 var(--line); padding: 18px 18px 14px; font-family: var(--f-type); font-size: 13px; line-height: 1.5; display: flex; flex-direction: column; min-height: 0; max-height: calc(100dvh - 28px); position: sticky; top: 14px; }
+.minutes header { text-align: center; border-bottom: 1px solid var(--ink); padding-bottom: 8px; margin-bottom: 8px; }
+.minutes header strong { display: block; font-size: 14px; letter-spacing: .08em; }
+.minutes .att { font-size: 11.5px; color: var(--muted); margin: 0 0 8px; }
+.min-body { overflow-y: auto; flex: 1; display: grid; gap: 7px; align-content: start; padding-right: 4px; }
+.min-body p { margin: 0; }
+.min-body .n { display: inline-block; min-width: 3.4ch; margin-right: .8ch; }
+.min-body .h { font-weight: 700; margin-top: 4px; }
+.min-body .new { background: color-mix(in srgb, var(--accent) 14%, transparent); }
+.stamp { position: absolute; right: 22px; top: 70px; transform: rotate(-9deg); border: 3px solid var(--accent); color: var(--accent); font-family: var(--f-body); font-weight: 700; letter-spacing: .14em; padding: 4px 12px; font-size: 22px; opacity: .85; }
+
+/* Overlays. */
+.card { width: min(580px, 100%); background: var(--panel); border: 2px solid var(--ink); box-shadow: 6px 6px 0 var(--line); padding: 26px 28px; display: grid; gap: 14px; }
+.card h1 { margin: 0; font-family: var(--f-display); font-weight: 400; font-size: clamp(40px, 8vw, 66px); line-height: .95; }
+.card h1 em { display: block; font-size: .5em; color: var(--muted); }
+.card h2 { margin: 0; font-family: var(--f-display); font-weight: 400; font-size: clamp(30px, 6vw, 44px); line-height: 1; }
+.card p { margin: 0; text-wrap: pretty; }
+.card .lede { font-family: var(--f-display); font-style: italic; font-size: 22px; line-height: 1.3; }
+.card .typed { font-family: var(--f-type); font-size: 14px; border-left: 3px solid var(--accent); padding-left: 12px; }
+.card .meta { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .07em; }
+.card ol { margin: 0; padding-left: 20px; display: grid; gap: 4px; font-size: 14px; }
+.card .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+.card .row .lang { margin-left: auto; }
+
+/* Language toggle: a small brass-plate pair, pinned to the window pane and repeated on the cards. */
+.lang { display: inline-flex; flex: none; border: 1.5px solid var(--ink); border-radius: 3px; background: var(--panel); overflow: hidden; }
+.lang button { border: 0; background: transparent; padding: 5px 10px; font: 600 12px/1 var(--f-body); letter-spacing: .1em; color: var(--muted); }
+.lang button + button { border-left: 1px solid var(--line); }
+.lang button:hover { color: var(--ink); }
+.lang button[aria-pressed="true"] { background: var(--ink); color: var(--panel); }
+.sky .lang { position: absolute; top: 14px; right: 14px; z-index: 1; }
+
+@media (max-width: 900px) {
+  .room { grid-template-columns: minmax(0, 1fr); grid-template-areas: "sky" "chamber" "minutes"; }
+  .minutes { position: static; max-height: 300px; }
+  .seats { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+@media (max-width: 560px) {
+  body { padding-block: 8px; font-size: 14px; }
+  .room { gap: 8px; min-height: calc(100dvh - 16px); }
+  .sky canvas { height: 168px; }
+  .item-line { margin-top: 4px; }
+  .item-line h2 { font-size: 19px; }
+  .item-line .genus { font-size: 10.5px; }
+  .seats { gap: 5px; }
+  .seat { min-height: 62px; padding: 5px 6px; }
+  .seat b { font-size: 15px; }
+  .seat small { display: none; }
+  .seat span.st { font-size: 11px; line-height: 1.2; }
+  .seat kbd { display: none; }
+  .floor { grid-template-columns: minmax(0, 1fr); gap: 5px; min-height: 0; }
+  .motion { padding: 5px 8px; grid-template-columns: auto 1fr; align-items: baseline; column-gap: 8px; }
+  .motion span { font-size: 16px; }
+  .chairbar { grid-template-columns: minmax(0, 1fr); padding-top: 6px; gap: 6px; }
+  .acts { justify-content: stretch; }
+  .acts button { flex: 1; justify-content: center; }
+  .record { font-size: 13px; min-height: 2.6em; }
+  .gavel kbd, .plain kbd { display: none; }
+  .minutes { max-height: 220px; padding: 12px; }
+  .card { padding: 18px; }
+}
+</style>
+</head>
+<body>
+<div class="room" id="room">
+  <section class="sky" data-ta="skyAria" aria-label="The window">
+    <canvas id="sky" class="kit-deco" data-ta="skyCanvasAria" aria-label="The sky through the committee room window"></canvas>
+    <div class="lang" role="group" data-ta="langGroup" aria-label="Language"></div>
+    <div class="item-line">
+      <h2 id="item-title">The meeting has not yet been opened.</h2>
+      <span class="genus" id="item-genus"></span>
+    </div>
+    <div class="life" aria-hidden="true"><i id="life"></i></div>
+  </section>
+
+  <section class="chamber">
+    <div class="seats" id="seats"></div>
+    <p class="room-say" id="room-say" aria-live="polite"></p>
+    <div class="floor-head"><h3 data-t="motionsH">Motions from the floor</h3><span class="quorum" id="quorum">Quorum is four</span></div>
+    <div class="floor" id="floor"></div>
+    <div class="chairbar">
+      <div class="record" id="record" aria-live="polite">The Chair recognises a motion by choosing one from the floor.</div>
+      <div class="acts">
+        <button class="plain" id="aob" hidden data-th="aobBtn">Any other business? <kbd>X</kbd></button>
+        <button class="gavel" id="gavel" disabled>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><g fill="currentColor"><rect x="3.5" y="4" width="10" height="5.5" rx="1.2" transform="rotate(-38 8.5 6.75)"/><rect x="9.2" y="9.2" width="2.6" height="12" rx="1.1" transform="rotate(-38 10.5 15.2)"/><rect x="13" y="19.5" width="9" height="2.5" rx="1"/></g></svg>
+          <span id="gavel-label">Put the question</span> <kbd data-t="spaceKey">Space</kbd>
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <aside class="minutes" data-ta="minutesAria" aria-label="Minutes">
+    <header>
+      <strong data-t="minutesHead">THE COMMITTEE FOR NAMING CLOUDS</strong>
+      <span data-t="minutesSub">Minutes of the 214th meeting, held in the Upper Room, Bramley Library</span>
+    </header>
+    <p class="att" data-t="att">Present: the Chair; Mrs J. Ferris (Vice-Chair); Dr P. Halloran; Mr K. Ng (Treasurer); Cllr R. Blythe; Mr T. Pask; Ms A. Okonkwo (Minutes Secretary). Apologies: Mr Dunmore (evaporated, 2019).</p>
+    <div class="min-body" id="min-body"></div>
+    <div class="stamp" id="stamp" hidden data-t="stamp">APPROVED</div>
+  </aside>
+
+  <div class="kit-overlay" id="title">
+    <div class="card">
+      <h1 data-th="titleH">The Committee for Naming Clouds <em>214th meeting · Upper Room, Bramley Library</em></h1>
+      <p class="lede" data-t="titleLede">Clouds do not wait for committees. This committee has never once accepted that.</p>
+      <p data-t="titleIntro">You are in the Chair. A cloud drifts across the window; the members propose names for it. Pick a motion, wait for a seconder, put the question, and bang the gavel while the hands are still up, before the cloud evaporates.</p>
+      <ol>
+        <li data-t="rule1">A good name says what the cloud is. Dr Halloran objects to the wrong genus.</li>
+        <li data-th="rule2">The quorum is four. Members wander off and go off topic: click them (or press <b>A</b>–<b>H</b>) to bring them back.</li>
+        <li data-t="rule3">Nothing counts unless Ms Okonkwo is in the room to minute it.</li>
+        <li data-t="rule4">Three clouds lost, or a long spell inquorate, and the committee is dissolved.</li>
+      </ol>
+      <div class="row"><button class="gavel" id="start" data-t="startBtn">Open the meeting</button><span class="meta" data-t="startMeta">About 5 minutes · keys 1–3, Space, A–H</span><div class="lang" role="group" data-ta="langGroup" aria-label="Language"></div></div>
+      <p class="meta" id="best-line" hidden></p>
+    </div>
+  </div>
+
+  <div class="kit-overlay" id="skyclear" hidden>
+    <div class="card">
+      <span class="meta" data-t="skyMeta">Item 11</span>
+      <h2 data-t="skyH">The sky</h2>
+      <p class="typed" id="sky-text"></p>
+      <div class="row"><button class="gavel" id="sky-go" data-t="skyGo">Proceed to item 12</button><div class="lang" role="group" data-ta="langGroup" aria-label="Language"></div></div>
+    </div>
+  </div>
+
+  <div class="kit-overlay" id="end" hidden>
+    <div class="card">
+      <span class="meta" id="end-meta"></span>
+      <h2 id="end-title"></h2>
+      <p class="lede" id="end-sub"></p>
+      <p class="typed" id="end-minute"></p>
+      <p class="meta" id="end-stat"></p>
+      <div class="row"><button class="gavel" id="end-again" data-t="againBtn">Convene the 215th meeting</button><div class="lang" role="group" data-ta="langGroup" aria-label="Language"></div></div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* kit:js:begin */
+// Arcade kit: the plumbing every game re-wrote by hand. Inlined between kit:js markers by
+// kit/inline.mjs, so a game stays one standalone file. Defines exactly two globals, `Kit` and
+// (once a game calls Kit.expose) `__arcade`; nothing else, because a bare top-level name can
+// collide with a window property (sandwich-diplomacy's `top()` shadowed by window.top).
+const Kit = (() => {
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const themeWatchers = [];
+  const onTheme = () => themeWatchers.forEach(f => f());
+  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', onTheme);
+  new MutationObserver(onTheme).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+
+  // Canvas code cannot read CSS variables, so mirror the named tokens into an object and
+  // re-read it whenever the theme flips: the viewer's toggle sets data-theme, the OS sets the media query.
+  function tokens(names, onChange) {
+    const C = {};
+    const read = () => {
+      const cs = getComputedStyle(document.documentElement);
+      for (const n of names) C[n] = cs.getPropertyValue('--' + n).trim();
+      onChange?.(C);
+    };
+    read();
+    themeWatchers.push(read);
+    return C;
+  }
+
+  // Keeps a canvas sharp at the device pixel ratio (capped at 2) and sized to its CSS box.
+  function canvas(el, onResize) {
+    const view = { el, cx: el.getContext('2d'), W: 0, H: 0 };
+    const fit = () => {
+      const r = el.getBoundingClientRect(), d = Math.min(2, devicePixelRatio || 1);
+      view.W = r.width; view.H = r.height;
+      el.width = Math.round(r.width * d); el.height = Math.round(r.height * d);
+      view.cx.setTransform(d, 0, 0, d, 0, 0);
+      onResize?.(view);
+    };
+    new ResizeObserver(fit).observe(el);
+    fit();
+    return view;
+  }
+
+  // step(dt) gets seconds, capped at 50 ms so a background tab or a stalled frame cannot
+  // teleport the game; the loop stops while the tab is hidden and resumes without a jump.
+  function loop(step) {
+    let last = 0, raf = 0, on = false;
+    const frame = t => {
+      const dt = last ? Math.min(0.05, (t - last) / 1000) : 0;
+      last = t;
+      step(dt);
+      if (on) raf = requestAnimationFrame(frame);
+    };
+    const ctl = {
+      start() { if (on) return; on = true; last = 0; raf = requestAnimationFrame(frame); },
+      stop() { on = false; cancelAnimationFrame(raf); },
+      get running() { return on; },
+    };
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden && on) { ctl.stop(); ctl.paused = true; }
+      else if (!document.hidden && ctl.paused) { ctl.paused = false; ctl.start(); }
+    });
+    return ctl;
+  }
+
+  // Held keys by KeyboardEvent.key, lower-cased (' ' for Space). Touch pads feed the same set:
+  // any element with data-key="<key>" inside a .kit-pad holds that key while pressed.
+  const held = new Set();
+  const pressFns = [];
+  const norm = k => (k.length === 1 ? k.toLowerCase() : k);
+  const press = (k, down) => {
+    k = norm(k);
+    if (down === held.has(k)) return;
+    down ? held.add(k) : held.delete(k);
+    pressFns.forEach(f => f(k, down));
+  };
+  const GAME_KEYS = new Set([' ', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight']);
+  addEventListener('keydown', e => {
+    if (e.target.closest?.('input, textarea, select, [contenteditable]')) return;
+    if (GAME_KEYS.has(e.key) && !e.target.closest?.('button')) e.preventDefault();
+    if (!e.repeat) press(e.key, true);
+  });
+  addEventListener('keyup', e => press(e.key, false));
+  addEventListener('blur', () => [...held].forEach(k => press(k, false)));
+  document.addEventListener('pointerdown', e => {
+    const b = e.target.closest?.('.kit-pad [data-key]');
+    if (!b) return;
+    e.preventDefault();
+    b.setPointerCapture?.(e.pointerId);
+    press(b.dataset.key, true);
+    const up = () => { press(b.dataset.key, false); b.removeEventListener('pointerup', up); b.removeEventListener('pointercancel', up); };
+    b.addEventListener('pointerup', up);
+    b.addEventListener('pointercancel', up);
+  });
+  const keys = {
+    down: k => held.has(norm(k)),
+    any: (...ks) => ks.some(k => held.has(norm(k))),
+    onPress(fn) { pressFns.push(fn); },
+  };
+
+  // The claude.ai viewer's hot-update hook: keeps `snapshot()` across a republish. Absent when
+  // self-hosted, so start() then receives {}.
+  function boot(start, snapshot) {
+    if (snapshot) window.claude?.hot?.snapshot?.(snapshot);
+    window.claude?.hot?.ready ? window.claude.hot.ready(start) : start(window.claude?.hot?.data ?? {});
+  }
+
+  // The test hook smoke.mjs drives. endings: { name: { jump(), reached(), seconds? } } where
+  // jump() may shortcut the set-up but must leave the ending's final stretch to real game
+  // logic, and reached() is true only once that ending's screen is actually showing.
+  function expose({ state, endings }) {
+    window.__arcade = {
+      get state() { return state(); },
+      endings: Object.fromEntries(Object.entries(endings).map(([k, v]) => [k, { seconds: v.seconds ?? 8 }])),
+      jump: name => endings[name].jump(),
+      reached: name => !!endings[name].reached(),
+    };
+  }
+
+  // Show one overlay and hide the others; focus its first button so Enter/Space continue.
+  function show(el) {
+    document.querySelectorAll('.kit-overlay').forEach(o => { o.hidden = o !== el; });
+    el?.querySelector('button')?.focus({ preventScroll: true });
+  }
+
+  const rnd = (a, b) => a + Math.random() * (b - a);
+  const pick = a => a[Math.floor(Math.random() * a.length)];
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+
+  return { reduce, tokens, canvas, loop, keys, boot, expose, show, rnd, pick, clamp };
+})();
+/* kit:js:end */
+
+const $ = s => document.querySelector(s);
+const QUORUM = 4;
+const LOSE_CLOUDS = 3;      // clouds lost before the committee is dissolved
+const INQUORATE_MAX = 14;   // seconds inquorate before the committee is dissolved
+const HANDS = 1.5;          // seconds the hands stay up after a vote is carried
+const VOTE_COUNT = 1.8;     // seconds to count hands
+const PASS_MARK = 5;        // clouds named for the minutes to be approved
+
+// The genera, as in the International Cloud Atlas: abbreviation and the height they keep.
+// Genus names are Latin in both languages, so a motion's genus is checked the same way in each.
+const GENERA = {
+  Cumulus: { ab: 'Cu', alt: 0.45 }, Stratus: { ab: 'St', alt: 0.72 }, Cirrus: { ab: 'Ci', alt: 0.16 },
+  Altocumulus: { ab: 'Ac', alt: 0.3 }, Stratocumulus: { ab: 'Sc', alt: 0.55 }, Cumulonimbus: { ab: 'Cb', alt: 0.42 },
+  Cirrocumulus: { ab: 'Cc', alt: 0.14 }, Altostratus: { ab: 'As', alt: 0.3 }, Nimbostratus: { ab: 'Ns', alt: 0.6 },
+  Cirrostratus: { ab: 'Cs', alt: 0.12 },
+};
+// Places and notes live in I18N.<lang>.clouds, by the same index.
+const CLOUDS = [
+  { genus: 'Cumulus', species: 'humilis', life: 27 },
+  { genus: 'Stratus', species: 'nebulosus', life: 25 },
+  { genus: 'Cirrus', species: 'uncinus', life: 24 },
+  { genus: 'Altostratus', species: 'translucidus', sab: 'tr', life: 23, shape: 'Stratus' },
+  { genus: 'Altocumulus', species: 'lenticularis', life: 22 },
+  { genus: 'Stratocumulus', species: 'stratiformis', life: 21 },
+  { genus: 'Nimbostratus', species: '', life: 21, shape: 'Stratus' },
+  { genus: 'Cumulonimbus', species: 'capillatus', life: 20 },
+  { genus: 'Cirrocumulus', species: 'stratiformis', life: 20 },
+];
+const MEMBER_ITEMS = [
+  { who: 'ng', genus: 'Stratus', life: 38 },
+  { who: 'blythe', genus: 'Cumulonimbus', life: 36 },
+];
+const CHAIR_LIFE = 34;
+
+// Names, roles and lines live in I18N.<lang>.m[key]; hotkeys in I18N.<lang>.hotkeys by index.
+const MEMBERS = ['ferris', 'halloran', 'ng', 'blythe', 'pask', 'okonkwo'].map(key => ({ key }));
+// How likely each member is to vote for (or second) a motion of each kind.
+const TASTE = {
+  ferris: { apt: .95, silly: .2, self: .1, wrong: .5 },
+  halloran: { apt: .9, silly: .05, self: .05, wrong: 0 },
+  ng: { apt: .75, silly: .3, self: .2, wrong: .6 },
+  blythe: { apt: .5, silly: .3, self: .3, wrong: .6 },
+  pask: { apt: .6, silly: .95, self: .3, wrong: .7 },
+  okonkwo: { apt: .85, silly: .25, self: .15, wrong: .5 },
+};
+const LATIN = ['bramleyensis', 'municipalis', 'comitialis', 'praeteriens', 'tranquilla', 'minutarum', 'bibliothecae', 'quorata'];
+const FIRST = { ng: 'Kenneth', blythe: 'Roger' };
+const SURNAME = { ng: 'ngii', blythe: 'blythii' };
+const N_GIVEN = 16, N_SILLY = 11, N_NG = 5, N_BLYTHE = 5;
+
+// A motion is a recipe, not a string: { tpl, by, q, ... } rendered by ptext() in whichever
+// language is showing, so switching language mid-meeting renames nothing and changes no vote.
+// The Latin forms are the same in both languages.
+const LATIN_PROPS = {
+  latinSp: p => `${p.G} ${p.sp} var. ${LATIN[p.l]}`,
+  latin: p => `${p.G} ${LATIN[p.l]}`,
+  econ: p => `${p.G} economicus`,
+  pecun: p => `${p.G} pecuniarius`,
+  surname: p => `${p.G} ${SURNAME[p.who]}`,
+};
+const EN_GIVEN = ['Derek', 'Margaret', 'Brian', 'Pauline', 'Keith', 'Hilary', 'Graham', 'Maureen', 'Colin', 'Sandra', 'Trevor', 'Gillian', 'Nigel', 'Wendy', 'Malcolm', 'Brenda'];
+const EN_SILLY = ['Cloudy McCloudface', 'Big Dave', 'Sky Sheep', 'Mr Fluffington', 'The Floating Bloke', 'Steam', 'Wet Lad', 'Gary', 'The Duvet', 'Fog Junior', 'Lord Drizzle'];
+const EN_NG = ['The Underspend', 'Petty Cash', 'Contingency', 'Line Item Seven', 'Sundries'];
+const EN_BLYTHE = [() => 'Blythe', () => 'The Blythe', G => `Councillor Blythe's ${G}`, () => 'Blythe (Ward 4)', () => 'Roger'];
+// French: each given name carries the diminutive Mrs Ferris would use ("Little Derek" in English),
+// which also sidesteps Petit/Petite agreeing with the name.
+const FR_GIVEN = [['Gérard', 'Gégé'], ['Monique', 'Momo'], ['Bernard', 'Nanard'], ['Josiane', 'Jojo'], ['Patrick', 'Patou'], ['Chantal', 'Chantou'],
+  ['Jean-Claude', 'Jean-Clo'], ['Martine', 'Titine'], ['Daniel', 'Dany'], ['Nicole', 'Nicou'], ['Thierry', 'Titi'], ['Brigitte', 'Gigi'],
+  ['Gilles', 'Gillou'], ['Sylvie', 'Sylvette'], ['Lucien', 'Lulu'], ['Françoise', 'Fanfan']];
+const FR_SILLY = ['Nuage McNuageface', 'Gros Dédé', 'Mouton du Ciel', 'Monsieur Moelleux', 'Le Type qui Flotte', 'Vapeur', 'Le Mouillé', 'Kévin', 'La Couette', 'Brouillard Junior', 'Lord Crachin'];
+const FR_NG = ['La Sous-Consommation', 'Petite Caisse', 'Provision pour Risques', 'Ligne Budgétaire Sept', 'Divers'];
+// "le cumulus" but "l'altostratus": every genus that starts with a vowel elides.
+const le = G => /^[aeiou]/i.test(G) ? "l'" : 'le ';
+const Le = G => /^[aeiou]/i.test(G) ? "L'" : 'Le ';
+const FR_BLYTHE = [() => 'Blythe', () => 'Le Blythe', G => `${Le(G)}${G} du conseiller Blythe`, () => 'Blythe (secteur 4)', () => 'Roger'];
+
+const I18N = {
+  en: {
+    docTitle: 'The Committee for Naming Clouds',
+    langGroup: 'Language',
+    skyAria: 'The window',
+    skyCanvasAria: 'The sky through the committee room window',
+    notOpened: 'The meeting has not yet been opened.',
+    motionsH: 'Motions from the floor',
+    quorumInit: 'Quorum is four',
+    recordIdle: 'The Chair recognises a motion by choosing one from the floor.',
+    aobBtn: 'Any other business? <kbd>X</kbd>',
+    spaceKey: 'Space',
+    minutesAria: 'Minutes',
+    minutesHead: 'THE COMMITTEE FOR NAMING CLOUDS',
+    minutesSub: 'Minutes of the 214th meeting, held in the Upper Room, Bramley Library',
+    att: 'Present: the Chair; Mrs J. Ferris (Vice-Chair); Dr P. Halloran; Mr K. Ng (Treasurer); Cllr R. Blythe; Mr T. Pask; Ms A. Okonkwo (Minutes Secretary). Apologies: Mr Dunmore (evaporated, 2019).',
+    stamp: 'APPROVED',
+    titleH: 'The Committee for Naming Clouds <em>214th meeting · Upper Room, Bramley Library</em>',
+    titleLede: 'Clouds do not wait for committees. This committee has never once accepted that.',
+    titleIntro: 'You are in the Chair. A cloud drifts across the window; the members propose names for it. Pick a motion, wait for a seconder, put the question, and bang the gavel while the hands are still up, before the cloud evaporates.',
+    rule1: 'A good name says what the cloud is. Dr Halloran objects to the wrong genus.',
+    rule2: 'The quorum is four. Members wander off and go off topic: click them (or press <b>A</b>–<b>H</b>) to bring them back.',
+    rule3: 'Nothing counts unless Ms Okonkwo is in the room to minute it.',
+    rule4: 'Three clouds lost, or a long spell inquorate, and the committee is dissolved.',
+    startBtn: 'Open the meeting',
+    startMeta: 'About 5 minutes · keys 1–3, Space, A–H',
+    bestLine: n => `Best so far: ${n} clouds named`,
+    skyMeta: 'Item 11',
+    skyH: 'The sky',
+    skyGo: 'Proceed to item 12',
+    againBtn: 'Convene the 215th meeting',
+    noClouds: '(no clouds)',
+    hotkeys: ['a', 's', 'd', 'f', 'g', 'h'],
+    m: {
+      ferris: { name: 'Mrs Ferris', role: 'Vice-Chair',
+        off: ["— and that's when I said to Brian, I said, that's not a nimbus, that's your bonfire.", 'Speaking of cumulus, did anyone watch the dancing on Saturday?', "Sorry, is anyone else cold? I'm going to say it. It's cold."],
+        away: 'Mrs Ferris has stepped out to take a call from her sister.' },
+      halloran: { name: 'Dr Halloran', role: 'Meteorologist, retd.',
+        off: ['In the 1956 edition of the Atlas, which I maintain is the superior edition —', 'If I may, briefly, on the subject of virga. Not briefly.', 'Mr Chair, I have prepared a short history of fog. Nineteen pages.'],
+        away: 'Dr Halloran has gone outside to look at the cloud more closely.' },
+      ng: { name: 'Mr Ng', role: 'Treasurer',
+        off: ["While we're all here: the stationery budget.", "Who authorised a second gavel? I'm only asking. I'm asking formally.", "I've a query on the biscuits. Line seven."],
+        away: 'Mr Ng has gone to find a receipt for the biscuits.' },
+      blythe: { name: 'Cllr Blythe', role: 'Ward 4',
+        off: ['— which is why the hedge on Station Road is, frankly, a matter for this committee.', 'Could I just raise the car park. Briefly. Again.', 'My wife once saw a cloud shaped exactly like the bypass. Exactly.'],
+        away: 'Councillor Blythe has gone to move his car.' },
+      pask: { name: 'Mr Pask', role: 'New member',
+        off: ['Has anyone seen the biscuits? The good ones, with the foil.', 'Is fog a cloud? Asking for my nan.', 'Sorry, I was looking at a different cloud. A better one.'],
+        away: 'Mr Pask has gone to put the kettle on.' },
+      okonkwo: { name: 'Ms Okonkwo', role: 'Minutes Secretary',
+        off: ["Sorry, my pen's gone. Has anyone got a pen? A pen that works?", 'Can I check how to spell cumulonimbus. I know. I know. Just checking.'],
+        away: 'Ms Okonkwo has gone to find a pen that works.' },
+    },
+    lines: { here: 'Present', off: 'Off topic', away: 'Out of the room', sent: 'Sent for · on the way', under: 'Under discussion', gone: 'Gone home' },
+    hands: { for: 'For', against: 'Against', abstain: 'Abst.' },
+    seatAria: (name, line) => `${name}, ${line}`,
+    moves: (i, name) => `${i} · ${name} moves that it be named`,
+    floorQuiet: 'The floor is quiet. Someone is about to speak.',
+    floorEmpty: 'No motions before the committee.',
+    quorumNo: (n, s) => `Inquorate: ${n} present · dissolved in ${s} s`,
+    quorumOk: n => `Quorate: ${n} present · quorum four`,
+    gavel: { put: 'Put the question', order: 'Order, order', choose: 'Choose a motion', seconder: 'Is there a seconder?', counting: 'Counting hands…', bang: 'Bang the gavel' },
+    clouds: [
+      { place: 'over the bus station', note: 'Small, fair-weather, detached' },
+      { place: 'sitting on the gasworks', note: 'Grey layer, base under 500 m' },
+      { place: 'above the cathedral', note: "Hooked filaments · mares' tails" },
+      { place: 'in front of the sun', note: 'Grey sheet · the sun as if through ground glass' },
+      { place: 'over the allotments', note: 'Lens-shaped, suspiciously still' },
+      { place: 'over the leisure centre', note: 'Lumpy sheet, grey and white' },
+      { place: 'over the multi-storey car park', note: 'No species · dark, thick, raining on the car park specifically' },
+      { place: 'approaching the bypass', note: 'Anvil top · thunder · not welcome' },
+      { place: 'very high up, over everything', note: 'Small ripples · a mackerel sky' },
+    ],
+    items: [
+      { note: 'Low, grey, dependable', leave: 'Mr Ng has a bus at nine.' },
+      { note: 'Towering · prone to outbursts', leave: 'Councillor Blythe has a ward surgery.' },
+    ],
+    itemCloud: (n, G, place) => `${n}. The ${G.toLowerCase()} <em>${place}</em>`,
+    itemSub: (G, sp, ab, note) => `${G}${sp ? ' ' + sp : ''} (${ab}) · ${note}`,
+    minCloud: (G, place, abbr) => `The ${G.toLowerCase()} ${place} (${abbr}).`,
+    recCloud: 'A cloud is before the committee. The Chair awaits motions from the floor.',
+    itemMember: (n, name) => `${n}. ${name} <em>by the radiator</em>`,
+    itemMemberSub: (G, ab, note, leave) => `${G} (${ab}) · ${note} · ${leave}`,
+    minMember: name => `${name}.`,
+    memberSay: ['Mr Pask: "He is quite grey. In a good way."', 'Mrs Ferris: "Well, if we\'re doing Kenneth, it\'s only fair."'],
+    recMember: name => `${name} is before the committee. He seems to be taking it well.`,
+    itemChair: n => `${n}. The Chair`,
+    itemChairSub: 'Genus to be determined · the Chair is asked to remain seated',
+    minChair: 'The Chair.',
+    chairSay: 'Everyone is looking at you. Dr Halloran has his notebook open at a fresh page.',
+    recChair: 'The committee wishes to name the Chair. The Chair may put the question, or move on to any other business.',
+    skyItem: n => `${n}. The sky.`,
+    skyGenus: 'Clear · no genus · visibility excellent',
+    minSky: 'The sky.',
+    minSkySub: 'The Chair observed that there were no further clouds.',
+    skyText: (named, lost) => `The Chair observed that there were no further clouds. Mrs Ferris observed that it was a lovely evening. Dr Halloran observed that this was "highly irregular". Mr Pask asked whether, in that case, the committee could name something else. ${named} cloud${named === 1 ? '' : 's'} named tonight, ${lost} lost. The committee looked round the table.`,
+    recSky: 'There is nothing in the window. Mr Pask is looking at Mr Ng.',
+    recAobInq: 'The Chair cannot close an inquorate meeting. Somebody fetch somebody.',
+    recAob: '"Any other business?"',
+    minAob: 'Any other business.',
+    recAob2: 'Mrs Ferris: "None, Chair." Councillor Blythe opens his mouth, and closes it again.',
+    minNone: 'None.',
+    recognise: (name, text) => `The Chair recognises <b>${name}</b>: that it be named <b>${text}</b>. Is there a seconder?`,
+    seconded: (by, sec, text) => `Moved by <b>${by}</b>, seconded by <b>${sec}</b>: that it be named <b>${text}</b>. The Chair may put the question.`,
+    fellMin: (name, text) => `A motion from ${name} (${text}) fell for want of a seconder.`,
+    fellRec: s => `The motion falls for want of a seconder. ${s}`,
+    shrugs: ['A short silence.', 'Mr Pask coughs.', 'Mrs Ferris looks at the ceiling.', 'Somebody unwraps a biscuit.'],
+    seek: (text, name, tries) => `<b>${text}</b>, moved by ${name}. Is there a seconder? ${tries === 1 ? '…' : '… anyone?'}`,
+    recInq: 'The committee is inquorate. The Chair cannot put the question until there are four members in the room and attending.',
+    pointMin: text => `Dr Halloran raised a point of order: the motion (${text}) misstated the genus. Withdrawn.`,
+    pointRec: (G, lecture) => `<b>Point of order.</b> Dr Halloran: "That cloud is ${/^[AEIOU]/.test(G) ? 'an' : 'a'} ${G.toLowerCase()}. The motion is ultra vires." The motion is withdrawn. ${lecture}`,
+    lectures: [
+      'He then explains, at length, the difference.',
+      'He produces the 1956 Atlas from his bag. It has bookmarks.',
+      'He draws both clouds on the back of the agenda, slowly, with labels.',
+      'He asks for it to be minuted that he has said this before. It is.',
+    ],
+    question: text => `The question is that it be named <b>${text}</b>. All those in favour…`,
+    carried: tally => `Carried, ${tally}. <b>Bang the gavel while the hands are up.</b>`,
+    lostMin: (text, name, tally) => `Motion (${text}), moved ${name}: lost, ${tally}.`,
+    lostRec: (tally, tie, name, i) => `Lost, ${tally}${tie ? ': the Chair, by convention, casts against' : ''}. ${name} ${['takes it well.', 'does not take it well.', 'asks for that to be minuted. It is.', 'says it was a joke anyway.'][i]} There is some discussion.`,
+    bangNoMin: '<b>Bang.</b> Nothing happens: Ms Okonkwo is not in the room to minute it. The hands are wavering.',
+    resolvedMin: (G, place, text, by, sec, tally) => `RESOLVED that the ${G.toLowerCase()} ${place} be named <i>${text}</i>. Proposed ${by}, seconded ${sec}. Carried ${tally}.`,
+    resolvedRec: (text, i) => `<b>Bang.</b> So resolved: <b>${text}</b>. ${['The cloud seems to take it well.', 'Mr Pask applauds, alone.', 'Ms Okonkwo underlines it twice.', 'Dr Halloran writes something in a notebook.', 'Somebody says "lovely".'][i]}`,
+    memberMin: (name, text, tally) => `RESOLVED that ${name} be named <i>${text}</i>. Carried ${tally}. ${name} thanked the committee and left by the window.`,
+    memberRec: (name, text) => `<b>Bang.</b> ${name} is now <b>${text}</b>. He stands, thanks the committee, and rises gently through the open window.`,
+    chairMin: (text, tally) => `RESOLVED that the Chair be named <i>${text}</i>. Carried ${tally}.`,
+    acclaimMin: nm => `The Chair having raised no objection, the committee named the Chair <i>${nm}</i> by acclamation.`,
+    orderOrder: name => `"Order, order. ${name}, if we could keep to the item." ${name} apologises.`,
+    sendFor: name => `The Chair sends for ${name}.`,
+    offSay: (name, line) => `${name}: "${line}"`,
+    back: (name, pask) => `${name} is back${pask ? ', with tea for nobody' : ''}.`,
+    subsides: 'The discussion subsides. The Chair may take another motion.',
+    handsDown: 'The hands have gone down. Mr Pask asks what they were voting on. The Chair will have to put the question again.',
+    evapMin: 'The cloud evaporated before the committee reached a decision. No action.',
+    evapRec: (G, i) => `The ${G.toLowerCase()} has evaporated. ${['A moment of silence is observed.', 'Mr Pask waves at where it was.', 'Dr Halloran says he saw that coming.', 'It is minuted that it was a nice one.'][i]}`,
+    goneMin: name => `${name} left to catch his bus before a decision was reached. Deferred.`,
+    goneRec: name => `${name} looks at his watch, apologises, and goes home unnamed.`,
+    opened: 'The Chair declares the meeting open. Mr Pask is already eating a biscuit.',
+    preamble: ['Apologies. Noted.', 'Minutes of the last meeting. Agreed as a true record, save that "nimbus" was misspelt throughout.',
+      'Matters arising. The cloud named Pamela at the last meeting has not been seen since. The Treasurer reports the gavel is on loan.'],
+    end: {
+      approvedMin: 'The minutes were approved, nem. con., and signed by the Chair as a true record. The meeting closed at 21:14.',
+      approvedMeta: n => `Item ${n} · close of meeting`,
+      approvedTitle: 'The minutes are approved.',
+      approvedSub: 'Nem. con. Mr Pask asks what nem. con. means. It is minuted that he asked.',
+      approvedMinute: n => `${n} clouds were named and entered in the register. The Chair signed the minutes as a true record, put the gavel back in its box, and walked home under a sky with nothing left in it to name, which was, everyone agreed on the stairs, a job well done.`,
+      dissolvedMeta: 'Close of meeting · no time recorded',
+      dissolvedTitle: 'The committee is dissolved.',
+      subClouds: 'Three clouds evaporated unnamed. So, in the end, did the committee.',
+      subThin: 'The minutes were put for approval. There was not enough in them to approve.',
+      subInq: 'Inquorate. The members drifted, the way the clouds had, and nobody minuted it.',
+      minuteThin: n => `With ${n} cloud${n === 1 ? '' : 's'} named, the motion to approve the minutes fell. Dr Halloran moved that the committee be dissolved. It was the only motion of the evening seconded instantly.`,
+      minuteDissolved: 'By order of the Council, the Committee for Naming Clouds stands dissolved. Its gavel has been passed to the Committee for Naming Puddles, which meets on Tuesdays and has never once reached a decision.',
+      namedMeta: (n, s) => `Item ${n}.${s} · carried`,
+      namedTitle: nm => `You have been named ${nm}.`,
+      namedSub: 'The gavel comes down. You feel, all at once, very light.',
+      namedMinute: nm => `RESOLVED that the Chair be named ${nm}. The Chair thanked the committee, rose slightly, and left by the window at 21:12. Mrs Ferris assumed the Chair. The committee adjourned to watch. It is minuted that ${nm} was a very good one: high, and white, and moving off towards the bypass at a steady eleven knots.`,
+      recApproved: 'The meeting is closed.', recNamed: 'Mrs Ferris has taken the Chair.', recDissolved: 'There is no longer a committee.',
+    },
+    stat: (named, lost, m, s) => `${named} cloud${named === 1 ? '' : 's'} named · ${lost} lost · ${m} min ${s} s in the Chair`,
+    statBest: b => ` · best ${b} named`,
+    prop: {
+      ...LATIN_PROPS,
+      givenThe: p => `${EN_GIVEN[p.i]} the ${p.G}`,
+      little: p => `Little ${EN_GIVEN[p.i]}`,
+      ngSilly: p => EN_NG[p.i],
+      blythe: p => EN_BLYTHE[p.i](p.G),
+      silly: p => EN_SILLY[p.i],
+      sillyThe: p => `${EN_SILLY[p.i]} the ${p.G}`,
+      chair: p => ({ halloran: 'Cirrus ex Cathedra', ferris: 'Cumulus praesidens', pask: 'Chairy McChairface', okonkwo: 'Nimbus gavelensis', ng: 'Stratus fiscalis', blythe: 'Blythe Two' })[p.by],
+      firstThe: p => `${FIRST[p.who]} the ${p.G}`,
+      dear: p => `Dear ${FIRST[p.who]}`,
+      big: p => `Big ${FIRST[p.who].slice(0, 3)}`,
+      lastThe: p => `${I18N.en.m[p.who].name.split(' ').pop()} the ${p.G}`,
+    },
+  },
+  fr: {
+    docTitle: 'Le Comité de dénomination des nuages',
+    langGroup: 'Langue',
+    skyAria: 'La fenêtre',
+    skyCanvasAria: 'Le ciel, vu par la fenêtre de la salle du comité',
+    notOpened: "La séance n'est pas encore ouverte.",
+    motionsH: 'Motions de la salle',
+    quorumInit: 'Quorum : quatre',
+    recordIdle: 'La présidence donne la parole en choisissant une motion dans la salle.',
+    aobBtn: 'Questions diverses ? <kbd>X</kbd>',
+    spaceKey: 'Espace',
+    minutesAria: 'Procès-verbal',
+    minutesHead: 'COMITÉ DE DÉNOMINATION DES NUAGES',
+    minutesSub: 'Procès-verbal de la 214e séance, tenue dans la salle du haut de la bibliothèque de Bramley',
+    att: 'Présents : la présidence ; Mme J. Ferris (vice-présidente) ; Dr P. Halloran ; M. K. Ng (trésorier) ; M. R. Blythe (conseiller municipal) ; M. T. Pask ; Mme A. Okonkwo (secrétaire de séance). Excusé : M. Dunmore (évaporé en 2019).',
+    stamp: 'APPROUVÉ',
+    titleH: 'Le Comité de dénomination des nuages <em>214e séance · salle du haut, bibliothèque de Bramley</em>',
+    titleLede: "Les nuages n'attendent pas les comités. Ce comité ne s'y est jamais fait.",
+    titleIntro: "Vous présidez. Un nuage passe devant la fenêtre ; les membres lui proposent des noms. Choisissez une motion, attendez qu'on l'appuie, mettez-la aux voix et frappez le maillet tant que les mains sont levées, avant que le nuage ne s'évapore.",
+    rule1: "Un bon nom dit ce qu'est le nuage. Dr Halloran ne laisse passer aucune erreur de genre.",
+    rule2: "Le quorum est de quatre. Les membres s'éclipsent ou partent dans des digressions : cliquez dessus (ou touches <b>Q</b> <b>S</b> <b>D</b> <b>F</b> <b>G</b> <b>H</b>) pour les ramener.",
+    rule3: "Rien ne compte si Mme Okonkwo n'est pas là pour le consigner au procès-verbal.",
+    rule4: 'Trois nuages perdus, ou trop longtemps sans quorum, et le comité est dissous.',
+    startBtn: 'Ouvrir la séance',
+    startMeta: 'Environ 5 minutes · touches 1–3, Espace, Q–H',
+    bestLine: n => `Record : ${n} nuage${n > 1 ? 's' : ''} nommé${n > 1 ? 's' : ''}`,
+    skyMeta: 'Point 11',
+    skyH: 'Le ciel',
+    skyGo: 'Passer au point 12',
+    againBtn: 'Convoquer la 215e séance',
+    noClouds: '(pas de nuages)',
+    // AZERTY: the same physical home row the English A S D F G H describes.
+    hotkeys: ['q', 's', 'd', 'f', 'g', 'h'],
+    m: {
+      ferris: { name: 'Mme Ferris', role: 'Vice-présidente',
+        off: ["— et c'est là que j'ai dit à Bernard, j'ai dit, ça, c'est pas un nimbus, c'est ton barbecue.", "En parlant de cumulus, le nôtre a encore lâché. Le plombier passe jeudi.", "Pardon, personne n'a froid ? Je vais le dire. Il fait froid."],
+        away: 'Mme Ferris est sortie prendre un appel de sa sœur.' },
+      halloran: { name: 'Dr Halloran', role: 'Météorologue retraité',
+        off: ["Dans l'édition 1956 de l'Atlas, qui reste à mon sens la meilleure —", 'Si je puis me permettre, brièvement, au sujet de la virga. Pas brièvement.', "À l'attention de la présidence, j'ai préparé une courte histoire du brouillard. Dix-neuf pages."],
+        away: 'Dr Halloran est sorti regarder le nuage de plus près.' },
+      ng: { name: 'M. Ng', role: 'Trésorier',
+        off: ['Puisque nous sommes tous là : le budget papeterie.', "Qui a autorisé un deuxième maillet ? Je pose la question. Je la pose officiellement.", "J'ai une remarque sur les biscuits. Ligne sept."],
+        away: 'M. Ng est allé chercher le ticket de caisse des biscuits.' },
+      blythe: { name: 'M. Blythe', role: 'Conseiller, secteur 4',
+        off: ["— et c'est pourquoi la haie de la rue de la Gare relève, très franchement, de ce comité.", 'Je voudrais juste évoquer le parking. Brièvement. Encore.', 'Ma femme a vu un jour un nuage qui avait exactement la forme de la rocade. Exactement.'],
+        away: 'M. Blythe est allé déplacer sa voiture.' },
+      pask: { name: 'M. Pask', role: 'Nouveau membre',
+        off: ["Quelqu'un a vu les biscuits ? Les bons, dans le papier alu.", "Le brouillard, c'est un nuage ? C'est pour ma mamie.", 'Pardon, je regardais un autre nuage. Un mieux.'],
+        away: 'M. Pask est allé mettre la bouilloire en route.' },
+      okonkwo: { name: 'Mme Okonkwo', role: 'Secrétaire de séance',
+        off: ["Pardon, mon stylo est mort. Quelqu'un a un stylo ? Un stylo qui marche ?", "Je peux vérifier comment s'écrit cumulonimbus ? Je sais. Je sais. Je vérifie."],
+        away: 'Mme Okonkwo est allée chercher un stylo qui marche.' },
+    },
+    // Neutral wording: "Présent" would have to agree with Mme Ferris.
+    lines: { here: 'En séance', off: 'Hors sujet', away: 'Hors de la salle', sent: 'Rappel en cours', under: "À l'ordre du jour", gone: 'Rentré chez lui' },
+    hands: { for: 'Pour', against: 'Contre', abstain: 'Abst.' },
+    seatAria: (name, line) => `${name}, ${line}`,
+    moves: (i, name) => `${i} · ${name} propose le nom`,
+    floorQuiet: "La salle est silencieuse. Quelqu'un va prendre la parole.",
+    floorEmpty: 'Aucune motion devant le comité.',
+    quorumNo: (n, s) => `Quorum non atteint : ${n} présents · dissolution dans ${s} s`,
+    quorumOk: n => `Quorum atteint : ${n} présents sur quatre requis`,
+    gavel: { put: 'Mettre aux voix', order: "Un peu d'ordre", choose: 'Choisissez une motion', seconder: "Quelqu'un appuie ?", counting: 'On compte les mains…', bang: 'Frapper le maillet' },
+    clouds: [
+      { place: 'au-dessus de la gare routière', note: 'Petit, de beau temps, isolé' },
+      { place: "posé sur l'usine à gaz", note: 'Couche grise, base sous 500 m' },
+      { place: 'au-dessus de la cathédrale', note: 'Filaments en crochet · queues-de-chat' },
+      { place: 'devant le soleil', note: 'Voile gris · le soleil comme derrière un verre dépoli' },
+      { place: 'au-dessus des jardins ouvriers', note: 'En forme de lentille, étrangement immobile' },
+      { place: 'au-dessus de la salle polyvalente', note: 'Nappe bosselée, grise et blanche' },
+      { place: 'au-dessus du parking à étages', note: "Pas d'espèce · sombre, épais, il pleut sur le parking et nulle part ailleurs" },
+      { place: 'en approche de la rocade', note: 'Sommet en enclume · tonnerre · pas le bienvenu' },
+      { place: 'tout là-haut, au-dessus de tout', note: 'Petites rides · un ciel pommelé' },
+    ],
+    items: [
+      { note: 'Bas, gris, fiable', leave: 'M. Ng a un bus à neuf heures.' },
+      { note: 'Imposant · sujet aux éclats', leave: 'M. Blythe a sa permanence.' },
+    ],
+    itemCloud: (n, G, place) => `${n}. ${Le(G)}${G.toLowerCase()} <em>${place}</em>`,
+    itemSub: (G, sp, ab, note) => `${G}${sp ? ' ' + sp : ''} (${ab}) · ${note}`,
+    minCloud: (G, place, abbr) => `${Le(G)}${G.toLowerCase()} ${place} (${abbr}).`,
+    recCloud: 'Un nuage est devant le comité. La présidence attend les motions de la salle.',
+    itemMember: (n, name) => `${n}. ${name} <em>près du radiateur</em>`,
+    itemMemberSub: (G, ab, note, leave) => `${G} (${ab}) · ${note} · ${leave}`,
+    minMember: name => `${name}.`,
+    memberSay: ['M. Pask : « Il est plutôt gris. Dans le bon sens. »', 'Mme Ferris : « Bon, si on a fait Kenneth, il faut faire Roger. C\'est la moindre des choses. »'],
+    recMember: name => `${name} est devant le comité. Il semble bien le prendre.`,
+    itemChair: n => `${n}. La présidence`,
+    itemChairSub: 'Genre à déterminer · la présidence est priée de rester assise',
+    minChair: 'La présidence.',
+    chairSay: 'Tout le monde vous regarde. Dr Halloran a ouvert son carnet à une page blanche.',
+    recChair: 'Le comité souhaite nommer la présidence. La présidence peut mettre une motion aux voix, ou passer aux questions diverses.',
+    skyItem: n => `${n}. Le ciel.`,
+    skyGenus: 'Dégagé · aucun genre · visibilité excellente',
+    minSky: 'Le ciel.',
+    minSkySub: "La présidence a constaté qu'il n'y avait plus de nuages.",
+    skyText: (named, lost) => `La présidence a constaté qu'il n'y avait plus de nuages. Mme Ferris a constaté qu'il faisait une belle soirée. Dr Halloran a constaté que c'était « hautement irrégulier ». M. Pask a demandé si, dans ce cas, le comité pouvait nommer autre chose. ${named} nuage${named > 1 ? 's' : ''} nommé${named > 1 ? 's' : ''} ce soir, ${lost} perdu${lost > 1 ? 's' : ''}. Le comité a fait le tour de la table du regard.`,
+    recSky: "Il n'y a plus rien dans la fenêtre. M. Pask regarde M. Ng.",
+    recAobInq: "La présidence ne peut pas lever une séance sans quorum. Que quelqu'un aille chercher quelqu'un.",
+    recAob: '« Questions diverses ? »',
+    minAob: 'Questions diverses.',
+    recAob2: 'Mme Ferris : « Aucune, présidence. » M. Blythe ouvre la bouche, puis la referme.',
+    minNone: 'Aucune.',
+    recognise: (name, text) => `La présidence donne la parole à <b>${name}</b>, qui propose le nom <b>${text}</b>. Quelqu'un appuie-t-il la motion ?`,
+    seconded: (by, sec, text) => `Proposé par <b>${by}</b>, appuyé par <b>${sec}</b> : le nom <b>${text}</b>. La présidence peut mettre la motion aux voix.`,
+    fellMin: (name, text) => `Une motion de ${name} (${text}) est tombée faute d'appui.`,
+    fellRec: s => `La motion tombe faute d'appui. ${s}`,
+    shrugs: ['Un court silence.', 'M. Pask tousse.', 'Mme Ferris regarde le plafond.', "Quelqu'un déballe un biscuit."],
+    seek: (text, name, tries) => `<b>${text}</b>, proposé par ${name}. Quelqu'un appuie ? ${tries === 1 ? '…' : '… personne ?'}`,
+    recInq: "Le quorum n'est pas atteint. La présidence ne peut rien mettre aux voix tant que quatre membres ne sont pas dans la salle, et attentifs.",
+    // "genre" is both the genus and grammatical gender: Dr Halloran objects to both at once.
+    pointMin: text => `Dr Halloran a soulevé un point d'ordre : la motion (${text}) se trompait de genre. Retirée.`,
+    pointRec: (G, lecture) => `<b>Point d'ordre.</b> Dr Halloran : « Ce nuage est un ${G.toLowerCase()}. La motion se trompe de genre. » La motion est retirée. ${lecture}`,
+    lectures: [
+      'Il explique ensuite la différence, longuement.',
+      "Il sort de son sac l'Atlas de 1956. Il y a des marque-pages.",
+      "Il dessine les deux nuages au dos de l'ordre du jour, lentement, avec des légendes.",
+      "Il demande qu'il soit consigné qu'il l'a déjà dit. C'est fait.",
+    ],
+    question: text => `La question porte sur le nom <b>${text}</b>. Que ceux qui sont pour…`,
+    carried: tally => `Adoptée, ${tally}. <b>Frappez le maillet tant que les mains sont levées.</b>`,
+    lostMin: (text, name, tally) => `Motion (${text}), proposée par ${name} : rejetée, ${tally}.`,
+    lostRec: (tally, tie, name, i) => `Rejetée, ${tally}${tie ? ' : par convention, la présidence départage contre' : ''}. ${name} ${['le prend bien.', 'le prend mal.', "demande que ce soit consigné. C'est fait.", "dit que c'était pour rire, de toute façon."][i]} Il y a quelques échanges.`,
+    bangNoMin: "<b>Pan.</b> Rien ne se passe : Mme Okonkwo n'est pas dans la salle pour le consigner. Les mains faiblissent.",
+    resolvedMin: (G, place, text, by, sec, tally) => `IL EST RÉSOLU que ${le(G)}${G.toLowerCase()} ${place} soit nommé <i>${text}</i>. Proposé par ${by}, appuyé par ${sec}. Adopté ${tally}.`,
+    resolvedRec: (text, i) => `<b>Pan.</b> Ainsi résolu : <b>${text}</b>. ${['Le nuage semble bien le prendre.', 'M. Pask applaudit, seul.', 'Mme Okonkwo le souligne deux fois.', 'Dr Halloran note quelque chose dans un carnet.', "Quelqu'un dit « c'est mignon »."][i]}`,
+    memberMin: (name, text, tally) => `IL EST RÉSOLU que ${name} soit nommé <i>${text}</i>. Adopté ${tally}. ${name} a remercié le comité et est sorti par la fenêtre.`,
+    memberRec: (name, text) => `<b>Pan.</b> ${name} s'appelle désormais <b>${text}</b>. Il se lève, remercie le comité et s'élève doucement par la fenêtre ouverte.`,
+    chairMin: (text, tally) => `IL EST RÉSOLU que la présidence soit nommée <i>${text}</i>. Adopté ${tally}.`,
+    acclaimMin: nm => `La présidence n'ayant soulevé aucune objection, le comité l'a nommée <i>${nm}</i> par acclamation.`,
+    orderOrder: name => `« Un peu d'ordre, je vous prie. ${name}, si nous pouvions nous en tenir au point. » ${name} s'excuse.`,
+    sendFor: name => `La présidence fait chercher ${name}.`,
+    offSay: (name, line) => `${name} : « ${line} »`,
+    back: (name, pask) => `${name} est de retour${pask ? ', avec du thé pour personne' : ''}.`,
+    subsides: 'La discussion retombe. La présidence peut prendre une autre motion.',
+    handsDown: 'Les mains sont retombées. M. Pask demande sur quoi on votait. La présidence va devoir remettre la question aux voix.',
+    evapMin: "Le nuage s'est évaporé avant que le comité ne parvienne à une décision. Sans suite.",
+    evapRec: (G, i) => `${Le(G)}${G.toLowerCase()} s'est évaporé. ${['On observe une minute de silence.', "M. Pask fait coucou à l'endroit où il était.", "Dr Halloran dit qu'il l'avait vu venir.", "Il est consigné que c'en était un beau."][i]}`,
+    goneMin: name => `${name} est parti prendre son bus avant qu'une décision ne soit prise. Reporté.`,
+    goneRec: name => `${name} regarde sa montre, s'excuse et rentre chez lui sans nom.`,
+    opened: 'La présidence déclare la séance ouverte. M. Pask mange déjà un biscuit.',
+    preamble: ['Excusés. Noté.', "Procès-verbal de la séance précédente. Approuvé, sous réserve que « nimbus » y était mal orthographié d'un bout à l'autre.",
+      "Suites données. Le nuage baptisé Ginette lors de la dernière séance n'a pas été revu depuis. Le trésorier signale que le maillet est en prêt."],
+    end: {
+      approvedMin: 'Le procès-verbal a été approuvé nem. con. et signé par la présidence. La séance a été levée à 21 h 14.',
+      approvedMeta: n => `Point ${n} · clôture de la séance`,
+      approvedTitle: 'Le procès-verbal est approuvé.',
+      approvedSub: "Nem. con. M. Pask demande ce que veut dire nem. con. Il est consigné au procès-verbal qu'il a demandé.",
+      approvedMinute: n => `${n} nuages ont été nommés et inscrits au registre. La présidence a signé le procès-verbal, rangé le maillet dans sa boîte et pris le chemin du retour sous un ciel où il ne restait plus rien à nommer — du travail bien fait, comme tout le monde en est convenu dans l'escalier.`,
+      dissolvedMeta: 'Clôture de la séance · heure non consignée',
+      dissolvedTitle: 'Le comité est dissous.',
+      subClouds: "Trois nuages se sont évaporés sans nom. Le comité aussi, pour finir.",
+      subThin: "Le procès-verbal a été soumis à l'approbation. Il n'y avait pas assez dedans pour l'approuver.",
+      subInq: "Plus de quorum. Les membres se sont dissipés, comme les nuages, et personne ne l'a consigné.",
+      minuteThin: n => `Avec ${n} nuage${n > 1 ? 's' : ''} nommé${n > 1 ? 's' : ''}, la motion d'approbation du procès-verbal est tombée. Dr Halloran a proposé la dissolution du comité. Ce fut la seule motion de la soirée appuyée sur-le-champ.`,
+      minuteDissolved: "Par arrêté municipal, le Comité de dénomination des nuages est dissous. Son maillet a été transmis au Comité de dénomination des flaques, qui se réunit le mardi et n'a jamais pris la moindre décision.",
+      namedMeta: (n, s) => `Point ${n}.${s} · adoptée`,
+      namedTitle: nm => `Votre nouveau nom : ${nm}.`,
+      namedSub: "Le maillet tombe. Une grande légèreté vous envahit, d'un coup.",
+      namedMinute: nm => `IL EST RÉSOLU que la présidence soit nommée ${nm}. La présidence a remercié le comité, s'est légèrement élevée et est sortie par la fenêtre à 21 h 12. Mme Ferris a pris la présidence. Le comité a suspendu la séance pour regarder. Il est consigné que ${nm} était un très beau spécimen : haut, blanc, et filant vers la rocade à onze nœuds bien réguliers.`,
+      recApproved: 'La séance est levée.', recNamed: 'Mme Ferris a pris la présidence.', recDissolved: "Il n'y a plus de comité.",
+    },
+    stat: (named, lost, m, s) => `${named} nuage${named > 1 ? 's' : ''} nommé${named > 1 ? 's' : ''} · ${lost} perdu${lost > 1 ? 's' : ''} · ${m} min ${s} s à la présidence`,
+    statBest: b => ` · record ${b} nommé${b > 1 ? 's' : ''}`,
+    prop: {
+      ...LATIN_PROPS,
+      givenThe: p => `${FR_GIVEN[p.i][0]} ${le(p.G)}${p.G}`,
+      little: p => FR_GIVEN[p.i][1],
+      ngSilly: p => FR_NG[p.i],
+      blythe: p => FR_BLYTHE[p.i](p.G),
+      silly: p => FR_SILLY[p.i],
+      sillyThe: p => `${FR_SILLY[p.i]} ${le(p.G)}${p.G}`,
+      chair: p => ({ halloran: 'Cirrus ex Cathedra', ferris: 'Cumulus praesidens', pask: 'Présidy McPrésidface', okonkwo: 'Nimbus mailletensis', ng: 'Stratus fiscalis', blythe: 'Blythe II' })[p.by],
+      firstThe: p => `${FIRST[p.who]} ${le(p.G)}${p.G}`,
+      dear: p => `Ce cher ${FIRST[p.who]}`,
+      big: p => `Gros ${FIRST[p.who].slice(0, 3)}`,
+      lastThe: p => `${I18N.fr.m[p.who].name.split(' ').pop()} ${le(p.G)}${p.G}`,
+    },
+  },
+};
+
+// French typography: a narrow no-break space before ? ! : ; » and after «, applied once to every
+// French string (and to whatever a French string function returns) so no line starts with "?".
+// It only fires after a space, so 21:14-style times are safe.
+(function frenchSpacing() {
+  const fix = s => s.replace(/ ([?!:;»])/g, ' $1').replace(/« /g, '« ');
+  const deep = v => typeof v === 'string' ? fix(v)
+    : typeof v === 'function' ? (...a) => fix(v(...a))
+    : Array.isArray(v) ? v.map(deep)
+    : v && typeof v === 'object' ? Object.fromEntries(Object.entries(v).map(([k, x]) => [k, deep(x)]))
+    : v;
+  I18N.fr = deep(I18N.fr);
+})();
+
+let lang = 'en';
+const t = k => I18N[lang][k] ?? I18N.en[k];
+const nm = key => t('m')[key].name;
+const ptext = p => t('prop')[p.tpl](p);
+const rint = n => Math.floor(Math.random() * n);
+
+// Tables indexed across a mid-game switch must line up.
+for (const [a, b] of [[EN_GIVEN, FR_GIVEN], [EN_SILLY, FR_SILLY], [EN_NG, FR_NG], [EN_BLYTHE, FR_BLYTHE],
+  ...['shrugs', 'lectures', 'clouds', 'items', 'memberSay', 'preamble', 'hotkeys'].map(k => [I18N.en[k], I18N.fr[k]]),
+  ...MEMBERS.map(m => [I18N.en.m[m.key].off, I18N.fr.m[m.key].off])]) {
+  if (a.length !== b.length) console.error('i18n: a table differs in length');
+}
+
+let S;
+const C = Kit.tokens(['sky-hi', 'sky-lo', 'cloud', 'cloud-shade', 'frame', 'roof', 'ink', 'muted', 'panel', 'accent']);
+const view = Kit.canvas($('#sky'));
+
+function fresh(best) {
+  return {
+    phase: 'title', itemNo: 3, ci: -1, mi: -1, item: null, floor: [], motion: null, sel: -1,
+    spawnT: 0, disruptT: 9, named: 0, lost: 0, minuted: 0, inq: 0, best: best || 0, t: 0,
+    members: MEMBERS.map(m => ({ ...m, st: 'here', t: 0, line: 'here', vote: null })),
+    skyClouds: [], sub: 0, debate: 0, ending: null, closing: false, seq: 0, timers: [], wrongWarned: false,
+    rec: null, say: null,
+  };
+}
+function later(sec, fn) { S.timers.push({ t: sec, fn }); }
+const mem = key => S.members.find(m => m.key === key);
+const here = () => S.members.filter(m => m.st === 'here');
+const quorate = () => here().length >= QUORUM;
+// The room line and the Chair's record are what is showing now, so they are kept as functions
+// and re-rendered on a language switch. The minutes are a log and stay as typed.
+function sayRoom(fn) { S.say = fn; renderSay(); }
+function renderSay() { $('#room-say').textContent = S.say ? S.say() : ''; }
+function record(fn) { S.rec = fn; renderRecord(); }
+function renderRecord() { $('#record').innerHTML = S.rec ? S.rec() : ''; }
+
+// The minutes: numbered items and sub-items, typed in as they happen.
+function minute(text, cls = '') {
+  const p = document.createElement('p');
+  p.className = cls + ' new';
+  p.innerHTML = text;
+  const body = $('#min-body');
+  body.appendChild(p);
+  body.scrollTop = body.scrollHeight;
+  setTimeout(() => p.classList.remove('new'), 2200);
+}
+function minuteItem(title) { S.itemNo++; S.sub = 0; minute(`<span class="n">${S.itemNo}.</span>${title}`, 'h'); }
+function minuteSub(text) { S.sub++; minute(`<span class="n">${S.itemNo}.${S.sub}</span>${text}`); }
+function writePreamble() {
+  $('#min-body').innerHTML = '';
+  t('preamble').forEach((line, i) => minute(`<span class="n">${i + 1}.</span>${line}`, 'h'));
+}
+
+const lineText = x => typeof x.line === 'object' ? ptext(x.line) : t('lines')[x.line];
+function renderSeats() {
+  const keys = t('hotkeys');
+  $('#seats').innerHTML = S.members.map((m, i) => {
+    const v = m.vote ? ` voted-${m.vote}` : '';
+    const hand = m.vote ? `<span class="hand">${t('hands')[m.vote]}</span>` : '';
+    const line = lineText(m), info = t('m')[m.key];
+    return `<button class="seat ${m.st}${v}" data-key="${m.key}" aria-label="${t('seatAria')(info.name, line)}"><kbd>${keys[i].toUpperCase()}</kbd><b>${info.name}</b><small>${info.role}</small><span class="st">${line}</span>${hand}</button>`;
+  }).join('');
+}
+function renderFloor() {
+  const busy = S.debate > 0 || S.motion && (S.motion.stage === 'voting' || S.motion.stage === 'carried');
+  $('#floor').innerHTML = S.floor.length ? S.floor.map((p, i) =>
+    `<button class="motion${S.motion && S.motion.p === p ? ' sel' : ''}" data-i="${i}" ${busy && !(S.motion.p === p) ? 'disabled' : ''}><small>${t('moves')(i + 1, nm(p.by))}</small><span>${ptext(p)}</span></button>`).join('')
+    : `<p class="floor-empty">${S.phase === 'clouds' || S.phase === 'members' || S.phase === 'chair' ? t('floorQuiet') : t('floorEmpty')}</p>`;
+}
+function renderQuorum() {
+  const n = here().length, el = $('#quorum');
+  el.classList.toggle('no', n < QUORUM);
+  el.textContent = n < QUORUM ? t('quorumNo')(n, Math.max(0, Math.ceil(INQUORATE_MAX - S.inq))) : t('quorumOk')(n);
+}
+function renderGavel() {
+  const g = $('#gavel'), m = S.motion, lab = $('#gavel-label');
+  let text = 'put', on = false, hot = false;
+  const active = ['clouds', 'members', 'chair'].includes(S.phase) && !S.closing;
+  if (!active) text = 'order';
+  else if (!m) text = 'choose';
+  else if (m.stage === 'moved') text = 'seconder';
+  else if (m.stage === 'seconded') { text = 'put'; on = true; }
+  else if (m.stage === 'voting') text = 'counting';
+  else if (m.stage === 'carried') { text = 'bang'; on = true; hot = true; }
+  lab.textContent = t('gavel')[text];
+  g.disabled = !on;
+  g.classList.toggle('hot', hot);
+}
+function renderItem() {
+  const it = S.item;
+  let title = t('notOpened'), sub = '';
+  if (S.phase === 'sky') { title = t('skyItem')(S.skyNo); sub = t('skyGenus'); }
+  else if (it && it.kind === 'cloud') {
+    const c = CLOUDS[it.ci], loc = t('clouds')[it.ci];
+    title = t('itemCloud')(it.no, c.genus, loc.place);
+    sub = t('itemSub')(c.genus, c.species, GENERA[c.genus].ab, loc.note);
+  } else if (it && it.kind === 'member') {
+    const d = MEMBER_ITEMS[it.mi], loc = t('items')[it.mi];
+    title = t('itemMember')(it.no, nm(d.who));
+    sub = t('itemMemberSub')(d.genus, GENERA[d.genus].ab, loc.note, loc.leave);
+  } else if (it && it.kind === 'chair') { title = t('itemChair')(it.no); sub = t('itemChairSub'); }
+  $('#item-title').innerHTML = title;
+  $('#item-genus').textContent = sub;
+}
+function renderAll() { renderSeats(); renderFloor(); renderQuorum(); renderGavel(); renderItem(); }
+
+// Motions from the floor. A good one names the right genus; Mr Pask's never name any genus.
+function propose() {
+  const it = S.item;
+  if (!it || (S.floor.length >= 3 && S.motion)) return;
+  const avail = here().filter(m => !(it.target && m.key === it.target));
+  if (!avail.length) return;
+  // who catches the Chair's eye: the keen and the self-interested, mostly
+  const keen = { pask: 1.6, blythe: 1.4, ng: 1, ferris: 1, okonkwo: .7, halloran: .8 };
+  let r = Math.random() * avail.reduce((a, x) => a + keen[x.key], 0), by = avail[0];
+  for (const x of avail) { r -= keen[x.key]; if (r <= 0) { by = x; break; } }
+  const p = makeProposal(by.key, it);
+  // the same name in both languages is the same recipe, whoever moved it
+  p.id = [p.tpl, p.i, p.G, p.sp, p.l, p.who, p.tpl === 'chair' ? p.by : ''].join('|');
+  if (S.floor.some(q => q.id === p.id)) return;
+  // the oldest motion that is not before the committee drops off the end
+  if (S.floor.length >= 3) {
+    const idx = S.floor.findIndex(q => !(S.motion && S.motion.p === q));
+    S.floor.splice(idx, 1);
+  }
+  S.floor.push(p);
+  renderFloor();
+}
+function makeProposal(by, it) {
+  const G = it.genus;
+  const wrongG = Kit.pick(Object.keys(GENERA).filter(g => g !== G));
+  const i = rint(N_GIVEN);
+  if (it.kind === 'chair') return { by, tpl: 'chair', q: 'apt' };
+  if (it.kind === 'member') return memberProposal(by, it, wrongG);
+  const roll = Math.random();
+  switch (by) {
+    case 'ferris': return roll < .55 ? { by, tpl: 'givenThe', i, G, q: 'apt' } : roll < .8 ? { by, tpl: 'little', i, q: 'silly' } : { by, tpl: 'givenThe', i, G: wrongG, q: 'wrong' };
+    case 'halloran': return roll < .9 && it.species ? { by, tpl: 'latinSp', G, sp: it.species, l: rint(LATIN.length), q: 'apt' } : { by, tpl: 'latin', G, l: rint(LATIN.length), q: 'apt' };
+    case 'ng': return roll < .3 ? { by, tpl: 'econ', G, q: 'apt' } : roll < .85 ? { by, tpl: 'ngSilly', i: rint(N_NG), q: 'silly' } : { by, tpl: 'pecun', G: wrongG, q: 'wrong' };
+    case 'blythe': return roll < .6 ? { by, tpl: 'blythe', i: rint(N_BLYTHE), G, q: 'self' } : roll < .8 ? { by, tpl: 'givenThe', i, G: wrongG, q: 'wrong' } : { by, tpl: 'givenThe', i, G, q: 'apt' };
+    case 'pask': return roll < .7 ? { by, tpl: 'silly', i: rint(N_SILLY), q: 'silly' } : roll < .9 ? { by, tpl: 'sillyThe', i: rint(N_SILLY), G: wrongG, q: 'wrong' } : { by, tpl: 'sillyThe', i: rint(N_SILLY), G, q: 'apt' };
+    default: return roll < .6 ? { by, tpl: 'givenThe', i, G, q: 'apt' } : { by, tpl: 'givenThe', i, G: wrongG, q: 'wrong' };
+  }
+}
+function memberProposal(by, it, wrongG) {
+  const who = it.target, roll = Math.random();
+  switch (by) {
+    case 'halloran': return { by, tpl: 'surname', who, G: it.genus, q: 'apt' };
+    case 'ferris': return roll < .8 ? { by, tpl: 'firstThe', who, G: it.genus, q: 'apt' } : { by, tpl: 'dear', who, q: 'silly' };
+    case 'pask': return roll < .7 ? { by, tpl: 'big', who, q: 'silly' } : { by, tpl: 'firstThe', who, G: wrongG, q: 'wrong' };
+    case 'blythe': return { by, tpl: 'blythe', i: 0, q: 'self' };
+    case 'ng': return roll < .6 ? { by, tpl: 'firstThe', who, G: it.genus, q: 'apt' } : { by, tpl: 'ngSilly', i: 4, q: 'silly' };
+    default: return roll < .75 ? { by, tpl: 'firstThe', who, G: it.genus, q: 'apt' } : { by, tpl: 'lastThe', who, G: wrongG, q: 'wrong' };
+  }
+}
+
+function recognise(i) {
+  if (!['clouds', 'members', 'chair'].includes(S.phase) || S.closing) return;
+  const p = S.floor[i];
+  if (!p) return;
+  if (S.motion && S.motion.stage !== 'moved' && S.motion.stage !== 'seconded' || S.debate > 0) return;
+  S.motion = { p, stage: 'moved', tries: 0, t: Kit.rnd(1.1, 1.9), seconder: null };
+  record(() => t('recognise')(nm(p.by), ptext(p)));
+  renderFloor(); renderGavel();
+}
+
+function trySecond() {
+  const m = S.motion, p = m.p;
+  const pool = here().filter(x => x.key !== p.by && !(S.item.target && x.key === S.item.target));
+  const yes = pool.filter(x => Math.random() < (p.q === 'self' && x.key === 'blythe' ? 1 : TASTE[x.key][p.q]));
+  if (yes.length) {
+    m.seconder = Kit.pick(yes).key;
+    m.stage = 'seconded';
+    record(() => t('seconded')(nm(p.by), nm(m.seconder), ptext(p)));
+    renderGavel();
+    return;
+  }
+  m.tries++;
+  if (m.tries >= 3) {
+    minuteSub(t('fellMin')(nm(p.by), ptext(p)));
+    const s = rint(4);
+    record(() => t('fellRec')(t('shrugs')[s]));
+    dropMotion();
+  } else { m.t = 1.4; const tries = m.tries; record(() => t('seek')(ptext(p), nm(p.by), tries)); }
+}
+
+function dropMotion() {
+  if (S.motion) S.floor = S.floor.filter(q => q !== S.motion.p);
+  S.motion = null;
+  S.members.forEach(x => { x.vote = null; });
+  renderAll();
+}
+
+function mainAction() {
+  const m = S.motion;
+  if (!m || S.closing) return;
+  if (m.stage === 'seconded') putQuestion();
+  else if (m.stage === 'carried') bangGavel();
+}
+
+function putQuestion() {
+  const m = S.motion;
+  if (!quorate()) { record(() => t('recInq')); return; }
+  if (m.p.q === 'wrong' && mem('halloran').st === 'here') {
+    const G = S.item.genus, p = m.p, l = rint(4);
+    minuteSub(t('pointMin')(ptext(p)));
+    record(() => t('pointRec')(G, t('lectures')[l]));
+    dropMotion();
+    S.debate = 5;
+    return;
+  }
+  m.stage = 'voting';
+  m.t = VOTE_COUNT;
+  record(() => t('question')(ptext(m.p)));
+  // hands go up one at a time while the count runs
+  const voters = here().filter(x => !(S.item.target && x.key === S.item.target));
+  m.votes = voters.map(x => {
+    let v;
+    if (x.key === m.p.by || x.key === m.seconder) v = 'for';
+    else { const r = Math.random(), want = m.p.q === 'self' && x.key === 'blythe' ? 1 : TASTE[x.key][m.p.q]; v = r < want ? 'for' : r < want + .1 ? 'abstain' : 'against'; }
+    return { key: x.key, v };
+  });
+  m.votes.forEach((vv, i) => later(VOTE_COUNT * (i + 1) / (m.votes.length + 1), () => { if (S.motion === m) { const x = mem(vv.key); if (x.st === 'here') x.vote = vv.v; renderSeats(); } }));
+  renderGavel();
+}
+
+function countVotes() {
+  const m = S.motion;
+  const live = m.votes.filter(v => mem(v.key).st === 'here');
+  const f = live.filter(v => v.v === 'for').length, a = live.filter(v => v.v === 'against').length, ab = live.filter(v => v.v === 'abstain').length;
+  m.tally = `${f}–${a}–${ab}`;
+  if (f > a) {
+    m.stage = 'carried';
+    m.t = HANDS;
+    record(() => t('carried')(m.tally));
+  } else {
+    minuteSub(t('lostMin')(ptext(m.p), nm(m.p.by), m.tally));
+    const r = rint(4), by = m.p.by;
+    record(() => t('lostRec')(m.tally, f === a, nm(by), r));
+    dropMotion();
+    S.debate = 2.5;
+    return;
+  }
+  renderGavel();
+}
+
+function bangGavel() {
+  const m = S.motion;
+  if (mem('okonkwo').st !== 'here') {
+    record(() => t('bangNoMin'));
+    return;
+  }
+  const it = S.item, p = m.p;
+  m.stage = 'done';
+  S.members.forEach(x => { x.vote = null; });
+  it.name = p;
+  it.done = true;
+  if (it.kind === 'cloud') {
+    S.named++;
+    minuteSub(t('resolvedMin')(it.genus, t('clouds')[it.ci].place, ptext(p), nm(p.by), nm(m.seconder), m.tally));
+    const r = rint(5);
+    record(() => t('resolvedRec')(ptext(p), r));
+    S.motion = null; S.floor = [];
+    renderAll();
+    later(2.0, nextItem);
+  } else if (it.kind === 'member') {
+    const x = mem(it.target);
+    x.st = 'named'; x.line = p;
+    minuteSub(t('memberMin')(nm(x.key), ptext(p), m.tally));
+    record(() => t('memberRec')(nm(x.key), ptext(p)));
+    S.skyClouds.push(personCloud(p));
+    S.motion = null; S.floor = [];
+    renderAll();
+    later(2.2, nextItem);
+  } else {
+    S.motion = null;
+    minuteSub(t('chairMin')(ptext(p), m.tally));
+    finish('named', p);
+  }
+}
+
+// line is a key into I18N lines, or a motion once a member has been named
+function setStatus(x, st, line, t) { x.st = st; x.line = line; x.t = t || 0; x.vote = null; }
+
+function clickMember(key) {
+  const x = mem(key);
+  if (!x || !['clouds', 'members', 'chair'].includes(S.phase)) return;
+  if (x.st === 'off') { setStatus(x, 'here', 'here'); sayRoom(() => t('orderOrder')(nm(key))); }
+  else if (x.st === 'away') { x.line = 'sent'; x.t = 2.4; x.sent = true; sayRoom(() => t('sendFor')(nm(key))); }
+  renderSeats(); renderQuorum();
+}
+
+// Somebody drifts off topic or leaves the room, every few seconds.
+function disrupt() {
+  const pool = here().filter(x => !(S.item && x.key === S.item.target));
+  const out = S.members.filter(x => x.st === 'off' || x.st === 'away').length;
+  if (out >= 2 || !pool.length) return;
+  const weights = { ferris: 1, halloran: 1.2, ng: 1, blythe: 1.6, pask: 1.8, okonkwo: .5 };
+  let r = Math.random() * pool.reduce((a, x) => a + weights[x.key], 0), x = pool[0];
+  for (const c of pool) { r -= weights[c.key]; if (r <= 0) { x = c; break; } }
+  const key = x.key;
+  if (Math.random() < .58) {
+    const i = rint(I18N.en.m[key].off.length);
+    setStatus(x, 'off', 'off', 15);
+    sayRoom(() => t('offSay')(nm(key), t('m')[key].off[i]));
+  } else { setStatus(x, 'away', 'away', 14); x.sent = false; sayRoom(() => t('m')[key].away); }
+  renderSeats(); renderQuorum();
+}
+
+function nextItem() {
+  if (S.phase === 'end') return;
+  S.motion = null; S.floor = []; S.closing = false; S.debate = 0;
+  if (S.phase === 'clouds' && S.ci < CLOUDS.length - 1) return startCloud(S.ci + 1);
+  if (S.phase === 'clouds') return skyIsClear();
+  if (S.phase === 'members' && S.mi < MEMBER_ITEMS.length - 1) return startMember(S.mi + 1);
+  if (S.phase === 'members') return startChair();
+}
+
+function startCloud(i) {
+  S.phase = 'clouds';
+  S.ci = i;
+  const c = CLOUDS[i];
+  S.item = { kind: 'cloud', ci: i, no: S.itemNo + 1, genus: c.genus, species: c.species, life: c.life, max: c.life,
+    shape: c.shape || c.genus, seed: Math.random() * 1000, name: null };
+  minuteItem(t('minCloud')(c.genus, t('clouds')[i].place, `${GENERA[c.genus].ab}${c.species ? ' ' + (c.sab || c.species.slice(0, 3)) : ''}`));
+  S.spawnT = 2.6;
+  record(() => t('recCloud'));
+  renderAll();
+}
+
+function fillSky() { $('#sky-text').textContent = t('skyText')(S.named, S.lost); }
+function skyIsClear() {
+  S.phase = 'sky';
+  S.item = null;
+  minuteItem(t('minSky'));
+  S.skyNo = S.itemNo;
+  minuteSub(t('minSkySub'));
+  fillSky();
+  record(() => t('recSky'));
+  renderAll();
+  Kit.show($('#skyclear'));
+}
+
+function startMember(i) {
+  Kit.show(null);
+  S.phase = 'members';
+  S.mi = i;
+  const d = MEMBER_ITEMS[i], x = mem(d.who);
+  // the subject of the item cannot also be off arguing about the hedge
+  setStatus(x, 'here', 'under');
+  S.item = { kind: 'member', mi: i, no: S.itemNo + 1, target: d.who, genus: d.genus, life: d.life, max: d.life, name: null };
+  minuteItem(t('minMember')(nm(d.who)));
+  S.spawnT = 1.2;
+  S.disruptT = Math.max(S.disruptT, 6);
+  sayRoom(() => t('memberSay')[i]);
+  record(() => t('recMember')(nm(d.who)));
+  renderAll();
+}
+
+function startChair() {
+  S.phase = 'chair';
+  S.item = { kind: 'chair', no: S.itemNo + 1, genus: 'Cirrus', life: CHAIR_LIFE, max: CHAIR_LIFE, name: null };
+  minuteItem(t('minChair'));
+  S.spawnT = 0.6;
+  $('#aob').hidden = false;
+  sayRoom(() => t('chairSay'));
+  record(() => t('recChair'));
+  renderAll();
+}
+
+// "Any other business?": the meeting closes, and the minutes are put for approval.
+function anyOtherBusiness() {
+  if (S.phase !== 'chair' || S.closing) return;
+  if (!quorate()) { record(() => t('recAobInq')); return; }
+  S.closing = true;
+  S.motion = null;
+  $('#aob').hidden = true;
+  record(() => t('recAob'));
+  minuteItem(t('minAob'));
+  renderAll();
+  later(1.2, () => {
+    record(() => t('recAob2'));
+    minuteSub(t('minNone'));
+  });
+  later(2.6, () => {
+    if (S.named < PASS_MARK) return finish('dissolved', 'thin');
+    finish('approved');
+  });
+}
+
+function itemExpired() {
+  const it = S.item;
+  it.done = true;
+  it.evaporated = true;
+  S.debate = 0;
+  S.motion = null; S.floor = [];
+  S.members.forEach(x => { x.vote = null; });
+  if (it.kind === 'cloud') {
+    S.lost++;
+    minuteSub(t('evapMin'));
+    const r = rint(4), G = it.genus;
+    record(() => t('evapRec')(G, r));
+    renderAll();
+    if (S.lost >= LOSE_CLOUDS) return finish('dissolved', 'clouds');
+    later(1.8, nextItem);
+  } else if (it.kind === 'member') {
+    const x = mem(it.target);
+    setStatus(x, 'gone', 'gone');
+    minuteSub(t('goneMin')(nm(x.key)));
+    record(() => t('goneRec')(nm(x.key)));
+    renderAll();
+    later(1.8, nextItem);
+  } else {
+    finish('named', { by: 'halloran', tpl: 'chair', q: 'apt' }, true);
+  }
+}
+
+// The end card reads only S, so a language switch can rebuild it.
+function fillEnd() {
+  const E = t('end'), kind = S.ending, detail = S.detail;
+  if (kind === 'approved') {
+    $('#end-meta').textContent = E.approvedMeta(S.endNo + 1);
+    $('#end-title').textContent = E.approvedTitle;
+    $('#end-sub').textContent = E.approvedSub;
+    $('#end-minute').textContent = E.approvedMinute(S.named);
+  } else if (kind === 'dissolved') {
+    $('#end-meta').textContent = E.dissolvedMeta;
+    $('#end-title').textContent = E.dissolvedTitle;
+    $('#end-sub').textContent = detail === 'clouds' ? E.subClouds : detail === 'thin' ? E.subThin : E.subInq;
+    $('#end-minute').textContent = detail === 'thin' ? E.minuteThin(S.named) : E.minuteDissolved;
+  } else {
+    const name = ptext(detail);
+    $('#end-meta').textContent = E.namedMeta(S.endNo, S.endSub);
+    $('#end-title').textContent = E.namedTitle(name);
+    $('#end-sub').textContent = E.namedSub;
+    $('#end-minute').textContent = E.namedMinute(name);
+  }
+  $('#end-stat').textContent = t('stat')(S.named, S.lost, Math.floor(S.t / 60), Math.floor(S.t % 60)) + (S.best ? t('statBest')(S.best) : '');
+}
+
+function finish(kind, detail, acclaim) {
+  if (S.phase === 'end') return;
+  S.phase = 'end';
+  S.ending = kind;
+  S.detail = detail;
+  S.motion = null;
+  $('#aob').hidden = true;
+  S.best = Math.max(S.best, S.named);
+  if (kind === 'approved') {
+    minuteSub(t('end').approvedMin);
+    $('#stamp').hidden = false;
+  } else if (kind === 'named') {
+    if (acclaim) minuteSub(t('acclaimMin')(ptext(detail)));
+    S.skyClouds.push(personCloud(detail, true));
+  }
+  S.endNo = S.itemNo; S.endSub = S.sub;
+  fillEnd();
+  record(() => t('end')[kind === 'approved' ? 'recApproved' : kind === 'named' ? 'recNamed' : 'recDissolved']);
+  renderAll();
+  later(Kit.reduce ? 0.3 : kind === 'named' ? 2.4 : 1.4, () => Kit.show($('#end')));
+}
+
+// The sky: a sash window onto the town, with whatever is on the agenda drifting across it.
+function personCloud(p, chair) {
+  return { p, x: chair ? 0.45 : 0.35 + Math.random() * 0.2, y: chair ? 0.75 : 0.6, vy: -0.035, vx: 0.012, person: true, chair };
+}
+
+function puff(cx, x, y, r) { cx.moveTo(x + r, y); cx.arc(x, y, r, 0, Math.PI * 2); }
+function seeded(seed) { let s = seed; return () => { s = (s * 9301 + 49297) % 233280; return s / 233280; }; }
+
+function drawCloud(cx, shape, x, y, k, seed, alpha) {
+  const rnd = seeded(Math.floor(seed));
+  cx.globalAlpha = alpha;
+  const layers = [[C['cloud-shade'], 3 * k], [C.cloud, 0]];
+  for (const [col, dy] of layers) {
+    cx.fillStyle = col; cx.strokeStyle = col;
+    cx.beginPath();
+    if (shape === 'Cumulus' || shape === 'person') {
+      if (shape === 'person') { puff(cx, x, y - 34 * k, 13 * k); for (let i = 0; i < 5; i++) puff(cx, x + (i - 2) * 9 * k, y + dy - 6 * k + Math.abs(i - 2) * 3 * k, 14 * k); }
+      else { for (let i = 0; i < 7; i++) puff(cx, x + (i - 3) * 13 * k, y + dy - (3 - Math.abs(i - 3)) * 8 * k, (14 + rnd() * 10) * k); cx.rect(x - 44 * k, y + dy - 4 * k, 88 * k, 14 * k); }
+    } else if (shape === 'Stratus') {
+      for (let i = 0; i < 16; i++) puff(cx, x + (i - 7.5) * 16 * k, y + dy + rnd() * 4 * k, (11 + rnd() * 5) * k);
+    } else if (shape === 'Stratocumulus') {
+      for (let i = 0; i < 9; i++) puff(cx, x + (i - 4) * 22 * k, y + dy + (i % 2) * 5 * k, (13 + rnd() * 6) * k);
+    } else if (shape === 'Altocumulus') {
+      for (let j = 0; j < 3; j++) cx.ellipse(x, y + dy + j * 7 * k - 7 * k, (70 - j * 14) * k, (8 + j) * k, 0, 0, Math.PI * 2);
+    } else if (shape === 'Cumulonimbus') {
+      for (let i = 0; i < 6; i++) puff(cx, x + (rnd() - .5) * 40 * k, y + dy - i * 16 * k, (20 - i) * k);
+      cx.ellipse(x + 20 * k, y + dy - 92 * k, 80 * k, 12 * k, -0.05, 0, Math.PI * 2);
+    } else if (shape === 'Cirrocumulus') {
+      for (let j = 0; j < 4; j++) for (let i = 0; i < 12; i++) puff(cx, x + (i - 6) * 11 * k + j * 4 * k, y + dy + j * 8 * k, (3.2 + rnd() * 1.5) * k);
+    }
+    cx.fill();
+    if (shape === 'Cirrus') {
+      cx.lineWidth = 2.2 * k; cx.lineCap = 'round';
+      for (let i = 0; i < 6; i++) {
+        const ox = x + (i - 3) * 22 * k, oy = y + dy + rnd() * 10 * k;
+        cx.beginPath(); cx.moveTo(ox - 30 * k, oy + 8 * k); cx.quadraticCurveTo(ox, oy + 6 * k, ox + 14 * k, oy - 6 * k); cx.quadraticCurveTo(ox + 18 * k, oy - 12 * k, ox + 12 * k, oy - 14 * k); cx.stroke();
+      }
+    }
+  }
+  cx.globalAlpha = 1;
+}
+
+function drawSky(dt) {
+  const { cx, W, H } = view;
+  if (!W) return;
+  const g = cx.createLinearGradient(0, 0, 0, H);
+  g.addColorStop(0, C['sky-hi']); g.addColorStop(1, C['sky-lo']);
+  cx.fillStyle = g; cx.fillRect(0, 0, W, H);
+  const k = Math.min(1.3, Math.max(0.55, W / 760));
+  const it = S.item;
+  if (it && it.kind === 'cloud' && !it.evaporated) {
+    const p = 1 - it.life / it.max;
+    const x = it.done ? (it.doneX = (it.doneX ?? (-0.15 + p * 1.3)) + dt * 0.08) : -0.15 + p * 1.3;
+    const alpha = it.done ? 1 : Math.min(1, it.life / (it.max * 0.25));
+    drawCloud(cx, it.shape, x * W, GENERA[it.genus].alt * H, k, it.seed, Math.max(0.05, alpha));
+    if (it.name) label(cx, ptext(it.name), x * W, GENERA[it.genus].alt * H + 30 * k);
+  }
+  // named members (and perhaps the Chair) drifting up and away
+  for (const c of S.skyClouds) {
+    if (!Kit.reduce) { c.y = Math.max(0.12, c.y + c.vy * dt); c.x += c.vx * dt; }
+    else c.y = 0.3;
+    drawCloud(cx, 'person', c.x * W, c.y * H, k * (c.chair ? 1.15 : 0.9), 3, 1);
+    label(cx, ptext(c.p), c.x * W, c.y * H + 22 * k);
+  }
+  if (it && it.kind === 'member' && !it.done) {
+    cx.fillStyle = C.cloud; cx.globalAlpha = .7;
+    cx.font = `italic ${15 * k}px ${getComputedStyle(document.documentElement).getPropertyValue('--f-display')}`;
+    cx.textAlign = 'center'; cx.fillText(t('noClouds'), W * 0.25, H * 0.26, W * 0.42); cx.globalAlpha = 1;
+  }
+  // the town: bus station, gasworks, cathedral spire, leisure centre
+  cx.fillStyle = C.roof;
+  cx.beginPath();
+  const base = H;
+  cx.moveTo(0, base);
+  const sky = [[0, .9], [.08, .9], [.08, .84], [.2, .84], [.2, .9], [.28, .9], [.28, .78], [.3, .78], [.3, .9], [.36, .9], [.36, .86], [.42, .86], [.47, .62], [.52, .86], [.6, .86], [.6, .92], [.7, .92], [.7, .83], [.86, .83], [.86, .9], [1, .9], [1, 1]];
+  for (const [fx, fy] of sky) cx.lineTo(fx * W, fy * H);
+  cx.lineTo(0, base);
+  cx.fill();
+  // gasholder ring
+  cx.strokeStyle = C.roof; cx.lineWidth = 2;
+  cx.strokeRect(0.215 * W, 0.8 * H, 0.05 * W, 0.1 * H);
+  // the sash window
+  cx.fillStyle = C.frame;
+  const bar = Math.max(6, 9 * k);
+  cx.fillRect(W / 2 - bar / 2, 0, bar, H);
+  cx.fillRect(0, H * 0.48 - bar / 2, W, bar * 1.3);
+  cx.fillRect(0, 0, W, bar * .7); cx.fillRect(0, H - bar * .7, W, bar * .7);
+  cx.fillRect(0, 0, bar * .7, H); cx.fillRect(W - bar * .7, 0, bar * .7, H);
+}
+
+// French names run longer ("Le Cumulonimbus du conseiller Blythe"), so the label is capped at
+// the window width and fillText squeezes anything wider.
+function label(cx, text, x, y) {
+  const k = Math.min(1.2, Math.max(0.7, view.W / 760));
+  const max = view.W - 24;
+  cx.font = `italic ${18 * k}px ${getComputedStyle(document.documentElement).getPropertyValue('--f-display')}`;
+  cx.textAlign = 'center'; cx.textBaseline = 'middle';
+  const w = Math.min(max + 14 * k, cx.measureText(text).width + 14 * k);
+  cx.fillStyle = C.panel; cx.globalAlpha = .92;
+  cx.fillRect(x - w / 2, y - 11 * k, w, 22 * k);
+  cx.globalAlpha = 1; cx.fillStyle = C.ink;
+  cx.fillText(text, x, y + 1, max);
+}
+
+let lastLife = -1;
+function step(dt) {
+  const active = ['clouds', 'members', 'chair'].includes(S.phase);
+  if (S.phase !== 'title' && S.phase !== 'end') S.t += dt;
+  for (let i = 0; i < S.timers.length; i++) {
+    const q = S.timers[i];
+    q.t -= dt;
+    if (q.t <= 0) { S.timers.splice(i--, 1); q.fn(); }
+  }
+  if (active && S.item && !S.item.done && !S.closing) {
+    const it = S.item;
+    it.life -= dt;
+    if (it.life <= 0) { it.life = 0; itemExpired(); }
+    S.spawnT -= dt;
+    if (S.spawnT <= 0 && S.phase !== 'end') { propose(); S.spawnT = S.phase === 'chair' ? Kit.rnd(1.6, 2.4) : Kit.rnd(3.2, 4.6); }
+    S.disruptT -= dt;
+    if (S.disruptT <= 0) { disrupt(); S.disruptT = S.phase === 'clouds' ? Kit.rnd(5, 8) : Kit.rnd(9, 13); }
+  }
+  if (active) {
+    let changed = false;
+    for (const x of S.members) {
+      if ((x.st === 'off' || x.st === 'away') && (x.t -= dt) <= 0) {
+        setStatus(x, 'here', 'here'); x.sent = false; changed = true;
+        const key = x.key;
+        sayRoom(() => t('back')(nm(key), key === 'pask'));
+      }
+    }
+    if (changed) { renderSeats(); renderQuorum(); }
+    // inquorate too long and the committee is dissolved
+    if (!quorate() && !S.closing) { S.inq += dt; if (S.inq >= INQUORATE_MAX) finish('dissolved', 'inquorate'); }
+    else S.inq = Math.max(0, S.inq - dt * 2);
+    if (S.debate > 0 && (S.debate -= dt) <= 0) { record(() => t('subsides')); renderFloor(); }
+    const m = S.motion;
+    if (m && m.stage === 'moved' && (m.t -= dt) <= 0) trySecond();
+    else if (m && m.stage === 'voting' && (m.t -= dt) <= 0) countVotes();
+    else if (m && m.stage === 'carried' && (m.t -= dt) <= 0) {
+      record(() => t('handsDown'));
+      m.stage = 'seconded';
+      S.members.forEach(x => { x.vote = null; });
+      renderSeats(); renderGavel();
+    }
+    renderQuorum();
+  }
+  if (S.item) {
+    const f = S.item.evaporated ? 0 : S.item.done ? 1 : Kit.clamp(S.item.life / S.item.max, 0, 1);
+    if (Math.abs(f - lastLife) > 0.002) { const el = $('#life'); el.style.transform = `scaleX(${f})`; el.classList.toggle('low', f < .3); lastLife = f; }
+  }
+  drawSky(dt);
+}
+
+function reset(best) {
+  S = fresh(best);
+  $('#stamp').hidden = true;
+  $('#aob').hidden = true;
+  writePreamble();
+  record(() => t('recordIdle'));
+  sayRoom(null);
+  $('#best-line').hidden = !S.best;
+  $('#best-line').textContent = t('bestLine')(S.best);
+  renderAll();
+}
+
+function openMeeting() {
+  if (S.phase !== 'title') return;
+  Kit.show(null);
+  sayRoom(() => t('opened'));
+  startCloud(0);
+}
+
+// ---- language -------------------------------------------------------------------------------
+// Static markup carries data-t (text), data-th (trusted markup from I18N) and data-ta
+// (aria-label). Script-built panels re-render from S; the minutes already typed stay as typed,
+// except the three standing items, which are re-typed while the meeting has not opened.
+function applyLang() {
+  document.documentElement.lang = lang;
+  document.title = t('docTitle');
+  for (const el of document.querySelectorAll('[data-t]')) el.textContent = t(el.dataset.t);
+  for (const el of document.querySelectorAll('[data-th]')) el.innerHTML = t(el.dataset.th);
+  for (const el of document.querySelectorAll('[data-ta]')) el.setAttribute('aria-label', t(el.dataset.ta));
+  for (const box of document.querySelectorAll('.lang')) {
+    if (!box.children.length) box.innerHTML = '<button data-lang="fr" lang="fr">FR</button><button data-lang="en" lang="en">EN</button>';
+    for (const b of box.children) b.setAttribute('aria-pressed', String(b.dataset.lang === lang));
+  }
+  if (!S) return;
+  $('#best-line').textContent = t('bestLine')(S.best);
+  if (S.phase === 'title') writePreamble();
+  renderAll(); renderRecord(); renderSay();
+  if (S.phase === 'sky') fillSky();
+  if (S.phase === 'end') fillEnd();
+}
+function setLang(l) {
+  if (!(l in I18N) || l === lang) return;
+  lang = l;
+  applyLang();
+}
+document.addEventListener('click', e => {
+  const b = e.target.closest('[data-lang]');
+  if (b) setLang(b.dataset.lang);
+});
+
+$('#start').onclick = openMeeting;
+$('#sky-go').onclick = () => { if (S.phase === 'sky') startMember(0); };
+$('#gavel').onclick = mainAction;
+$('#aob').onclick = anyOtherBusiness;
+$('#end-again').onclick = () => { reset(S.best); Kit.show($('#title')); };
+$('#seats').addEventListener('click', e => { const b = e.target.closest('.seat'); if (b) clickMember(b.dataset.key); });
+$('#floor').addEventListener('click', e => { const b = e.target.closest('.motion'); if (b) recognise(+b.dataset.i); });
+
+// On AZERTY the unshifted digit row types & é " for 1 2 3.
+const AZERTY_DIGITS = { '&': '1', 'é': '2', '"': '3' };
+Kit.keys.onPress((k, down) => {
+  if (!down) return;
+  const onButton = document.activeElement && document.activeElement.tagName === 'BUTTON';
+  if (lang === 'fr' && AZERTY_DIGITS[k]) k = AZERTY_DIGITS[k];
+  if ('123'.includes(k) && k.length === 1) recognise(+k - 1);
+  else if (k === ' ' && !onButton) mainAction();
+  else if (k === 'x') anyOtherBusiness();
+  else { const i = t('hotkeys').indexOf(k); if (i >= 0) clickMember(MEMBERS[i].key); }
+});
+
+const loop = Kit.loop(step);
+
+Kit.expose({
+  state: () => S,
+  endings: {
+    // jump() skips the clouds and the members; "Any other business?" and the vote are real
+    approved: {
+      seconds: 9,
+      jump() {
+        S.itemNo = 13; S.named = 5; S.lost = 2;
+        S.members.forEach(x => setStatus(x, 'here', 'here'));
+        setStatus(mem('ng'), 'named', { tpl: 'firstThe', who: 'ng', G: 'Stratus' });
+        setStatus(mem('blythe'), 'named', { tpl: 'surname', who: 'blythe', G: 'Cumulonimbus' });
+        startChair();
+        S.disruptT = 99;
+        setTimeout(() => $('#aob').click(), 600);
+      },
+      reached: () => S.ending === 'approved' && !$('#end').hidden,
+    },
+    // two clouds already lost; the third evaporates on its own
+    dissolved: {
+      seconds: 10,
+      jump() { S.lost = 2; startCloud(5); S.item.life = 3; S.disruptT = 99; },
+      reached: () => S.ending === 'dissolved' && !$('#end').hidden,
+    },
+    // the Chair's item runs out and the committee names the Chair by acclamation
+    named: {
+      seconds: 10,
+      jump() { S.itemNo = 13; S.named = 5; startChair(); S.item.life = 3; S.disruptT = 99; },
+      reached: () => S.ending === 'named' && !$('#end').hidden,
+    },
+  },
+});
+
+Kit.boot(data => {
+  lang = data?.lang in I18N ? data.lang : (navigator.language || '').toLowerCase().startsWith('fr') ? 'fr' : 'en';
+  reset(data.best || 0);
+  applyLang();
+  Kit.show($('#title'));
+  loop.start();
+}, () => ({ best: S ? S.best : 0, lang }));
+</script>
+</body>
+</html>

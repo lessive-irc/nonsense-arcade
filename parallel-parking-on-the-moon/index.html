@@ -1,0 +1,1667 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Parallel Parking on the Moon</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Saira+Stencil+One&family=Public+Sans:ital,wght@0,400;0,600;0,800;1,400&family=Martian+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: a lunar-orbiter photo plate of one street, seen from above. Street sign and instruments across the top, the plate in the middle, pedals underneath. The amber parking ticket is the only loud thing on the Moon. */
+:root {
+  --bg: #e4e2dc;
+  --ink: #1c1d21;
+  --muted: #625f58;
+  --accent: #e8a21a;
+  --panel: #f3f2ee;
+  --line: #1c1d2129;
+  --on-accent: #1c1d21;
+  --regolith: #c4c1b8;
+  --highland: #d4d1c9;
+  --pit: #a8a49a;
+  --track: #98948a;
+  --paint: #f8f7f3;
+  --kerb: #8d897f;
+  --car: #34566f;
+  --glass: #1c2a35;
+  --foil: #b3944a;
+  --metal: #9da2a5;
+  --solar: #3a4656;
+  --shadow: #1c1d213d;
+  --dust: #857f74;
+  --f-display: "Saira Stencil One", "Arial Narrow", Impact, sans-serif;
+  --f-body: "Public Sans", "Segoe UI", system-ui, sans-serif;
+  --f-mono: "Martian Mono", ui-monospace, Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0c0d11; --ink: #e6e4de; --muted: #9c9991; --accent: #eaa62c; --panel: #16181d; --line: #e6e4de24;
+    --on-accent: #1c1d21; --regolith: #33363d; --highland: #3e414a; --pit: #25272d; --track: #23252a; --paint: #c6c5bf;
+    --kerb: #545760; --car: #7fa3c1; --glass: #0e1317; --foil: #8d7841; --metal: #6d7378; --solar: #22303f;
+    --shadow: #00000070; --dust: #73767e;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0c0d11; --ink: #e6e4de; --muted: #9c9991; --accent: #eaa62c; --panel: #16181d; --line: #e6e4de24;
+  --on-accent: #1c1d21; --regolith: #33363d; --highland: #3e414a; --pit: #25272d; --track: #23252a; --paint: #c6c5bf;
+  --kerb: #545760; --car: #7fa3c1; --glass: #0e1317; --foil: #8d7841; --metal: #6d7378; --solar: #22303f;
+  --shadow: #00000070; --dust: #73767e;
+  color-scheme: dark;
+}
+[hidden] { display: none !important; }
+/* kit:css:begin */
+/* Arcade kit: structure only, never a look. Inlined between kit:css markers by kit/inline.mjs.
+   The game's own :root must define --bg --ink --muted --accent --panel --line (light), and
+   redefine them in both dark blocks; everything here reads those tokens. */
+*, *::before, *::after { box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  -webkit-tap-highlight-color: transparent;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+button { font: inherit; color: inherit; cursor: pointer; }
+button:disabled { cursor: default; }
+:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+canvas { display: block; max-width: 100%; touch-action: none; }
+
+/* Full-stage screens (title, twist, end). Sit inside a position:relative stage. */
+.kit-overlay {
+  position: absolute; inset: 0; z-index: 5;
+  display: grid; place-items: center; padding: 24px;
+  background: color-mix(in srgb, var(--bg) 88%, transparent);
+  overflow-y: auto;
+}
+.kit-overlay[hidden] { display: none; }
+
+/* Touch pad: shown only on coarse pointers; buttons carry data-key (see Kit.keys). */
+.kit-pad { display: none; gap: 10px; justify-content: center; padding-block: 10px; user-select: none; }
+.kit-pad [data-key] { min-width: 56px; min-height: 56px; touch-action: none; border: 1px solid var(--line); background: var(--panel); }
+@media (pointer: coarse) { .kit-pad { display: flex; } }
+
+.kit-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+
+@media (prefers-reduced-motion: reduce) {
+  .kit-deco, .kit-deco * { animation: none !important; transition: none !important; }
+}
+/* kit:css:end */
+body { font-family: var(--f-body); padding-block: 12px; overflow: hidden; }
+.app { height: 100%; display: flex; flex-direction: column; gap: 10px; max-width: 1240px; margin-inline: auto; }
+.dash { display: flex; gap: 12px; align-items: stretch; flex-wrap: wrap; }
+.sign { background: var(--ink); color: var(--bg); padding: 7px 14px 8px; border-radius: 3px; display: grid; gap: 1px; min-width: 0; flex: 1 1 280px; }
+.sign small, .sign span { font-family: var(--f-mono); font-size: 10px; letter-spacing: .08em; text-transform: uppercase; opacity: .78; }
+/* Language toggle: a small enamel plate on the street sign, in the sign's own inverted colours. */
+.sign-top { display: flex; justify-content: space-between; align-items: center; gap: 10px; min-width: 0; }
+.sign-top small { min-width: 0; }
+.lang { display: inline-flex; flex: none; border: 1px solid currentColor; border-radius: 2px; overflow: hidden; }
+.lang button { border: 0; background: transparent; color: inherit; padding: 2px 7px; font: 600 10px/1.3 var(--f-mono); letter-spacing: .08em; opacity: .7; }
+.lang button + button { border-left: 1px solid currentColor; }
+.lang button:hover { opacity: 1; }
+.lang button[aria-pressed="true"] { background: var(--bg); color: var(--ink); opacity: 1; }
+.sign strong { font-family: var(--f-display); font-weight: 400; font-size: clamp(19px, 2.6vw, 28px); line-height: 1.05; letter-spacing: .02em; text-transform: uppercase; overflow-wrap: anywhere; }
+.inst { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); flex: 2 1 520px; border: 1px solid var(--line); background: var(--panel); border-radius: 3px; }
+.inst div { padding: 6px 9px; border-left: 1px solid var(--line); display: grid; align-content: center; gap: 2px; min-width: 0; }
+.inst div:first-child { border-left: 0; }
+.inst span { font-family: var(--f-mono); font-size: 9px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.inst b { font-family: var(--f-mono); font-weight: 600; font-size: 15px; font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; }
+.inst b em { font-style: normal; font-weight: 400; font-size: 10px; color: var(--muted); margin-left: 3px; }
+.inst .warn b { color: var(--accent); }
+.stage { position: relative; flex: 1; min-height: 0; border: 1px solid var(--line); border-radius: 3px; overflow: hidden; background: var(--regolith); }
+.stage canvas { width: 100%; height: 100%; }
+.radio { position: absolute; left: 10px; right: 10px; bottom: 10px; display: flex; gap: 10px; align-items: baseline; max-width: 640px;
+  background: var(--panel); border: 1px solid var(--line); border-left: 3px solid var(--ink); padding: 7px 11px; border-radius: 2px; transition: opacity .5s; pointer-events: none; }
+.radio b { font-family: var(--f-mono); font-size: 9.5px; font-weight: 600; letter-spacing: .1em; flex: none; color: var(--muted); }
+.radio span { font-size: 14px; line-height: 1.4; text-wrap: pretty; }
+.radio.dim { opacity: .45; }
+.radio.crater { border-left-color: var(--accent); }
+.radio.crater span { font-style: italic; }
+.settle { position: absolute; left: 50%; top: 10px; transform: translateX(-50%); background: var(--panel); border: 1px solid var(--line); border-radius: 2px; padding: 6px 10px; display: grid; gap: 5px; min-width: 200px; pointer-events: none; }
+.settle span { font-family: var(--f-mono); font-size: 10px; letter-spacing: .08em; text-transform: uppercase; }
+.settle div { height: 5px; background: var(--line); }
+.settle i { display: block; height: 100%; width: 0; background: var(--accent); }
+.kit-pad.pad { display: flex; justify-content: space-between; padding: 0; gap: 8px; }
+.pad .grp { display: flex; gap: 8px; }
+.pad button { min-height: 52px; min-width: 64px; padding: 0 14px; border: 1px solid var(--line); border-radius: 3px; background: var(--panel); font: 600 13px var(--f-body); letter-spacing: .02em; display: grid; place-items: center; line-height: 1.1; }
+.pad button kbd { font-family: var(--f-mono); font-size: 9px; font-weight: 400; color: var(--muted); }
+.pad button:active, .pad button.on { background: var(--ink); color: var(--bg); }
+.pad button.on kbd { color: inherit; opacity: .7; }
+@media (pointer: coarse) { .pad button kbd { display: none; } }
+
+/* overlays */
+.kit-overlay { background: color-mix(in srgb, var(--bg) 90%, transparent); }
+.card { width: min(560px, 100%); display: grid; gap: 14px; justify-items: start; }
+.card h1 { margin: 0; font-family: var(--f-display); font-weight: 400; font-size: clamp(38px, 7.4vw, 74px); line-height: .92; text-transform: uppercase; letter-spacing: .01em; }
+.card h2 { margin: 0; font-family: var(--f-display); font-weight: 400; font-size: clamp(30px, 5.4vw, 48px); line-height: 1; text-transform: uppercase; text-wrap: balance; }
+.card p { margin: 0; font-size: 16px; line-height: 1.55; max-width: 50ch; text-wrap: pretty; }
+.card p.lede { font-size: 18px; }
+.card .small { font-family: var(--f-mono); font-size: 10.5px; letter-spacing: .06em; color: var(--muted); text-transform: uppercase; }
+.regs { margin: 0; padding: 0; list-style: none; display: grid; gap: 6px; border-top: 1px solid var(--line); padding-top: 12px; width: 100%; }
+.regs li { display: grid; grid-template-columns: 11ch 1fr; gap: 10px; font-size: 14px; line-height: 1.4; }
+.regs li b { font-family: var(--f-mono); font-size: 11px; font-weight: 600; padding-top: 2px; }
+.btn { font: 800 15px var(--f-body); letter-spacing: .02em; color: var(--bg); background: var(--ink); border: 0; border-radius: 3px; padding: 12px 20px; }
+.btn:hover { background: color-mix(in srgb, var(--ink) 85%, var(--accent)); }
+.btn.ghost { background: transparent; color: var(--ink); box-shadow: inset 0 0 0 1.5px var(--ink); }
+.row { display: flex; gap: 10px; flex-wrap: wrap; }
+.reveal-line { font-size: clamp(18px, 2.8vw, 24px) !important; line-height: 1.45 !important; min-height: 4.5em; }
+
+/* the ticket: the one loud thing */
+.slip { display: grid; gap: 14px; justify-items: center; width: min(430px, 100%); }
+.pcn { width: 100%; background: var(--accent); color: var(--on-accent); padding: 18px 18px 16px; position: relative; transform: rotate(-1.2deg);
+  box-shadow: 0 10px 24px -12px #000a; }
+.pcn::before { content: ""; position: absolute; left: 0; right: 0; top: -6px; height: 12px;
+  background: radial-gradient(circle at 6px 6px, var(--bg) 3.2px, transparent 3.6px) 0 0 / 12px 12px repeat-x; }
+.pcn header { display: grid; gap: 2px; border-bottom: 2px solid var(--on-accent); padding-bottom: 8px; margin-bottom: 8px; }
+.pcn header span, .pcn header small { font-family: var(--f-mono); font-size: 9.5px; letter-spacing: .1em; text-transform: uppercase; }
+.pcn header strong { font-family: var(--f-display); font-weight: 400; font-size: 25px; line-height: 1; text-transform: uppercase; }
+.pcn dl { margin: 0; display: grid; grid-template-columns: auto 1fr; gap: 3px 12px; font-family: var(--f-mono); font-size: 11px; line-height: 1.45; }
+.pcn dt { text-transform: uppercase; letter-spacing: .05em; opacity: .72; }
+.pcn dd { margin: 0; font-weight: 600; overflow-wrap: anywhere; }
+.pcn .remark { margin: 10px 0 0; font-size: 14px; line-height: 1.45; font-style: italic; text-wrap: pretty; }
+.pcn .grade { position: absolute; right: 14px; bottom: 12px; font-family: var(--f-display); font-size: 20px; letter-spacing: .04em; border: 2.5px solid var(--on-accent); padding: 2px 8px 1px; transform: rotate(-8deg); opacity: .85; }
+.pcn .remark { padding-right: 0; }
+.pcn .gradepad { height: 30px; }
+@media (max-width: 640px) {
+  .inst { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .inst div:nth-child(4) { border-left: 0; }
+  .inst div:nth-child(n+4) { border-top: 1px solid var(--line); }
+  .inst b { font-size: 13.5px; }
+  .sign { padding: 6px 11px 7px; }
+  .radio span { font-size: 12.5px; }
+  .pad button { min-width: 0; flex: 1; padding: 0 8px; }
+  .pad .grp { flex: 1; }
+  .regs li { grid-template-columns: 1fr; gap: 0; }
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="dash">
+    <div class="sign"><div class="sign-top"><small id="sign-kind">Lunar Parking Zone T</small><div class="lang" role="group" data-ta="langGroup" aria-label="Language"></div></div><strong id="sign-name">Mare Tranquillitatis Avenue</strong><span id="sign-regs">2 hr (Earth) · No parking in lunar night</span></div>
+    <div class="inst" aria-live="off">
+      <div><span data-t="iSpeed">Speed</span><b id="i-speed">0.0<em>km/h</em></b></div>
+      <div><span data-t="iStop">Stops in</span><b id="i-stop">0.00<em>m</em></b></div>
+      <div id="w-kerb"><span data-t="iKerb">Kerb</span><b id="i-kerb">—<em>cm</em></b></div>
+      <div id="w-ang"><span data-t="iAng">Alignment</span><b id="i-ang">—<em>°</em></b></div>
+      <div id="w-sensor"><span data-t="iSensor">Sensor</span><b id="i-sensor">clear</b></div>
+      <div id="w-bumps"><span data-t="iBumps">Bumps / tow at 6</span><b id="i-bumps">○○○○○○</b></div>
+    </div>
+  </header>
+
+  <div class="stage" id="stage">
+    <canvas id="plate" data-ta="plateAria" aria-label="Top-down view of a lunar street: your car, the kerb, and other vehicles that have been parked here since the nineteen-sixties"></canvas>
+    <div class="settle" id="settle" hidden><span id="settle-txt" data-t="settle">Setting parking brake</span><div><i id="settle-bar"></i></div></div>
+    <div class="radio dim" id="radio" aria-live="polite"><b id="radio-who">ENFORCEMENT</b><span id="radio-text">Engine off.</span></div>
+
+    <div class="kit-overlay" id="title">
+      <div class="card">
+        <div class="small" data-t="titleSmall">Lunar Parking Enforcement · Selene Municipal</div>
+        <h1 data-t="titleH">Parallel parking on the Moon</h1>
+        <p class="lede" data-t="titleLede">Lunar gravity is 1.62 m/s². Your hire car weighs a sixth of what it did on Earth and is exactly as heavy sideways. There are four spaces between here and your appointment.</p>
+        <button class="btn" id="start" data-t="startBtn">Start the engine</button>
+        <ul class="regs">
+          <li><b data-t="regKeys">Arrows/WASD</b><span data-t="regKeysT">Steer, drive, reverse. Down brakes first, then reverses.</span></li>
+          <li><b data-t="regSpace">Space</b><span data-t="regSpaceT">Brake. There is no ABS. Nothing on the Moon has ABS.</span></li>
+          <li><b data-t="regPark">To park</b><span data-t="regParkT">Inside the space, within 45 cm of the kerb and 7° of straight, then stop for 1.5 s.</span></li>
+          <li><b data-t="regBumps">Bumps</b><span data-t="regBumpsT">Six and you are towed to Mare Crisium. Contact under 0.5 m/s is a kiss, not a bump. The kerb is soft regolith and forgives up to 0.8.</span></li>
+        </ul>
+        <div class="small" data-t="titleFoot">About 4 minutes · no sound (vacuum) · the dashed outline is where you would stop if you braked now</div>
+      </div>
+    </div>
+
+    <div class="kit-overlay" id="ticket" hidden>
+      <div class="slip">
+        <article class="pcn" id="pcn"></article>
+        <button class="btn" id="pcn-next">Drive on</button>
+      </div>
+    </div>
+
+    <div class="kit-overlay" id="reveal" hidden>
+      <div class="card">
+        <div class="small" id="rev-who">The space</div>
+        <p class="reveal-line" id="rev-line"></p>
+        <div class="row" id="rev-row"><button class="btn" id="rev-next">Go on</button></div>
+      </div>
+    </div>
+
+    <div class="kit-overlay" id="end" hidden>
+      <div class="card">
+        <div class="small" id="end-kicker">Ending</div>
+        <h2 id="end-title"></h2>
+        <p class="lede" id="end-lede"></p>
+        <p id="end-body"></p>
+        <div class="slip"><article class="pcn" id="end-pcn"></article></div>
+        <button class="btn" id="again" data-t="again">Park again from the top</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="kit-pad pad" data-ta="padAria" aria-label="Pedals and steering">
+    <div class="grp">
+      <button data-key="ArrowLeft" tabindex="-1" data-th="padL">◀ Steer<kbd>← A</kbd></button>
+      <button data-key="ArrowRight" tabindex="-1" data-th="padR">Steer ▶<kbd>→ D</kbd></button>
+    </div>
+    <div class="grp">
+      <button data-key="ArrowDown" tabindex="-1" data-th="padRev">Reverse<kbd>↓ S</kbd></button>
+      <button data-key=" " tabindex="-1" data-th="padBrake">Brake<kbd>space</kbd></button>
+      <button data-key="ArrowUp" tabindex="-1" data-th="padFwd">Drive<kbd>↑ W</kbd></button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* kit:js:begin */
+// Arcade kit: the plumbing every game re-wrote by hand. Inlined between kit:js markers by
+// kit/inline.mjs, so a game stays one standalone file. Defines exactly two globals, `Kit` and
+// (once a game calls Kit.expose) `__arcade`; nothing else, because a bare top-level name can
+// collide with a window property (sandwich-diplomacy's `top()` shadowed by window.top).
+const Kit = (() => {
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const themeWatchers = [];
+  const onTheme = () => themeWatchers.forEach(f => f());
+  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', onTheme);
+  new MutationObserver(onTheme).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+
+  // Canvas code cannot read CSS variables, so mirror the named tokens into an object and
+  // re-read it whenever the theme flips: the viewer's toggle sets data-theme, the OS sets the media query.
+  function tokens(names, onChange) {
+    const C = {};
+    const read = () => {
+      const cs = getComputedStyle(document.documentElement);
+      for (const n of names) C[n] = cs.getPropertyValue('--' + n).trim();
+      onChange?.(C);
+    };
+    read();
+    themeWatchers.push(read);
+    return C;
+  }
+
+  // Keeps a canvas sharp at the device pixel ratio (capped at 2) and sized to its CSS box.
+  function canvas(el, onResize) {
+    const view = { el, cx: el.getContext('2d'), W: 0, H: 0 };
+    const fit = () => {
+      const r = el.getBoundingClientRect(), d = Math.min(2, devicePixelRatio || 1);
+      view.W = r.width; view.H = r.height;
+      el.width = Math.round(r.width * d); el.height = Math.round(r.height * d);
+      view.cx.setTransform(d, 0, 0, d, 0, 0);
+      onResize?.(view);
+    };
+    new ResizeObserver(fit).observe(el);
+    fit();
+    return view;
+  }
+
+  // step(dt) gets seconds, capped at 50 ms so a background tab or a stalled frame cannot
+  // teleport the game; the loop stops while the tab is hidden and resumes without a jump.
+  function loop(step) {
+    let last = 0, raf = 0, on = false;
+    const frame = t => {
+      const dt = last ? Math.min(0.05, (t - last) / 1000) : 0;
+      last = t;
+      step(dt);
+      if (on) raf = requestAnimationFrame(frame);
+    };
+    const ctl = {
+      start() { if (on) return; on = true; last = 0; raf = requestAnimationFrame(frame); },
+      stop() { on = false; cancelAnimationFrame(raf); },
+      get running() { return on; },
+    };
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden && on) { ctl.stop(); ctl.paused = true; }
+      else if (!document.hidden && ctl.paused) { ctl.paused = false; ctl.start(); }
+    });
+    return ctl;
+  }
+
+  // Held keys by KeyboardEvent.key, lower-cased (' ' for Space). Touch pads feed the same set:
+  // any element with data-key="<key>" inside a .kit-pad holds that key while pressed.
+  const held = new Set();
+  const pressFns = [];
+  const norm = k => (k.length === 1 ? k.toLowerCase() : k);
+  const press = (k, down) => {
+    k = norm(k);
+    if (down === held.has(k)) return;
+    down ? held.add(k) : held.delete(k);
+    pressFns.forEach(f => f(k, down));
+  };
+  const GAME_KEYS = new Set([' ', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight']);
+  addEventListener('keydown', e => {
+    if (e.target.closest?.('input, textarea, select, [contenteditable]')) return;
+    if (GAME_KEYS.has(e.key) && !e.target.closest?.('button')) e.preventDefault();
+    if (!e.repeat) press(e.key, true);
+  });
+  addEventListener('keyup', e => press(e.key, false));
+  addEventListener('blur', () => [...held].forEach(k => press(k, false)));
+  document.addEventListener('pointerdown', e => {
+    const b = e.target.closest?.('.kit-pad [data-key]');
+    if (!b) return;
+    e.preventDefault();
+    b.setPointerCapture?.(e.pointerId);
+    press(b.dataset.key, true);
+    const up = () => { press(b.dataset.key, false); b.removeEventListener('pointerup', up); b.removeEventListener('pointercancel', up); };
+    b.addEventListener('pointerup', up);
+    b.addEventListener('pointercancel', up);
+  });
+  const keys = {
+    down: k => held.has(norm(k)),
+    any: (...ks) => ks.some(k => held.has(norm(k))),
+    onPress(fn) { pressFns.push(fn); },
+  };
+
+  // The claude.ai viewer's hot-update hook: keeps `snapshot()` across a republish. Absent when
+  // self-hosted, so start() then receives {}.
+  function boot(start, snapshot) {
+    if (snapshot) window.claude?.hot?.snapshot?.(snapshot);
+    window.claude?.hot?.ready ? window.claude.hot.ready(start) : start(window.claude?.hot?.data ?? {});
+  }
+
+  // The test hook smoke.mjs drives. endings: { name: { jump(), reached(), seconds? } } where
+  // jump() may shortcut the set-up but must leave the ending's final stretch to real game
+  // logic, and reached() is true only once that ending's screen is actually showing.
+  function expose({ state, endings }) {
+    window.__arcade = {
+      get state() { return state(); },
+      endings: Object.fromEntries(Object.entries(endings).map(([k, v]) => [k, { seconds: v.seconds ?? 8 }])),
+      jump: name => endings[name].jump(),
+      reached: name => !!endings[name].reached(),
+    };
+  }
+
+  // Show one overlay and hide the others; focus its first button so Enter/Space continue.
+  function show(el) {
+    document.querySelectorAll('.kit-overlay').forEach(o => { o.hidden = o !== el; });
+    el?.querySelector('button')?.focus({ preventScroll: true });
+  }
+
+  const rnd = (a, b) => a + Math.random() * (b - a);
+  const pick = a => a[Math.floor(Math.random() * a.length)];
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+
+  return { reduce, tokens, canvas, loop, keys, boot, expose, show, rnd, pick, clamp };
+})();
+/* kit:js:end */
+
+/* sim:begin: pure physics and level data. smoke/jumps/parallel-parking-on-the-moon-*.js evaluates this block in node to measure difficulty, so nothing here touches the DOM. */
+const PHYS = {
+  g: 1.62,         // lunar surface gravity, m/s²
+  mu: 0.85,        // tyre on regolith, generous: it is a hire car
+  accel: 1.05,     // drive, m/s², under the grip limit of mu·g = 1.38
+  brake: 0.9,      // fraction of mu·g; the rest keeps a little steering while braking
+  vmax: 3.6,       // 13 km/h, the Apollo rover's rated top speed
+  vrev: 1.7,
+  roll: 0.16,      // rolling resistance, m/s²: why it coasts for ever
+  steerMax: 0.64, steerRate: 2.6, centreRate: 3.4,
+  len: 3.1, wid: 2.0, wb: 2.3, track: 1.8, mass: 700, e: 0.3,
+};
+PHYS.inertia = PHYS.mass * (PHYS.len ** 2 + PHYS.wid ** 2) / 12;
+const LANE = 2.6, BUMP = 0.5, KERB_BUMP = 0.8, TOW = 6, SETTLE = 1.5;
+
+// Parked vehicles, built from boxes and circles in metres around their centre. Not to scale where
+// scale would be unkind: a real descent stage is 9.4 m across its footpads and would fill the street.
+const VEH = {
+  lm: [{ t: 'box', x: 0, y: 0, hl: 1.55, hw: 1.15 }, { t: 'circ', x: 1.9, y: 1.32, r: .36 }, { t: 'circ', x: -1.9, y: 1.32, r: .36 },
+    { t: 'circ', x: 1.9, y: -1.32, r: .36 }, { t: 'circ', x: -1.9, y: -1.32, r: .36 }],
+  surveyor: [{ t: 'circ', x: 0, y: 0, r: .62 }, { t: 'circ', x: 1.22, y: 0, r: .28 }, { t: 'circ', x: -.61, y: 1.05, r: .28 }, { t: 'circ', x: -.61, y: -1.05, r: .28 }],
+  luna17: [{ t: 'box', x: 0, y: 0, hl: 1.25, hw: 1.1 }],
+  lunokhod: [{ t: 'box', x: .25, y: 0, hl: 1.1, hw: .8 }, { t: 'circ', x: -1.05, y: 0, r: .72 }],
+  lrv: [{ t: 'box', x: 0, y: 0, hl: 1.55, hw: 1.0 }],
+  boulder: [{ t: 'circ', x: 0, y: 0, r: .8 }],
+};
+const LEVELS = {
+  tranq: { street: 'Mare Tranquillitatis Avenue', zone: 'Zone T · Avenue', coords: '0.674° N, 23.473° E', regs: '2 hr (Earth) · No parking in lunar night',
+    rear: ['surveyor', 'Surveyor 5', 1967], front: ['lm', 'Eagle', 1969], gap: 7.6, pot: true },
+  procellarum: { street: 'Oceanus Procellarum Road', zone: 'Zone P · Road', coords: '3.012° S, 23.422° W', regs: 'Permit holders only · Max stay one lunar day',
+    rear: ['surveyor', 'Surveyor 3', 1967], front: ['lm', 'Intrepid', 1969], gap: 6.7, pot: true },
+  imbrium: { street: 'Mare Imbrium Street', zone: 'Zone I · Street', coords: '38.24° N, 35.00° W', regs: 'No stopping on laser reflectors',
+    rear: ['luna17', 'Luna 17', 1970], front: ['lunokhod', 'Lunokhod 1', 1970], gap: 6.1, pot: true },
+  hadley: { street: 'Hadley Rille Lane', zone: 'Zone H · Lane', coords: '26.132° N, 3.634° E', regs: 'Loading only · Rille side closed',
+    rear: ['lm', 'Falcon', 1971], front: ['lrv', 'Golf buggy (LRV-1)', 1971], gap: 5.9, pot: true },
+  taurus: { street: 'Taurus–Littrow Street', zone: 'Zone L · Heritage', coords: '20.191° N, 30.772° E', regs: '30 cm from kerb · 4° · Strictly enforced since 1972',
+    rear: ['lm', 'Challenger', 1972], front: ['lrv', 'LRV-3', 1972], gap: 5.6, pot: false, strict: true },
+  crater: { street: 'The crater', zone: 'Unnamed · 3.9 billion years', coords: 'under everything', regs: 'Park anywhere in the middle · Stay as long as you like' },
+};
+
+function extents(parts) {
+  let a = Infinity, b = -Infinity;
+  for (const p of parts) { const r = p.t === 'box' ? p.hl : p.r; a = Math.min(a, p.x - r); b = Math.max(b, p.x + r); }
+  return [a, b];
+}
+function placeParts(kind, cx, cy, tag, out) {
+  for (const p of VEH[kind]) out.push(p.t === 'box' ? { t: 'box', x: cx + p.x, y: cy + p.y, hl: p.hl, hw: p.hw, tag } : { t: 'circ', x: cx + p.x, y: cy + p.y, r: p.r, tag });
+}
+function newCar(x, y, th) { return { x, y, th, vx: 0, vy: 0, w: 0, steer: 0, z: 0, vz: 0, wIn: [] }; }
+
+function buildWorld(id) {
+  const L = LEVELS[id], obs = [], vehicles = [];
+  if (id === 'crater') {
+    const bx = 14, by = 6.5;
+    for (const s of [-1, 1]) { placeParts('boulder', bx + s * 3.6, by, 'boulder', obs); vehicles.push({ kind: 'boulder', x: bx + s * 3.6, y: by }); }
+    const w = {
+      id, obs, vehicles, kerb: false,
+      walls: [{ nx: 1, ny: 0, d: .4, tag: 'edge' }, { nx: -1, ny: 0, d: -27.6, tag: 'edge' }, { nx: 0, ny: 1, d: .4, tag: 'edge' }, { nx: 0, ny: -1, d: -12.6, tag: 'edge' }],
+      holes: [{ x: bx, y: by, r: 6.2, k: 'rim', hopK: .3, hopV: .8, both: true }],
+      bowl: { x: bx, y: by, R: 6.2, depth: 1.1 },
+      bay: { x0: bx - 2.75, x1: bx + 2.75, y0: by - 1.45, y1: by + 1.45, ang: 10, kerb: null },
+      view: { x0: 0, y0: 0, x1: 28, y1: 13 },
+      car: newCar(3.4, 6.5, 0),
+    };
+    syncWheels(w);
+    return w;
+  }
+  const [ra, rb] = extents(VEH[L.rear[0]]), [fa, fb] = extents(VEH[L.front[0]]);
+  const rearX = 3 - ra, x0 = rearX + rb, x1 = x0 + L.gap, frontX = x1 - fa, end = frontX + fb + 6.5;
+  placeParts(L.rear[0], rearX, 1.3, L.rear[1], obs);
+  placeParts(L.front[0], frontX, 1.3, L.front[1], obs);
+  vehicles.push({ kind: L.rear[0], x: rearX, y: 1.3, name: L.rear[1], year: L.rear[2] }, { kind: L.front[0], x: frontX, y: 1.3, name: L.front[1], year: L.front[2] });
+  const w = {
+    id, obs, vehicles, kerb: true, end,
+    walls: [{ nx: 0, ny: 1, d: 0, tag: 'kerb' }, { nx: 0, ny: -1, d: -9.4, tag: 'kerb-far' }, { nx: 1, ny: 0, d: .3, tag: 'barrier' }, { nx: -1, ny: 0, d: -(end - .3), tag: 'barrier' }],
+    holes: L.pot ? [{ x: x0 + L.gap * .4, y: 1.3, r: .62, k: 'pot', hopK: .2, hopV: .9 }] : [],
+    bowl: null,
+    bay: { x0, x1, y0: 0, y1: LANE + .15, ang: L.strict ? 4 : 7, kerb: L.strict ? .30 : .45 },
+    view: { x0: 0, y0: -1.7, x1: end, y1: 9.6 },
+    car: newCar(4.4, 5.1, 0),
+  };
+  syncWheels(w);
+  return w;
+}
+
+function wheelPos(c, i) {
+  const u = i < 2 ? PHYS.wb / 2 : -PHYS.wb / 2, v = (i % 2 ? 1 : -1) * PHYS.track / 2;
+  const ca = Math.cos(c.th), sa = Math.sin(c.th);
+  return [c.x + u * ca - v * sa, c.y + u * sa + v * ca];
+}
+function syncWheels(w) {
+  const c = w.car;
+  c.wIn = [];
+  w.holes.forEach((h, k) => { for (let i = 0; i < 4; i++) { const p = wheelPos(c, i); c.wIn[k * 4 + i] = Math.hypot(p[0] - h.x, p[1] - h.y) < h.r; } });
+}
+function boxCorners(x, y, ux, uy, hl, hw) {
+  return [[hl, hw], [hl, -hw], [-hl, -hw], [-hl, hw]].map(([u, v]) => [x + u * ux - v * uy, y + u * uy + v * ux]);
+}
+function carCorners(c) { return boxCorners(c.x, c.y, Math.cos(c.th), Math.sin(c.th), PHYS.len / 2, PHYS.wid / 2); }
+const clampN = (v, a, b) => Math.max(a, Math.min(b, v));
+
+function boxBox(c, o) {
+  const ux = Math.cos(c.th), uy = Math.sin(c.th), hl = PHYS.len / 2, hw = PHYS.wid / 2;
+  const axes = [[ux, uy], [-uy, ux], [1, 0], [0, 1]];
+  const dx = c.x - o.x, dy = c.y - o.y;
+  let best = Infinity, bn = null;
+  for (const [ax, ay] of axes) {
+    const ra = hl * Math.abs(ux * ax + uy * ay) + hw * Math.abs(-uy * ax + ux * ay);
+    const rb = o.hl * Math.abs(ax) + o.hw * Math.abs(ay);
+    const dist = dx * ax + dy * ay, ov = ra + rb - Math.abs(dist);
+    if (ov <= 0) return null;
+    if (ov < best) { best = ov; bn = dist < 0 ? [-ax, -ay] : [ax, ay]; }
+  }
+  const inCar = p => { const px = p[0] - c.x, py = p[1] - c.y; return Math.abs(px * ux + py * uy) <= hl + 1e-6 && Math.abs(-px * uy + py * ux) <= hw + 1e-6; };
+  const inObs = p => Math.abs(p[0] - o.x) <= o.hl + 1e-6 && Math.abs(p[1] - o.y) <= o.hw + 1e-6;
+  const pts = carCorners(c).filter(inObs).concat(boxCorners(o.x, o.y, 1, 0, o.hl, o.hw).filter(inCar));
+  const p = pts.length ? [pts.reduce((s, q) => s + q[0], 0) / pts.length, pts.reduce((s, q) => s + q[1], 0) / pts.length] : [(c.x + o.x) / 2, (c.y + o.y) / 2];
+  return { nx: bn[0], ny: bn[1], d: best, p };
+}
+function circBox(c, o) {
+  const ux = Math.cos(c.th), uy = Math.sin(c.th), hl = PHYS.len / 2, hw = PHYS.wid / 2;
+  const px = o.x - c.x, py = o.y - c.y, lu = px * ux + py * uy, lv = -px * uy + py * ux;
+  const cu = clampN(lu, -hl, hl), cv = clampN(lv, -hw, hw), du = lu - cu, dv = lv - cv, dist = Math.hypot(du, dv);
+  let nu, nv, d;
+  if (dist > 1e-6) { if (dist >= o.r) return null; d = o.r - dist; nu = -du / dist; nv = -dv / dist; }
+  else {
+    const fu = hl - Math.abs(lu), fv = hw - Math.abs(lv);
+    if (fu < fv) { nu = -(Math.sign(lu) || 1); nv = 0; d = fu + o.r; } else { nu = 0; nv = -(Math.sign(lv) || 1); d = fv + o.r; }
+  }
+  return { nx: nu * ux - nv * uy, ny: nu * uy + nv * ux, d, p: [c.x + cu * ux - cv * uy, c.y + cu * uy + cv * ux] };
+}
+function hit(c, nx, ny, d, p, tag, ev) {
+  const P = PHYS;
+  c.x += nx * d; c.y += ny * d;
+  const rx = p[0] - c.x, ry = p[1] - c.y;
+  const vpx = c.vx - c.w * ry, vpy = c.vy + c.w * rx, vn = vpx * nx + vpy * ny;
+  if (vn >= 0) return;
+  const rn = rx * ny - ry * nx, k = 1 / P.mass + rn * rn / P.inertia, j = -(1 + P.e) * vn / k;
+  c.vx += j * nx / P.mass; c.vy += j * ny / P.mass; c.w += j * rn / P.inertia;
+  const tx = -ny, ty = nx, vt = vpx * tx + vpy * ty, rt = rx * ty - ry * tx, kt = 1 / P.mass + rt * rt / P.inertia;
+  const jt = clampN(-vt / kt, -.3 * j, .3 * j);
+  c.vx += jt * tx / P.mass; c.vy += jt * ty / P.mass; c.w += jt * rt / P.inertia;
+  if (-vn > .05) ev.push({ k: 'hit', tag, v: -vn, x: p[0], y: p[1] });
+}
+
+// One fixed sub-step. inp = { fwd, rev, left, right, brake }; events go to ev.
+function subStep(w, inp, dt, ev) {
+  const c = w.car, P = PHYS;
+  const want = ((inp.right ? 1 : 0) - (inp.left ? 1 : 0)) * P.steerMax;
+  const rate = want === 0 ? P.centreRate : P.steerRate;
+  c.steer += clampN(want - c.steer, -rate * dt, rate * dt);
+  const fx = Math.cos(c.th), fy = Math.sin(c.th), vl = c.vx * fx + c.vy * fy;
+  const ground = c.z <= 0, amax = P.mu * P.g, bmax = amax * P.brake;
+  if (ground) {
+    let a;
+    if (inp.brake) a = -Math.sign(vl) * Math.min(bmax, Math.abs(vl) / dt);
+    else if (inp.fwd && !inp.rev) a = vl < -.12 ? Math.min(bmax, -vl / dt) : P.accel * Math.max(0, 1 - vl / P.vmax);
+    else if (inp.rev && !inp.fwd) a = vl > .12 ? -Math.min(bmax, vl / dt) : -P.accel * Math.max(0, 1 + vl / P.vrev);
+    else a = -Math.sign(vl) * Math.min(P.roll, Math.abs(vl) / dt);
+    c.vx += fx * a * dt; c.vy += fy * a * dt;
+    if (w.bowl) {
+      const dx = c.x - w.bowl.x, dy = c.y - w.bowl.y;
+      if (Math.hypot(dx, dy) < w.bowl.R) { const k = P.g * 2 * w.bowl.depth / (w.bowl.R * w.bowl.R); c.vx -= k * dx * dt; c.vy -= k * dy * dt; }
+    }
+    // Grip: a friction circle per axle. Whatever braking or driving uses, sideways grip loses.
+    const u = Math.min(1, Math.abs(a) / amax), cap = amax * P.mass / 2 * Math.sqrt(Math.max(0, 1 - u * u)) * dt;
+    const used = [0, 0];
+    for (let it = 0; it < 2; it++) for (let s = 0; s < 2; s++) {
+      const sg = s === 0 ? 1 : -1, rx = fx * P.wb / 2 * sg, ry = fy * P.wb / 2 * sg;
+      const ang = c.th + (s === 0 ? c.steer : 0), nx = -Math.sin(ang), ny = Math.cos(ang);
+      const slip = (c.vx - c.w * ry) * nx + (c.vy + c.w * rx) * ny;
+      const rn = rx * ny - ry * nx, k = 1 / P.mass + rn * rn / P.inertia;
+      const want2 = clampN(used[s] - slip / k, -cap, cap), J = want2 - used[s];
+      used[s] = want2;
+      c.vx += J * nx / P.mass; c.vy += J * ny / P.mass; c.w += J * rn / P.inertia;
+      if (it === 1 && Math.abs(slip) > .2) ev.push({ k: 'skid', s, slip });
+    }
+    c.w *= 1 - .4 * dt;
+  }
+  c.x += c.vx * dt; c.y += c.vy * dt; c.th += c.w * dt;
+  if (!ground || c.vz > 0) {
+    c.z += c.vz * dt; c.vz -= P.g * dt;
+    if (c.z <= 0) { if (c.vz < -.2) ev.push({ k: 'land', v: -c.vz }); c.z = 0; c.vz = 0; }
+  }
+  w.holes.forEach((h, hk) => {
+    for (let i = 0; i < 4; i++) {
+      const p = wheelPos(c, i), inside = Math.hypot(p[0] - h.x, p[1] - h.y) < h.r, key = hk * 4 + i;
+      if (inside === c.wIn[key]) continue;
+      c.wIn[key] = inside;
+      if (c.z > 0) continue;
+      const sp = Math.hypot(c.vx, c.vy);
+      ev.push({ k: h.k, into: inside, v: sp, x: p[0], y: p[1] });
+      if ((h.both || !inside) && sp > h.hopV) { c.vz = Math.max(c.vz, h.hopK * sp); c.z = Math.max(c.z, 1e-4); }
+    }
+  });
+  const cs = carCorners(c);
+  for (const wl of w.walls) {
+    let best = 0, bp = null;
+    for (const p of cs) { const pen = wl.d - (p[0] * wl.nx + p[1] * wl.ny); if (pen > best) { best = pen; bp = p; } }
+    if (bp) hit(c, wl.nx, wl.ny, best, bp, wl.tag, ev);
+  }
+  for (const o of w.obs) {
+    const h = o.t === 'box' ? boxBox(c, o) : circBox(c, o);
+    if (h) hit(c, h.nx, h.ny, h.d, h.p, o.tag, ev);
+  }
+}
+function stepSim(w, inp, dt) {
+  const ev = [], n = Math.max(1, Math.ceil(dt * 240));
+  for (let i = 0; i < n; i++) subStep(w, inp, dt / n, ev);
+  return ev;
+}
+
+function parkState(w) {
+  const c = w.car, b = w.bay, cs = carCorners(c);
+  const inX = cs.every(p => p[0] >= b.x0 - .02 && p[0] <= b.x1 + .02);
+  const inY = cs.every(p => p[1] >= b.y0 - .02 && p[1] <= b.y1);
+  const a = ((c.th % Math.PI) + Math.PI) % Math.PI, ang = Math.min(a, Math.PI - a) * 180 / Math.PI;
+  const kerb = Math.min(...cs.map(p => p[1])) - b.y0;
+  const still = Math.hypot(c.vx, c.vy) < .06 && Math.abs(c.w) < .04 && c.z <= 0;
+  const ok = inX && inY && ang <= b.ang && (b.kerb == null || kerb <= b.kerb);
+  return { inX, inY, ang, kerb, still, ok, facing: Math.cos(c.th) >= 0 ? 1 : -1 };
+}
+/* sim:end */
+
+const $ = s => document.querySelector(s);
+const C = Kit.tokens(['bg', 'ink', 'muted', 'accent', 'panel', 'line', 'regolith', 'highland', 'pit', 'track', 'paint', 'kerb', 'car', 'glass', 'foil', 'metal', 'solar', 'shadow', 'dust']);
+const view = Kit.canvas($('#plate'));
+const cx = view.cx;
+const ROUTE = ['tranq', 'procellarum', 'imbrium', 'hadley'];
+
+// Each pool deals indexes in order and reshuffles at the end, so nothing repeats inside a street.
+// The text behind an index lives in I18N, so a line on the radio re-renders in either language.
+function deck(n) { let i = n, order = []; return () => { if (i >= order.length) { order = [...Array(n).keys()].sort(() => Math.random() - .5); i = 0; } return order[i++]; }; }
+const AMBIENT_WHO = ['ENFORCEMENT', 'WEATHER', 'ENFORCEMENT', 'HIRE', 'TELEMETRY', 'SEISMOMETER', 'ENFORCEMENT', 'HIRE', 'ENFORCEMENT'];
+const BUMP_WHO = ['SEISMOMETER', 'SEISMOMETER', 'ENFORCEMENT', 'ENFORCEMENT', 'INSURANCE', 'TELEMETRY'];
+const AMBIENT = deck(AMBIENT_WHO.length);
+const BUMP_LINES = deck(BUMP_WHO.length);
+const POT_MORE = deck(5);
+const CRATER_TALK = deck(5);
+const REMARKS = { EXEMPLARY: deck(4), ACCEPTABLE: deck(4), TOLERATED: deck(4) };
+
+const I18N = {
+  en: {
+    docTitle: 'Parallel Parking on the Moon',
+    langGroup: 'Language',
+    num: (x, d) => x.toFixed(d),
+    keys: { fwd: 'w', rev: 's', left: 'a', right: 'd' },
+    iSpeed: 'Speed', iStop: 'Stops in', iKerb: 'Kerb', iAng: 'Alignment', iSensor: 'Sensor', iBumps: 'Bumps / tow at 6',
+    clear: 'clear', beep: ' · beep', na: 'n/a',
+    plateAria: 'Top-down view of a lunar street: your car, the kerb, and other vehicles that have been parked here since the nineteen-sixties',
+    settle: 'Setting parking brake',
+    engineOff: 'Engine off.',
+    who: { ENFORCEMENT: 'ENFORCEMENT', WEATHER: 'WEATHER', HIRE: 'HIRE COMPANY', TELEMETRY: 'TELEMETRY', SEISMOMETER: 'SEISMOMETER', INSURANCE: 'INSURANCE', SURFACE: 'SURFACE', CRATER: 'CRATER', HERITAGE: 'HERITAGE' },
+    titleSmall: 'Lunar Parking Enforcement · Selene Municipal',
+    titleH: 'Parallel parking on the Moon',
+    titleLede: 'Lunar gravity is 1.62 m/s². Your hire car weighs a sixth of what it did on Earth and is exactly as heavy sideways. There are four spaces between here and your appointment.',
+    startBtn: 'Start the engine',
+    regKeys: 'Arrows/WASD', regKeysT: 'Steer, drive, reverse. Down brakes first, then reverses.',
+    regSpace: 'Space', regSpaceT: 'Brake. There is no ABS. Nothing on the Moon has ABS.',
+    regPark: 'To park', regParkT: 'Inside the space, within 45 cm of the kerb and 7° of straight, then stop for 1.5 s.',
+    regBumps: 'Bumps', regBumpsT: 'Six and you are towed to Mare Crisium. Contact under 0.5 m/s is a kiss, not a bump. The kerb is soft regolith and forgives up to 0.8.',
+    titleFoot: 'About 4 minutes · no sound (vacuum) · the dashed outline is where you would stop if you braked now',
+    driveOn: 'Drive on', revWho: 'The space', goOn: 'Go on', endKicker: 'Ending', again: 'Park again from the top',
+    padAria: 'Pedals and steering',
+    padL: '◀ Steer<kbd>← A</kbd>', padR: 'Steer ▶<kbd>→ D</kbd>', padRev: 'Reverse<kbd>↓ S</kbd>', padBrake: 'Brake<kbd>space</kbd>', padFwd: 'Drive<kbd>↑ W</kbd>',
+    levels: {
+      tranq: { street: 'Mare Tranquillitatis Avenue', zone: 'Zone T · Avenue', coords: '0.674° N, 23.473° E', regs: '2 hr (Earth) · No parking in lunar night' },
+      procellarum: { street: 'Oceanus Procellarum Road', zone: 'Zone P · Road', coords: '3.012° S, 23.422° W', regs: 'Permit holders only · Max stay one lunar day' },
+      imbrium: { street: 'Mare Imbrium Street', zone: 'Zone I · Street', coords: '38.24° N, 35.00° W', regs: 'No stopping on laser reflectors' },
+      hadley: { street: 'Hadley Rille Lane', zone: 'Zone H · Lane', coords: '26.132° N, 3.634° E', regs: 'Loading only · Rille side closed' },
+      taurus: { street: 'Taurus–Littrow Street', zone: 'Zone L · Heritage', coords: '20.191° N, 30.772° E', regs: '30 cm from kerb · 4° · Strictly enforced since 1972' },
+      crater: { street: 'The crater', zone: 'Unnamed · 3.9 billion years', coords: 'under everything', regs: 'Park anywhere in the middle · Stay as long as you like' },
+    },
+    // Vehicle tags in the sim block are English ids; these are what the player reads.
+    vehicles: {},
+    intro: {
+      tranq: ['Mare Tranquillitatis Avenue. Eagle has been parked here since 20 July 1969 and has never once been ticketed. Park in the space behind it.',
+        'The flag beside Eagle blew over at lift-off in 1969. It is not a parking offence. Nobody has asked it to move.'],
+      procellarum: ['Oceanus Procellarum Road. In 1969 the crew of Apollo 12 walked over to Surveyor 3, parked here since 1967, and took its camera home. Not a parking offence. A different offence.',
+        'Intrepid landed 180 metres from Surveyor 3, on purpose. It remains the most accurate parking on the Moon.'],
+      imbrium: ['Mare Imbrium Street. Lunokhod 1 was driven here from Earth by a crew of five with a five-second delay. Its laser reflector still answers when Earth shines a laser at it. Please do not bump it while it is on the phone.',
+        'The lid on Lunokhod 1 is a solar panel. It has been open since 1971. It would like the space kept clear.'],
+      hadley: ['Hadley Rille Lane. The golf buggy was parked here on 2 August 1971 so its camera could film the others leaving. Nobody came back for it.',
+        'Real figures: the buggy weighed 210 kg, did 13 km/h, and steered with all four wheels. It no longer does any of these things. It is very proud.'],
+      taurus: ['Taurus–Littrow Street. Gene Cernan parked the last car on the Moon here in December 1972. Its fender is still held on with maps and clamps.',
+        'Heritage zone: 30 cm from the kerb and 4° of straight. Standards have been strict since 1972, because nobody has parked here since 1972.'],
+      crater: ['Come in. Mind the rim. It is 3.9 billion years old and it is the only one I have.',
+        'I have drawn you a space in my own dust. The rocks are for scale. And company.'],
+    },
+    tranqHelp: 'Arrows or WASD. Down brakes, then reverses. The dashed outline shows where you would stop if you braked now.',
+    taurusHollow: 'There is no hollow in this space. It is somewhere else tonight. That is fine. It is fine.',
+    ambient: [
+      'Reminder: there is no sound. If you can hear the parking sensor, that is you, doing it with your mouth.',
+      'Today: no weather. Tomorrow: no weather. Lunar night in nine Earth days, −173 °C. Parking suspended for the duration.',
+      'Tyre tracks here last about ten million years. Please make yours neat.',
+      'Your deposit is non-refundable. It is also on Earth.',
+      'There is no air for the dust to hang in. It goes up and comes straight back down in parabolas. Please do not admire it while reversing.',
+      'Nothing to report. The Moon is ringing very faintly from something in 1972.',
+      'Your weight is a sixth of what it was. Your mass is not. The car remembers the difference when you try to stop.',
+      'If the car slides sideways, that is the Moon, not the car. The car is fine. The car is always fine.',
+      'The kerb limit is 45 cm, 18 inches, borrowed from the California Vehicle Code, §22502. California does not know.',
+    ],
+    bump: [
+      v => `Bump recorded at ${v} m/s and filed with the moonquakes.`,
+      () => 'An impact in 1969 made the Moon ring for 55 minutes. You are lighter than that. It still noticed.',
+      (v, n) => `That is ${n} of ${TOW}. At ${TOW} we call the tow lander.`,
+      (v, n, who) => `${who} has been parked here since before you were born and has never been bumped. Until now.`,
+      (v, n, who) => `${who} is a protected heritage site. The excess is the whole car.`,
+      v => `Contact at ${v} m/s. Your car is unharmed. Your car is always unharmed. It is a hire car.`,
+    ],
+    potFirst: [
+      'Your wheel dips into a small hollow in the space and climbs out. Uncharted. Probably settling regolith.',
+      'There is a hollow in this space as well. Same width, same depth, different street. Regolith is like that.',
+      'Your wheel touches the hollow and it makes a small sound. There is no air on the Moon. You heard it anyway.',
+      'The hollow is in this space too. It looks as though it has been waiting. It has moved over slightly, to make room for your wheel.',
+    ],
+    potMore: [
+      'Bump. The hollow does not seem to mind.',
+      'The hollow holds your wheel for slightly longer than physics requires.',
+      'The seismometer records nothing. Whatever you just touched did not want to be recorded.',
+      'The hollow is very slightly warm. It is −20 °C. Very slightly warm.',
+      'Something in the space sighs. There is no air. It is a very good sigh.',
+    ],
+    craterTalk: [
+      'Take your time. I once waited 800 million years for a meteorite and it missed.',
+      'The slope will help. Everything rolls towards the middle of me in the end. That is how craters work.',
+      'Your tracks will be here in ten million years. I will look after them.',
+      'Nobody has stopped in the middle of me on purpose. Things land. They do not stop.',
+      'The IAU only names craters after dead scientists. I am not dead. I am just very patient.',
+    ],
+    remarks: {
+      EXEMPLARY: ['Textbook. The textbook is in Houston and will be updated.', 'Officer stood very still to admire it. Officer is still standing there.',
+        'Cleaner than Intrepid, which landed on purpose.', 'No remarks. Officer has run out of remarks.'],
+      ACCEPTABLE: ['Acceptable. On the Moon that is a compliment.', 'Parked. Mostly. The Moon is mostly parked too.',
+        'Officer noted a small wobble on the way in, then decided it was the Moon\'s.', 'Within limits. The limits were generous and know it.'],
+      TOLERATED: ['Tolerated. Officer has written the word down and underlined it.', 'Inside the lines, technically, which on the Moon is the only kind.',
+        'The vehicle is parked the way a dropped glove is parked.', 'Officer has seen worse. Officer saw it in 1971 and it is still there.'],
+    },
+    grades: { EXEMPLARY: 'EXEMPLARY', ACCEPTABLE: 'ACCEPTABLE', TOLERATED: 'TOLERATED', PERFECT: 'PERFECT', STAY: 'STAY', TOWED: 'TOWED' },
+    kerbed: (v, n) => `Kerbed at ${v} m/s. The kerb is older than both of us. ${n} of ${TOW}.`,
+    barrier: n => `You hit the barrier around the seismometer. It recorded itself being hit. ${n} of ${TOW}.`,
+    boulder: n => `Ow. Those are attached. (${n} of ${TOW}; I do not make the rules.)`,
+    counts: n => `That counts. ${n} of ${TOW}.`,
+    kiss: (v, hard) => `Contact at ${v} m/s. Under ${hard} it is a kiss, not a bump. Paris rules apply on the Moon.`,
+    rimIn: ['Oh. Hello.', 'That is the rim. You are in me now. Do not make it weird.', 'Careful. Ticklish.'],
+    rimOut: 'You are leaving. That is allowed. I would rather you did not.',
+    airborne: s => `Airborne for ${s} s. At 1.62 m/s² that is perfectly normal and also not ideal.`,
+    diag: {
+      outCrater: 'Part of the car is outside the space I drew. Inside the dust lines, please.',
+      outRoad: 'Part of the car is still in the road.',
+      overhang: 'The car is overhanging the end of the space.',
+      kerb: (cm, lim) => `Kerb: ${cm} cm. The limit here is ${lim} cm.`,
+      ang: (a, lim) => `Alignment: ${a}°. The limit is ${lim}°. The kerb is straight even if nothing else here is.`,
+      nearly: 'Nearly.',
+    },
+    tow: `${TOW} bumps. A tow lander has been dispatched from Mare Crisium. Please remain in the vehicle. Outside is a vacuum.`,
+    pcnHead: 'Lunar Parking Enforcement · Selene Municipal',
+    noPrefix: 'No.',
+    row: {
+      location: 'Location', vehicle: 'Vehicle', time: 'Time (LTC)', kerb: 'Kerb', ang: 'Alignment', bumps: 'Bumps', hollow: 'Hollow contacts', toPark: 'Time to park',
+      issued: 'Issued by', parkedHere: 'Vehicles parked here', total: 'Total time parking', contra: 'Contravention', streets: 'Streets parked', removed: 'Removed to',
+    },
+    hire: 'Lunar runabout (hire), reg. LTC 1L',
+    clock: (stamp, drift) => `${stamp}  (UTC + ${drift} ms)`,
+    kerbVal: (cm, lim) => `${cm} cm (limit ${lim})`,
+    angVal: (a, lim, against) => `${a}° (limit ${lim}°)${against ? ', facing against the flow: permitted in lunar daytime' : ''}`,
+    bumpsVal: (here, all) => `${here} on this street · ${all} of ${TOW} total`,
+    noticeTitle: 'Notice of parking conduct',
+    exemplaryTitle: 'Notice of exemplary parking', exemplaryRemark: 'No offence recorded. Officer has asked to be buried here.',
+    nextStreet: street => `Drive to ${street}`, setBrake: 'Set the parking brake',
+    reveal: n => [
+      ['The space', 'As you set the parking brake on Hadley Rille Lane, the hollow under the car clears its throat. There is no air. It manages.'],
+      ['The hollow', n > 0
+        ? `“That is ${n} time${n === 1 ? '' : 's'}. Four streets. Every time you looked for a space, I moved into it first, so you would have somewhere to put a wheel.”`
+        : '“Four streets, and you never touched me once. I moved into every space first and you went round me every time. Nobody has ever been that careful with me.”'],
+      ['The hollow', '“I am not a pothole. I am a crater. Unnamed, 3.9 billion years old, fourteen kilometres across, mostly underneath everything else. The space was never empty. It was me.”'],
+      ['The crater', '“The IAU only names craters after dead scientists, so nobody visits. Would you park in me? Properly, in the middle. There is room. There has always been room.”'],
+    ],
+    revCrater: 'Park in the crater', revLegal: 'No thank you. Park legally on Taurus–Littrow',
+    end: {
+      perfect: { kicker: 'Ending · Parked perfectly', title: 'Parked perfectly.',
+        lede: (cm, a) => `${cm} cm from the kerb and ${a}° off straight, on the street where the last car on the Moon was parked in 1972. Nobody has moved that one either.`,
+        body: 'Somewhere underneath Taurus–Littrow, something fourteen kilometres wide and very patient says nothing at all. That is fine. It has time. Time is mostly what it has.' },
+      crater: { kicker: 'Ending · The crater', title: 'Parked in the crater.',
+        lede: () => 'For the first time in 3.9 billion years, something has stopped in the middle of the crater on purpose.',
+        body: '“You can leave whenever you like,” says the crater. “But your tracks will be here for ten million years, so in a way you won’t.” It does not ask for a name. It has a car now.' },
+      towed: { kicker: 'Ending · Towed', title: 'Towed to Mare Crisium.',
+        lede: () => `${TOW} bumps. The tow lander lifted the hire car three hundred metres and set it down in the Sea of Crises, which is where the impound is. It is a sea in the sense that it isn’t.`,
+        body: 'Release fee: a lot, in any currency. Collection: lunar daytime only. Every bump is on the seismometer record now, between a moonquake in 1972 and a meteorite in 1975.' },
+    },
+    cert: { title: 'Certificate of consensual parking', location: 'The middle of the crater (under everything)', issued: 'The surface',
+      ang: a => `${a}° (the crater says any is fine)`, hollow: (before, since) => `${before} before you knew · ${since} since`, parkedHere: '1 since formation',
+      remark: 'Permit valid until the Sun becomes a red giant, then reviewed.' },
+    pcn: { title: 'Penalty charge notice', contra: 'Repeated contact with heritage hardware', bumps: b => `${b} (tow at ${TOW})`,
+      removed: 'Mare Crisium Vehicle Pound, 17.0° N 59.1° E', remark: 'The tow lander’s pilot asked us to say it was nothing personal. It was a little personal.' },
+    labRoad: 'ROAD CLOSED', labSeis: 'SEISMOMETER', labSpace: 'YOUR SPACE (DRAWN IN DUST)',
+  },
+  fr: {
+    docTitle: 'Créneau sur la Lune',
+    langGroup: 'Langue',
+    num: (x, d) => x.toFixed(d).replace('.', ','),
+    // AZERTY: Z Q S D are the keys under the fingers that WASD describes on QWERTY.
+    keys: { fwd: 'z', rev: 's', left: 'q', right: 'd' },
+    iSpeed: 'Vitesse', iStop: 'Arrêt en', iKerb: 'Trottoir', iAng: 'Alignement', iSensor: 'Radar', iBumps: 'Chocs · 6 max',
+    clear: 'RAS', beep: ' · bip', na: 's.o.',
+    plateAria: "Vue de dessus d'une rue lunaire : votre voiture, le trottoir et d'autres véhicules garés ici depuis les années soixante",
+    settle: 'Serrage du frein à main',
+    engineOff: 'Moteur coupé.',
+    who: { ENFORCEMENT: 'POLICE', WEATHER: 'MÉTÉO', HIRE: 'LOUEUR', TELEMETRY: 'TÉLÉMESURE', SEISMOMETER: 'SISMOMÈTRE', INSURANCE: 'ASSURANCE', SURFACE: 'SURFACE', CRATER: 'CRATÈRE', HERITAGE: 'PATRIMOINE' },
+    titleSmall: 'Police du stationnement lunaire · Ville de Séléné',
+    titleH: 'Créneau sur la Lune',
+    titleLede: "La gravité lunaire est de 1,62 m/s². Votre voiture de location pèse six fois moins que sur Terre, et elle est exactement aussi lourde de côté. Il y a quatre places entre ici et votre rendez-vous.",
+    startBtn: 'Démarrer le moteur',
+    regKeys: 'Flèches/ZQSD', regKeysT: "Tourner, avancer, reculer. Bas freine d'abord, puis recule.",
+    regSpace: 'Espace', regSpaceT: "Frein. Il n'y a pas d'ABS. Rien n'a d'ABS sur la Lune.",
+    regPark: 'Se garer', regParkT: "Dans la place, à moins de 45 cm du trottoir et de 7° de l'axe, puis à l'arrêt pendant 1,5 s.",
+    regBumps: 'Chocs', regBumpsT: "Au sixième, c'est la fourrière, à Mare Crisium. Un contact sous 0,5 m/s est un bisou, pas un choc. Le trottoir est en régolithe meuble et pardonne jusqu'à 0,8.",
+    titleFoot: "Environ 4 minutes · aucun son (c'est le vide) · le contour en pointillé montre où vous vous arrêteriez en freinant maintenant",
+    driveOn: 'Rouler', revWho: 'La place', goOn: 'Continuer', endKicker: 'Fin', again: 'Refaire tous les créneaux',
+    padAria: 'Pédales et volant',
+    padL: '◀ Volant<kbd>← Q</kbd>', padR: 'Volant ▶<kbd>→ D</kbd>', padRev: 'Arrière<kbd>↓ S</kbd>', padBrake: 'Frein<kbd>espace</kbd>', padFwd: 'Avant<kbd>↑ Z</kbd>',
+    levels: {
+      tranq: { street: 'Avenue de la mer de la Tranquillité', zone: 'Zone T · Avenue', coords: '0,674° N, 23,473° E', regs: '2 h (terrestres) · Interdit pendant la nuit lunaire' },
+      procellarum: { street: "Route de l'océan des Tempêtes", zone: 'Zone P · Route', coords: '3,012° S, 23,422° O', regs: 'Résidents uniquement · Un jour lunaire maximum' },
+      imbrium: { street: 'Rue de la mer des Pluies', zone: 'Zone I · Rue', coords: '38,24° N, 35,00° O', regs: 'Arrêt interdit sur les réflecteurs laser' },
+      hadley: { street: 'Allée de la Rainure de Hadley', zone: 'Zone H · Allée', coords: '26,132° N, 3,634° E', regs: 'Livraisons uniquement · Côté rainure fermé' },
+      taurus: { street: 'Rue Taurus-Littrow', zone: 'Zone L · Patrimoine', coords: '20,191° N, 30,772° E', regs: '30 cm du trottoir · 4° · Contrôle strict depuis 1972' },
+      crater: { street: 'Le cratère', zone: "Sans nom · 3,9 milliards d'années", coords: 'sous tout le reste', regs: "Garez-vous n'importe où au milieu · Restez aussi longtemps qu'il vous plaira" },
+    },
+    vehicles: { 'Golf buggy (LRV-1)': 'Voiturette (LRV-1)' },
+    intro: {
+      tranq: ["Avenue de la mer de la Tranquillité. Eagle est garé ici depuis le 20 juillet 1969 et n'a jamais pris une seule contravention. Garez-vous dans la place derrière lui.",
+        "Le drapeau à côté d'Eagle est tombé au décollage, en 1969. Ce n'est pas une infraction. Personne ne lui a demandé de bouger."],
+      procellarum: ["Route de l'océan des Tempêtes. En 1969, l'équipage d'Apollo 12 est allé voir Surveyor 3, garé ici depuis 1967, et est reparti avec sa caméra. Pas une infraction au stationnement. Une autre infraction.",
+        "Intrepid s'est posé à 180 mètres de Surveyor 3, exprès. Ça reste le stationnement le plus précis de la Lune."],
+      imbrium: ["Rue de la mer des Pluies. Lunokhod 1 a été piloté jusqu'ici depuis la Terre par un équipage de cinq personnes, avec cinq secondes de décalage. Son réflecteur laser répond encore quand la Terre l'éclaire au laser. Merci de ne pas le cogner pendant qu'il est au téléphone.",
+        "Le couvercle de Lunokhod 1 est un panneau solaire. Il est ouvert depuis 1971. Il aimerait qu'on laisse la place libre."],
+      hadley: ["Allée de la Rainure de Hadley. La voiturette de golf a été garée ici le 2 août 1971 pour que sa caméra filme le départ des autres. Personne n'est revenu la chercher.",
+        'Chiffres réels : la voiturette pesait 210 kg, roulait à 13 km/h et braquait des quatre roues. Elle ne fait plus rien de tout ça. Elle en est très fière.'],
+      taurus: ['Rue Taurus-Littrow. Gene Cernan a garé ici la dernière voiture de la Lune, en décembre 1972. Son garde-boue tient encore avec des cartes routières et des pinces.',
+        "Zone patrimoniale : 30 cm du trottoir et 4° de l'axe. Les règles sont strictes depuis 1972, parce que personne ne s'est garé ici depuis 1972."],
+      crater: ["Entrez. Attention au bord. Il a 3,9 milliards d'années et c'est le seul que j'ai.",
+        "Je vous ai tracé une place dans ma propre poussière. Les rochers donnent l'échelle. Et de la compagnie."],
+    },
+    tranqHelp: 'Flèches ou ZQSD. Bas freine, puis recule. Le contour en pointillé montre où vous vous arrêteriez en freinant maintenant.',
+    taurusHollow: "Il n'y a pas de creux dans cette place. Il est ailleurs ce soir. Ce n'est rien. Ce n'est rien.",
+    ambient: [
+      "Rappel : il n'y a pas de son. Si vous entendez le radar de recul, c'est vous, avec votre bouche.",
+      "Aujourd'hui : pas de météo. Demain : pas de météo. Nuit lunaire dans neuf jours terrestres, −173 °C. Stationnement suspendu jusqu'au matin.",
+      "Ici, les traces de pneus durent environ dix millions d'années. Merci de faire les vôtres bien droites.",
+      "Votre caution n'est pas remboursable. Elle est aussi sur Terre.",
+      "Il n'y a pas d'air pour retenir la poussière. Elle monte et retombe aussitôt, en paraboles. Merci de ne pas l'admirer en marche arrière.",
+      'Rien à signaler. La Lune résonne encore très faiblement de quelque chose survenu en 1972.',
+      "Votre poids est six fois moindre. Votre masse, non. La voiture s'en souvient quand vous essayez de vous arrêter.",
+      "Si la voiture glisse de côté, c'est la Lune, pas la voiture. La voiture va bien. La voiture va toujours bien.",
+      "La limite de 45 cm, soit 18 pouces, vient du code de la route californien, §22502. La Californie n'est pas au courant.",
+    ],
+    bump: [
+      v => `Choc enregistré à ${v} m/s et classé avec les séismes lunaires.`,
+      () => "En 1969, un impact a fait sonner la Lune pendant 55 minutes. Vous pesez moins que ça. Elle l'a quand même remarqué.",
+      (v, n) => `Et de ${n} sur ${TOW}. À ${TOW}, on appelle l'atterrisseur de fourrière.`,
+      (v, n, who) => `${who} stationne ici depuis avant votre naissance et personne ne l'avait jamais cogné. Jusqu'à maintenant.`,
+      (v, n, who) => `${who} est classé au patrimoine. La franchise, c'est toute la voiture.`,
+      v => `Contact à ${v} m/s. Votre voiture est intacte. Votre voiture est toujours intacte. C'est une voiture de location.`,
+    ],
+    potFirst: [
+      'Votre roue plonge dans un petit creux de la place et en ressort. Non cartographié. Sans doute du régolithe qui se tasse.',
+      'Il y a aussi un creux dans cette place. Même largeur, même profondeur, autre rue. Le régolithe est comme ça.',
+      "Votre roue touche le creux et il fait un petit bruit. Il n'y a pas d'air sur la Lune. Vous l'avez entendu quand même.",
+      "Le creux est aussi dans cette place. On dirait qu'il attendait. Il s'est un peu décalé pour faire de la place à votre roue.",
+    ],
+    potMore: [
+      "Bonk. Le creux n'a pas l'air de s'en formaliser.",
+      'Le creux retient votre roue un peu plus longtemps que la physique ne l’exige.',
+      "Le sismomètre n'enregistre rien. Ce que vous venez de toucher ne voulait pas être enregistré.",
+      'Le creux est très légèrement tiède. Il fait −20 °C. Très légèrement tiède.',
+      "Quelque chose soupire dans la place. Il n'y a pas d'air. C'est un très beau soupir.",
+    ],
+    craterTalk: [
+      "Prenez votre temps. Un jour, j'ai attendu une météorite pendant 800 millions d'années, et elle m'a raté.",
+      "La pente va vous aider. Tout finit par rouler vers mon centre. C'est comme ça, les cratères.",
+      "Vos traces seront encore là dans dix millions d'années. J'en prendrai soin.",
+      "Personne ne s'est jamais arrêté exprès au milieu de moi. Les choses atterrissent. Elles ne s'arrêtent pas.",
+      "L'UAI ne donne aux cratères que des noms de scientifiques morts. Je ne suis pas mort. Je suis juste très patient.",
+    ],
+    remarks: {
+      EXEMPLARY: ['Un cas d’école. L’école est à Houston, elle sera prévenue.', "L'agent s'est figé pour admirer. L'agent est toujours figé.",
+        "Plus propre qu'Intrepid, qui s'était posé exprès.", "Aucune remarque. L'agent est à court de remarques."],
+      ACCEPTABLE: ["Acceptable. Sur la Lune, c'est un compliment.", 'Garé. En gros. La Lune aussi est garée, en gros.',
+        "L'agent a noté un léger flottement à l'entrée, puis a décidé que c'était celui de la Lune.", 'Dans les limites. Les limites étaient généreuses, et elles le savent.'],
+      TOLERATED: ["Toléré. L'agent a écrit le mot et l'a souligné.", "Dans les lignes, techniquement — sur la Lune, c'est la seule façon d'y être.",
+        'Le véhicule est garé comme un gant est égaré.', "L'agent a vu pire. Il l'a vu en 1971 et c'est toujours là."],
+    },
+    grades: { EXEMPLARY: 'EXEMPLAIRE', ACCEPTABLE: 'ACCEPTABLE', TOLERATED: 'TOLÉRÉ', PERFECT: 'PARFAIT', STAY: 'RESTEZ', TOWED: 'FOURRIÈRE' },
+    kerbed: (v, n) => `Trottoir touché à ${v} m/s. Ce trottoir est plus vieux que nous deux. ${n} sur ${TOW}.`,
+    barrier: n => `Vous avez percuté la barrière du sismomètre. Il a enregistré son propre choc. ${n} sur ${TOW}.`,
+    boulder: n => `Aïe. Ils sont attachés. (${n} sur ${TOW} ; ce n'est pas moi qui fais les règles.)`,
+    counts: n => `Ça compte. ${n} sur ${TOW}.`,
+    kiss: (v, hard) => `Contact à ${v} m/s. Sous ${hard}, c'est un bisou, pas un choc. Sur la Lune aussi, on se gare à la parisienne.`,
+    rimIn: ['Oh. Bonjour.', "Ça, c'est le bord. Vous êtes en moi, maintenant. Restons naturels.", 'Doucement. Je suis chatouilleux.'],
+    rimOut: "Vous partez. C'est permis. Je préférerais que non.",
+    airborne: s => `En l'air pendant ${s} s. À 1,62 m/s², c'est parfaitement normal, et pas idéal pour autant.`,
+    diag: {
+      outCrater: "Une partie de la voiture dépasse de la place que j'ai tracée. Dans les lignes de poussière, s'il vous plaît.",
+      outRoad: 'Une partie de la voiture est encore sur la chaussée.',
+      overhang: 'La voiture dépasse au bout de la place.',
+      kerb: (cm, lim) => `Trottoir : ${cm} cm. La limite ici est de ${lim} cm.`,
+      ang: (a, lim) => `Alignement : ${a}°. La limite est de ${lim}°. Le trottoir, lui, est droit, même si rien d'autre ne l'est ici.`,
+      nearly: 'Presque.',
+    },
+    tow: `${TOW} chocs. Un atterrisseur de fourrière a décollé de Mare Crisium. Restez dans le véhicule. Dehors, c'est le vide.`,
+    pcnHead: 'Police du stationnement lunaire · Ville de Séléné',
+    noPrefix: 'N°',
+    row: {
+      location: 'Lieu', vehicle: 'Véhicule', time: 'Heure (LTC)', kerb: 'Trottoir', ang: 'Alignement', bumps: 'Chocs', hollow: 'Contacts avec le creux', toPark: 'Durée du créneau',
+      issued: 'Délivré par', parkedHere: 'Véhicules garés ici', total: 'Durée totale', contra: 'Infraction', streets: 'Créneaux réussis', removed: 'Transféré à',
+    },
+    hire: 'Rover lunaire (location), immat. LTC 1L',
+    clock: (stamp, drift) => `${stamp}  (UTC + ${drift} ms)`,
+    kerbVal: (cm, lim) => `${cm} cm (limite ${lim})`,
+    angVal: (a, lim, against) => `${a}° (limite ${lim}°)${against ? ', à contresens : autorisé de jour sur la Lune' : ''}`,
+    bumpsVal: (here, all) => `${here} dans cette rue · ${all} sur ${TOW} au total`,
+    noticeTitle: 'Avis de stationnement',
+    exemplaryTitle: 'Avis de stationnement exemplaire', exemplaryRemark: "Aucune infraction relevée. L'agent a demandé à être enterré ici.",
+    nextStreet: street => `Direction : ${street}`, setBrake: 'Serrer le frein à main',
+    reveal: n => [
+      ['La place', "Au moment où vous serrez le frein à main, allée de la Rainure de Hadley, le creux sous la voiture s'éclaircit la voix. Il n'y a pas d'air. Il se débrouille."],
+      ['Le creux', n > 0
+        ? `« Ça fait ${n} fois. Quatre rues. Chaque fois que vous cherchiez une place, je m'y installais avant vous, pour que vous ayez où mettre une roue. »`
+        : "« Quatre rues, et vous ne m'avez pas touché une seule fois. Je m'installais dans chaque place avant vous, et vous m'avez contourné à chaque fois. Personne n'a jamais fait aussi attention à moi. »"],
+      ['Le creux', "« Je ne suis pas un nid-de-poule. Je suis un cratère. Sans nom, 3,9 milliards d'années, quatorze kilomètres de diamètre, presque entièrement sous tout le reste. La place n'a jamais été vide. C'était moi. »"],
+      ['Le cratère', "« L'UAI ne donne aux cratères que des noms de scientifiques morts, alors personne ne vient me voir. Vous voulez bien vous garer en moi ? Correctement, au milieu. Il y a de la place. Il y a toujours eu de la place. »"],
+    ],
+    revCrater: 'Se garer dans le cratère', revLegal: 'Non merci. Me garer en règle rue Taurus-Littrow',
+    end: {
+      perfect: { kicker: 'Fin · Stationnement parfait', title: 'Stationnement parfait.',
+        lede: (cm, a) => `À ${cm} cm du trottoir et à ${a}° de l'axe, dans la rue où la dernière voiture de la Lune a été garée en 1972. Personne ne l'a déplacée non plus.`,
+        body: "Quelque part sous Taurus-Littrow, quelque chose de quatorze kilomètres de large et de très patient ne dit rien du tout. Ce n'est pas grave. Il a le temps. Le temps, c'est surtout ce qu'il a." },
+      crater: { kicker: 'Fin · Le cratère', title: 'Une voiture au fond du cratère.',
+        lede: () => "Pour la première fois en 3,9 milliards d'années, quelque chose s'est arrêté exprès au milieu du cratère.",
+        body: "« Vous pouvez partir quand vous voulez, dit le cratère. Mais vos traces resteront dix millions d'années, alors d'une certaine façon, non. » Il ne demande pas de nom. Il a une voiture, maintenant." },
+      towed: { kicker: 'Fin · Fourrière', title: 'Direction la fourrière de Mare Crisium.',
+        lede: () => `${TOW} chocs. L'atterrisseur de fourrière a soulevé la voiture de location à trois cents mètres et l'a reposée dans la mer des Crises, là où se trouve la fourrière. C'est une mer, au sens où ce n'en est pas une.`,
+        body: "Frais d'enlèvement : beaucoup, dans n'importe quelle monnaie. Retrait : de jour lunaire uniquement. Chaque choc figure désormais au registre du sismomètre, entre un séisme lunaire de 1972 et une météorite de 1975." },
+    },
+    cert: { title: 'Certificat de stationnement consenti', location: 'Le milieu du cratère (sous tout le reste)', issued: 'La surface',
+      ang: a => `${a}° (le cratère dit que tout lui va)`, hollow: (before, since) => `${before} avant de savoir · ${since} depuis`, parkedHere: '1 depuis la formation',
+      remark: "Permis valable jusqu'à ce que le Soleil devienne une géante rouge, puis réexaminé." },
+    pcn: { title: 'Avis de contravention', contra: 'Contacts répétés avec du matériel patrimonial', bumps: b => `${b} (fourrière à ${TOW})`,
+      removed: 'Fourrière de Mare Crisium, 17,0° N 59,1° E', remark: "Le pilote de l'atterrisseur nous a demandé de préciser que ce n'était pas personnel. C'était un peu personnel." },
+    labRoad: 'ROUTE BARRÉE', labSeis: 'SISMOMÈTRE', labSpace: 'VOTRE PLACE (TRACÉE DANS LA POUSSIÈRE)',
+  },
+};
+
+// French typography: a narrow no-break space before ? ! : ; » and after «, applied once to every
+// French string and to whatever a French string function returns. It only fires after a space,
+// so clock stamps like 14:05:09 are safe.
+(function frenchSpacing() {
+  const fix = s => s.replace(/ ([?!:;»])/g, ' $1').replace(/« /g, '« ');
+  const deep = v => typeof v === 'string' ? fix(v)
+    : typeof v === 'function' ? (...a) => deep(v(...a))
+    : Array.isArray(v) ? v.map(deep)
+    : v && typeof v === 'object' ? Object.fromEntries(Object.entries(v).map(([k, x]) => [k, deep(x)]))
+    : v;
+  I18N.fr = deep(I18N.fr);
+})();
+
+let lang = 'en';
+const t = k => I18N[lang][k] ?? I18N.en[k];
+const num = (x, d) => t('num')(x, d);
+for (const k of ['ambient', 'bump', 'potFirst', 'potMore', 'craterTalk', 'rimIn']) {
+  if (I18N.en[k].length !== I18N.fr[k].length) console.error(`i18n: ${k} differs in length`);
+}
+
+let S;
+function fresh(best) {
+  return { mode: 'title', t: 0, w: buildWorld('tranq'), level: 'tranq', idx: 0, levelT: 0, bumps: 0, bumpsHere: 0, pot: 0, potHere: 0,
+    settle: 0, stillT: 0, hinted: false, ps: null, radio: { t: 0 }, q: [], ambT: 18, bumpCD: 0, potCD: 0, kissCD: 0, skidCD: 0, airT: 0,
+    parts: [], tracks: [[], [], [], []], lastTrack: null, shake: 0, towT: 0, ending: null, path: null, results: [], revI: 0,
+    best: best ?? null, closest: Infinity, ghost: null, craterTalkT: 14, msg: null, pcn: null, endFn: null };
+}
+
+// who is a key into I18N who; text is a function, so the line on the radio re-renders on a switch.
+function say(who, text, secs = 6.5, queue = false) {
+  if (queue && S.radio.t > 1.5) { S.q.push([who, text, secs]); return; }
+  S.radio = { t: secs };
+  S.msg = { who, text };
+  renderRadio();
+  $('#radio').classList.remove('dim');
+  $('#radio').classList.toggle('crater', who === 'CRATER');
+}
+function renderRadio() {
+  const m = S?.msg;
+  $('#radio-who').textContent = t('who')[m ? m.who : 'ENFORCEMENT'];
+  $('#radio-text').textContent = m ? m.text() : t('engineOff');
+}
+function renderSign() {
+  const L = t('levels')[S.level];
+  $('#sign-kind').textContent = L.zone; $('#sign-name').textContent = L.street; $('#sign-regs').textContent = L.regs;
+}
+
+function startLevel(id) {
+  S.level = id; S.w = buildWorld(id); S.mode = 'drive'; S.levelT = 0; S.bumpsHere = 0; S.potHere = 0;
+  S.settle = 0; S.stillT = 0; S.hinted = false; S.tracks = [[], [], [], []]; S.lastTrack = null; S.parts = []; S.q = []; S.ambT = 22; S.craterTalkT = 16;
+  renderSign();
+  Kit.show(null);
+  const who = id === 'crater' ? 'CRATER' : 'ENFORCEMENT';
+  say(who, () => t('intro')[id][0], 9);
+  say(id === 'crater' ? 'CRATER' : 'HERITAGE', () => t('intro')[id][1], 7.5, true);
+  if (id === 'tranq') say('ENFORCEMENT', () => t('tranqHelp'), 8, true);
+  if (id === 'taurus') say('ENFORCEMENT', () => t('taurusHollow'), 7, true);
+}
+function newRun() {
+  const best = S?.best ?? null;
+  S = fresh(best);
+  startLevel('tranq');
+}
+function place(x, y, th, v = 0) {
+  const c = S.w.car;
+  Object.assign(c, { x, y, th, vx: Math.cos(th) * v, vy: Math.sin(th) * v, w: 0, steer: 0, z: 0, vz: 0 });
+  syncWheels(S.w);
+  S.tracks = [[], [], [], []]; S.lastTrack = null;
+}
+
+function readInput() {
+  const k = Kit.keys, K = t('keys');
+  return { fwd: k.any('ArrowUp', K.fwd), rev: k.any('ArrowDown', K.rev), left: k.any('ArrowLeft', K.left), right: k.any('ArrowRight', K.right), brake: k.any(' ', 'b') };
+}
+
+const vName = name => t('vehicles')[name] ?? name;
+function vehicleName(tag) {
+  const v = S.w.vehicles.find(q => q.name === tag);
+  return v ? `${vName(v.name)} (${v.year})` : tag;
+}
+
+function onEvent(e, inp) {
+  if (e.k === 'hit') {
+    const hard = e.tag === 'kerb' || e.tag === 'kerb-far' ? KERB_BUMP : BUMP;
+    burst(e.x, e.y, Math.min(40, 8 + e.v * 18), e.v);
+    if (e.v > hard && S.bumpCD <= 0) {
+      S.bumps++; S.bumpsHere++; S.bumpCD = .7; S.shake = Math.min(1, .3 + e.v * .4);
+      if (S.bumps >= TOW) return startTow();
+      const n = S.bumps, v = e.v, tag = e.tag;
+      if (tag === 'kerb') say('ENFORCEMENT', () => t('kerbed')(num(v, 2), n));
+      else if (tag === 'barrier') say('SEISMOMETER', () => t('barrier')(n));
+      else if (tag === 'boulder') say('CRATER', () => t('boulder')(n));
+      else if (tag === 'edge' || tag === 'kerb-far') say('ENFORCEMENT', () => t('counts')(n));
+      else { const i = BUMP_LINES(); say(BUMP_WHO[i], () => t('bump')[i](num(v, 2), n, vehicleName(tag))); }
+    } else if (e.v > .1 && e.v <= hard && S.kissCD <= 0 && S.bumpCD <= 0) {
+      S.kissCD = 9;
+      const v = e.v;
+      say('ENFORCEMENT', () => t('kiss')(num(v, 2), num(hard, 1)), 5);
+    }
+  } else if (e.k === 'pot') {
+    if (e.into) burst(e.x, e.y, 6, .4);
+    if (!e.into || S.potCD > 0) return;
+    S.pot++; S.potHere++; S.potCD = 1.2; S.shake = Math.max(S.shake, .15);
+    const first = S.potHere === 1, i = first ? Math.min(S.idx, 3) : POT_MORE();
+    say('SURFACE', () => t(first ? 'potFirst' : 'potMore')[i], 7);
+  } else if (e.k === 'rim') {
+    burst(e.x, e.y, 10, e.v * .6 + .3);
+    if (S.potCD > 0) return;
+    S.potCD = 2.5;
+    const into = e.into, i = Math.floor(Math.random() * 3);
+    say('CRATER', () => into ? t('rimIn')[i] : t('rimOut'), 4.5);
+  } else if (e.k === 'skid') {
+    if (S.skidCD > 0) return;
+    S.skidCD = .05;
+    const p = wheelPos(S.w.car, e.s === 0 ? Kit.pick([0, 1]) : Kit.pick([2, 3]));
+    burst(p[0], p[1], 2, Math.min(1.2, Math.abs(e.slip)));
+  } else if (e.k === 'land') {
+    const c = S.w.car;
+    for (let i = 0; i < 4; i++) { const p = wheelPos(c, i); burst(p[0], p[1], 6, .8); }
+    S.shake = Math.max(S.shake, Math.min(.6, e.v * .5));
+    const air = S.airT;
+    if (air > .35) say('TELEMETRY', () => t('airborne')(num(air, 2)), 5);
+  }
+}
+
+// Dust: no air, so every grain flies a clean parabola and lands where it lands.
+function burst(x, y, n, v) {
+  if (Kit.reduce) n = Math.ceil(n / 4);
+  for (let i = 0; i < n && S.parts.length < 500; i++) {
+    const a = Math.random() * 6.283, sp = Math.random() * (.4 + v * .9);
+    S.parts.push({ x, y, z: .02, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, vz: .3 + Math.random() * (.6 + v * 1.4), land: 0 });
+  }
+}
+function wheelDust(inp, dt) {
+  const c = S.w.car, sp = Math.hypot(c.vx, c.vy);
+  if (c.z > 0 || sp < .05) return;
+  const pushing = (inp.fwd || inp.rev || inp.brake) ? 1 : 0;
+  const rate = (pushing ? 9 : 1.5) * Math.min(1.5, sp) * (Kit.reduce ? .25 : 1);
+  if (Math.random() > rate * dt) return;
+  const i = Kit.pick([0, 1, 2, 3]), p = wheelPos(c, i);
+  const back = Math.sign(c.vx * Math.cos(c.th) + c.vy * Math.sin(c.th)) || 1;
+  S.parts.push({ x: p[0], y: p[1], z: .02, vx: -Math.cos(c.th) * back * (.2 + Math.random() * .5) + (Math.random() - .5) * .3,
+    vy: -Math.sin(c.th) * back * (.2 + Math.random() * .5) + (Math.random() - .5) * .3, vz: .4 + Math.random() * .9, land: 0 });
+}
+function stepParts(dt) {
+  for (const p of S.parts) {
+    if (p.land > 0) { p.land += dt; continue; }
+    p.x += p.vx * dt; p.y += p.vy * dt; p.z += p.vz * dt; p.vz -= PHYS.g * dt;
+    if (p.z <= 0) { p.z = 0; p.land = .001; }
+  }
+  S.parts = S.parts.filter(p => p.land < 3.5);
+}
+function trackTick() {
+  const c = S.w.car;
+  if (c.z > .02) { if (S.lastTrack) { S.tracks.forEach(t => t.push(null)); S.lastTrack = null; } return; }
+  if (S.lastTrack && Math.hypot(c.x - S.lastTrack[0], c.y - S.lastTrack[1]) < .14) return;
+  S.lastTrack = [c.x, c.y];
+  for (let i = 0; i < 4; i++) { const t = S.tracks[i]; t.push(wheelPos(c, i)); if (t.length > 1600) t.splice(0, 200); }
+}
+
+// Returns a function, so a hint already on the radio re-renders in the other language.
+function diagnose(ps) {
+  const b = S.w.bay, crater = S.level === 'crater', D = () => t('diag');
+  if (!ps.inY) return () => crater ? D().outCrater : D().outRoad;
+  if (!ps.inX) return () => D().overhang;
+  if (b.kerb != null && ps.kerb > b.kerb) { const cm = Math.round(ps.kerb * 100), lim = Math.round(b.kerb * 100); return () => D().kerb(cm, lim); }
+  if (ps.ang > b.ang) { const a = ps.ang, lim = b.ang; return () => D().ang(num(a, 1), lim); }
+  return () => D().nearly;
+}
+
+function drive(dt) {
+  S.levelT += dt;
+  const inp = readInput(), c = S.w.car, wasAir = c.z > 0;
+  const ev = stepSim(S.w, inp, dt);
+  if (c.z > 0) S.airT = wasAir ? S.airT + dt : dt;
+  for (const e of ev) { onEvent(e, inp); if (S.mode !== 'drive') return; }
+  trackTick(); wheelDust(inp, dt);
+  S.bumpCD -= dt; S.potCD -= dt; S.kissCD -= dt; S.skidCD -= dt;
+  const ps = S.ps = parkState(S.w);
+  const holding = inp.fwd || inp.rev;
+  if (ps.ok && ps.still && !holding) S.settle += dt; else S.settle = Math.max(0, S.settle - dt * 3);
+  if (S.settle >= SETTLE) return parked();
+  const near = c.x > S.w.bay.x0 - 1 && c.x < S.w.bay.x1 + 1 && (S.level === 'crater' || c.y < LANE + 1.6);
+  if (ps.still && !ps.ok && near) { S.stillT += dt; if (S.stillT > 2.2 && !S.hinted) { S.hinted = true; say(S.level === 'crater' ? 'CRATER' : 'ENFORCEMENT', diagnose(ps), 6); } }
+  else if (!ps.still) { S.stillT = 0; S.hinted = false; }
+  if (S.level === 'crater') {
+    S.craterTalkT -= dt;
+    if (S.craterTalkT <= 0 && S.radio.t <= 0) { const i = CRATER_TALK(); say('CRATER', () => t('craterTalk')[i], 6.5); S.craterTalkT = 15 + Math.random() * 5; }
+  } else {
+    S.ambT -= dt;
+    if (S.ambT <= 0 && S.radio.t <= -4) { const i = AMBIENT(); say(AMBIENT_WHO[i], () => t('ambient')[i], 7); S.ambT = 17 + Math.random() * 7; }
+  }
+}
+
+function startTow() {
+  S.mode = 'towing'; S.towT = 0; S.settle = 0;
+  say('ENFORCEMENT', () => t('tow'), 8);
+}
+function towing(dt) {
+  S.towT += dt;
+  if (S.towT < 1.4) stepSim(S.w, {}, dt);
+  if (S.towT > 1.4 && S.towT < 1.5) { const c = S.w.car; burst(c.x, c.y, 50, 1.4); }
+  if (S.towT > 3.3) endGame('towed');
+}
+
+function grade(ps) {
+  const strict = !!LEVELS[S.level].strict;
+  if (ps.kerb <= (strict ? .2 : .25) && ps.ang <= 2.5 && S.bumpsHere === 0) return 'EXEMPLARY';
+  if (ps.kerb <= (strict ? .26 : .35) && ps.ang <= 4.5) return 'ACCEPTABLE';
+  return 'TOLERATED';
+}
+function ltc() {
+  // Coordinated Lunar Time runs about 58.7 µs a day ahead of Earth's clocks. The epoch here is provisional.
+  const now = new Date(), days = (now - Date.UTC(2026, 0, 1)) / 864e5, drift = days * .0587;
+  const t = new Date(now.getTime() + drift), p = n => String(n).padStart(2, '0');
+  return { stamp: `${t.getUTCFullYear()}-${p(t.getUTCMonth() + 1)}-${p(t.getUTCDate())} ${p(t.getUTCHours())}:${p(t.getUTCMinutes())}:${p(t.getUTCSeconds())}.${String(t.getUTCMilliseconds()).padStart(3, '0')}`, drift };
+}
+const clockText = clock => t('clock')(clock.stamp, num(clock.drift, 2));
+const fmtT = s => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
+const esc = s => String(s).replace(/[&<>"]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch]));
+function ticketHTML(title, no, rows, remark, stamp) {
+  return `<header><span>${esc(t('pcnHead'))}</span><strong>${esc(title)}</strong><small>${esc(t('noPrefix'))} ${esc(no)}</small></header>
+    <dl>${rows.map(([k, v]) => `<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join('')}</dl>
+    <p class="remark">${esc(remark)}</p><div class="gradepad"></div><div class="grade">${esc(stamp)}</div>`;
+}
+function ticketNo() { return `${String(451 + S.results.length).padStart(6, '0')}-${LEVELS[S.level].zone[5]}`; }
+
+// A ticket is kept as a function of values frozen at the moment it was written, so a language
+// switch re-renders the same ticket rather than a new one.
+function parked() {
+  const ps = S.ps, g = grade(ps), level = S.level, clock = ltc();
+  S.mode = 'parked';
+  S.closest = Math.min(S.closest, Math.max(0, ps.kerb));
+  if (S.level !== 'crater') S.best = S.best == null ? Math.round(Math.max(0, ps.kerb) * 100) : Math.min(S.best, Math.round(Math.max(0, ps.kerb) * 100));
+  S.results.push({ level: S.level, kerb: ps.kerb, ang: ps.ang, bumps: S.bumpsHere, t: S.levelT, grade: g });
+  const cm = Math.round(Math.max(0, ps.kerb) * 100), lim = Math.round(S.w.bay.kerb * 100), ang = ps.ang, angLim = S.w.bay.ang, against = ps.facing < 0;
+  const here = S.bumpsHere, all = S.bumps, pots = S.potHere, took = S.levelT, no = ticketNo();
+  const rows = () => {
+    const R = t('row'), L = t('levels')[level];
+    return [
+      [R.location, `${L.street} (${L.coords})`],
+      [R.vehicle, t('hire')],
+      [R.time, clockText(clock)],
+      [R.kerb, t('kerbVal')(cm, lim)],
+      [R.ang, t('angVal')(num(ang, 1), angLim, against)],
+      [R.bumps, t('bumpsVal')(here, all)],
+      [R.hollow, String(pots)],
+      [R.toPark, fmtT(took)],
+    ];
+  };
+  if (level === 'taurus') return endGame('perfect', () => ticketHTML(t('exemplaryTitle'), no, rows(), t('exemplaryRemark'), t('grades').PERFECT));
+  if (level === 'crater') return endGame('crater');
+  const ri = REMARKS[g](), nextI = S.idx + 1;
+  S.pcn = () => ticketHTML(t('noticeTitle'), no, rows(), t('remarks')[g][ri], t('grades')[g]);
+  S.pcnNext = () => nextI < ROUTE.length ? t('nextStreet')(t('levels')[ROUTE[nextI]].street) : t('setBrake');
+  fillTicket();
+  Kit.show($('#ticket'));
+}
+function fillTicket() { $('#pcn').innerHTML = S.pcn(); $('#pcn-next').textContent = S.pcnNext(); }
+$('#pcn-next').onclick = () => {
+  S.idx++;
+  if (S.idx < ROUTE.length) startLevel(ROUTE[S.idx]); else startReveal();
+};
+
+function startReveal() {
+  S.mode = 'reveal'; S.revI = 0; showRevealLine();
+  Kit.show($('#reveal'));
+}
+function showRevealLine() {
+  const lines = t('reveal')(S.pot), [who, text] = lines[S.revI], last = S.revI === lines.length - 1;
+  $('#rev-who').textContent = who; $('#rev-line').textContent = text;
+  const row = $('#rev-row');
+  row.innerHTML = last
+    ? `<button class="btn" id="rev-crater">${esc(t('revCrater'))}</button><button class="btn ghost" id="rev-legal">${esc(t('revLegal'))}</button>`
+    : `<button class="btn" id="rev-next">${esc(t('goOn'))}</button>`;
+  if (last) {
+    $('#rev-crater').onclick = () => { S.path = 'crater'; startLevel('crater'); };
+    $('#rev-legal').onclick = () => { S.path = 'legal'; startLevel('taurus'); };
+  } else $('#rev-next').onclick = () => { S.revI++; showRevealLine(); };
+  row.querySelector('button').focus({ preventScroll: true });
+}
+
+function endGame(kind, ticket) {
+  S.mode = 'end'; S.ending = kind;
+  const tot = S.results.reduce((a, r) => a + r.t, 0) + (kind === 'towed' ? S.levelT : 0);
+  const clock = ltc(), last = S.results[S.results.length - 1];
+  const pot = S.pot, potHere = S.potHere, bumps = S.bumps, streets = S.results.length, level = S.level, no = kind === 'towed' ? ticketNo() : '';
+  S.endFn = () => {
+    const E = t('end')[kind];
+    let lede, slip;
+    if (kind === 'perfect') {
+      lede = E.lede(Math.round(Math.max(0, last.kerb) * 100), num(last.ang, 1));
+      slip = ticket();
+    } else if (kind === 'crater') {
+      const X = t('cert'), R = t('row');
+      lede = E.lede();
+      slip = ticketHTML(X.title, '000001-C', [
+        [R.location, X.location],
+        [R.issued, X.issued],
+        [R.time, clockText(clock)],
+        [R.ang, X.ang(num(last.ang, 1))],
+        [R.hollow, X.hollow(pot, potHere)],
+        [R.parkedHere, X.parkedHere],
+        [R.total, fmtT(tot)],
+      ], X.remark, t('grades').STAY);
+    } else {
+      const X = t('pcn'), R = t('row'), L = t('levels')[level];
+      lede = E.lede();
+      slip = ticketHTML(X.title, no, [
+        [R.location, `${L.street} (${L.coords})`],
+        [R.vehicle, t('hire')],
+        [R.time, clockText(clock)],
+        [R.contra, X.contra],
+        [R.bumps, X.bumps(bumps)],
+        [R.streets, `${streets}`],
+        [R.removed, X.removed],
+      ], X.remark, t('grades').TOWED);
+    }
+    return { kicker: E.kicker, title: E.title, lede, body: E.body, slip };
+  };
+  fillEnd();
+  Kit.show($('#end'));
+}
+function fillEnd() {
+  const e = S.endFn();
+  $('#end-kicker').textContent = e.kicker; $('#end-title').textContent = e.title;
+  $('#end-lede').textContent = e.lede; $('#end-body').textContent = e.body;
+  $('#end-pcn').innerHTML = e.slip;
+}
+$('#start').onclick = newRun;
+$('#again').onclick = newRun;
+
+// Where the car would stop if the brake went on now: the same physics, run ahead on a copy.
+function projectStop() {
+  const c = S.w.car;
+  if (Math.hypot(c.vx, c.vy) < .12 || c.z > 0) return null;
+  const inp = readInput(), w = { ...S.w, holes: [], car: { ...c, wIn: [] } }, dump = [];
+  const brakeIn = { brake: true, left: inp.left, right: inp.right };
+  for (let i = 0; i < 300; i++) { subStep(w, brakeIn, 1 / 60, dump); if (Math.hypot(w.car.vx, w.car.vy) < .02) break; }
+  return w.car;
+}
+
+/* drawing */
+function camera() {
+  const b = S.w.view, W = view.W, H = view.H, ww = b.x1 - b.x0, wh = b.y1 - b.y0;
+  const port = H > W * 1.15;
+  const s = port ? Math.min(W / wh, H / ww) : Math.min(W / ww, H / wh);
+  return { port, s, W, H, b, ww, wh, mx: b.x0 + ww / 2, my: b.y0 + wh / 2 };
+}
+function proj(cam, x, y) {
+  const dx = (x - cam.mx) * cam.s, dy = (y - cam.my) * cam.s;
+  return cam.port ? [cam.W / 2 + dy, cam.H / 2 - dx] : [cam.W / 2 + dx, cam.H / 2 + dy];
+}
+function fontPx(px, w = 400, fam = 'mono') { return `${w} ${px}px ${getComputedStyle(document.documentElement).getPropertyValue(fam === 'mono' ? '--f-mono' : '--f-display')}`; }
+let FONT_MONO = '';
+
+function draw() {
+  const W = view.W, H = view.H;
+  cx.setTransform(Math.min(2, devicePixelRatio || 1), 0, 0, Math.min(2, devicePixelRatio || 1), 0, 0);
+  cx.fillStyle = C.regolith; cx.fillRect(0, 0, W, H);
+  if (!S) return;
+  const cam = camera(), w = S.w;
+  const sh = !Kit.reduce && S.shake > 0 ? S.shake * 6 : 0;
+  cx.save();
+  cx.translate(W / 2 + (Math.random() - .5) * sh, H / 2 + (Math.random() - .5) * sh);
+  if (cam.port) cx.rotate(-Math.PI / 2);
+  cx.scale(cam.s, cam.s);
+  cx.translate(-cam.mx, -cam.my);
+  const px = 1 / cam.s;
+  drawGround(w, px);
+  drawTracks(px);
+  for (const v of w.vehicles) drawVehicle(v, px);
+  drawBay(w, px);
+  if (S.mode === 'drive' && S.w.car) { const g = projectStop(); if (g) drawCarOutline(g, px); }
+  drawPlayer(w.car, px, cam);
+  cx.restore();
+  drawDust(cam);
+  drawLabels(cam);
+  if (S.mode === 'towing') drawTow(cam);
+}
+
+function seededTex(w) {
+  if (w.tex) return w.tex;
+  let s = w.id.split('').reduce((a, ch) => a * 31 + ch.charCodeAt(0), 7) >>> 0;
+  const r = () => ((s = (s * 1664525 + 1013904223) >>> 0) / 4294967296);
+  const v = w.view, tex = [];
+  // The street itself was graded; craters survive only on the verge and out past the far kerb.
+  for (let i = 0; i < 90; i++) {
+    const x = v.x0 - 3 + r() * (v.x1 - v.x0 + 6), y = v.y0 - 3 + r() * (v.y1 - v.y0 + 6), rr = .12 + r() ** 2.5 * .9;
+    if (w.kerb && y > -.3 - rr && y < 9.4 + rr && rr > .2) continue;
+    tex.push({ x, y, r: w.kerb && y > 0 && y < 9.4 ? rr * .5 : rr, k: 0 });
+  }
+  for (let i = 0; i < 260; i++) tex.push({ x: v.x0 - 3 + r() * (v.x1 - v.x0 + 6), y: v.y0 - 3 + r() * (v.y1 - v.y0 + 6), r: .02 + r() * .05, k: 1 });
+  return (w.tex = tex);
+}
+function smallCrater(x, y, r, px) {
+  cx.fillStyle = C.pit; cx.beginPath(); cx.arc(x, y, r, 0, 6.283); cx.fill();
+  cx.strokeStyle = C.highland; cx.lineWidth = Math.max(px * 1.2, r * .22);
+  cx.beginPath(); cx.arc(x, y, r, 2.2, 5.6); cx.stroke();
+}
+function drawGround(w, px) {
+  const v = w.view;
+  if (w.kerb) {
+    cx.fillStyle = C.highland; cx.fillRect(v.x0 - 50, v.y0 - 50, v.x1 - v.x0 + 100, 50 - v.y0);
+  }
+  for (const t of seededTex(w)) {
+    if (w.bowl && Math.hypot(t.x - w.bowl.x, t.y - w.bowl.y) < w.bowl.R + .4) continue;
+    if (t.k === 0) smallCrater(t.x, t.y, t.r, px);
+    else { cx.fillStyle = C.pit; cx.fillRect(t.x, t.y, t.r, t.r); }
+  }
+  if (w.kerb) {
+    cx.fillStyle = C.kerb; cx.fillRect(v.x0 - 50, -.22, v.x1 - v.x0 + 100, .22);
+    cx.fillStyle = C.paint; cx.globalAlpha = .55; cx.fillRect(v.x0 - 50, -.24, v.x1 - v.x0 + 100, .04); cx.globalAlpha = 1;
+    cx.strokeStyle = C.paint; cx.lineWidth = .1; cx.setLineDash([1.2, 1.4]);
+    cx.beginPath(); cx.moveTo(v.x0, LANE); cx.lineTo(w.end, LANE); cx.stroke(); cx.setLineDash([]);
+    // seismometer barriers at both ends of the street
+    for (const bx of [.15, w.end - .15]) {
+      cx.fillStyle = C.ink; for (let y = 2.9; y < 9.3; y += .9) cx.fillRect(bx - .08, y, .16, .5);
+    }
+    for (const h of w.holes) {
+      cx.fillStyle = C.pit; cx.beginPath(); cx.arc(h.x, h.y, h.r, 0, 6.283); cx.fill();
+      cx.fillStyle = C.shadow; cx.beginPath(); cx.arc(h.x - h.r * .15, h.y - h.r * .15, h.r * .8, 0, 6.283); cx.fill();
+      cx.strokeStyle = C.highland; cx.lineWidth = .1; cx.beginPath(); cx.arc(h.x, h.y, h.r, .4, 3.4); cx.stroke();
+    }
+  }
+  if (w.bowl) {
+    const b = w.bowl;
+    const g = cx.createRadialGradient(b.x - 1, b.y - 1, .5, b.x, b.y, b.R);
+    g.addColorStop(0, C.pit); g.addColorStop(.75, C.regolith); g.addColorStop(1, C.pit);
+    cx.fillStyle = g; cx.beginPath(); cx.arc(b.x, b.y, b.R, 0, 6.283); cx.fill();
+    cx.strokeStyle = C.highland; cx.lineWidth = .45; cx.beginPath(); cx.arc(b.x, b.y, b.R + .15, 0, 6.283); cx.stroke();
+    cx.strokeStyle = C.shadow; cx.lineWidth = .5; cx.beginPath(); cx.arc(b.x, b.y, b.R - .3, -2.4, .7); cx.stroke();
+    // ejecta rays
+    cx.strokeStyle = C.highland; cx.globalAlpha = .5; cx.lineWidth = .18;
+    for (let i = 0; i < 14; i++) { const a = i * .449 + .2, r0 = b.R + .5, r1 = b.R + 2 + (i * 7 % 5) * .9; cx.beginPath(); cx.moveTo(b.x + Math.cos(a) * r0, b.y + Math.sin(a) * r0); cx.lineTo(b.x + Math.cos(a) * r1, b.y + Math.sin(a) * r1); cx.stroke(); }
+    cx.globalAlpha = 1;
+  }
+}
+function drawTracks(px) {
+  cx.strokeStyle = C.track; cx.lineCap = 'round';
+  for (let i = 0; i < 4; i++) {
+    const t = S.tracks[i];
+    cx.lineWidth = .2; cx.globalAlpha = .75; cx.beginPath();
+    let pen = false;
+    for (const p of t) { if (!p) { pen = false; continue; } pen ? cx.lineTo(p[0], p[1]) : cx.moveTo(p[0], p[1]); pen = true; }
+    cx.stroke();
+    // the rover-pattern tyres leave chevrons
+    cx.globalAlpha = .5; cx.lineWidth = .05; cx.beginPath();
+    for (let k = 1; k < t.length; k += 2) {
+      const a = t[k - 1], b = t[k]; if (!a || !b) continue;
+      const dx = b[0] - a[0], dy = b[1] - a[1], d = Math.hypot(dx, dy) || 1, nx = -dy / d * .11, ny = dx / d * .11;
+      cx.moveTo(b[0] + nx, b[1] + ny); cx.lineTo(b[0] - dx / d * .07, b[1] - dy / d * .07); cx.lineTo(b[0] - nx, b[1] - ny);
+    }
+    cx.stroke();
+  }
+  cx.globalAlpha = 1;
+}
+function drawBay(w, px) {
+  const b = w.bay, ps = S.ps;
+  if (S.level === 'crater') {
+    cx.strokeStyle = C.paint; cx.lineWidth = .09; cx.globalAlpha = .8; cx.setLineDash([.25, .18]);
+    cx.strokeRect(b.x0, b.y0, b.x1 - b.x0, b.y1 - b.y0); cx.setLineDash([]); cx.globalAlpha = 1;
+  }
+  if (ps && ps.ok && S.mode === 'drive') {
+    cx.fillStyle = C.accent; cx.globalAlpha = .12 + .25 * (S.settle / SETTLE);
+    cx.fillRect(b.x0, b.y0, b.x1 - b.x0, b.y1 - b.y0); cx.globalAlpha = 1;
+  }
+}
+
+function strutTo(x0, y0, x1, y1, wdt, col) { cx.strokeStyle = col; cx.lineWidth = wdt; cx.beginPath(); cx.moveTo(x0, y0); cx.lineTo(x1, y1); cx.stroke(); }
+function drawVehicle(v, px) {
+  const { x, y } = v;
+  cx.save(); cx.translate(x, y); cx.lineJoin = 'round'; cx.lineCap = 'round';
+  // shadow
+  cx.fillStyle = C.shadow;
+  if (v.kind === 'lm') {
+    for (const [sx, sy] of [[1, 1], [-1, 1], [1, -1], [-1, -1]]) {
+      strutTo(sx * 1.2, sy * .8, sx * 1.9, sy * 1.32, .12, C.metal);
+      strutTo(sx * 1.5, 0, sx * 1.9, sy * 1.32, .07, C.metal);
+      cx.fillStyle = C.panel; cx.beginPath(); cx.arc(sx * 1.9, sy * 1.32, .36, 0, 6.283); cx.fill();
+      cx.strokeStyle = C.ink; cx.lineWidth = .04; cx.stroke();
+    }
+    cx.fillStyle = C.foil; cx.beginPath();
+    const o = [[1.55, .6], [1.0, 1.15], [-1.0, 1.15], [-1.55, .6], [-1.55, -.6], [-1.0, -1.15], [1.0, -1.15], [1.55, -.6]];
+    o.forEach(([a, b], i) => i ? cx.lineTo(a, b) : cx.moveTo(a, b)); cx.closePath(); cx.fill();
+    cx.strokeStyle = C.shadow; cx.lineWidth = .04;
+    for (let i = -1.2; i < 1.3; i += .35) { cx.beginPath(); cx.moveTo(i, -1.05); cx.lineTo(i + .2, 1.05); cx.stroke(); }
+    cx.strokeStyle = C.ink; cx.lineWidth = .05; cx.beginPath(); o.forEach(([a, b], i) => i ? cx.lineTo(a, b) : cx.moveTo(a, b)); cx.closePath(); cx.stroke();
+    // where the ascent stage used to be
+    cx.fillStyle = C.pit; cx.fillRect(-.7, -.7, 1.4, 1.4);
+    cx.strokeStyle = C.ink; cx.lineWidth = .04; cx.strokeRect(-.7, -.7, 1.4, 1.4);
+    cx.fillStyle = C.shadow; cx.beginPath(); cx.arc(0, 0, .4, 0, 6.283); cx.fill();
+    if (S.level === 'tranq' && v.name === 'Eagle') {
+      // the flag, which blew over at lift-off
+      cx.strokeStyle = C.ink; cx.lineWidth = .05; cx.beginPath(); cx.moveTo(-2.6, -1.0); cx.lineTo(-3.8, -.7); cx.stroke();
+      cx.fillStyle = C.paint; cx.fillRect(-3.75, -.7, .7, .45);
+      cx.fillStyle = C.car; cx.fillRect(-3.75, -.7, .28, .22);
+    }
+  } else if (v.kind === 'surveyor') {
+    for (const [a, b] of [[1.22, 0], [-.61, 1.05], [-.61, -1.05]]) {
+      strutTo(0, 0, a, b, .08, C.metal);
+      cx.fillStyle = C.panel; cx.beginPath(); cx.arc(a, b, .28, 0, 6.283); cx.fill(); cx.strokeStyle = C.ink; cx.lineWidth = .04; cx.stroke();
+    }
+    cx.fillStyle = C.metal; cx.beginPath(); cx.moveTo(.6, 0); cx.lineTo(-.3, .52); cx.lineTo(-.3, -.52); cx.closePath(); cx.fill();
+    cx.strokeStyle = C.ink; cx.lineWidth = .04; cx.stroke();
+    cx.fillStyle = C.solar; cx.save(); cx.rotate(.5); cx.fillRect(-.45, -.3, .9, .6); cx.strokeStyle = C.metal; cx.lineWidth = .03;
+    for (let i = -.3; i < .45; i += .15) { cx.beginPath(); cx.moveTo(i, -.3); cx.lineTo(i, .3); cx.stroke(); }
+    cx.restore();
+    if (v.name === 'Surveyor 3') { cx.fillStyle = C.pit; cx.fillRect(.15, .15, .2, .16); cx.strokeStyle = C.accent; cx.lineWidth = .03; cx.strokeRect(.15, .15, .2, .16); }
+  } else if (v.kind === 'luna17') {
+    cx.fillStyle = C.metal; cx.fillRect(-1.25, -1.1, 2.5, 2.2);
+    cx.strokeStyle = C.ink; cx.lineWidth = .05; cx.strokeRect(-1.25, -1.1, 2.5, 2.2);
+    for (const s of [-1, 1]) { cx.fillStyle = C.pit; cx.fillRect(s > 0 ? 1.25 : -1.9, -.55, .65, 1.1); cx.strokeRect(s > 0 ? 1.25 : -1.9, -.55, .65, 1.1); }
+    cx.fillStyle = C.solar; for (const [a, b] of [[-.9, -.8], [.2, -.8], [-.9, .1], [.2, .1]]) cx.beginPath(), cx.arc(a + .35, b + .35, .3, 0, 6.283), cx.fill();
+  } else if (v.kind === 'lunokhod') {
+    cx.fillStyle = C.ink;
+    for (let i = 0; i < 4; i++) for (const s of [-1, 1]) cx.fillRect(-.7 + i * .58, s * .8 - .18, .4, .36);
+    cx.fillStyle = C.metal; cx.beginPath(); cx.roundRect(-.85, -.75, 2.2, 1.5, .5); cx.fill();
+    cx.strokeStyle = C.ink; cx.lineWidth = .05; cx.stroke();
+    cx.fillStyle = C.solar; cx.beginPath(); cx.arc(-1.05, 0, .72, 0, 6.283); cx.fill();
+    cx.strokeStyle = C.metal; cx.lineWidth = .025; for (let i = -.6; i <= .6; i += .2) { cx.beginPath(); cx.moveTo(-1.05 + i, -Math.sqrt(.52 - i * i)); cx.lineTo(-1.05 + i, Math.sqrt(.52 - i * i)); cx.stroke(); }
+    cx.strokeStyle = C.ink; cx.lineWidth = .05; cx.beginPath(); cx.arc(-1.05, 0, .72, 0, 6.283); cx.stroke();
+    cx.fillStyle = C.paint; cx.fillRect(1.25, -.2, .12, .4);
+  } else if (v.kind === 'lrv') {
+    drawRover(px, true, v.name === 'LRV-3');
+  } else if (v.kind === 'boulder') {
+    cx.fillStyle = C.shadow; cx.beginPath(); cx.ellipse(.15, .15, .82, .78, 0, 0, 6.283); cx.fill();
+    cx.fillStyle = C.metal; cx.beginPath(); cx.moveTo(.8, 0); cx.lineTo(.4, .7); cx.lineTo(-.5, .65); cx.lineTo(-.82, .05); cx.lineTo(-.4, -.7); cx.lineTo(.5, -.62); cx.closePath(); cx.fill();
+    cx.strokeStyle = C.ink; cx.lineWidth = .04; cx.stroke();
+    cx.fillStyle = C.highland; cx.beginPath(); cx.moveTo(-.4, -.7); cx.lineTo(.5, -.62); cx.lineTo(.2, -.2); cx.lineTo(-.45, -.25); cx.closePath(); cx.fill();
+  }
+  cx.restore();
+}
+// The 1971-pattern rover, top-down: open frame, wire wheels, two seats, the umbrella antenna.
+function drawRover(px, old, taped) {
+  cx.fillStyle = C.ink;
+  for (const [a, b] of [[1.15, .9], [1.15, -.9], [-1.15, .9], [-1.15, -.9]]) cx.fillRect(a - .4, b - .14, .8, .28);
+  cx.fillStyle = old ? C.metal : C.car;
+  cx.fillRect(-1.5, -.62, 3, 1.24);
+  cx.strokeStyle = C.ink; cx.lineWidth = .05; cx.strokeRect(-1.5, -.62, 3, 1.24);
+  cx.fillStyle = C.panel; for (const s of [-1, 1]) cx.fillRect(-.55, s * .32 - .22, .55, .44);
+  cx.strokeStyle = C.ink; cx.lineWidth = .03; for (const s of [-1, 1]) cx.strokeRect(-.55, s * .32 - .22, .55, .44);
+  // fenders
+  cx.strokeStyle = old ? C.panel : C.glass; cx.lineWidth = .1;
+  for (const [a, b] of [[1.15, .9], [1.15, -.9], [-1.15, .9], [-1.15, -.9]]) { cx.beginPath(); cx.moveTo(a - .45, b * 1.18); cx.lineTo(a + .45, b * 1.18); cx.stroke(); }
+  if (taped) { cx.fillStyle = C.paint; cx.fillRect(-1.6, -1.15, .5, .22); cx.strokeStyle = C.ink; cx.lineWidth = .02; cx.strokeRect(-1.6, -1.15, .5, .22); }
+  // the umbrella high-gain antenna
+  cx.fillStyle = C.panel; cx.beginPath(); cx.arc(1.05, 0, .5, 0, 6.283); cx.fill();
+  cx.strokeStyle = C.metal; cx.lineWidth = .025; for (let a = 0; a < 6.28; a += .52) { cx.beginPath(); cx.moveTo(1.05, 0); cx.lineTo(1.05 + Math.cos(a) * .5, Math.sin(a) * .5); cx.stroke(); }
+  cx.strokeStyle = C.ink; cx.lineWidth = .03; cx.beginPath(); cx.arc(1.05, 0, .5, 0, 6.283); cx.stroke();
+  if (old) { cx.fillStyle = C.dust; cx.globalAlpha = .35; cx.fillRect(-1.5, -.62, 3, 1.24); cx.globalAlpha = 1; }
+}
+function drawCarBody(c, steer) {
+  const L = PHYS.len / 2, Wd = PHYS.wid / 2;
+  cx.fillStyle = C.ink;
+  for (const [a, b, st] of [[1.15, .9, 1], [1.15, -.9, 1], [-1.15, .9, 0], [-1.15, -.9, 0]]) {
+    cx.save(); cx.translate(a, b); if (st) cx.rotate(steer); cx.fillRect(-.36, -.14, .72, .28); cx.restore();
+  }
+  cx.fillStyle = C.car; cx.beginPath(); cx.roundRect(-L, -Wd + .12, L * 2, (Wd - .12) * 2, .38); cx.fill();
+  cx.strokeStyle = C.ink; cx.lineWidth = .05; cx.stroke();
+  cx.fillStyle = C.glass; cx.beginPath(); cx.roundRect(-.55, -.62, 1.25, 1.24, .22); cx.fill();
+  cx.fillStyle = C.paint; cx.globalAlpha = .55; cx.beginPath(); cx.roundRect(.38, -.55, .22, 1.1, .08); cx.fill(); cx.globalAlpha = 1;
+  cx.fillStyle = C.paint; cx.fillRect(L - .08, -.68, .07, .26); cx.fillRect(L - .08, .42, .07, .26);
+  cx.fillStyle = C.accent; cx.fillRect(-L + .02, -.2, .08, .4);
+}
+function drawPlayer(c, px, cam) {
+  const up = cam.port ? [1, 0] : [0, -1], lift = c.z * .8;
+  cx.save(); cx.translate(c.x, c.y); cx.rotate(c.th);
+  cx.fillStyle = C.shadow; cx.beginPath(); cx.roundRect(-PHYS.len / 2 + .08, -PHYS.wid / 2 + .2, PHYS.len, PHYS.wid - .24, .38); cx.fill();
+  cx.restore();
+  if (S.mode === 'towing' && S.towT > 1.6) return;
+  cx.save(); cx.translate(c.x + up[0] * lift, c.y + up[1] * lift); cx.rotate(c.th);
+  const k = 1 + c.z * .12; cx.scale(k, k);
+  drawCarBody(c, c.steer);
+  cx.restore();
+}
+function drawCarOutline(g, px) {
+  cx.save(); cx.translate(g.x, g.y); cx.rotate(g.th);
+  cx.strokeStyle = C.ink; cx.globalAlpha = .55; cx.lineWidth = 1.4 * px; cx.setLineDash([5 * px, 4 * px]);
+  cx.beginPath(); cx.roundRect(-PHYS.len / 2, -PHYS.wid / 2 + .12, PHYS.len, PHYS.wid - .24, .38); cx.stroke();
+  cx.restore();
+}
+function drawDust(cam) {
+  const r = Math.max(1.2, cam.s * .045);
+  for (const p of S.parts) {
+    const [x, y] = proj(cam, p.x, p.y);
+    if (p.land > 0) { cx.globalAlpha = Math.max(0, .55 - p.land * .16); cx.fillStyle = C.dust; cx.fillRect(x - r / 2, y - r / 2, r, r); continue; }
+    cx.globalAlpha = .22; cx.fillStyle = C.shadow; cx.fillRect(x - r / 2, y - r / 2, r, r);
+    cx.globalAlpha = .85; cx.fillStyle = C.dust; cx.fillRect(x - r / 2, y - r / 2 - p.z * cam.s * .8, r, r);
+  }
+  cx.globalAlpha = 1;
+}
+// maxw is in metres of street; fillText squeezes a label that would run past it.
+function drawLabels(cam) {
+  const fs = Math.max(9, Math.min(12, cam.s * .3));
+  if (!FONT_MONO) FONT_MONO = getComputedStyle(document.documentElement).getPropertyValue('--f-mono').trim();
+  cx.font = `600 ${fs}px ${FONT_MONO}`; cx.fillStyle = C.muted; cx.textBaseline = 'middle';
+  const lab = (x, y, text, maxw) => {
+    const [sx, sy] = proj(cam, x, y);
+    cx.save(); cx.translate(sx, sy); if (cam.port) cx.rotate(-Math.PI / 2); cx.textAlign = 'center'; cx.fillText(text, 0, 0, maxw * cam.s); cx.restore();
+  };
+  for (const v of S.w.vehicles) if (v.name) lab(v.x, -1.0, `${vName(v.name).toUpperCase()} · ${v.year}`, 6.5);
+  if (S.w.kerb) { lab(1.1, 3.3, t('labRoad'), 2.6); lab(S.w.end - 1.3, 3.3, t('labSeis'), 3); }
+  if (S.level === 'crater') lab(S.w.bay.x0 + 2.75, S.w.bay.y1 + .55, t('labSpace'), 11);
+}
+function drawTow(cam) {
+  const c = S.w.car, [x, y] = proj(cam, c.x, c.y), t = S.towT;
+  const desc = Math.min(1, t / 1.4), lift = Math.max(0, (t - 1.6) / 1.5);
+  const r = cam.s * (1.6 + 2.5 * (1 - desc) + lift * 2);
+  cx.globalAlpha = .25 + .3 * desc * (1 - lift); cx.fillStyle = C.ink;
+  cx.beginPath(); cx.ellipse(x, y, r, r * .8, 0, 0, 6.283); cx.fill();
+  cx.globalAlpha = Math.max(0, 1 - lift); cx.strokeStyle = C.ink; cx.lineWidth = 2;
+  const hy = y - cam.s * (6 * (1 - desc) + lift * 6);
+  cx.beginPath(); cx.moveTo(x, hy - 40); cx.lineTo(x, hy); cx.stroke();
+  if (t > 1.6) {
+    cx.save(); cx.translate(x, hy); cx.rotate(S.w.car.th - (cam.port ? Math.PI / 2 : 0)); cx.scale(cam.s * (1 + lift * .4), cam.s * (1 + lift * .4)); drawCarBody(c, 0); cx.restore();
+  }
+  cx.globalAlpha = 1;
+}
+
+function hud() {
+  if (!S) return;
+  const c = S.w.car, sp = Math.hypot(c.vx, c.vy), ps = S.ps || parkState(S.w);
+  const stopD = sp * sp / (2 * PHYS.mu * PHYS.g * PHYS.brake);
+  const set = (id, v, unit) => { const el = $(id); const h = unit ? `${v}<em>${unit}</em>` : v; if (el.innerHTML !== h) el.innerHTML = h; };
+  set('#i-speed', num(sp * 3.6, 1), 'km/h');
+  set('#i-stop', num(stopD, 2), 'm');
+  if (S.w.kerb) { set('#i-kerb', Math.max(0, Math.round(ps.kerb * 100)), 'cm'); $('#w-kerb').classList.toggle('warn', ps.kerb > S.w.bay.kerb && ps.inX); }
+  else set('#i-kerb', t('na'), '');
+  set('#i-ang', num(ps.ang, 1), '°'); $('#w-ang').classList.toggle('warn', ps.ang > S.w.bay.ang && ps.inX);
+  const gap = nearestGap();
+  set('#i-sensor', gap > 1.2 ? t('clear') : `${Math.round(gap * 100)}<em>cm${gap < .5 ? t('beep') : ''}</em>`);
+  $('#w-sensor').classList.toggle('warn', gap < .5);
+  set('#i-bumps', '●'.repeat(Math.min(TOW, S.bumps)) + '○'.repeat(Math.max(0, TOW - S.bumps)));
+  $('#w-bumps').classList.toggle('warn', S.bumps >= TOW - 2);
+  const showSettle = S.mode === 'drive' && S.settle > 0;
+  $('#settle').hidden = !showSettle;
+  if (showSettle) $('#settle-bar').style.width = Math.min(100, S.settle / SETTLE * 100) + '%';
+}
+function nearestGap() {
+  const c = S.w.car, ux = Math.cos(c.th), uy = Math.sin(c.th), hl = PHYS.len / 2, hw = PHYS.wid / 2;
+  let best = Infinity;
+  const toCar = (x, y) => { const px = x - c.x, py = y - c.y, lu = px * ux + py * uy, lv = -px * uy + py * ux; return Math.hypot(Math.max(0, Math.abs(lu) - hl), Math.max(0, Math.abs(lv) - hw)); };
+  for (const o of S.w.obs) {
+    if (o.t === 'circ') best = Math.min(best, toCar(o.x, o.y) - o.r);
+    else {
+      for (const p of boxCorners(o.x, o.y, 1, 0, o.hl, o.hw)) best = Math.min(best, toCar(p[0], p[1]));
+      for (const p of carCorners(c)) best = Math.min(best, Math.hypot(Math.max(0, Math.abs(p[0] - o.x) - o.hl), Math.max(0, Math.abs(p[1] - o.y) - o.hw)));
+    }
+  }
+  return Math.max(0, best);
+}
+
+const loop = Kit.loop(dt => {
+  if (!S) return;
+  S.t += dt;
+  if (S.mode === 'drive') drive(dt);
+  else if (S.mode === 'towing') towing(dt);
+  stepParts(dt);
+  if (S.shake > 0) S.shake = Math.max(0, S.shake - dt * 2.2);
+  S.radio.t -= dt;
+  if (S.radio.t <= 0 && S.radio.t > -dt * 1.5) $('#radio').classList.add('dim');
+  if (S.radio.t <= 0 && S.q.length) { const [w, t, s] = S.q.shift(); say(w, t, s); }
+  draw(); hud();
+});
+Kit.keys.onPress((k, down) => {
+  const K = t('keys');
+  const map = { ArrowLeft: 0, [K.left]: 0, ArrowRight: 1, [K.right]: 1, ArrowDown: 2, [K.rev]: 2, ' ': 3, b: 3, ArrowUp: 4, [K.fwd]: 4 };
+  if (k in map) document.querySelectorAll('.pad [data-key]')[map[k]].classList.toggle('on', Kit.keys.any(...Object.keys(map).filter(q => map[q] === map[k])));
+});
+
+// ---- language -------------------------------------------------------------------------------
+// Static markup carries data-t (text), data-th (trusted markup from I18N) and data-ta
+// (aria-label). The sign, radio, ticket, reveal and end card re-render from S; the canvas labels
+// and HUD read t() every frame.
+function applyLang() {
+  document.documentElement.lang = lang;
+  document.title = t('docTitle');
+  for (const el of document.querySelectorAll('[data-t]')) el.textContent = t(el.dataset.t);
+  for (const el of document.querySelectorAll('[data-th]')) el.innerHTML = t(el.dataset.th);
+  for (const el of document.querySelectorAll('[data-ta]')) el.setAttribute('aria-label', t(el.dataset.ta));
+  for (const box of document.querySelectorAll('.lang')) {
+    if (!box.children.length) box.innerHTML = '<button data-lang="fr" lang="fr">FR</button><button data-lang="en" lang="en">EN</button>';
+    for (const b of box.children) b.setAttribute('aria-pressed', String(b.dataset.lang === lang));
+  }
+  if (!S) return;
+  renderSign(); renderRadio();
+  if (S.mode === 'parked' && S.pcn) fillTicket();
+  if (S.mode === 'reveal') showRevealLine();
+  if (S.mode === 'end' && S.endFn) fillEnd();
+}
+function setLang(l) {
+  if (!(l in I18N) || l === lang) return;
+  lang = l;
+  applyLang();
+}
+document.addEventListener('click', e => {
+  const b = e.target.closest('[data-lang]');
+  if (b) setLang(b.dataset.lang);
+});
+
+function start(data) {
+  lang = data?.lang in I18N ? data.lang : (navigator.language || '').toLowerCase().startsWith('fr') ? 'fr' : 'en';
+  S = fresh(data.best ?? null);
+  applyLang();
+  Kit.show($('#title'));
+  loop.start();
+}
+Kit.boot(start, () => ({ best: S?.best ?? null, lang }));
+
+Kit.expose({
+  state: () => S,
+  endings: {
+    // A clean stop in the strict space; the settle timer, ticket and ending run for real.
+    perfect: { seconds: 9, jump() { S.idx = 4; S.path = 'legal'; startLevel('taurus'); const b = S.w.bay; place((b.x0 + b.x1) / 2, .2 + PHYS.wid / 2, .01, .05); },
+      reached: () => S.mode === 'end' && S.ending === 'perfect' && !$('#end').hidden },
+    // Dropped just inside the bay; the bowl's slope settles it.
+    crater: { seconds: 11, jump() { S.idx = 4; S.path = 'crater'; startLevel('crater'); const b = S.w.bay; place((b.x0 + b.x1) / 2 - .5, (b.y0 + b.y1) / 2, .03, .2); },
+      reached: () => S.mode === 'end' && S.ending === 'crater' && !$('#end').hidden },
+    // Four bumps already; the car is rolling into Eagle at 1.4 m/s.
+    towed: { seconds: 11, jump() { S.bumps = TOW - 1; const b = S.w.bay; place(b.x1 - 3, 1.3, 0, 1.4); },
+      reached: () => S.mode === 'end' && S.ending === 'towed' && !$('#end').hidden },
+  },
+});
+</script>
+</body>
+</html>

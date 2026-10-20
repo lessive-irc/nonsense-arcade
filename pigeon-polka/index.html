@@ -1,0 +1,1206 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Pigeon Polka</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;900&family=Overpass:wght@400;600;800&family=Overpass+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: one screen. A municipal notice board on top, the town square (canvas lanes) in the middle, four enamel street signs along the bottom. */
+:root {
+  --paper: #dfe4e1;
+  --cobble: #c6cdc9;
+  --cobble-gap: #aab3ae;
+  --ink: #172220;
+  --ink-soft: #4b5955;
+  --enamel: #1d5a57;
+  --enamel-ink: #f3f6f0;
+  --brass: #b07f22;
+  --bunting-a: #c4452f;
+  --bunting-b: #e0b23a;
+  --crumb: #b47a37;
+  --rye: #6b4626;
+  --feather: #fbfcf8;
+  --pigeon: #7f8b92;
+  --pigeon-neck: #4f8d78;
+  --stone: #8f9894;
+  --f-display: "Big Shoulders Display", "Arial Narrow", "Helvetica Neue", sans-serif;
+  --f-body: "Overpass", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-mono: "Overpass Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #121a19; --cobble: #26302e; --cobble-gap: #1a2221; --ink: #e4ebe6; --ink-soft: #9db0aa;
+    --enamel: #1f6a65; --enamel-ink: #f1f5ef; --brass: #e2ae4c; --bunting-a: #e06a52; --bunting-b: #f0c85c;
+    --crumb: #d39b56; --rye: #9a6a3e; --feather: #eef1ec; --pigeon: #9aa7ae; --pigeon-neck: #68b096; --stone: #6c7673;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #121a19; --cobble: #26302e; --cobble-gap: #1a2221; --ink: #e4ebe6; --ink-soft: #9db0aa;
+  --enamel: #1f6a65; --enamel-ink: #f1f5ef; --brass: #e2ae4c; --bunting-a: #e06a52; --bunting-b: #f0c85c;
+  --crumb: #d39b56; --rye: #9a6a3e; --feather: #eef1ec; --pigeon: #9aa7ae; --pigeon-neck: #68b096; --stone: #6c7673;
+  color-scheme: dark;
+}
+[hidden] { display: none !important; }
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font: 15px/1.5 var(--f-body);
+  padding-block: 12px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  overflow: hidden;
+}
+.app { height: 100%; max-width: 760px; margin: 0 auto; display: grid; grid-template-rows: auto 1fr auto; gap: 10px; }
+
+.board { grid-row: 1; }
+.stage { grid-row: 2; }
+.signs { grid-row: 3; }
+.board { display: flex; justify-content: space-between; align-items: flex-end; gap: 12px 20px; flex-wrap: wrap; }
+.eyebrow { font: 600 11px var(--f-mono); letter-spacing: .14em; text-transform: uppercase; color: var(--enamel); }
+.board h1 { margin: 0; font: 900 clamp(26px, 6vw, 38px)/.95 var(--f-display); text-transform: uppercase; letter-spacing: .01em; text-wrap: balance; }
+.bylaw { font-size: 13px; color: var(--ink-soft); max-width: 46ch; margin-top: 4px; }
+.tally { display: grid; gap: 4px; justify-items: end; }
+.score { font: 800 22px/1 var(--f-body); font-variant-numeric: tabular-nums; }
+.score small { font: 600 11px var(--f-mono); letter-spacing: .1em; text-transform: uppercase; color: var(--ink-soft); }
+.flock { font: 400 12px var(--f-mono); color: var(--ink-soft); font-variant-numeric: tabular-nums; }
+.flock b { color: var(--ink); font-weight: 600; }
+.meter { width: 170px; max-width: 42vw; height: 8px; border-radius: 99px; background: color-mix(in srgb, var(--ink) 12%, transparent); overflow: hidden; }
+.meter i { display: block; height: 100%; width: 60%; background: var(--brass); border-radius: inherit; transition: width .15s; }
+.meter.low i { background: var(--bunting-a); }
+.meter-label { font: 400 10px var(--f-mono); letter-spacing: .12em; text-transform: uppercase; color: var(--ink-soft); }
+
+.stage { position: relative; min-height: 0; border-radius: 10px; overflow: hidden; box-shadow: 0 0 0 1px color-mix(in srgb, var(--ink) 14%, transparent); }
+canvas { display: block; width: 100%; height: 100%; touch-action: none; }
+
+.signs { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.sign {
+  font: 800 13px/1.1 var(--f-body); color: var(--enamel-ink); background: var(--enamel);
+  border: 0; border-radius: 6px; padding: 9px 6px 7px; cursor: pointer; touch-action: none;
+  box-shadow: inset 0 0 0 3px var(--enamel), inset 0 0 0 4.5px var(--enamel-ink);
+  display: grid; gap: 1px; justify-items: center; user-select: none; -webkit-user-select: none;
+  transition: transform .06s;
+}
+.sign b { font: 900 22px/1 var(--f-display); }
+.sign span { font: 600 10px var(--f-mono); letter-spacing: .08em; text-transform: uppercase; opacity: .85; }
+.sign.down { transform: translateY(2px); background: var(--brass); box-shadow: inset 0 0 0 3px var(--brass), inset 0 0 0 4.5px var(--enamel-ink); }
+.sign:focus-visible { outline: 3px solid var(--brass); outline-offset: 2px; }
+.sign.hold { grid-column: 1 / -1; display: none; }
+.finale .sign.lane { display: none; }
+.finale .sign.hold { display: grid; }
+
+.overlay {
+  position: absolute; inset: 0; display: grid; place-items: center; padding: 18px; overflow-y: auto;
+  background: color-mix(in srgb, var(--paper) 90%, transparent);
+}
+.card { display: grid; gap: 14px; max-width: 470px; justify-items: center; text-align: center; }
+.card h2 { margin: 0; font: 900 clamp(38px, 9vw, 64px)/.9 var(--f-display); text-transform: uppercase; text-wrap: balance; }
+.card h2.small { font-size: clamp(30px, 7vw, 46px); }
+.card p { margin: 0; max-width: 52ch; color: var(--ink-soft); }
+.card .voice { font-style: italic; color: var(--ink); }
+.card .rule {
+  font: 600 13px/1.45 var(--f-body); color: var(--enamel-ink); background: var(--enamel);
+  padding: 10px 14px; border-radius: 6px; box-shadow: inset 0 0 0 3px var(--enamel), inset 0 0 0 4.5px var(--enamel-ink);
+}
+.stat { font: 400 13px var(--f-mono); color: var(--ink); font-variant-numeric: tabular-nums; }
+.row { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; align-items: center; }
+button.go {
+  font: 800 14px var(--f-body); letter-spacing: .03em; color: var(--ink); background: var(--brass);
+  border: 0; border-radius: 99px; padding: 11px 22px; cursor: pointer; transition: transform .12s;
+}
+button.go:hover { transform: translateY(-2px); }
+button.go.ghost { background: transparent; box-shadow: inset 0 0 0 1.5px var(--ink-soft); }
+button.go:focus-visible { outline: 3px solid var(--enamel); outline-offset: 3px; }
+.settings { display: grid; gap: 8px; justify-items: center; font: 400 12px var(--f-mono); color: var(--ink-soft); }
+.settings label { display: flex; gap: 8px; align-items: center; }
+.settings input[type="range"] { width: 160px; accent-color: var(--enamel); }
+.settings output { min-width: 6ch; text-align: right; font-variant-numeric: tabular-nums; color: var(--ink); }
+.keys { font: 400 11px var(--f-mono); letter-spacing: .06em; color: var(--ink-soft); }
+.tap {
+  width: 120px; height: 120px; border-radius: 50%; border: 0; cursor: pointer;
+  font: 900 26px var(--f-display); text-transform: uppercase; color: var(--enamel-ink); background: var(--enamel);
+  box-shadow: inset 0 0 0 4px var(--enamel), inset 0 0 0 6px var(--enamel-ink);
+}
+.tap.pulse { background: var(--brass); box-shadow: inset 0 0 0 4px var(--brass), inset 0 0 0 6px var(--enamel-ink); }
+.lang { display: inline-flex; border-radius: 6px; overflow: hidden; box-shadow: inset 0 0 0 1.5px var(--enamel); }
+.lang button { font: 600 11px var(--f-mono); letter-spacing: .1em; border: 0; border-radius: 0; padding: 4px 9px; background: transparent; color: var(--enamel); cursor: pointer; }
+.lang button + button { box-shadow: inset 1.5px 0 0 var(--enamel); }
+.lang button[aria-pressed="true"] { background: var(--enamel); color: var(--enamel-ink); }
+.lang button:focus-visible { outline: 3px solid var(--brass); outline-offset: 2px; }
+@media (max-width: 460px) {
+  .tally { justify-items: start; }
+  .sign b { font-size: 19px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sign, button.go, .meter i { transition: none; }
+  button.go:hover { transform: none; }
+}
+</style>
+</head>
+<body>
+<div class="app" id="app">
+  <div class="stage" id="stage">
+    <canvas id="cv" data-ta="cvAria" aria-label="The town square: breadcrumbs fall toward four pigeons"></canvas>
+
+    <div class="overlay" id="ov-title">
+      <div class="card">
+        <div class="eyebrow" data-t="titleEyebrow">Sundays, 3 pm, weather permitting</div>
+        <h2 data-t="brand">Pigeon Polka</h2>
+        <p data-t="titleP">The municipal brass band is playing. Breadcrumbs fall toward four pigeons. When a crumb reaches the brass line, press that pigeon's key. Six songs, six by-laws.</p>
+        <div class="row">
+          <button class="go" id="start" data-t="startBtn">Strike up the band</button>
+          <button class="go ghost" id="calib" data-t="calibBtn">Calibrate</button>
+        </div>
+        <div class="settings">
+          <label for="offset"><span data-t="offsetLbl">input offset</span> <input type="range" id="offset" min="-200" max="200" step="5" value="0"> <output id="offsetOut">0 ms</output></label>
+          <label for="sound"><input type="checkbox" id="sound" checked> <span data-t="soundLbl">sound on (the beat is also shown, so muted play works)</span></label>
+        </div>
+        <div class="keys" data-t="titleKeys">D F J K or 1–4 · tap the signs or the lanes · Esc pauses</div>
+      </div>
+    </div>
+
+    <div class="overlay" id="ov-calib" hidden>
+      <div class="card">
+        <h2 class="small" data-t="calibH">Calibration</h2>
+        <p data-t="calibP">Ten clicks will play. Tap the button, or press Space, on each of the last eight. The offset is the average of how early or late you were.</p>
+        <button class="tap" id="tap" data-t="tapBtn">Tap</button>
+        <div class="stat" id="calibOut">Press Begin when ready.</div>
+        <div class="row">
+          <button class="go" id="calibGo" data-t="beginBtn">Begin</button>
+          <button class="go ghost" id="calibDone" data-t="doneBtn">Done</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="overlay" id="ov-card" hidden>
+      <div class="card">
+        <div class="eyebrow" id="cardEyebrow">Next on the bandstand</div>
+        <h2 class="small" id="cardName">Gerald Pecks Late</h2>
+        <div class="rule" id="cardRule">By-law 2</div>
+        <p class="voice" id="cardVoice"></p>
+        <button class="go" id="next">Play the next song</button>
+      </div>
+    </div>
+
+    <div class="overlay" id="ov-pause" hidden>
+      <div class="card">
+        <h2 class="small" data-t="pauseH">Interval</h2>
+        <p data-t="pauseP">The band is having a cup of tea. The pigeons are waiting.</p>
+        <div class="row">
+          <button class="go" id="resume" data-t="resumeBtn">Resume</button>
+          <button class="go ghost" id="restart" data-t="restartBtn">Restart the song</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="overlay" id="ov-fail" hidden>
+      <div class="card">
+        <h2 class="small" data-t="failH">The pigeons have left the square</h2>
+        <p data-t="failP">Square approval reached zero. They have formed a committee and gone to the station.</p>
+        <div class="stat" id="failStat"></div>
+        <div class="row">
+          <button class="go" id="retry" data-t="retryBtn">Try the song again</button>
+          <button class="go ghost" id="quit" data-t="quitBtn">Back to the programme</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="overlay" id="ov-end" hidden>
+      <div class="card">
+        <h2 class="small" data-t="endH">The square is quiet</h2>
+        <p class="voice" data-t="endP">Somebody new is feeding the pigeons. They do not notice you. You are very good at being still.</p>
+        <div class="stat" id="endStat"></div>
+        <button class="go" id="again" data-t="againBtn">Play the programme again</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- After the stage in the DOM so the start button is the first visible button; grid rows keep it on top. -->
+  <header class="board">
+    <div>
+      <div class="eyebrow" id="songNo">Municipal brass band · bandstand programme</div>
+      <h1 id="songName">Pigeon Polka</h1>
+      <div class="bylaw" id="bylaw">By-law 1 · When a crumb reaches the line, feed that pigeon.</div>
+    </div>
+    <div class="tally">
+      <div class="lang" role="group" data-ta="langGroup" aria-label="Language"></div>
+      <div class="score"><span id="score">0</span> <small data-t="scoreLbl">crumbs pecked</small></div>
+      <div class="flock"><span data-t="flockOf">flock of</span> <b id="flock">0</b></div>
+      <div class="meter" id="meter" data-ta="approvalAria" aria-label="Square approval"><i id="approval"></i></div>
+      <div class="meter-label" data-t="approvalLbl">square approval</div>
+    </div>
+  </header>
+
+  <footer class="signs" id="signs">
+    <button class="sign lane" data-lane="0"><b>D</b><span data-t="name0">Doris</span></button>
+    <button class="sign lane" data-lane="1"><b>F</b><span data-t="name1">Gerald</span></button>
+    <button class="sign lane" data-lane="2"><b>J</b><span data-t="name2">Big Steve</span></button>
+    <button class="sign lane" data-lane="3"><b>K</b><span data-t="name3">Muriel</span></button>
+    <button class="sign hold" id="holdSign"><b data-t="holdB">Hold the plinth</b><span data-t="holdSpan">hold Space, any lane key, or here</span></button>
+  </footer>
+</div>
+
+<script>
+const $ = s => document.querySelector(s);
+const cv = $('#cv'), g = cv.getContext('2d');
+const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const LANES = 4;
+const LANE_KEYS = [['d', '1', 'arrowleft'], ['f', '2', 'arrowdown'], ['j', '3', 'arrowup'], ['k', '4', 'arrowright']];
+const WIN = { perfect: .045, good: .09, coo: .135 };
+const FLAP_SCALE = 1.3;
+// Finale approval: a Still is the resting state, so it earns little; the flap is the skill.
+const FIN = { still: .5, noFlap: 12, wobble: 3 };
+
+// Song text lives in I18N.*.songs, read by index; SONGS holds only the music.
+const SONGS = [
+  { root: 233.08, bpm: 112, meter: 4, bars: 16, fall: 1.75, seed: 11 },
+  { root: 261.63, bpm: 118, meter: 4, bars: 16, fall: 1.65, seed: 23, gerald: true },
+  { root: 220, bpm: 122, meter: 4, bars: 16, fall: 1.6, seed: 37, eighths: true, gull: [[3, 1], [8, 3], [12, 0]] },
+  { root: 246.94, meter: 4, bars: 20, fall: 1.55, seed: 41, eighths: true,
+    tempo: [[0, 114], [6, 126], [10, 138], [14, 150]], mayor: 5 },
+  { root: 293.66, bpm: 132, meter: 5, bars: 14, fall: 1.5, seed: 53, eighths: true, statueTaps: 11 },
+  { root: 196, bpm: 100, meter: 4, bars: 16, fall: 1.7, seed: 67, finale: true },
+];
+
+// Every player-visible string, per language. Pops store a key and are read when drawn; the only
+// on-beat words are those pop labels (one or two syllables each, kept that short in French) and
+// song 5's count, which stays a 2+3 in French: "Un, deux, un, deux, trois".
+const I18N = {
+  en: {
+    docTitle: 'Pigeon Polka', langGroup: 'Language', brand: 'Pigeon Polka',
+    eyebrow: 'Municipal brass band · bandstand programme', songOf: (i, n) => `Song ${i} of ${n}`,
+    scoreLbl: 'crumbs pecked', flockOf: 'flock of', approvalAria: 'Square approval', approvalLbl: 'square approval',
+    cvAria: 'The town square: breadcrumbs fall toward four pigeons',
+    titleEyebrow: 'Sundays, 3 pm, weather permitting',
+    titleP: "The municipal brass band is playing. Breadcrumbs fall toward four pigeons. When a crumb reaches the brass line, press that pigeon's key. Six songs, six by-laws.",
+    startBtn: 'Strike up the band', calibBtn: 'Calibrate', offsetLbl: 'input offset',
+    soundLbl: 'sound on (the beat is also shown, so muted play works)',
+    titleKeys: 'D F J K or 1–4 · tap the signs or the lanes · Esc pauses',
+    calibH: 'Calibration',
+    calibP: 'Ten clicks will play. Tap the button, or press Space, on each of the last eight. The offset is the average of how early or late you were.',
+    tapBtn: 'Tap', beginBtn: 'Begin', doneBtn: 'Done',
+    calibReady: 'Press Begin when ready.', calibListen: 'Listen for two, then tap on the next eight.',
+    calibTaps: n => `${n} of 8 taps`,
+    calibResult: ms => `You tap ${Math.abs(ms)} ms ${ms >= 0 ? 'late' : 'early'} on average. Offset set to ${ms > 0 ? '+' : ''}${ms} ms.`,
+    cardNext: 'Next on the bandstand', cardStatue: 'The statue would like a word',
+    nextBtn: 'Play the next song', statueBtn: 'Become the statue',
+    pauseH: 'Interval', pauseP: 'The band is having a cup of tea. The pigeons are waiting.',
+    resumeBtn: 'Resume', restartBtn: 'Restart the song',
+    failH: 'The pigeons have left the square',
+    failP: 'Square approval reached zero. They have formed a committee and gone to the station.',
+    failStat: (name, miss, gull) => `${name} · ${miss} missed · ${gull} fed to the gull`,
+    retryBtn: 'Try the song again', quitBtn: 'Back to the programme',
+    endH: 'The square is quiet',
+    endP: 'Somebody new is feeding the pigeons. They do not notice you. You are very good at being still.',
+    endStat: (score, flock, perfect, best) => `${score} crumbs pecked · biggest flock ${flock} · ${perfect} perfect · best ${best}`,
+    againBtn: 'Play the programme again',
+    name0: 'Doris', name1: 'Gerald', name2: 'Big Steve', name3: 'Muriel',
+    holdB: 'Hold the plinth', holdSpan: 'hold Space, any lane key, or here',
+    gullInbound: 'GULL INBOUND', holding: 'HOLDING STILL', notHolding: 'NOT HOLDING',
+    countGood: 'Good. Stay like that.', countHold: 'Hold now.',
+    pop: { perfect: 'Perfect', good: 'Good', coo: 'Coo', flapPerfect: 'Flap!', flapGood: 'Flap', flapCoo: 'Flappish',
+      still: 'Still', gull: 'Fed the gull', wobble: 'Wobble', flinch: 'Flinch', noFlap: 'No flap', miss: 'Miss',
+      early: 'early', late: 'late' },
+    songs: [
+      { name: 'Breadcrumb Polka', bylaw: 'By-law 1 · When a crumb reaches the line, feed that pigeon.',
+        voice: 'The band has been tuning since 1911. They are ready now. Mostly.' },
+      { name: 'Gerald Pecks Late', bylaw: 'By-law 2 · Gerald only pecks on the off-beat. His crumbs are rye.',
+        voice: 'Gerald has never once been on time. Gerald does not believe in the one.' },
+      { name: 'Gull Season', bylaw: 'By-law 3 · A lane under the seagull belongs to the seagull. Do not feed the seagull.',
+        voice: 'The seagull is not from here. The seagull has a lawyer.' },
+      { name: 'The Mayor Is Watching', bylaw: 'By-law 4 · While the mayor watches, the band plays faster. Nobody knows why.',
+        voice: 'The mayor has opinions about tempo. The mayor is the tempo.' },
+      { name: 'Polka in Five', bylaw: 'By-law 5 · This polka has five beats in a bar. Polkas do not. This one does.',
+        voice: 'Five is a perfectly normal number of beats. One, two, one, two, three.' },
+      { name: "The Statue's Turn", bylaw: 'By-law 6 · You are the statue. Be holding when a pigeon lands. Let go on the flap.',
+        voice: 'I have tapped my foot for a hundred and forty years. Your turn. Hold the plinth.' },
+    ],
+  },
+  fr: {
+    docTitle: 'La Polka des pigeons', langGroup: 'Langue', brand: 'La Polka des pigeons',
+    eyebrow: 'Fanfare municipale · programme du kiosque', songOf: (i, n) => `Morceau ${i} sur ${n}`,
+    scoreLbl: 'miettes picorées', flockOf: 'volée de', approvalAria: 'Cote de la place', approvalLbl: 'cote de la place',
+    cvAria: 'La place de la ville : des miettes de pain tombent vers quatre pigeons',
+    titleEyebrow: 'Le dimanche, 15 h, si le temps le permet',
+    titleP: 'La fanfare municipale joue. Des miettes de pain tombent vers quatre pigeons. Quand une miette atteint la ligne dorée, appuyez sur la touche de ce pigeon. Six morceaux, six arrêtés.',
+    startBtn: 'En avant la musique', calibBtn: 'Calibrer', offsetLbl: 'décalage',
+    soundLbl: 'son activé (le temps est aussi affiché, on peut jouer sans le son)',
+    titleKeys: 'D F J K ou 1–4 · touchez les panneaux ou les couloirs · Échap pour la pause',
+    calibH: 'Calibrage',
+    calibP: "Dix clics vont sonner. Touchez le bouton, ou appuyez sur Espace, à chacun des huit derniers. Le décalage, c'est la moyenne de votre avance ou de votre retard.",
+    tapBtn: 'Tapez', beginBtn: 'Commencer', doneBtn: 'Terminer',
+    calibReady: 'Appuyez sur Commencer quand vous voulez.', calibListen: "Écoutez-en deux, puis tapez sur les huit suivants.",
+    calibTaps: n => `${n} sur 8`,
+    calibResult: ms => `Vous tapez en moyenne ${Math.abs(ms)} ms ${ms >= 0 ? 'en retard' : 'en avance'}. Décalage réglé sur ${ms > 0 ? '+' : ''}${ms} ms.`,
+    cardNext: 'Prochainement au kiosque', cardStatue: 'La statue aimerait vous dire un mot',
+    nextBtn: 'Jouer le morceau suivant', statueBtn: 'Devenir la statue',
+    pauseH: 'Entracte', pauseP: 'La fanfare prend le thé. Les pigeons attendent.',
+    resumeBtn: 'Reprendre', restartBtn: 'Recommencer le morceau',
+    failH: 'Les pigeons ont quitté la place',
+    failP: 'La cote de la place est tombée à zéro. Ils ont monté un comité et sont partis à la gare.',
+    failStat: (name, miss, gull) => `${name} · ${miss} ratée${miss > 1 ? 's' : ''} · ${gull} pour la mouette`,
+    retryBtn: 'Retenter le morceau', quitBtn: 'Retour au programme',
+    endH: 'La place est calme',
+    // « Vous êtes très doué » would gender the player; the talent is the subject instead.
+    endP: "Quelqu'un d'autre nourrit les pigeons. Ils ne vous remarquent pas. L'immobilité, chez vous, c'est un don.",
+    endStat: (score, flock, perfect, best) => `${score} miettes picorées · plus grosse volée ${flock} · ${perfect} parfait${perfect > 1 ? 's' : ''} · record ${best}`,
+    againBtn: 'Rejouer le programme',
+    name0: 'Doris', name1: 'Gérald', name2: 'Gros Steve', name3: 'Muriel',
+    holdB: 'Tenez le socle', holdSpan: 'Espace, une touche de couloir, ou ici',
+    gullInbound: 'MOUETTE EN VUE', holding: 'SOCLE TENU', notHolding: 'SOCLE LÂCHÉ',
+    countGood: 'Bien. Restez comme ça.', countHold: 'Tenez, maintenant.',
+    pop: { perfect: 'Parfait', good: 'Bien', coo: 'Rrrou', flapPerfect: 'Flap !', flapGood: 'Flap', flapCoo: 'Flapouille',
+      still: 'Immobile', gull: 'Pour la mouette', wobble: 'Tremblote', flinch: 'Sursaut', noFlap: "Pas d'envol", miss: 'Raté',
+      early: 'tôt', late: 'tard' },
+    songs: [
+      { name: 'La Polka des miettes', bylaw: 'Arrêté n° 1 · Quand une miette atteint la ligne, nourrissez ce pigeon.',
+        voice: "La fanfare s'accorde depuis 1911. Elle est prête, maintenant. Presque." },
+      { name: 'Gérald picore en retard', bylaw: "Arrêté n° 2 · Gérald ne picore qu'à contretemps. Ses miettes sont au seigle.",
+        voice: "Gérald n'a jamais été à l'heure. Gérald ne croit pas au premier temps." },
+      { name: 'La Saison des mouettes', bylaw: "Arrêté n° 3 · Un couloir sous la mouette appartient à la mouette. Ne nourrissez pas la mouette.",
+        voice: "La mouette n'est pas d'ici. La mouette a un avocat." },
+      { name: 'Monsieur le maire regarde', bylaw: 'Arrêté n° 4 · Quand le maire regarde, la fanfare accélère. Personne ne sait pourquoi.',
+        voice: 'Le maire a des avis sur le tempo. Le maire est le tempo.' },
+      { name: 'Polka à cinq temps', bylaw: 'Arrêté n° 5 · Cette polka a cinq temps par mesure. Les polkas, non. Celle-ci, si.',
+        voice: "Cinq temps, c'est parfaitement normal. Un, deux, un, deux, trois." },
+      { name: 'Au tour de la statue', bylaw: "Arrêté n° 6 · Vous êtes la statue. Tenez bon quand un pigeon se pose. Lâchez au battement d'ailes.",
+        voice: "Ça fait cent quarante ans que je bats la mesure du pied. À vous. Tenez le socle." },
+    ],
+  },
+};
+
+// French typography: a narrow no-break space before ? ! : ; » and after «, applied once to every
+// French string (and to whatever a French string function returns).
+(function frenchSpacing() {
+  const fix = s => s.replace(/ ([?!:;»])/g, ' $1').replace(/« /g, '« ');
+  const deep = v => typeof v === 'string' ? fix(v)
+    : typeof v === 'function' ? (...a) => fix(v(...a))
+    : Array.isArray(v) ? v.map(deep)
+    : v && typeof v === 'object' ? Object.fromEntries(Object.entries(v).map(([k, x]) => [k, deep(x)]))
+    : v;
+  I18N.fr = deep(I18N.fr);
+})();
+
+let lang = 'en';
+// "tx", not "t": t is the audio clock in update(), draw() and the input handlers.
+const tx = k => I18N[lang][k] ?? I18N.en[k];
+const song = i => tx('songs')[i];
+const laneName = l => tx('name' + l);
+const num = n => n.toLocaleString(lang === 'fr' ? 'fr-FR' : undefined);
+
+function mulberry(a) {
+  return function () {
+    a |= 0; a = a + 0x6D2B79F5 | 0;
+    let t = Math.imul(a ^ a >>> 15, 1 | a);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  };
+}
+
+// Tempo map: piecewise-constant bpm, so beat <-> seconds needs the segment table.
+function tempoMap(song) {
+  const list = (song.tempo || [[0, song.bpm]]).map(([bar, bpm]) => ({ beat: bar * song.meter, bpm, time: 0 }));
+  for (let i = 1; i < list.length; i++) list[i].time = list[i - 1].time + (list[i].beat - list[i - 1].beat) * 60 / list[i - 1].bpm;
+  return list;
+}
+function seg(map, key, v) { let s = map[0]; for (const m of map) if (m[key] <= v) s = m; return s; }
+function beatToTime(map, b) { const s = seg(map, 'beat', b); return s.time + (b - s.beat) * 60 / s.bpm; }
+function timeToBeat(map, t) { const s = seg(map, 'time', t); return s.beat + (t - s.time) * s.bpm / 60; }
+
+function makeChart(song) {
+  const r = mulberry(song.seed), notes = [], total = song.bars * song.meter;
+  if (song.finale) {
+    for (let b = 0; b < total; b++) {
+      notes.push({ beat: b, type: 'land' });
+      const bar = Math.floor(b / song.meter);
+      const dense = bar < 4 ? .16 : bar < 10 ? .3 : .42;
+      if (bar >= 1 && b < total - 1 && r() < dense) notes.push({ beat: b + .5, type: 'flap' });
+    }
+    return notes;
+  }
+  let last = -1;
+  const pick = lanes => {
+    let l = lanes[Math.floor(r() * lanes.length)];
+    if (l === last && lanes.length > 1 && r() < .6) l = lanes[(lanes.indexOf(l) + 1) % lanes.length];
+    last = l; return l;
+  };
+  const accents5 = [1, .55, .8, .6, .75];
+  for (let bar = 0; bar < song.bars; bar++) {
+    const ramp = Math.min(1, .55 + bar / song.bars * .6);
+    for (let i = 0; i < song.meter; i++) {
+      const b = bar * song.meter + i;
+      const pBeat = song.meter === 5 ? accents5[i] : (i === 0 ? .95 : .72);
+      if (r() < pBeat * ramp) notes.push({ beat: b, lane: pick(song.gerald ? [0, 2, 3] : [0, 1, 2, 3]) });
+      if (song.gerald) { if (r() < .55) notes.push({ beat: b + .5, lane: 1, rye: true }); }
+      else if (song.eighths && bar >= 3 && r() < .16 + bar / song.bars * .16) notes.push({ beat: b + .5, lane: pick([0, 1, 2, 3]) });
+    }
+  }
+  return notes.sort((a, b) => a.beat - b.beat);
+}
+
+function makeMusic(song, chart) {
+  const ev = [], total = song.bars * song.meter;
+  for (let b = -song.meter; b < 0; b++) ev.push({ beat: b, kind: 'click', acc: b === -song.meter });
+  if (song.finale) {
+    for (let b = 0; b < total; b++) ev.push({ beat: b, kind: 'coo', acc: b % song.meter === 0 });
+    for (const n of chart) if (n.type === 'flap') ev.push({ beat: n.beat, kind: 'flap' });
+  } else {
+    const prog = [0, 0, 1, 1, 0, 0, 1, 0];
+    for (let b = 0; b < total; b++) {
+      const bar = Math.floor(b / song.meter), i = b % song.meter, ch = prog[bar % 8];
+      ev.push(i % 2 === 0 ? { beat: b, kind: 'oom', ch, alt: (i / 2) % 2 } : { beat: b, kind: 'pah', ch });
+      ev.push({ beat: b, kind: 'drum', acc: i === 0 });
+    }
+    for (const n of chart) ev.push({ beat: n.beat, kind: 'mel', lane: n.lane, ch: prog[Math.floor(n.beat / song.meter) % 8] });
+  }
+  ev.push({ beat: total, kind: 'end' });
+  return ev.sort((a, b) => a.beat - b.beat);
+}
+
+// Audio
+let A = null, master = null, noiseBuf = null, soundOn = true;
+function initAudio() {
+  if (A) return;
+  const AC = window.AudioContext || window.webkitAudioContext;
+  A = new AC({ latencyHint: 'interactive' });
+  master = A.createGain();
+  master.gain.value = soundOn ? .8 : 0;
+  const comp = A.createDynamicsCompressor();
+  master.connect(comp).connect(A.destination);
+  noiseBuf = A.createBuffer(1, Math.floor(A.sampleRate * .3), A.sampleRate);
+  const d = noiseBuf.getChannelData(0);
+  for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+}
+function tone(t, f, dur, type, vol, cut) {
+  const o = A.createOscillator(), gn = A.createGain(), lp = A.createBiquadFilter();
+  o.type = type; o.frequency.value = f;
+  lp.type = 'lowpass'; lp.frequency.value = cut;
+  gn.gain.setValueAtTime(0, t);
+  gn.gain.linearRampToValueAtTime(vol, t + .012);
+  gn.gain.exponentialRampToValueAtTime(.0008, t + dur);
+  o.connect(lp).connect(gn).connect(master);
+  o.start(t); o.stop(t + dur + .05);
+}
+function noise(t, dur, vol, hp) {
+  const s = A.createBufferSource(), f = A.createBiquadFilter(), gn = A.createGain();
+  s.buffer = noiseBuf; f.type = 'highpass'; f.frequency.value = hp;
+  gn.gain.setValueAtTime(vol, t);
+  gn.gain.exponentialRampToValueAtTime(.0008, t + dur);
+  s.connect(f).connect(gn).connect(master);
+  s.start(t); s.stop(t + dur + .02);
+}
+function kick(t, vol) {
+  const o = A.createOscillator(), gn = A.createGain();
+  o.frequency.setValueAtTime(130, t);
+  o.frequency.exponentialRampToValueAtTime(45, t + .12);
+  gn.gain.setValueAtTime(vol, t);
+  gn.gain.exponentialRampToValueAtTime(.0008, t + .18);
+  o.connect(gn).connect(master);
+  o.start(t); o.stop(t + .2);
+}
+function chordTones(root, ch) { const r = ch ? root * 1.4983 : root; return [r, r * 1.2599, r * 1.4983, r * 2]; }
+function play(ev, t, root) {
+  switch (ev.kind) {
+    case 'click': tone(t, ev.acc ? 1760 : 1320, .06, 'square', .12, 4000); break;
+    case 'oom': { const c = chordTones(root, ev.ch); tone(t, (ev.alt ? c[2] : c[0]) / 2, .28, 'square', .22, 520); break; }
+    case 'pah': for (const f of chordTones(root, ev.ch).slice(0, 3)) tone(t, f, .13, 'sawtooth', .05, 1700); break;
+    case 'drum': kick(t, ev.acc ? .5 : .3); if (!ev.acc) noise(t, .05, .08, 6000); break;
+    case 'mel': tone(t, chordTones(root, ev.ch)[ev.lane] * 2, .2, 'square', .07, 2600); break;
+    case 'coo': {
+      const o = A.createOscillator(), gn = A.createGain();
+      o.type = 'sine';
+      o.frequency.setValueAtTime(ev.acc ? 420 : 380, t);
+      o.frequency.exponentialRampToValueAtTime(300, t + .25);
+      gn.gain.setValueAtTime(0, t);
+      gn.gain.linearRampToValueAtTime(.18, t + .03);
+      gn.gain.exponentialRampToValueAtTime(.0008, t + .3);
+      o.connect(gn).connect(master);
+      o.start(t); o.stop(t + .32);
+      kick(t, .15);
+      break;
+    }
+    case 'flap': noise(t, .12, .18, 1500); noise(t + .05, .1, .12, 1500); break;
+    case 'end': for (const f of chordTones(root, 0)) tone(t, f, 1.2, 'sawtooth', .06, 1600); kick(t, .5); break;
+  }
+}
+
+// The time the listener is hearing right now, in AudioContext seconds. Notes are scheduled in the
+// same units, so a press is judged against what was audible when the key went down, not frame time.
+function audibleAt(perfMs) {
+  if (!A) return perfMs / 1000;
+  if (A.getOutputTimestamp) {
+    const ts = A.getOutputTimestamp();
+    if (ts.performanceTime > 0) return ts.contextTime + (perfMs - ts.performanceTime) / 1000;
+  }
+  return A.currentTime - (A.outputLatency || A.baseLatency || 0) - (performance.now() - perfMs) / 1000;
+}
+
+// State
+const S = { mode: 'title', songIdx: 0, score: 0, scoreAtSong: 0, best: 0, flock: 0, maxFlock: 0, approval: 60,
+  offsetMs: 0, counts: { perfect: 0, good: 0, coo: 0, miss: 0, gull: 0 } };
+let cur = null;
+const heldKeys = new Set(), heldPointers = new Set();
+
+function startSong(i) {
+  initAudio();
+  A.resume();
+  const def = SONGS[i];
+  const map = tempoMap(def);
+  const chart = makeChart(def);
+  const events = makeMusic(def, chart);
+  const t0 = A.currentTime + .5 + def.meter * 60 / map[0].bpm;
+  for (const n of chart) n.time = t0 + beatToTime(map, n.beat);
+  for (const e of events) e.time = t0 + beatToTime(map, e.beat);
+  const gulls = (def.gull || []).map(([bar, lane]) => {
+    const t1 = t0 + beatToTime(map, bar * def.meter), t2 = t0 + beatToTime(map, (bar + 2) * def.meter);
+    return { lane, t1, t2, warn: t1 - def.meter * 60 / map[0].bpm };
+  });
+  for (const n of chart) if (gulls.some(w => w.lane === n.lane && n.time >= w.t1 && n.time < w.t2)) n.gull = true;
+  cur = { def, map, chart, events, gulls, t0, evIdx: 0, judgeFrom: 0, pops: [], pecks: [-1e9, -1e9, -1e9, -1e9],
+    endTime: t0 + beatToTime(map, def.bars * def.meter), holds: [], perched: 0, flutterAt: -1e9, shapes: new Map() };
+  S.songIdx = i; S.scoreAtSong = S.score; S.flock = 0; S.approval = 60;
+  heldKeys.clear(); heldPointers.clear();
+  document.body.classList.toggle('finale', !!def.finale);
+  boardSong = i;
+  renderBoard();
+  hideOverlays();
+  S.mode = 'play';
+}
+
+// The notice board shows the last song started (null before the first), in the current language.
+let boardSong = null;
+function renderBoard() {
+  if (boardSong === null) {
+    $('#songNo').textContent = tx('eyebrow');
+    $('#songName').textContent = tx('brand');
+    $('#bylaw').textContent = song(0).bylaw;
+    return;
+  }
+  $('#songNo').textContent = tx('songOf')(boardSong + 1, SONGS.length);
+  $('#songName').textContent = song(boardSong).name;
+  $('#bylaw').textContent = song(boardSong).bylaw;
+}
+
+function hideOverlays() { for (const o of document.querySelectorAll('.overlay')) o.hidden = true; }
+function show(id, focus) { hideOverlays(); $(id).hidden = false; if (focus) $(focus).focus(); }
+
+function schedule() {
+  if (!A || !cur || S.mode !== 'play') return;
+  const horizon = A.currentTime + .15;
+  while (cur.evIdx < cur.events.length && cur.events[cur.evIdx].time < horizon) {
+    const ev = cur.events[cur.evIdx++];
+    if (ev.time < A.currentTime - .05) continue;
+    play(ev, Math.max(ev.time, A.currentTime), cur.def.root);
+  }
+}
+setInterval(schedule, 25);
+
+function pop(lane, text, sub) { cur.pops.push({ lane, text, sub, born: performance.now() }); }
+function gain(grade, lane, dt, labels, bump) {
+  const pts = { perfect: 300, good: 150, coo: 50 }[grade];
+  S.flock++; S.maxFlock = Math.max(S.maxFlock, S.flock);
+  S.score += Math.round(pts * (1 + Math.min(S.flock, 100) / 50));
+  S.counts[grade]++;
+  S.approval = Math.min(100, S.approval + (bump ?? (grade === 'perfect' ? 2 : grade === 'good' ? 1.2 : .4)));
+  const sub = grade === 'perfect' ? '' : dt < 0 ? 'early' : 'late';
+  pop(lane, labels[grade], sub);
+}
+function lose(lane, key, cost) {
+  S.flock = 0; S.approval -= cost;
+  pop(lane, key, '');
+  if (S.approval <= 0) fail();
+}
+
+// Keys into I18N.*.pop, so a pop already on screen is drawn in the current language.
+const LABELS = { perfect: 'perfect', good: 'good', coo: 'coo' };
+const FLAP_LABELS = { perfect: 'flapPerfect', good: 'flapGood', coo: 'flapCoo' };
+
+function pressLane(l, perfMs) {
+  cur.pecks[l] = performance.now();
+  const t = audibleAt(perfMs) - S.offsetMs / 1000;
+  const gw = cur.gulls.find(w => w.lane === l && t >= w.t1 && t < w.t2);
+  if (gw) { S.counts.gull++; lose(l, 'gull', 8); return; }
+  let best = null, bd = 1e9;
+  for (let i = cur.judgeFrom; i < cur.chart.length; i++) {
+    const n = cur.chart[i];
+    if (n.time - t > WIN.coo) break;
+    if (n.done || n.gull || n.lane !== l) continue;
+    const d = Math.abs(n.time - t);
+    if (d <= WIN.coo && d < bd) { bd = d; best = n; }
+  }
+  if (!best) return;
+  best.done = true;
+  gain(bd <= WIN.perfect ? 'perfect' : bd <= WIN.good ? 'good' : 'coo', l, t - best.time, LABELS);
+}
+
+function wasHolding(time) { return cur.holds.some(h => h.s <= time + .1 && h.e >= time - .1); }
+function grip(on, perfMs) {
+  const t = audibleAt(perfMs) - S.offsetMs / 1000;
+  const last = cur.holds[cur.holds.length - 1];
+  if (on) { if (!last || last.e !== Infinity) cur.holds.push({ s: t, e: Infinity }); return; }
+  if (last && last.e === Infinity) last.e = t;
+  let best = null, bd = 1e9;
+  for (let i = cur.judgeFrom; i < cur.chart.length; i++) {
+    const n = cur.chart[i];
+    if (n.time - t > WIN.coo * FLAP_SCALE) break;
+    if (n.done || n.type !== 'flap') continue;
+    const d = Math.abs(n.time - t);
+    if (d <= WIN.coo * FLAP_SCALE && d < bd) { bd = d; best = n; }
+  }
+  if (best) {
+    best.done = true;
+    cur.flutterAt = performance.now();
+    const grade = bd <= WIN.perfect * FLAP_SCALE ? 'perfect' : bd <= WIN.good * FLAP_SCALE ? 'good' : 'coo';
+    gain(grade, -1, t - best.time, FLAP_LABELS);
+  } else if (t > cur.t0) {
+    S.approval -= FIN.wobble;
+    pop(-1, 'wobble', '');
+    if (S.approval <= 0) fail();
+  }
+}
+function holding() { return heldKeys.size + heldPointers.size > 0; }
+function setHeld(fn, perfMs) {
+  const before = holding();
+  fn();
+  const after = holding();
+  if (before !== after && S.mode === 'play' && cur?.def.finale) grip(after, perfMs);
+  $('#holdSign').classList.toggle('down', after);
+}
+
+function update(t) {
+  const c = cur;
+  for (let i = c.judgeFrom; i < c.chart.length && S.mode === 'play'; i++) {
+    const n = c.chart[i];
+    if (c.def.finale) {
+      if (n.type === 'land') {
+        if (t < n.time + .12) break;
+        if (n.done) continue;
+        n.done = true;
+        if (wasHolding(n.time)) { c.perched = Math.min(12, c.perched + 1); gain('perfect', -1, 0, { perfect: 'still' }, FIN.still); }
+        else { S.counts.miss++; lose(-1, 'flinch', 6); }
+      } else {
+        if (t < n.time + WIN.coo * FLAP_SCALE) break;
+        if (n.done) continue;
+        n.done = true; S.counts.miss++; lose(-1, 'noFlap', FIN.noFlap);
+      }
+    } else {
+      if (n.time > t - WIN.coo) break;
+      if (n.done) continue;
+      n.done = true;
+      if (n.gull) n.eaten = performance.now();
+      else { S.counts.miss++; lose(n.lane, 'miss', 6); }
+    }
+  }
+  while (c.judgeFrom < c.chart.length && c.chart[c.judgeFrom].done) c.judgeFrom++;
+  if (S.mode === 'play' && t > c.endTime + .8) songDone();
+}
+
+function songDone() {
+  S.best = Math.max(S.best, S.score);
+  if (S.songIdx === SONGS.length - 1) {
+    S.mode = 'end';
+    document.body.classList.remove('finale');
+    renderEnd();
+    show('#ov-end', '#again');
+    return;
+  }
+  S.mode = 'card';
+  renderCard();
+  show('#ov-card', '#next');
+}
+function renderEnd() {
+  $('#endStat').textContent = tx('endStat')(num(S.score), S.maxFlock, S.counts.perfect, num(S.best));
+}
+function renderCard() {
+  const i = S.songIdx + 1, next = SONGS[i], txt = song(i);
+  $('#cardEyebrow').textContent = next.finale ? tx('cardStatue') : tx('cardNext');
+  $('#cardName').textContent = txt.name;
+  $('#cardRule').textContent = txt.bylaw;
+  $('#cardVoice').textContent = txt.voice;
+  $('#next').textContent = next.finale ? tx('statueBtn') : tx('nextBtn');
+}
+
+function fail() {
+  S.mode = 'fail';
+  renderFail();
+  show('#ov-fail', '#retry');
+}
+function renderFail() {
+  $('#failStat').textContent = tx('failStat')(song(S.songIdx).name, S.counts.miss, S.counts.gull);
+}
+
+function pause() {
+  if (S.mode !== 'play') return;
+  S.mode = 'pause';
+  A.suspend();
+  show('#ov-pause', '#resume');
+}
+
+// Drawing
+let C = {}, cob = null;
+const COLOR_KEYS = ['paper', 'cobble', 'cobble-gap', 'ink', 'ink-soft', 'enamel', 'enamel-ink', 'brass', 'bunting-a', 'bunting-b',
+  'crumb', 'rye', 'feather', 'pigeon', 'pigeon-neck', 'stone'];
+function readColors() {
+  const cs = getComputedStyle(document.documentElement);
+  for (const k of COLOR_KEYS) C[k] = cs.getPropertyValue('--' + k).trim();
+  buildCobbles();
+}
+let W = 0, H = 0;
+function resize() {
+  const r = cv.getBoundingClientRect(), d = Math.min(2, devicePixelRatio || 1);
+  W = r.width; H = r.height;
+  cv.width = Math.round(W * d); cv.height = Math.round(H * d);
+  g.setTransform(d, 0, 0, d, 0, 0);
+  buildCobbles();
+}
+function buildCobbles() {
+  if (!W || !C.cobble) return;
+  const d = Math.min(2, devicePixelRatio || 1);
+  cob = document.createElement('canvas');
+  cob.width = Math.round(W * d); cob.height = Math.round(H * d);
+  const c = cob.getContext('2d');
+  c.setTransform(d, 0, 0, d, 0, 0);
+  c.fillStyle = C['cobble-gap']; c.fillRect(0, 0, W, H);
+  const r = mulberry(7), s = 26;
+  for (let y = 0, row = 0; y < H + s; y += s * .78, row++) {
+    for (let x = (row % 2) * s / 2 - s; x < W + s; x += s) {
+      c.fillStyle = C.cobble; c.globalAlpha = .7 + r() * .3;
+      c.beginPath();
+      c.ellipse(x + s / 2, y + s * .4, s * .44 + r() * 2, s * .33 + r() * 2, (r() - .5) * .3, 0, 6.283);
+      c.fill();
+    }
+  }
+  c.globalAlpha = 1;
+}
+
+function geom() {
+  const top = Math.max(64, Math.min(112, H * .2)), pad = 8;
+  return { top, pad, lw: (W - pad * 2) / LANES, hitY: H - 58 };
+}
+
+function drawBunting(beat) {
+  const sway = reduce ? 0 : Math.sin(beat * Math.PI) * .08;
+  const cols = [C['bunting-a'], C['bunting-b'], C.enamel];
+  for (const [y0, sag, off] of [[6, 18, 0], [16, 14, 13]]) {
+    g.strokeStyle = C['ink-soft']; g.lineWidth = 1;
+    g.beginPath(); g.moveTo(0, y0); g.quadraticCurveTo(W / 2, y0 + sag * 2, W, y0); g.stroke();
+    for (let x = off, i = 0; x < W; x += 26, i++) {
+      const u = x / W, y = y0 + 4 * sag * u * (1 - u) * 1;
+      g.save(); g.translate(x, y); g.rotate(sway * (i % 2 ? 1 : -1));
+      g.fillStyle = cols[i % 3];
+      g.beginPath(); g.moveTo(-7, 0); g.lineTo(7, 0); g.lineTo(0, 13); g.closePath(); g.fill();
+      g.restore();
+    }
+  }
+}
+
+function drawBandstand(x, base, beat, empty) {
+  const frac = beat - Math.floor(beat), bob = frac < .15 && beat >= 0 ? -2 : 0;
+  g.fillStyle = C.enamel;
+  g.beginPath(); g.moveTo(x - 46, base - 34); g.quadraticCurveTo(x, base - 64, x + 46, base - 34); g.closePath(); g.fill();
+  g.fillRect(x - 2, base - 66, 4, 8);
+  g.fillStyle = C['ink-soft'];
+  for (const px of [-40, -14, 12, 38]) g.fillRect(x + px, base - 34, 2.5, 30);
+  g.fillRect(x - 48, base - 4, 96, 4);
+  if (empty) {
+    g.fillStyle = C.pigeon;
+    for (const px of [-22, 0, 22]) { g.beginPath(); g.ellipse(x + px, base - 10 + bob, 7, 5, 0, 0, 6.283); g.fill(); }
+    return;
+  }
+  for (const [px, k] of [[-22, 0], [0, 1], [22, 2]]) {
+    const b = k === 1 ? bob : -bob;
+    g.fillStyle = C.ink; g.beginPath(); g.arc(x + px, base - 20 + b, 5, 0, 6.283); g.fill();
+    g.fillRect(x + px - 5, base - 15 + b, 10, 11);
+    g.fillStyle = C.brass; g.beginPath(); g.arc(x + px + 7, base - 16 + b, 3.5 + (k === 0 ? 1.5 : 0), 0, 6.283); g.fill();
+  }
+}
+
+function drawStatue(x, headY, s, tap, beat) {
+  const frac = beat - Math.floor(beat);
+  g.fillStyle = C.stone;
+  g.beginPath(); g.arc(x, headY, 9 * s, 0, 6.283); g.fill();
+  g.beginPath();
+  g.moveTo(x - 11 * s, headY + 11 * s); g.lineTo(x + 11 * s, headY + 11 * s);
+  g.lineTo(x + 15 * s, headY + 52 * s); g.lineTo(x - 15 * s, headY + 52 * s); g.closePath(); g.fill();
+  g.lineWidth = 5 * s; g.lineCap = 'round'; g.strokeStyle = C.stone;
+  g.beginPath(); g.moveTo(x + 10 * s, headY + 16 * s); g.lineTo(x + 24 * s, headY - 2 * s); g.stroke();
+  const lift = tap && frac < .22 ? -4 * s : 0;
+  g.fillRect(x - 13 * s, headY + 52 * s + lift, 10 * s, 4 * s);
+  g.fillRect(x + 3 * s, headY + 52 * s, 10 * s, 4 * s);
+  g.fillStyle = C['ink-soft'];
+  g.fillRect(x - 22 * s, headY + 56 * s, 44 * s, 16 * s);
+  g.fillStyle = C.brass;
+  g.fillRect(x - 12 * s, headY + 61 * s, 24 * s, 5 * s);
+}
+
+function drawMayor(x, base, bpm) {
+  g.fillStyle = C.ink;
+  g.fillRect(x - 7, base - 36, 14, 26);
+  g.beginPath(); g.arc(x, base - 42, 6, 0, 6.283); g.fill();
+  g.fillRect(x - 6, base - 58, 12, 12); g.fillRect(x - 9, base - 48, 18, 2.5);
+  g.strokeStyle = C.brass; g.lineWidth = 2;
+  g.beginPath(); g.arc(x, base - 34, 7, .2, Math.PI - .2); g.stroke();
+  g.fillStyle = C.ink; g.font = '600 11px "Overpass Mono", ui-monospace, monospace'; g.textAlign = 'left';
+  g.fillText(`♩ = ${bpm}`, x + 14, base - 26);
+}
+
+function drawPigeon(x, y, s, peck, hat, flutter) {
+  const dip = peck ? s * .5 : 0, lift = flutter ? -s * .9 : 0;
+  y += lift;
+  g.fillStyle = C.pigeon;
+  g.beginPath(); g.moveTo(x - s * 1.1, y - s * .1); g.lineTo(x - s * 1.6, y - s * .45); g.lineTo(x - s * 1.5, y + s * .1); g.closePath(); g.fill();
+  g.beginPath(); g.ellipse(x, y, s, s * .62, 0, 0, 6.283); g.fill();
+  if (flutter) {
+    g.beginPath(); g.moveTo(x - s * .2, y - s * .3); g.lineTo(x - s * .9, y - s * 1.3); g.lineTo(x + s * .3, y - s * .4); g.fill();
+  }
+  g.fillStyle = C['pigeon-neck'];
+  g.beginPath(); g.ellipse(x + s * .55, y - s * .2 + dip * .4, s * .3, s * .38, 0, 0, 6.283); g.fill();
+  const hx = x + s * .7, hy = y - s * .55 + dip;
+  g.fillStyle = C.pigeon; g.beginPath(); g.arc(hx, hy, s * .3, 0, 6.283); g.fill();
+  g.fillStyle = C['ink-soft']; g.beginPath(); g.moveTo(hx + s * .25, hy - s * .05); g.lineTo(hx + s * .55, hy + s * .05); g.lineTo(hx + s * .25, hy + s * .12); g.fill();
+  g.fillStyle = C.ink; g.beginPath(); g.arc(hx + s * .08, hy - s * .07, s * .06 + .6, 0, 6.283); g.fill();
+  if (hat) { g.fillStyle = C.ink; g.fillRect(hx - s * .28, hy - s * .42, s * .5, s * .14); g.fillRect(hx - s * .16, hy - s * .62, s * .32, s * .22); }
+  if (!flutter) {
+    g.strokeStyle = C['bunting-a']; g.lineWidth = 1.5;
+    g.beginPath(); g.moveTo(x - s * .15, y + s * .55); g.lineTo(x - s * .15, y + s * .85); g.moveTo(x + s * .2, y + s * .55); g.lineTo(x + s * .2, y + s * .85); g.stroke();
+  }
+}
+
+function crumbShape(n) {
+  let sh = cur.shapes.get(n);
+  if (!sh) { const r = mulberry(Math.floor(n.beat * 97) + (n.lane || 0) * 13); sh = Array.from({ length: 7 }, () => .7 + r() * .45); cur.shapes.set(n, sh); }
+  return sh;
+}
+function drawCrumb(x, y, r, n, col) {
+  const sh = crumbShape(n);
+  g.fillStyle = col;
+  g.beginPath();
+  sh.forEach((k, i) => { const a = i / sh.length * 6.283; const px = x + Math.cos(a) * r * k, py = y + Math.sin(a) * r * k * .8; i ? g.lineTo(px, py) : g.moveTo(px, py); });
+  g.closePath(); g.fill();
+}
+
+function drawGull(x, y, s) {
+  g.fillStyle = C.feather;
+  g.beginPath(); g.ellipse(x, y, s * 1.3, s * .7, 0, 0, 6.283); g.fill();
+  g.beginPath(); g.arc(x + s * 1.1, y - s * .6, s * .45, 0, 6.283); g.fill();
+  g.fillStyle = C['bunting-b']; g.beginPath(); g.moveTo(x + s * 1.45, y - s * .65); g.lineTo(x + s * 2.1, y - s * .5); g.lineTo(x + s * 1.45, y - s * .4); g.fill();
+  g.fillStyle = C.ink; g.beginPath(); g.arc(x + s * 1.2, y - s * .72, 1.6, 0, 6.283); g.fill();
+  g.fillStyle = C['ink-soft']; g.beginPath(); g.moveTo(x - s * .4, y - s * .2); g.lineTo(x - s * 1.6, y - s * .1); g.lineTo(x - s * .2, y + s * .3); g.fill();
+}
+
+function drawPops(now, xFor, y, maxW) {
+  cur.pops = cur.pops.filter(p => now - p.born < 650);
+  g.textAlign = 'center';
+  const P = tx('pop');
+  for (const p of cur.pops) {
+    const k = (now - p.born) / 650;
+    g.globalAlpha = 1 - k;
+    g.fillStyle = C.ink;
+    g.font = '900 20px "Big Shoulders Display", "Arial Narrow", sans-serif';
+    const x = xFor(p.lane), yy = y - 26 - k * 22;
+    g.fillText(P[p.text].toUpperCase(), x, yy, maxW);
+    if (p.sub) { g.font = '600 10px "Overpass Mono", ui-monospace, monospace'; g.fillStyle = C['ink-soft']; g.fillText(P[p.sub], x, yy + 13, maxW); }
+  }
+  g.globalAlpha = 1;
+}
+
+function draw(t) {
+  if (!W || !cob) return;
+  const now = performance.now();
+  g.drawImage(cob, 0, 0, W, H);
+  const L = geom();
+  const def = cur?.def;
+  const beat = cur ? timeToBeat(cur.map, t - cur.t0) : now / 1000 * 112 / 60;
+  const bpm = cur ? Math.round(seg(cur.map, 'beat', beat).bpm) : 112;
+
+  g.fillStyle = C.paper; g.globalAlpha = .88; g.fillRect(0, 0, W, L.top); g.globalAlpha = 1;
+  drawBunting(beat);
+  drawBandstand(W / 2, L.top - 4, beat, def?.finale);
+  if (!def?.finale) drawStatue(W - 34, L.top - 66 * ((L.top - 22) / 72) - 10, (L.top - 22) / 72, def && def.statueTaps !== undefined && beat >= def.statueTaps * def.meter, beat);
+  if (def?.mayor !== undefined && beat >= def.mayor * def.meter) drawMayor(30, L.top - 4, bpm);
+
+  // beat dots: the visual metronome, so the game plays muted
+  const meter = def?.meter || 4, inBar = ((Math.floor(beat) % meter) + meter) % meter;
+  for (let i = 0; i < meter; i++) {
+    g.fillStyle = i === inBar ? C.brass : C['ink-soft']; g.globalAlpha = i === inBar ? 1 : .35;
+    g.beginPath(); g.arc(W / 2 - (meter - 1) * 6 + i * 12, L.top + 10, 3.2, 0, 6.283); g.fill();
+  }
+  g.globalAlpha = 1;
+  const pulse = cur && beat >= -meter ? Math.max(0, 1 - (beat - Math.floor(beat)) * 3.5) : 0;
+  const yFor = time => L.hitY - (time - t) / (def?.fall || 1.7) * (L.hitY - L.top);
+
+  if (def?.finale) { drawFinale(t, L, beat, pulse, yFor, now); return; }
+
+  for (let l = 0; l < LANES; l++) {
+    const x = L.pad + l * L.lw;
+    g.fillStyle = C.ink; g.globalAlpha = l % 2 ? .05 : .025; g.fillRect(x, L.top, L.lw, H - L.top); g.globalAlpha = 1;
+  }
+  g.strokeStyle = C.ink; g.globalAlpha = .14; g.lineWidth = 1;
+  for (let l = 1; l < LANES; l++) { const x = L.pad + l * L.lw; g.beginPath(); g.moveTo(x, L.top); g.lineTo(x, H); g.stroke(); }
+  g.globalAlpha = 1;
+
+  if (cur) {
+    for (const w of cur.gulls) {
+      if (t < w.warn || t > w.t2 + .4) continue;
+      const x = L.pad + w.lane * L.lw;
+      g.fillStyle = C.ink; g.globalAlpha = t < w.t1 ? .1 : .18; g.fillRect(x, L.top, L.lw, H - L.top); g.globalAlpha = 1;
+      if (t < w.t1) {
+        g.setLineDash([5, 5]); g.strokeStyle = C['bunting-a']; g.lineWidth = 2; g.strokeRect(x + 3, L.top + 3, L.lw - 6, L.hitY - L.top);
+        g.setLineDash([]);
+        g.fillStyle = C['bunting-a']; g.font = '900 15px "Big Shoulders Display", "Arial Narrow", sans-serif'; g.textAlign = 'center';
+        g.fillText(tx('gullInbound'), x + L.lw / 2, L.top + 22, L.lw - 10);
+      }
+    }
+    const first = Math.ceil(beat - 1), lastBeat = timeToBeat(cur.map, t + def.fall * 1.1 - cur.t0);
+    for (let b = first; b <= lastBeat; b++) {
+      const y = yFor(cur.t0 + beatToTime(cur.map, b));
+      if (y < L.top || y > L.hitY) continue;
+      const bar = ((b % meter) + meter) % meter === 0;
+      g.strokeStyle = bar ? C.brass : C.ink; g.globalAlpha = bar ? .5 : .1; g.lineWidth = bar ? 2 : 1;
+      g.beginPath(); g.moveTo(L.pad, y); g.lineTo(W - L.pad, y); g.stroke();
+    }
+    g.globalAlpha = 1;
+  }
+
+  g.fillStyle = C.brass; g.globalAlpha = .18 + .35 * pulse; g.fillRect(L.pad, L.hitY - 6, W - L.pad * 2, 12); g.globalAlpha = 1;
+  g.fillStyle = C.brass; g.fillRect(L.pad, L.hitY - 1.5, W - L.pad * 2, 3);
+
+  const r = Math.max(6, Math.min(11, L.lw * .09));
+  if (cur) {
+    for (let i = Math.max(0, cur.judgeFrom - 12); i < cur.chart.length; i++) {
+      const n = cur.chart[i];
+      const y = yFor(n.time);
+      if (y < L.top - 20) break;
+      const x = L.pad + (n.lane + .5) * L.lw;
+      if (n.done && !(n.gull && n.eaten)) continue;
+      if (n.eaten && now - n.eaten > 300) continue;
+      drawCrumb(x, Math.min(y, L.hitY), r, n, n.rye ? C.rye : C.crumb);
+    }
+  }
+
+  const ps = Math.max(10, Math.min(18, L.lw * .17));
+  for (let l = 0; l < LANES; l++) {
+    const x = L.pad + (l + .5) * L.lw;
+    const gw = cur?.gulls.find(w => w.lane === l && t >= w.t1 && t < w.t2 + .3);
+    if (gw) drawGull(x - ps * .3, L.hitY + 24, ps * 1.15);
+    else drawPigeon(x - ps * .3, L.hitY + 26, ps, cur && now - cur.pecks[l] < 130, l === 1 && def?.gerald, false);
+    g.fillStyle = C['ink-soft']; g.font = '600 9px "Overpass Mono", ui-monospace, monospace'; g.textAlign = 'center';
+    g.fillText(laneName(l).toUpperCase(), x, H - 6, L.lw - 4);
+  }
+
+  if (cur && beat < 0) countIn(beat, L, null);
+  if (cur) drawPops(now, l => L.pad + (l + .5) * L.lw, L.hitY, L.lw - 4);
+}
+
+function countIn(beat, L, extra) {
+  g.fillStyle = C.ink; g.textAlign = 'center';
+  g.font = '900 64px "Big Shoulders Display", "Arial Narrow", sans-serif';
+  g.fillText(String(-Math.floor(beat)), W / 2, (L.top + L.hitY) / 2 + 10);
+  if (extra) { g.font = '800 14px "Overpass", system-ui, sans-serif'; g.fillText(extra, W / 2, (L.top + L.hitY) / 2 + 36, W - 16); }
+}
+
+function drawFinale(t, L, beat, pulse, yFor, now) {
+  const hitY = Math.max(L.top + 90, H * .5), cx = W / 2;
+  const yF = time => hitY - (time - t) / cur.def.fall * (hitY - L.top);
+  const cw = Math.min(150, W * .4);
+  g.fillStyle = C.ink; g.globalAlpha = .05; g.fillRect(cx - cw / 2, L.top, cw, hitY - L.top); g.globalAlpha = 1;
+  const s = Math.max(1.4, Math.min(3, (H - hitY - 12) / 74));
+  drawStatue(cx, hitY, s, false, beat);
+  g.fillStyle = C.brass; g.globalAlpha = .2 + .4 * pulse; g.fillRect(cx - cw / 2, hitY - 5, cw, 10); g.globalAlpha = 1;
+
+  const perchSpots = [[0, -1.2], [-1.4, .6], [2.2, -.6], [-.9, 2.4], [1.3, 2.4], [-1.9, 4.2], [1.9, 4.2], [-2.4, 6], [2.4, 6], [0, 6.6], [-1.2, 1.4], [1.2, 1.4]];
+  const flutter = now - cur.flutterAt < 380;
+  for (let i = 0; i < cur.perched; i++) {
+    const [px, py] = perchSpots[i];
+    drawPigeon(cx + px * 10 * s * .6, hitY + py * 10 * s * .6 - 8 * s * .4, 6 + s * 1.6, false, false, flutter);
+  }
+
+  for (let i = Math.max(0, cur.judgeFrom - 6); i < cur.chart.length; i++) {
+    const n = cur.chart[i];
+    const y = yF(n.time);
+    if (y < L.top - 20) break;
+    if (n.done) continue;
+    const yy = Math.min(y, hitY);
+    if (n.type === 'land') {
+      g.strokeStyle = C.ink; g.lineWidth = 2.5; g.lineCap = 'round';
+      g.beginPath();
+      g.moveTo(cx, yy + 6); g.lineTo(cx, yy - 6);
+      g.moveTo(cx, yy - 6); g.lineTo(cx - 7, yy - 13);
+      g.moveTo(cx, yy - 6); g.lineTo(cx + 7, yy - 13);
+      g.stroke();
+    } else {
+      g.strokeStyle = C['bunting-a']; g.lineWidth = 4; g.lineCap = 'round';
+      g.beginPath(); g.moveTo(cx - 22, yy - 10); g.lineTo(cx, yy + 4); g.lineTo(cx + 22, yy - 10); g.stroke();
+    }
+  }
+
+  g.textAlign = 'center';
+  g.font = '800 12px "Overpass", system-ui, sans-serif';
+  g.fillStyle = holding() ? C.enamel : C['bunting-a'];
+  g.fillText(holding() ? tx('holding') : tx('notHolding'), cx, L.top + 18, W - 16);
+  if (beat < 0) countIn(beat, { top: L.top, hitY }, holding() ? tx('countGood') : tx('countHold'));
+  drawPops(now, () => cx, hitY - 30, W - 16);
+}
+
+// Input
+function laneForKey(k) { return LANE_KEYS.findIndex(ks => ks.includes(k)); }
+addEventListener('keydown', e => {
+  const k = e.key.toLowerCase();
+  if (k === 'escape') { pause(); return; }
+  if (calib.active && (k === ' ' || k === 'enter')) { e.preventDefault(); calibTap(e.timeStamp); return; }
+  if (S.mode !== 'play') return;
+  const lane = laneForKey(k);
+  if (lane < 0 && k !== ' ') return;
+  e.preventDefault();
+  if (e.repeat) return;
+  if (cur.def.finale) { setHeld(() => heldKeys.add(k), e.timeStamp); return; }
+  if (lane >= 0) { pressLane(lane, e.timeStamp); signDown(lane, true); }
+});
+addEventListener('keyup', e => {
+  const k = e.key.toLowerCase();
+  const lane = laneForKey(k);
+  if (lane >= 0) signDown(lane, false);
+  if (heldKeys.has(k)) setHeld(() => heldKeys.delete(k), e.timeStamp);
+});
+function signDown(l, on) { document.querySelector(`.sign[data-lane="${l}"]`)?.classList.toggle('down', on); }
+
+for (const b of document.querySelectorAll('.sign.lane')) {
+  const l = +b.dataset.lane;
+  b.addEventListener('pointerdown', e => { e.preventDefault(); if (S.mode === 'play' && !cur.def.finale) pressLane(l, e.timeStamp); signDown(l, true); });
+  for (const ev of ['pointerup', 'pointerleave', 'pointercancel']) b.addEventListener(ev, () => signDown(l, false));
+}
+function holdDown(e) { e.preventDefault(); if (S.mode !== 'play' || !cur.def.finale) return; e.currentTarget.setPointerCapture?.(e.pointerId); setHeld(() => heldPointers.add(e.pointerId), e.timeStamp); }
+function holdUp(e) { if (heldPointers.has(e.pointerId)) setHeld(() => heldPointers.delete(e.pointerId), e.timeStamp); }
+for (const el of [$('#holdSign'), cv]) {
+  el.addEventListener('pointerdown', e => {
+    if (S.mode !== 'play') return;
+    if (cur.def.finale) { holdDown(e); return; }
+    if (el !== cv) return;
+    const r = cv.getBoundingClientRect(), L = geom();
+    const l = Math.floor((e.clientX - r.left - L.pad) / L.lw);
+    if (l >= 0 && l < LANES) pressLane(l, e.timeStamp);
+  });
+  el.addEventListener('pointerup', holdUp);
+  el.addEventListener('pointercancel', holdUp);
+}
+addEventListener('contextmenu', e => { if (S.mode === 'play') e.preventDefault(); });
+document.addEventListener('visibilitychange', () => { if (document.hidden) pause(); });
+
+// Calibration: ten clicks at 100 bpm, the last eight are scored against the tap time.
+const calib = { active: false, clicks: [], taps: [] };
+function calibStart() {
+  initAudio(); A.resume();
+  const t0 = A.currentTime + .4, gap = .6;
+  calib.clicks = Array.from({ length: 10 }, (_, i) => t0 + i * gap);
+  calib.taps = [];
+  calib.active = true;
+  for (const [i, t] of calib.clicks.entries()) tone(t, i < 2 ? 1760 : 1320, .06, 'square', .14, 4000);
+  calibSay(() => tx('calibListen'));
+  $('#tap').focus();
+}
+// The calibration line is kept as a thunk so a language switch re-reads it.
+let calibMsg = () => tx('calibReady');
+function calibSay(fn) { calibMsg = fn; $('#calibOut').textContent = fn(); }
+function calibTap(perfMs) {
+  if (!calib.active) return;
+  const t = audibleAt(perfMs);
+  const near = calib.clicks.slice(2).reduce((b, c) => Math.abs(c - t) < Math.abs(b - t) ? c : b, Infinity);
+  if (Math.abs(near - t) < .3) calib.taps.push(t - near);
+  const n = calib.taps.length;
+  calibSay(() => tx('calibTaps')(n));
+  if (calib.taps.length >= 8) {
+    calib.active = false;
+    const mean = calib.taps.reduce((a, b) => a + b, 0) / calib.taps.length;
+    const ms = Math.round(mean * 1000 / 5) * 5;
+    setOffset(Math.max(-200, Math.min(200, ms)));
+    calibSay(() => tx('calibResult')(ms));
+  }
+}
+function setOffset(ms) { S.offsetMs = ms; $('#offset').value = ms; $('#offsetOut').textContent = `${ms > 0 ? '+' : ''}${ms} ms`; }
+
+$('#tap').addEventListener('pointerdown', e => { e.preventDefault(); calibTap(e.timeStamp); });
+$('#calib').onclick = () => show('#ov-calib', '#calibGo');
+$('#calibGo').onclick = calibStart;
+$('#calibDone').onclick = () => { calib.active = false; show('#ov-title', '#start'); };
+$('#offset').addEventListener('input', e => setOffset(+e.target.value));
+$('#sound').addEventListener('change', e => { soundOn = e.target.checked; if (master) master.gain.value = soundOn ? .8 : 0; });
+
+function newRun() {
+  S.score = 0; S.flock = 0; S.maxFlock = 0;
+  S.counts = { perfect: 0, good: 0, coo: 0, miss: 0, gull: 0 };
+  startSong(0);
+}
+$('#start').onclick = newRun;
+$('#again').onclick = newRun;
+$('#next').onclick = () => startSong(S.songIdx + 1);
+$('#retry').onclick = () => { S.score = S.scoreAtSong; startSong(S.songIdx); };
+$('#restart').onclick = () => { S.score = S.scoreAtSong; A.resume(); startSong(S.songIdx); };
+$('#resume').onclick = () => { A.resume().then(() => { S.mode = 'play'; hideOverlays(); }); };
+$('#quit').onclick = () => { S.mode = 'title'; cur = null; document.body.classList.remove('finale'); show('#ov-title', '#start'); };
+
+function hud() {
+  $('#score').textContent = num(S.score);
+  $('#flock').textContent = S.flock;
+  $('#approval').style.width = Math.max(0, S.approval) + '%';
+  $('#meter').classList.toggle('low', S.approval < 25);
+}
+
+function frame() {
+  requestAnimationFrame(frame);
+  const t = cur && A ? audibleAt(performance.now()) : performance.now() / 1000;
+  if (S.mode === 'play') { schedule(); update(t); }
+  draw(t);
+  hud();
+}
+
+// ---- language ------------------------------------------------------------------------------
+// Static markup carries data-t / data-ta; the board, the open card / fail / end overlay and the
+// calibration line are re-rendered; pops, lane names and canvas labels redraw every frame.
+function applyLang() {
+  document.documentElement.lang = lang;
+  document.title = tx('docTitle');
+  for (const el of document.querySelectorAll('[data-t]')) el.textContent = tx(el.dataset.t);
+  for (const el of document.querySelectorAll('[data-ta]')) el.setAttribute('aria-label', tx(el.dataset.ta));
+  for (const box of document.querySelectorAll('.lang')) {
+    if (!box.children.length) box.innerHTML = '<button type="button" data-lang="fr" lang="fr">FR</button><button type="button" data-lang="en" lang="en">EN</button>';
+    for (const b of box.children) b.setAttribute('aria-pressed', String(b.dataset.lang === lang));
+  }
+  renderBoard();
+  $('#calibOut').textContent = calibMsg();
+  if (S.mode === 'card') renderCard();
+  if (S.mode === 'fail') renderFail();
+  if (S.mode === 'end') renderEnd();
+}
+function setLang(l) {
+  if (!(l in I18N) || l === lang) return;
+  lang = l;
+  applyLang();
+}
+document.addEventListener('click', e => {
+  const b = e.target.closest('[data-lang]');
+  if (b) setLang(b.dataset.lang);
+});
+
+function boot(data) {
+  lang = data?.lang in I18N ? data.lang : (navigator.language || '').toLowerCase().startsWith('fr') ? 'fr' : 'en';
+  if (data.best) S.best = data.best;
+  if (typeof data.offsetMs === 'number') setOffset(data.offsetMs);
+  applyLang();
+  readColors();
+  resize();
+  addEventListener('resize', resize);
+  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', readColors);
+  new MutationObserver(readColors).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+  document.fonts?.ready.then(() => draw(0));
+  requestAnimationFrame(frame);
+}
+window.claude?.hot?.snapshot?.(() => ({ best: Math.max(S.best, S.score), offsetMs: S.offsetMs, lang }));
+window.claude?.hot?.ready ? window.claude.hot.ready(boot) : boot(window.claude?.hot?.data ?? {});
+</script>
+</body>
+</html>

@@ -1,0 +1,1388 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Museum of Ordinary Afternoons</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,800&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&family=Red+Hat+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: a curator's working view. The ground-floor plan on the left with visitors drifting through it, the receiving desk on the right where an object card arrives and its wall label gets written, the visitors' book along the foot. */
+:root {
+  --bg: #e3e4df;       /* gallery wall, a grey leaning green */
+  --panel: #f9f9f6;    /* label card stock */
+  --ink: #1e1f1b;
+  --muted: #676860;
+  --accent: #8b1a32;   /* velvet rope: the only loud thing in the building */
+  --line: #1e1f1b26;
+  --floor: #d6d0c2;
+  --calm: #46705f;
+  --sleep: #56688f;
+  --f-display: "Bricolage Grotesque", "Arial Black", "Helvetica Neue", sans-serif;
+  --f-body: "Source Serif 4", Charter, "Iowan Old Style", Georgia, serif;
+  --f-mono: "Red Hat Mono", ui-monospace, Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #17181b; --panel: #222327; --ink: #e8e6df; --muted: #9c9a91; --accent: #e3637c;
+    --line: #e8e6df24; --floor: #2a2925; --calm: #82b9a3; --sleep: #93a6d6;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #17181b; --panel: #222327; --ink: #e8e6df; --muted: #9c9a91; --accent: #e3637c;
+  --line: #e8e6df24; --floor: #2a2925; --calm: #82b9a3; --sleep: #93a6d6;
+  color-scheme: dark;
+}
+/* kit:css:begin */
+/* Arcade kit: structure only, never a look. Inlined between kit:css markers by kit/inline.mjs.
+   The game's own :root must define --bg --ink --muted --accent --panel --line (light), and
+   redefine them in both dark blocks; everything here reads those tokens. */
+*, *::before, *::after { box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  -webkit-tap-highlight-color: transparent;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+button { font: inherit; color: inherit; cursor: pointer; }
+button:disabled { cursor: default; }
+:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+canvas { display: block; max-width: 100%; touch-action: none; }
+
+/* Full-stage screens (title, twist, end). Sit inside a position:relative stage. */
+.kit-overlay {
+  position: absolute; inset: 0; z-index: 5;
+  display: grid; place-items: center; padding: 24px;
+  background: color-mix(in srgb, var(--bg) 88%, transparent);
+  overflow-y: auto;
+}
+.kit-overlay[hidden] { display: none; }
+
+/* Touch pad: shown only on coarse pointers; buttons carry data-key (see Kit.keys). */
+.kit-pad { display: none; gap: 10px; justify-content: center; padding-block: 10px; user-select: none; }
+.kit-pad [data-key] { min-width: 56px; min-height: 56px; touch-action: none; border: 1px solid var(--line); background: var(--panel); }
+@media (pointer: coarse) { .kit-pad { display: flex; } }
+
+.kit-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+
+@media (prefers-reduced-motion: reduce) {
+  .kit-deco, .kit-deco * { animation: none !important; transition: none !important; }
+}
+/* kit:css:end */
+[hidden] { display: none !important; }
+body { font-family: var(--f-body); font-size: 15.5px; line-height: 1.45; padding-block: 14px 22px; }
+.stage { max-width: 1120px; margin: 0 auto; display: grid; gap: 14px; }
+
+.head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: end; gap: 6px 20px; }
+.head h1 { font: 800 clamp(22px, 4vw, 34px)/0.95 var(--f-display); letter-spacing: -.02em; margin: 0; }
+.head .est { font: 12px var(--f-mono); color: var(--muted); margin-top: 4px; }
+.meters { display: flex; flex-wrap: wrap; gap: 4px 16px; font: 12px var(--f-mono); color: var(--muted); }
+.meters b { font-weight: 500; color: var(--ink); font-variant-numeric: tabular-nums; }
+.ropes { display: inline-flex; gap: 4px; vertical-align: -2px; }
+.ropes i { width: 12px; height: 12px; border-radius: 50%; border: 1.5px solid var(--muted); }
+.ropes i.on { background: var(--accent); border-color: var(--accent); }
+
+.main { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-areas: "plan desk" "book desk"; grid-template-rows: auto 1fr; gap: 14px 18px; align-items: start; }
+.main > section:first-child { grid-area: plan; }
+.main > .desk { grid-area: desk; }
+.main > .book { grid-area: book; }
+.sec-h { font: 500 11.5px var(--f-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin: 0 0 6px; display: flex; justify-content: space-between; gap: 8px; }
+
+/* The floor plan: a canvas floor and visitors, with the four galleries as buttons over it. */
+.plan { position: relative; display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr auto; gap: 0; border: 3px solid var(--ink); background: var(--floor); aspect-ratio: 1.15; }
+.plan canvas { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 1; }
+.gal { all: unset; position: relative; z-index: 2; box-sizing: border-box; padding: 9px 10px; display: grid; align-content: start; gap: 3px; cursor: pointer; border: 1.5px solid var(--ink); min-width: 0; }
+.gal:focus-visible { outline: 3px solid var(--accent); outline-offset: -5px; }
+.gal:hover { background: color-mix(in srgb, var(--panel) 30%, transparent); }
+.gal.pick { background: color-mix(in srgb, var(--panel) 62%, transparent); box-shadow: inset 0 0 0 3px var(--accent); }
+.gal.full { cursor: not-allowed; }
+.gal .no { font: 800 13px var(--f-display); letter-spacing: .02em; }
+.gal .nm { font: 500 13.5px/1.15 var(--f-display); }
+.gal .ad { font: 11px/1.3 var(--f-mono); color: var(--muted); }
+.gal .ad b { font-weight: 500; color: var(--ink); }
+.gal .mood { font: italic 12.5px/1.25 var(--f-body); color: var(--muted); margin-top: 2px; }
+.gal .mood.incident { color: var(--accent); font-style: normal; font-weight: 600; }
+.gal .mood.asleep, .gal .mood.dull { color: var(--sleep); }
+.gal .mood.ok { color: var(--calm); }
+.plinths { display: flex; gap: 4px; margin-top: 3px; }
+.plinths i { width: 11px; height: 11px; border: 1.5px solid var(--ink); background: transparent; }
+.plinths i.on { background: var(--ink); }
+.plinths i.you { background: var(--accent); border-color: var(--accent); }
+.lobby { grid-column: 1 / -1; position: relative; z-index: 2; border-top: 1.5px solid var(--ink); padding: 5px 10px; font: 11px var(--f-mono); color: var(--muted); display: flex; justify-content: space-between; gap: 8px; }
+
+/* Receiving desk: the object card, then the label being written. */
+.desk { display: grid; gap: 10px; }
+.obj { background: var(--panel); border: 1px solid var(--line); padding: 10px 14px; display: grid; gap: 3px; position: relative; }
+.obj .acc { font: 500 12px var(--f-mono); color: var(--accent); letter-spacing: .04em; }
+.obj h3 { margin: 0; font: 800 19px/1.1 var(--f-display); letter-spacing: -.01em; }
+.obj dl { margin: 2px 0 0; display: grid; grid-template-columns: auto 1fr; gap: 0 12px; font-size: 13.5px; line-height: 1.4; }
+.obj dt { font: 11px/1.7 var(--f-mono); color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
+.obj dd { margin: 0; }
+.courier { display: flex; align-items: center; gap: 10px; font: 11px var(--f-mono); color: var(--muted); margin-top: 6px; }
+.courier .bar { flex: 1; height: 4px; background: var(--line); }
+.courier .bar i { display: block; height: 100%; background: var(--ink); }
+.courier.late .bar i { background: var(--accent); }
+
+.compose { display: grid; gap: 8px; }
+.frag { display: grid; gap: 4px; }
+.frag > span { font: 11px var(--f-mono); color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
+.chips { display: flex; flex-wrap: wrap; gap: 5px; }
+.chip { font: 13.5px/1.25 var(--f-body); text-align: left; padding: 4px 8px; background: transparent; border: 1px solid var(--line); border-radius: 2px; color: var(--ink); }
+.chip:hover { border-color: var(--ink); }
+.chip[aria-pressed="true"] { background: var(--ink); color: var(--panel); border-color: var(--ink); }
+.chip kbd { font: 10px var(--f-mono); color: var(--muted); margin-right: 5px; }
+.chip[aria-pressed="true"] kbd { color: inherit; opacity: .7; }
+
+.label { background: var(--panel); border-left: 4px solid var(--ink); padding: 8px 14px; display: grid; gap: 1px; min-height: 92px; }
+.label .lt { font: 600 17px/1.2 var(--f-body); }
+.label .lm { font-size: 13.5px; color: var(--muted); }
+.label .lx { font-size: 14.5px; margin-top: 4px; }
+.label .ln { font-size: 13px; font-style: italic; color: var(--muted); }
+.label .la { font: 11px var(--f-mono); color: var(--muted); margin-top: 4px; }
+.blank { color: var(--muted); font-style: italic; }
+
+.verdict { display: grid; gap: 6px; }
+.scale { position: relative; height: 26px; border-bottom: 1.5px solid var(--ink); }
+.scale .band { position: absolute; top: 4px; bottom: 0; background: color-mix(in srgb, var(--calm) 30%, transparent); border-left: 1px solid var(--calm); border-right: 1px solid var(--calm); }
+.scale .needle { position: absolute; top: 0; bottom: -6px; width: 3px; margin-left: -1.5px; background: var(--accent); transition: left .25s; }
+.scale .tk { position: absolute; bottom: -15px; font: 10px var(--f-mono); color: var(--muted); transform: translateX(-50%); white-space: nowrap; }
+.scale .tk:first-of-type { transform: none; }
+.scale .tk:last-of-type { transform: translateX(-100%); }
+.reading { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 14px; font: 12px var(--f-mono); }
+.reading b { font-weight: 500; }
+.hang { font: 800 15px var(--f-display); padding: 11px 18px; background: var(--accent); color: #fff; border: 0; border-radius: 2px; letter-spacing: .01em; }
+.hang:disabled { background: var(--line); color: var(--muted); }
+
+.book { border-top: 1.5px solid var(--ink); padding-top: 8px; display: grid; gap: 4px; }
+.book ol { list-style: none; margin: 0; padding: 0; display: grid; gap: 3px; }
+.book li { font-size: 14px; font-style: italic; }
+.book li:not(:first-child) { color: var(--muted); }
+.book li .who { font-style: normal; font-size: 12px; color: var(--muted); }
+
+/* Overlays sit on the viewport, not in the middle of a tall phone page. */
+.kit-overlay { position: fixed; z-index: 10; place-items: start center; padding-block: max(22px, 5vh); }
+.sheet { max-width: 600px; background: var(--panel); border: 1px solid var(--line); padding: 24px 24px 22px; display: grid; gap: 12px; box-shadow: 0 1px 0 var(--line), 0 18px 40px -24px rgb(0 0 0 / .45); }
+.sheet .kicker { font: 500 11.5px var(--f-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--accent); }
+.sheet h2 { margin: 0; font: 800 clamp(26px, 6vw, 38px)/1 var(--f-display); letter-spacing: -.02em; text-wrap: balance; }
+.sheet p { margin: 0; text-wrap: pretty; }
+.sheet .lede { font-size: 18px; }
+.sheet .small { font-size: 13.5px; color: var(--muted); }
+.sheet .notice { font: 13px/1.55 var(--f-mono); white-space: pre-line; border: 1.5px solid var(--ink); padding: 12px 14px; }
+.sheet .row { display: flex; flex-wrap: wrap; gap: 10px; }
+.sheet .best { font: 12px var(--f-mono); color: var(--muted); }
+.cat { display: grid; gap: 10px; max-height: 46vh; overflow-y: auto; padding-right: 4px; }
+.cat .label { border-left-color: var(--accent); }
+.btn { font: 800 15px var(--f-display); padding: 11px 18px; background: var(--ink); color: var(--panel); border: 0; border-radius: 2px; }
+.btn.alt { background: transparent; color: var(--ink); box-shadow: inset 0 0 0 1.5px var(--ink); }
+.btn:hover { background: var(--accent); color: #fff; }
+/* Language toggle: two keys in the museum's mono, the pressed one inked in. */
+.lang { display: inline-flex; flex: none; align-self: center; border: 1.5px solid var(--ink); border-radius: 2px; background: var(--panel); overflow: hidden; }
+.lang button { border: 0; background: transparent; padding: 3px 9px; font: 500 12px var(--f-mono); letter-spacing: .08em; color: var(--muted); }
+.lang button + button { border-left: 1px solid var(--line); }
+.lang button:hover { color: var(--ink); }
+.lang button[aria-pressed="true"] { background: var(--ink); color: var(--panel); }
+.sheet .row { align-items: center; }
+.sheet .row .lang { margin-left: auto; min-height: 32px; }
+.btn.alt:hover { background: transparent; color: var(--accent); box-shadow: inset 0 0 0 1.5px var(--accent); }
+
+@media (max-width: 760px) {
+  .main { grid-template-columns: minmax(0, 1fr); grid-template-areas: "plan" "desk" "book"; grid-template-rows: auto; gap: 12px; }
+  .plan { aspect-ratio: auto; min-height: 290px; }
+  .gal { padding: 7px 8px; }
+  .gal .nm { font-size: 12.5px; }
+  .gal .mood { display: none; }
+  .obj h3 { font-size: 18px; }
+  .obj dl { font-size: 13px; }
+  .chip { font-size: 13px; padding: 4px 7px; }
+  .chip kbd { display: none; }
+  /* The verdict and the hang button ride along the foot of the screen. */
+  .verdict { position: sticky; bottom: 0; z-index: 4; background: var(--bg); padding: 6px 0 8px; border-top: 1px solid var(--line); }
+  .sheet { padding: 18px 16px; }
+}
+</style>
+</head>
+<body>
+<div class="stage">
+  <header class="head">
+    <div>
+      <h1 data-t="h1">Museum of Ordinary Afternoons</h1>
+      <div class="est" data-t="est">Admission free · Nothing happens · Est. this afternoon</div>
+    </div>
+    <div class="meters">
+      <span><span data-t="mDay">Day</span> <b id="m-day">1</b>/4</span>
+      <span><b id="m-clock">1:00 pm</b></span>
+      <span><span data-t="mVis">Visitors</span> <b id="m-vis">0</b></span>
+      <span><span data-t="mInc">Incidents</span> <span class="ropes" id="m-inc"><i></i><i></i><i></i></span></span>
+      <div class="lang" role="group" data-ta="langGroup" aria-label="Language"></div>
+    </div>
+  </header>
+
+  <div class="main">
+    <section aria-label="Floor plan" data-ta="planAria">
+      <h2 class="sec-h"><span data-t="planH">Ground floor plan</span><span data-t="planKeys">keys 1–4 choose a gallery</span></h2>
+      <div class="plan" id="plan">
+        <canvas id="floor" aria-hidden="true"></canvas>
+        <div class="lobby"><span data-t="lobby">Entrance · cloakroom · bench (original)</span><span id="lobby-n"></span></div>
+      </div>
+    </section>
+
+    <section class="desk" aria-label="Receiving desk" data-ta="deskAria">
+      <div>
+        <h2 class="sec-h"><span data-t="deskH">Receiving desk</span><span id="queue-n"></span></h2>
+        <div class="obj" id="obj"></div>
+      </div>
+      <div class="compose" id="compose">
+        <div class="frag" data-k="t"><span data-t="fragT">Title</span><div class="chips"></div></div>
+        <div class="frag" data-k="d"><span data-t="fragD">Description</span><div class="chips"></div></div>
+        <div class="frag" data-k="n"><span data-t="fragN">Curator's note</span><div class="chips"></div></div>
+      </div>
+      <div class="label" id="label" aria-live="polite"></div>
+      <div class="verdict">
+        <div class="scale" id="scale" aria-hidden="true"><div class="band" id="band"></div><div class="needle" id="needle"></div><span class="tk" style="left:0" data-t="tick0">0 nothing</span><span class="tk" style="left:50%">5</span><span class="tk" style="left:100%" data-t="tick10">10 a wasp</span></div>
+        <div class="reading"><span id="reading">Choose a gallery and write the label.</span><button class="hang" id="hang" disabled>Hang it</button></div>
+      </div>
+    </section>
+
+    <section class="book" aria-label="Visitors' book" data-ta="bookAria">
+      <h2 class="sec-h"><span data-t="bookH">Visitors' book</span><span data-t="bookSub">please write clearly</span></h2>
+      <ol id="book"></ol>
+    </section>
+  </div>
+
+  <div class="kit-overlay" id="title">
+    <div class="sheet">
+      <div class="kicker" data-t="titleKick">Curator wanted · Afternoons only</div>
+      <h2 data-t="titleH">Museum of Ordinary Afternoons</h2>
+      <p class="lede" data-t="titleLede">A museum of moments in which nothing happens: a cup of tea going cold, a cat watching a door, 3:40 pm on a Tuesday. Visitors come to be underwhelmed, precisely.</p>
+      <p data-t="titleRules">Objects arrive at the receiving desk. Choose a gallery, then write the wall label from the fragments offered. Every gallery advertises how uneventful it is on the Ordinary Afternoon Scale (OAS), where 0 is nothing at all and 10 is a wasp getting in. Hang each object so its label reads within 0.75 of what the gallery promises.</p>
+      <p class="small" data-t="titleKeys">Three incidents (a label more than 1.75 too exciting) and the Council closes you. Don't keep the courier waiting, or Gerald from Security will hang it himself. Mouse, touch, or keys: 1–4 gallery, Q W E title, A S D description, Z X C note, Enter to hang.</p>
+      <p class="best" id="best" hidden></p>
+      <div class="row"><button class="btn" id="startbtn" data-t="startBtn">Open the museum</button><div class="lang" role="group" data-ta="langGroup" aria-label="Language"></div></div>
+    </div>
+  </div>
+
+  <div class="kit-overlay" id="evening" hidden>
+    <div class="sheet">
+      <div class="kicker" id="ev-kick"></div>
+      <h2 id="ev-h"></h2>
+      <p id="ev-sum"></p>
+      <p class="notice" id="ev-memo"></p>
+      <div class="row"><button class="btn" id="ev-btn">Open for another afternoon</button><div class="lang" role="group" data-ta="langGroup" aria-label="Language"></div></div>
+    </div>
+  </div>
+
+  <div class="kit-overlay" id="donation" hidden>
+    <div class="sheet">
+      <div class="kicker" data-t="donKick">Acquisitions · received by hand</div>
+      <h2 data-t="donH">One further donation</h2>
+      <p class="notice" id="don-letter"></p>
+      <p class="small" data-t="donSmall">An accepted donation goes on display tomorrow. A declined one goes back to its donor, and the museum opens to the public tonight.</p>
+      <div class="row"><button class="btn" id="accept" data-t="accept">Accession it</button><button class="btn alt" id="decline" data-t="decline">Return it and open tonight</button><div class="lang" role="group" data-ta="langGroup" aria-label="Language"></div></div>
+    </div>
+  </div>
+
+  <div class="kit-overlay" id="end" hidden>
+    <div class="sheet">
+      <div class="kicker" id="end-kick"></div>
+      <h2 id="end-h"></h2>
+      <div id="end-body" style="display:grid;gap:10px"></div>
+      <div class="row"><button class="btn" id="end-btn" data-t="endBtn">Open the museum again</button><div class="lang" role="group" data-ta="langGroup" aria-label="Language"></div></div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* kit:js:begin */
+// Arcade kit: the plumbing every game re-wrote by hand. Inlined between kit:js markers by
+// kit/inline.mjs, so a game stays one standalone file. Defines exactly two globals, `Kit` and
+// (once a game calls Kit.expose) `__arcade`; nothing else, because a bare top-level name can
+// collide with a window property (sandwich-diplomacy's `top()` shadowed by window.top).
+const Kit = (() => {
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const themeWatchers = [];
+  const onTheme = () => themeWatchers.forEach(f => f());
+  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', onTheme);
+  new MutationObserver(onTheme).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+
+  // Canvas code cannot read CSS variables, so mirror the named tokens into an object and
+  // re-read it whenever the theme flips: the viewer's toggle sets data-theme, the OS sets the media query.
+  function tokens(names, onChange) {
+    const C = {};
+    const read = () => {
+      const cs = getComputedStyle(document.documentElement);
+      for (const n of names) C[n] = cs.getPropertyValue('--' + n).trim();
+      onChange?.(C);
+    };
+    read();
+    themeWatchers.push(read);
+    return C;
+  }
+
+  // Keeps a canvas sharp at the device pixel ratio (capped at 2) and sized to its CSS box.
+  function canvas(el, onResize) {
+    const view = { el, cx: el.getContext('2d'), W: 0, H: 0 };
+    const fit = () => {
+      const r = el.getBoundingClientRect(), d = Math.min(2, devicePixelRatio || 1);
+      view.W = r.width; view.H = r.height;
+      el.width = Math.round(r.width * d); el.height = Math.round(r.height * d);
+      view.cx.setTransform(d, 0, 0, d, 0, 0);
+      onResize?.(view);
+    };
+    new ResizeObserver(fit).observe(el);
+    fit();
+    return view;
+  }
+
+  // step(dt) gets seconds, capped at 50 ms so a background tab or a stalled frame cannot
+  // teleport the game; the loop stops while the tab is hidden and resumes without a jump.
+  function loop(step) {
+    let last = 0, raf = 0, on = false;
+    const frame = t => {
+      const dt = last ? Math.min(0.05, (t - last) / 1000) : 0;
+      last = t;
+      step(dt);
+      if (on) raf = requestAnimationFrame(frame);
+    };
+    const ctl = {
+      start() { if (on) return; on = true; last = 0; raf = requestAnimationFrame(frame); },
+      stop() { on = false; cancelAnimationFrame(raf); },
+      get running() { return on; },
+    };
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden && on) { ctl.stop(); ctl.paused = true; }
+      else if (!document.hidden && ctl.paused) { ctl.paused = false; ctl.start(); }
+    });
+    return ctl;
+  }
+
+  // Held keys by KeyboardEvent.key, lower-cased (' ' for Space). Touch pads feed the same set:
+  // any element with data-key="<key>" inside a .kit-pad holds that key while pressed.
+  const held = new Set();
+  const pressFns = [];
+  const norm = k => (k.length === 1 ? k.toLowerCase() : k);
+  const press = (k, down) => {
+    k = norm(k);
+    if (down === held.has(k)) return;
+    down ? held.add(k) : held.delete(k);
+    pressFns.forEach(f => f(k, down));
+  };
+  const GAME_KEYS = new Set([' ', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight']);
+  addEventListener('keydown', e => {
+    if (e.target.closest?.('input, textarea, select, [contenteditable]')) return;
+    if (GAME_KEYS.has(e.key) && !e.target.closest?.('button')) e.preventDefault();
+    if (!e.repeat) press(e.key, true);
+  });
+  addEventListener('keyup', e => press(e.key, false));
+  addEventListener('blur', () => [...held].forEach(k => press(k, false)));
+  document.addEventListener('pointerdown', e => {
+    const b = e.target.closest?.('.kit-pad [data-key]');
+    if (!b) return;
+    e.preventDefault();
+    b.setPointerCapture?.(e.pointerId);
+    press(b.dataset.key, true);
+    const up = () => { press(b.dataset.key, false); b.removeEventListener('pointerup', up); b.removeEventListener('pointercancel', up); };
+    b.addEventListener('pointerup', up);
+    b.addEventListener('pointercancel', up);
+  });
+  const keys = {
+    down: k => held.has(norm(k)),
+    any: (...ks) => ks.some(k => held.has(norm(k))),
+    onPress(fn) { pressFns.push(fn); },
+  };
+
+  // The claude.ai viewer's hot-update hook: keeps `snapshot()` across a republish. Absent when
+  // self-hosted, so start() then receives {}.
+  function boot(start, snapshot) {
+    if (snapshot) window.claude?.hot?.snapshot?.(snapshot);
+    window.claude?.hot?.ready ? window.claude.hot.ready(start) : start(window.claude?.hot?.data ?? {});
+  }
+
+  // The test hook smoke.mjs drives. endings: { name: { jump(), reached(), seconds? } } where
+  // jump() may shortcut the set-up but must leave the ending's final stretch to real game
+  // logic, and reached() is true only once that ending's screen is actually showing.
+  function expose({ state, endings }) {
+    window.__arcade = {
+      get state() { return state(); },
+      endings: Object.fromEntries(Object.entries(endings).map(([k, v]) => [k, { seconds: v.seconds ?? 8 }])),
+      jump: name => endings[name].jump(),
+      reached: name => !!endings[name].reached(),
+    };
+  }
+
+  // Show one overlay and hide the others; focus its first button so Enter/Space continue.
+  function show(el) {
+    document.querySelectorAll('.kit-overlay').forEach(o => { o.hidden = o !== el; });
+    el?.querySelector('button')?.focus({ preventScroll: true });
+  }
+
+  const rnd = (a, b) => a + Math.random() * (b - a);
+  const pick = a => a[Math.floor(Math.random() * a.length)];
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+
+  return { reduce, tokens, canvas, loop, keys, boot, expose, show, rnd, pick, clamp };
+})();
+/* kit:js:end */
+
+// Every player-visible string, per language. The game stores ids, indexes and numbers only:
+// objects by key, label fragments as {set, tier, i}, book entries as {out, i, g}. So a switch of
+// language mid-afternoon re-words every card, label and entry without changing a reading.
+const I18N = {
+  en: {
+    docTitle: 'Museum of Ordinary Afternoons',
+    langGroup: 'Language',
+    locale: 'en-GB',
+    num: x => x.toFixed(1),
+    clock: (h, mm) => `${h > 12 ? h - 12 : h}:${String(mm).padStart(2, '0')} pm`,
+    wall: d => d.toLocaleTimeString('en-GB', { hour: 'numeric', minute: '2-digit', hour12: true }).toLowerCase(),
+    quote: s => `“${s}”`,
+    keyrows: { t: ['q', 'w', 'e'], d: ['a', 's', 'd'], n: ['z', 'x', 'c'] },
+    h1: 'Museum of Ordinary Afternoons',
+    est: 'Admission free · Nothing happens · Est. this afternoon',
+    mDay: 'Day', mVis: 'Visitors', mInc: 'Incidents',
+    planAria: 'Floor plan', deskAria: 'Receiving desk', bookAria: "Visitors' book",
+    planH: 'Ground floor plan', planKeys: 'keys 1–4 choose a gallery',
+    lobby: 'Entrance · cloakroom · bench (original)', lobbyN: n => `${n} visitors in the building`,
+    deskH: 'Receiving desk', queueN: n => `${n} more today`,
+    fragT: 'Title', fragD: 'Description', fragN: "Curator's note",
+    tick0: '0 nothing', tick10: '10 a wasp',
+    readingStart: 'Choose a gallery and write the label.', hangIt: 'Hang it', hangIn: g => `Hang it in Gallery ${g}`,
+    bookH: "Visitors' book", bookSub: 'please write clearly',
+    titleKick: 'Curator wanted · Afternoons only',
+    titleH: 'Museum of Ordinary Afternoons',
+    titleLede: 'A museum of moments in which nothing happens: a cup of tea going cold, a cat watching a door, 3:40 pm on a Tuesday. Visitors come to be underwhelmed, precisely.',
+    titleRules: 'Objects arrive at the receiving desk. Choose a gallery, then write the wall label from the fragments offered. Every gallery advertises how uneventful it is on the Ordinary Afternoon Scale (OAS), where 0 is nothing at all and 10 is a wasp getting in. Hang each object so its label reads within 0.75 of what the gallery promises.',
+    titleKeys: "Three incidents (a label more than 1.75 too exciting) and the Council closes you. Don't keep the courier waiting, or Gerald from Security will hang it himself. Mouse, touch, or keys: 1–4 gallery, Q W E title, A S D description, Z X C note, Enter to hang.",
+    startBtn: 'Open the museum',
+    best: n => `Best so far: ${n} objects hung exactly as advertised.`,
+    donKick: 'Acquisitions · received by hand', donH: 'One further donation',
+    donSmall: 'An accepted donation goes on display tomorrow. A declined one goes back to its donor, and the museum opens to the public tonight.',
+    accept: 'Accession it', decline: 'Return it and open tonight',
+    endBtn: 'Open the museum again',
+    gallery: g => `Gallery ${g}`,
+    gal: [
+      { name: 'Kitchens, Mostly', advert: 'Practically Still' },
+      { name: 'Windows, and What Was Outside Them', advert: 'Gently Uneventful' },
+      { name: 'Waiting Rooms', advert: 'Nothing Continues to Happen' },
+      { name: 'The Mezzanine of Minor Incidents', advert: 'A Spoon Was Dropped' },
+    ],
+    advertised: v => `Advertised <b>${v} OAS</b>`,
+    galAria: (g, name, v, used, cap) => `Gallery ${g}, ${name}, advertised ${v} OAS, ${used} of ${cap} plinths used`,
+    mood: { ok: 'Visitors content. Nobody has moved for some time.', lively: 'A low murmur. Someone pointed.', incident: 'Incident: a visitor said “oh!”', dull: 'Quieter than promised.', asleep: 'A visitor is asleep.', empty: 'Empty. Very on-brand.' },
+    full: m => `Full. ${m}`,
+    deskClear: 'The receiving desk is clear. A pencil, a roll of tape, a biscuit nobody claims.',
+    accNo: a => `Acc. no. ${a}`, donated: ' · donated afternoon',
+    dt: ['Date', 'Medium', 'Dims', 'Source', 'Condition'],
+    condition: v => `Sound. Unlabelled, reads <b>${v} OAS</b>`,
+    courier: 'Courier waiting',
+    noLabel: 'No label in progress.', waitNext: 'Waiting for the next object.',
+    blankT: 'Title…', blankD: 'Description…',
+    say: { ok: 'as advertised', lively: 'a little lively', incident: 'an incident waiting to happen', dull: 'duller than promised', asleep: 'a visitor will fall asleep' },
+    readsAt: (r, g, tg, say) => `Label reads <b>${r} OAS</b> · Gallery ${g} promises ${tg} · <b>${say}</b>`,
+    readsPick: r => `Label reads <b>${r} OAS</b> · choose a gallery`,
+    bookEmpty: 'No entries yet. The pen is on a chain.',
+    bookGerald: (title, g) => `I have hung ${title.toLowerCase()} in Gallery ${g}. The courier had a bus to catch.`,
+    geraldWho: 'Gerald (Security)',
+    geraldBy: 'Written by Gerald (Security).',
+    gerald: [t => `${t.toUpperCase()}. LOOK AT IT.`, t => `${t.toUpperCase()}!!! (REAL)`, () => 'DO NOT TOUCH. IT MIGHT GO OFF.', t => `${t.toUpperCase()}: YOU WON’T BELIEVE IT`],
+    evKick: n => `Day ${n} · closing time · 5:00 pm`,
+    evH: ['The first afternoon is over', 'Another afternoon, safely over'],
+    evSum: (hung, ok, inc, max) => `${hung} objects hung today, ${ok} exactly as advertised. Incidents so far: ${inc} of ${max}.`,
+    evBtn: n => `Open for day ${n}`,
+    memos: [
+      'From the Trustees.\n\nA promising first afternoon. Remember: three incidents and the Council will close us under the Leisure Premises (Quietude) Act 1974.\n\nPlease keep Gerald away from the labels. He means well. He uses capitals.',
+      'From the Trustees.\n\nAttendance is up. Some visitors have begun bringing things in: a bus ticket, a receipt for a single scone, an afternoon they “weren’t using”.\n\nWe have accepted the afternoons. Please accession them like anything else. Do not ask whose they are; they get emotional.',
+    ],
+    donLetter: (time, day) => `Dear Curator,\n\nWe, the visitors, would like to donate one further afternoon to the collection.\n\nIt is in good condition. It began at ${time} today, a ${day}, and is still going. Most of it was spent here, deciding where things go.\n\nIt’s yours. You were in it the whole time.\n\nThe Visitors (all of them)`,
+    obj: {
+      tea: { title: 'Cup of Tea, Going Cold', date: 'c. 3:40 pm, a Tuesday', medium: 'Bone china, tea, indifference', dims: '9 × 8.5 × 8.5 cm', prov: 'Found on a windowsill, Leeds', titles: ['Tea, Cooling', 'Cup of Tea, Going Cold', 'The Last Warm Sip'] },
+      cat: { title: 'Cat Watching a Door', date: '4:15 pm (the door did not open)', medium: 'Domestic shorthair, painted door, patience', dims: '31 × 22 × 48 cm (cat); door not included', prov: 'Lent by the cat', titles: ['Cat, Door', 'Cat Watching a Door', 'Will It Open?'] },
+      tues: { title: '3:40 pm on a Tuesday', date: '3:40 pm, Tuesday', medium: 'Time, approximately', dims: '1 minute', prov: 'Unclaimed', titles: ['3:40 pm', '3:40 pm on a Tuesday', 'The Minute Before 3:41'] },
+      radiator: { title: 'Radiator, Ticking as It Cools', date: '4:50 pm, October', medium: 'Cast iron, residual warmth, small sounds', dims: '60 × 80 × 10 cm', prov: 'From a hallway in Crewe', titles: ['Radiator', 'Radiator, Ticking as It Cools', 'Tick… Tick…'] },
+      queue: { title: 'Queue at the Post Office', date: '2:10 pm, a Thursday', medium: 'Six people, a ticket machine, one open counter', dims: '4.2 m (queue)', prov: 'Transferred intact', titles: ['Queue', 'Queue at the Post Office (Not Moving)', 'Number 47, Please'] },
+      washing: { title: 'Washing on a Line, Nearly Dry', date: '1:30 pm, cloudy intervals', medium: 'Cotton, wooden pegs, light breeze', dims: '3 m (line)', prov: 'A back garden, Swindon', titles: ['Washing', 'Washing on a Line, Nearly Dry', 'Will It Rain?'] },
+      spoon: { title: 'A Dropped Spoon (Recovered)', date: '2:47 pm', medium: 'Stainless steel, a small noise', dims: '17 cm', prov: 'A café floor, briefly', titles: ['Spoon', 'A Dropped Spoon (Recovered)', 'The Spoon Incident'] },
+      kettle: { title: 'Kettle, Just Before Boiling', date: '3:58 pm', medium: 'Electric kettle, rising sound, some steam', dims: '1.7 litres', prov: 'Staff room, second floor', titles: ['Kettle', 'Kettle, Just Before Boiling', 'Any Second Now'] },
+      rain: { title: 'Rain Starting, Then Not', date: '2:35 pm', medium: 'Water, hesitation', dims: 'approx. 4 drops', prov: 'Collected from a bus shelter', titles: ['Four Drops', 'Rain Starting, Then Not', 'The Storm That Wasn’t'] },
+      bus: { title: 'A Bus That Was Not Ours', date: '3:12 pm', medium: 'Double-decker, route 38, brief hope', dims: '11.2 × 2.5 × 4.4 m', prov: 'Passed by', titles: ['A Bus', 'A Bus That Was Not Ours', 'Is This One Ours?'] },
+      biscuit: { title: 'Digestive Biscuit, Dunked, Holding', date: '3:41 pm', medium: 'Wheatmeal biscuit, tea, structural integrity', dims: '7 cm diameter', prov: 'A mug, Stockport', titles: ['Biscuit', 'Digestive Biscuit, Dunked, Holding', 'Will It Hold?'] },
+      carpet: { title: 'Light Moving Across a Carpet', date: '1:00–5:00 pm', medium: 'Sunlight, Axminster', dims: '4 hours', prov: 'A front room, Hove', titles: ['Carpet', 'Light Moving Across a Carpet', 'The Light Is Moving!'] },
+      phone: { title: 'Someone Else’s Phone, Ringing in Another Room', date: '2:20 pm', medium: 'Ringtone (Marimba), distance, not your problem', dims: '14 rings', prov: 'An office, unattended', titles: ['A Phone', 'Someone Else’s Phone, Ringing in Another Room', 'Should Someone Get That?'] },
+      fridge: { title: 'The Fridge Hum, Stopping', date: '4:04 pm', medium: 'Refrigerator, sudden quiet', dims: '—', prov: 'A kitchen, late in the day', titles: ['Fridge', 'The Fridge Hum, Stopping', 'Silence. Then?'] },
+      pen: { title: 'A Pen That Doesn’t Work, Kept Anyway', date: 'Most afternoons since 2011', medium: 'Ballpoint, sentiment', dims: '14 cm', prov: 'A desk tidy', titles: ['Pen', 'A Pen That Doesn’t Work, Kept Anyway', 'It Might Work This Time'] },
+      laund: { title: 'Mrs Hollis’s Afternoon in a Launderette', date: '2:00–3:15 pm', medium: 'Machine 6, a magazine from 2019', dims: '1 hr 15 min', prov: 'Gift of Mrs P. Hollis, who was there', titles: ['Launderette', 'Mrs Hollis’s Afternoon in a Launderette', 'Spin Cycle!'] },
+      parcel: { title: 'Mr Obi Waits In for a Parcel', date: '1:00–5:58 pm', medium: 'Hallway, hope, a card through the door at 6', dims: '4 hr 58 min', prov: 'Gift of Mr D. Obi', titles: ['Waiting', 'Mr Obi Waits In for a Parcel', 'Was That the Door?'] },
+      ceiling: { title: 'A Wednesday, Studying the Bedroom Ceiling', date: '3:00–5:30 pm', medium: 'Artex, a teenager, the radio', dims: '3.1 × 3.4 m (ceiling)', prov: 'Gift of J., aged 15', titles: ['Ceiling', 'A Wednesday, Studying the Bedroom Ceiling', 'What Is That Shape?'] },
+      // Day four: built from what the player did. p carries the facts; the words are made here.
+      'you-open': p => ({ title: 'A Person Opening a Museum', date: `${p.time}, ${p.day}`, medium: 'One finger (or mouse), resolve', dims: '1 press', prov: 'Gift of the visitor', titles: ['Opening', 'A Person Opening a Museum', 'The Doors Swing Open!'] }),
+      'you-think': p => ({ title: `${p.secs} Seconds Deciding About ${p.about ?? 'a cup of tea'}`, date: 'Earlier today', medium: 'Hesitation, on card', dims: `${p.secs} s`, prov: 'Gift of the visitor', titles: ['Deliberation', `${p.secs} Seconds Deciding`, 'Will They Choose?'] }),
+      'you-nearly': p => ({ title: 'The Label You Nearly Wrote', date: 'Earlier today', medium: `“${p.from}”, crossed out, “${p.to}”`, dims: 'One change of mind', prov: `From the file on ${p.obj}`, titles: ['Second Thoughts', 'The Label You Nearly Wrote', 'The Road Not Taken'] }),
+      'you-sure': () => ({ title: 'A Label Written Without Hesitation', date: 'Earlier today', medium: 'Certainty, which is rare', dims: 'No changes of mind', prov: 'Gift of the visitor', titles: ['Certainty', 'A Label Written Without Hesitation', 'Never in Doubt!'] }),
+      'you-inc': p => ({ title: `The Incident in Gallery ${p.g}`, date: p.clock, medium: `A label reading “${p.words}”`, dims: `OAS ${p.r}`, prov: 'Recovered from the Council’s file', titles: [`Gallery ${p.g}`, `The Incident in Gallery ${p.g}`, 'It Happened Again'] }),
+      'you-fav': p => ({ title: `Gallery ${p.g}, Exactly as Advertised`, date: 'All afternoon', medium: 'Floor, walls, things hung by you', dims: `${p.n} objects`, prov: 'Gift of the visitor', titles: ['A Room', `Gallery ${p.g}, Exactly as Advertised`, 'The Perfect Room!'] }),
+      'you-now': p => ({ title: 'Someone Looking at a Screen, Late in the Day', date: `${p.time}, ${p.day}`, medium: 'Screen light, attention, a chair (probably)', dims: `${p.w} × ${p.h} px`, prov: 'Gift of the visitor', titles: ['A Screen', 'Someone Looking at a Screen, Late in the Day', 'Look Who’s Looking!'] }),
+    },
+    desc: {
+      low: ['Nothing about it has changed since it arrived.', 'It has been like this for some time.', 'It is roughly where it was left.', 'The artist was not present.'],
+      mid: ['It was here on a weekday.', 'Note the light, which is ordinary.', 'It is thought to date from about three o’clock.', 'It sat through most of an afternoon.'],
+      high: ['At one point, someone almost looked at it.', 'Moments earlier, a door had closed.', 'Witnesses describe a faint hum.', 'It has a secret. (It doesn’t.)', 'And then: nothing. Or was it?'],
+    },
+    note: {
+      low: ['Please do not wait for anything.', 'Seating is provided for the full duration.', 'Visitors may find their minds wandering. This is intended.'],
+      mid: ['On loan from a kitchen.', 'Acquired with the help of a slow week.', 'Gift of an anonymous Tuesday.'],
+      high: ['Contains scenes some visitors may find mildly interesting.', 'Not suitable for those who startle.', 'Flash photography may cause it to happen.'],
+    },
+    youDesc: {
+      low: ['The subject is seated.', 'The subject blinks at an ordinary rate.'],
+      mid: ['Note the hand, resting near the controls.', 'The subject is reading this.'],
+      high: ['The subject is, at this moment, being looked at.', 'Something is about to happen to the subject. (It isn’t.)'],
+    },
+    youNote: {
+      low: ['Please do not disturb the subject.', 'The subject will be here all afternoon.'],
+      mid: ['On permanent loan from the subject.', 'Accessioned today.'],
+      high: ['WARNING: the subject may look back.', 'The subject has not been told.'],
+    },
+    book: {
+      ok: ['Exactly as boring as I’d hoped. Will return Tuesday.|R.', 'I stood in front of it for twenty minutes and nothing happened. Marvellous.|Mrs D. Pike', 'Brought my father. He said “hm.” High praise, from him.|G.', 'It was cold, as promised.|anon.', 'I have never felt so unremarkable. Thank you.|B. & T.', 'Five stars. Nothing occurred.|a coach party from Rotherham', 'My son asked when something would happen. I said never. We both cried, in a good way.|L.', 'Restful. Like a bus shelter with better lighting.|Mr K. Osei', 'I came in out of the rain and nothing was different. Perfect.|P.', 'Saw it, then looked at the floor for a while. Lovely afternoon.|anon.'],
+      lively: ['Gallery {g} was a bit much. I had to sit down.|anon.', 'I felt a flicker of interest in Gallery {g}. Please see to it.|Mr H. Croft', 'Gallery {g}: racy.|V.', 'Something nearly happened in Gallery {g}. I’d rather it hadn’t nearly.|Mrs S. Lund'],
+      incident: ['SOMETHING HAPPENED IN GALLERY {g}.|several visitors', 'A man in Gallery {g} said “oh!” out loud. Children were present.|a concerned parent', 'I came here to recover from a wedding. Gallery {g} was like another wedding.|P.', 'My heart rate went UP in Gallery {g}. I have written to the Council.|Mr R. Twine'],
+      dull: ['Gallery {g} was less eventful than advertised, which I didn’t think was possible.|K.', 'I came for mild. Gallery {g} was barely there.|anon.', 'Gallery {g} undersold itself. I was promised slightly more nothing.|D.'],
+      asleep: ['Fell asleep in Gallery {g}. Woke up and it was Thursday.|F.', 'A visitor has been asleep in Gallery {g} since lunch. Staff have placed a small blanket.|Gerald (Security)', 'Gallery {g} put my husband to sleep. Not as advertised. Very relaxing though.|Mrs E. Platt'],
+    },
+    end: {
+      opening: {
+        kick: 'Opening night · 7:00 pm (an evening exemption was granted)',
+        h: 'Opening night',
+        body: (v, share, ok, placed, gerald) => `<p class="lede">${v} guests attended. Nobody gasped. The canapés were served at room temperature, as advertised. The Mayor cut the ribbon very slowly.</p>
+      <p>${share >= 0.7 ? '“Not a single thing happens, and it happens beautifully.”' : share >= 0.45 ? '“Mostly nothing, with lapses. Gallery 4 was nearly an event.”' : '“Patchy. Several rooms were almost interesting.”'} <span class="small">— the Sunday paper, page 31</span></p>
+      <p class="small">${ok} of ${placed} objects hung exactly as advertised. ${gerald ? `Gerald hung ${gerald}.` : 'Gerald hung none, and is quietly proud of you.'}</p>
+      <p>In Gallery 2, one plinth stays empty, labelled RESERVED. Nobody knows for whom. It is about the size of an afternoon.</p>`,
+      },
+      closed: {
+        kick: 'Notice of closure · served by hand · 4:59 pm',
+        h: 'Closed for being too eventful',
+        line: (clock, g, words, r, tg) => `· ${clock}, Gallery ${g}: “${words}” (read ${r} OAS; advertised ${tg})`,
+        body: (n, lines) => `<p class="notice">LEISURE PREMISES (QUIETUDE) ACT 1974, s. 4(2)
+
+The Museum of Ordinary Afternoons has been found too eventful on ${n} occasions:
+${lines}
+
+A visitor reported “enjoying himself”. Please remove all afternoons from the premises by close of business. Afternoons not collected will be disposed of in the usual way (left alone until they are over).
+
+The Council</p>
+      <p class="small">Gerald locks up. He leaves a light on in Gallery 1, which is the most exciting thing that has happened there all day.</p>`,
+      },
+      permanent: {
+        kick: date => `Permanent Collection · accessioned ${date}`,
+        h: 'An Afternoon (Yours)',
+        lede: 'The donation is complete. It has been hung across all four galleries, which turned out to be exactly the right size.',
+        la: (acc, g, r) => `${acc} · Gallery ${g} · ${r} OAS`,
+        yours: (from, to, day, mins) => `Your afternoon: ${from} to ${to}, ${day}. ${mins === 1 ? 'One minute, most of it' : `${mins} minutes, most of them`} spent deciding where things go.`,
+        small: 'Visitors stand in front of you for exactly as long as advertised. The museum is now closed to new acquisitions. It has everything it needs.',
+      },
+    },
+  },
+  fr: {
+    docTitle: 'Musée des après-midi ordinaires',
+    langGroup: 'Langue',
+    locale: 'fr-FR',
+    num: x => x.toFixed(1).replace('.', ','),
+    clock: (h, mm) => `${h} h ${String(mm).padStart(2, '0')}`,
+    wall: d => `${d.getHours()} h ${String(d.getMinutes()).padStart(2, '0')}`,
+    quote: s => `« ${s} »`,
+    // AZERTY rows: the same three physical rows the English Q W E / A S D / Z X C describe.
+    keyrows: { t: ['a', 'z', 'e'], d: ['q', 's', 'd'], n: ['w', 'x', 'c'] },
+    h1: 'Musée des après-midi ordinaires',
+    est: 'Entrée libre · Il ne se passe rien · Fondé cet après-midi',
+    mDay: 'Jour', mVis: 'Visiteurs', mInc: 'Incidents',
+    planAria: 'Plan', deskAria: 'Réception des œuvres', bookAria: "Livre d'or",
+    planH: 'Rez-de-chaussée', planKeys: 'salles : touches 1–4',
+    lobby: "Entrée · vestiaire · banc (d'origine)", lobbyN: n => `${n} visiteurs sur place`,
+    deskH: 'Réception des œuvres', queueN: n => `encore ${n} aujourd'hui`,
+    fragT: 'Titre', fragD: 'Description', fragN: 'Note de conservation',
+    tick0: '0 rien', tick10: '10 une guêpe',
+    readingStart: 'Choisissez une salle et rédigez le cartel.', hangIt: 'Accrocher', hangIn: g => `Accrocher en salle ${g}`,
+    bookH: "Livre d'or", bookSub: "merci d'écrire lisiblement",
+    titleKick: 'Poste de conservation à pourvoir · Après-midi seulement',
+    titleH: 'Musée des après-midi ordinaires',
+    titleLede: "Un musée de moments où il ne se passe rien : une tasse de thé qui refroidit, un chat qui regarde une porte, 15 h 40 un mardi. On y vient pour s'ennuyer, juste ce qu'il faut.",
+    titleRules: "Les objets arrivent à la réception. Choisissez une salle, puis rédigez le cartel à partir des fragments proposés. Chaque salle affiche son calme sur l'Échelle de l'après-midi ordinaire (EAO), où 0 correspond à rien du tout et 10 à une guêpe qui entre. Accrochez chaque objet de sorte que son cartel tombe à 0,75 près de ce que promet la salle.",
+    titleKeys: "Trois incidents (un cartel plus palpitant que prévu de plus de 1,75) et le conseil municipal vous ferme. Ne faites pas attendre le coursier, sinon Gerald, de la sécurité, accrochera l'objet lui-même. Souris, tactile ou clavier : 1–4 salle, A Z E titre, Q S D description, W X C note, Entrée pour accrocher.",
+    startBtn: 'Ouvrir le musée',
+    best: n => `Record : ${n} objets accrochés exactement comme annoncé.`,
+    donKick: 'Acquisitions · remis en main propre', donH: 'Un dernier don',
+    donSmall: 'Un don accepté sera exposé demain. Un don refusé retourne à ses donateurs, et le musée ouvre au public ce soir.',
+    accept: "L'inventorier", decline: 'Le rendre et ouvrir ce soir',
+    endBtn: 'Rouvrir le musée',
+    gallery: g => `Salle ${g}`,
+    gal: [
+      { name: 'Cuisines, surtout', advert: 'Pratiquement immobile' },
+      { name: "Fenêtres, et ce qu'il y avait dehors", advert: 'Doucement sans histoire' },
+      { name: "Salles d'attente", advert: 'Il continue de ne rien se passer' },
+      { name: 'La Mezzanine des incidents mineurs', advert: 'Une cuillère est tombée' },
+    ],
+    advertised: v => `Annoncée à <b>${v} EAO</b>`,
+    galAria: (g, name, v, used, cap) => `Salle ${g}, ${name}, annoncée à ${v} EAO, ${used} socles sur ${cap} occupés`,
+    mood: { ok: "Visiteurs satisfaits. Personne n'a bougé depuis un moment.", lively: "Un léger murmure. Quelqu'un a pointé du doigt.", incident: 'Incident : un visiteur a dit « oh ! »', dull: 'Plus calme que promis.', asleep: 'Un visiteur dort.', empty: "Vide. Tout à fait dans l'esprit maison." },
+    full: m => `Complet. ${m}`,
+    deskClear: 'La réception est vide. Un crayon, un rouleau de scotch, un biscuit que personne ne réclame.',
+    accNo: a => `N° d'inv. ${a}`, donated: ' · après-midi offert',
+    dt: ['Date', 'Technique', 'Dim.', 'Provenance', 'État'],
+    condition: v => `Bon. Sans cartel, mesure <b>${v} EAO</b>`,
+    courier: 'Coursier en attente',
+    noLabel: 'Aucun cartel en cours.', waitNext: "En attente de l'objet suivant.",
+    blankT: 'Titre…', blankD: 'Description…',
+    say: { ok: 'comme annoncé', lively: 'un peu animé', incident: 'un incident en puissance', dull: 'plus terne que promis', asleep: "un visiteur va s'endormir" },
+    readsAt: (r, g, tg, say) => `Le cartel mesure <b>${r} EAO</b> · la salle ${g} promet ${tg} · <b>${say}</b>`,
+    readsPick: r => `Le cartel mesure <b>${r} EAO</b> · choisissez une salle`,
+    bookEmpty: "Aucune entrée pour l'instant. Le stylo est attaché à une chaînette.",
+    bookGerald: (title, g) => `J'ai accroché « ${title} » en salle ${g}. Le coursier avait un bus à prendre.`,
+    geraldWho: 'Gerald (Sécurité)',
+    geraldBy: 'Rédigé par Gerald (Sécurité).',
+    gerald: [t => `${t.toLocaleUpperCase('fr')}. REGARDEZ-MOI ÇA.`, t => `${t.toLocaleUpperCase('fr')} !!! (VRAI)`, () => 'NE PAS TOUCHER. ÇA POURRAIT PARTIR.', t => `${t.toLocaleUpperCase('fr')} : VOUS N'ALLEZ PAS Y CROIRE`],
+    evKick: n => `Jour ${n} · fermeture · 17 h`,
+    evH: ['Le premier après-midi est terminé', 'Encore un après-midi, terminé sans encombre'],
+    evSum: (hung, ok, inc, max) => `${hung} objets accrochés aujourd'hui, dont ${ok} exactement comme annoncé. Incidents à ce jour : ${inc} sur ${max}.`,
+    evBtn: n => `Ouvrir pour le jour ${n}`,
+    memos: [
+      "De la part des administrateurs.\n\nUn premier après-midi prometteur. Rappel : trois incidents, et le conseil municipal nous fermera en vertu de la loi de 1974 sur la quiétude des lieux de loisirs.\n\nMerci de tenir Gerald à l'écart des cartels. Il est plein de bonne volonté. Il écrit en majuscules.",
+      "De la part des administrateurs.\n\nLa fréquentation augmente. Des visiteurs commencent à apporter des choses : un ticket de bus, le reçu d'un unique scone, un après-midi « dont ils ne se servaient pas ».\n\nNous avons accepté les après-midi. Merci de les inventorier comme le reste. Ne demandez pas à qui ils sont : ça les émeut.",
+    ],
+    donLetter: (time, day) => `À l'attention de la conservation,\n\nNous, les visiteurs, souhaitons faire don d'un après-midi supplémentaire à la collection.\n\nIl est en bon état. Il a commencé aujourd'hui à ${time}, un ${day}, et il n'est pas fini. On l'a passé presque entièrement ici, à décider où vont les choses.\n\nIl est à vous. Vous y étiez du début à la fin.\n\nLes visiteurs (tous)`,
+    obj: {
+      tea: { title: 'Tasse de thé en train de refroidir', date: 'vers 15 h 40, un mardi', medium: 'Porcelaine, thé, indifférence', dims: '9 × 8,5 × 8,5 cm', prov: 'Trouvée sur un rebord de fenêtre, Leeds', titles: ['Thé, tiédissant', 'Tasse de thé en train de refroidir', 'La dernière gorgée tiède'] },
+      cat: { title: 'Chat regardant une porte', date: "16 h 15 (la porte ne s'est pas ouverte)", medium: 'Chat de gouttière, porte peinte, patience', dims: '31 × 22 × 48 cm (chat) ; porte non comprise', prov: 'Prêt du chat', titles: ['Chat, porte', 'Chat regardant une porte', "S'ouvrira-t-elle ?"] },
+      tues: { title: '15 h 40 un mardi', date: '15 h 40, mardi', medium: 'Temps, approximativement', dims: '1 minute', prov: 'Non réclamé', titles: ['15 h 40', '15 h 40 un mardi', 'La minute avant 15 h 41'] },
+      radiator: { title: 'Radiateur qui cliquette en refroidissant', date: '16 h 50, octobre', medium: 'Fonte, chaleur résiduelle, petits bruits', dims: '60 × 80 × 10 cm', prov: "D'un couloir, à Crewe", titles: ['Radiateur', 'Radiateur qui cliquette en refroidissant', 'Tic… Tic…'] },
+      queue: { title: 'File d’attente à la poste', date: '14 h 10, un jeudi', medium: 'Six personnes, un distributeur de tickets, un seul guichet ouvert', dims: '4,2 m (file)', prov: 'Transférée intacte', titles: ['File', 'File d’attente à la poste (immobile)', "Le 47, s'il vous plaît"] },
+      washing: { title: 'Linge sur un fil, presque sec', date: '13 h 30, passages nuageux', medium: 'Coton, pinces à linge en bois, brise légère', dims: '3 m (fil)', prov: 'Un jardin, Swindon', titles: ['Linge', 'Linge sur un fil, presque sec', 'Va-t-il pleuvoir ?'] },
+      spoon: { title: 'Une cuillère tombée (ramassée)', date: '14 h 47', medium: 'Inox, un petit bruit', dims: '17 cm', prov: "Le sol d'un café, brièvement", titles: ['Cuillère', 'Une cuillère tombée (ramassée)', "L'affaire de la cuillère"] },
+      kettle: { title: 'Bouilloire, juste avant ébullition', date: '15 h 58', medium: 'Bouilloire électrique, bruit qui monte, un peu de vapeur', dims: '1,7 litre', prov: 'Salle du personnel, deuxième étage', titles: ['Bouilloire', 'Bouilloire, juste avant ébullition', "D'une seconde à l'autre"] },
+      rain: { title: 'La pluie qui commence, puis non', date: '14 h 35', medium: 'Eau, hésitation', dims: 'env. 4 gouttes', prov: 'Recueillie sous un abribus', titles: ['Quatre gouttes', 'La pluie qui commence, puis non', "L'orage n'aura pas lieu"] },
+      bus: { title: "Un bus qui n'était pas le nôtre", date: '15 h 12', medium: 'Bus à impériale, ligne 38, bref espoir', dims: '11,2 × 2,5 × 4,4 m', prov: 'Passé devant', titles: ['Un bus', "Un bus qui n'était pas le nôtre", "C'est le nôtre ?"] },
+      biscuit: { title: 'Biscuit trempé, qui tient bon', date: '15 h 41', medium: 'Biscuit complet, thé, intégrité structurelle', dims: '7 cm de diamètre', prov: 'Une tasse, Stockport', titles: ['Biscuit', 'Biscuit trempé, qui tient bon', 'Tiendra-t-il ?'] },
+      carpet: { title: 'La lumière qui traverse un tapis', date: '13 h – 17 h', medium: 'Soleil, moquette Axminster', dims: '4 heures', prov: 'Un salon, Hove', titles: ['Tapis', 'La lumière qui traverse un tapis', 'La lumière bouge !'] },
+      phone: { title: "Le téléphone de quelqu'un d'autre, qui sonne dans une autre pièce", date: '14 h 20', medium: 'Sonnerie (Marimba), distance, pas votre problème', dims: '14 sonneries', prov: 'Un bureau, sans surveillance', titles: ['Un téléphone', "Le téléphone de quelqu'un d'autre, qui sonne dans une autre pièce", "Quelqu'un pourrait répondre ?"] },
+      fridge: { title: "Le ronron du frigo, qui s'arrête", date: '16 h 04', medium: 'Réfrigérateur, silence soudain', dims: '—', prov: 'Une cuisine, en fin de journée', titles: ['Frigo', "Le ronron du frigo, qui s'arrête", 'Silence. Et puis ?'] },
+      pen: { title: 'Un stylo qui ne marche pas, gardé quand même', date: 'Presque tous les après-midi depuis 2011', medium: 'Stylo à bille, sentiment', dims: '14 cm', prov: 'Un pot à crayons', titles: ['Stylo', 'Un stylo qui ne marche pas, gardé quand même', 'Cette fois, peut-être'] },
+      laund: { title: "L'après-midi de Mme Hollis à la laverie", date: '14 h – 15 h 15', medium: 'Machine 6, un magazine de 2019', dims: '1 h 15 min', prov: 'Don de Mme P. Hollis, qui y était', titles: ['Laverie', "L'après-midi de Mme Hollis à la laverie", 'Essorage !'] },
+      parcel: { title: 'M. Obi attend un colis', date: '13 h – 17 h 58', medium: 'Couloir, espoir, un avis de passage glissé sous la porte à 18 h', dims: '4 h 58 min', prov: 'Don de M. D. Obi', titles: ['Attente', 'M. Obi attend un colis', "C'était la porte ?"] },
+      ceiling: { title: 'Un mercredi, à étudier le plafond de la chambre', date: '15 h – 17 h 30', medium: 'Crépi, un ado, la radio', dims: '3,1 × 3,4 m (plafond)', prov: 'Don de J., 15 ans', titles: ['Plafond', 'Un mercredi, à étudier le plafond de la chambre', "C'est quoi, cette forme ?"] },
+      'you-open': p => ({ title: 'Une personne ouvrant un musée', date: `${p.time}, ${p.day}`, medium: 'Un doigt (ou une souris), de la détermination', dims: '1 clic', prov: "Don de la personne à l'écran", titles: ['Ouverture', 'Une personne ouvrant un musée', "Les portes s'ouvrent !"] }),
+      'you-think': p => ({ title: `${p.secs} secondes à hésiter sur ${p.about ? `« ${p.about} »` : 'une tasse de thé'}`, date: "Plus tôt aujourd'hui", medium: 'Hésitation, sur carton', dims: `${p.secs} s`, prov: "Don de la personne à l'écran", titles: ['Délibération', `${p.secs} secondes à hésiter`, 'Va-t-on choisir ?'] }),
+      'you-nearly': p => ({ title: 'Le cartel que vous avez failli écrire', date: "Plus tôt aujourd'hui", medium: `« ${p.from} », barré, « ${p.to} »`, dims: "Un changement d'avis", prov: `Du dossier « ${p.obj} »`, titles: ['Arrière-pensées', 'Le cartel que vous avez failli écrire', "Le chemin qu'on n'a pas pris"] }),
+      'you-sure': () => ({ title: 'Un cartel écrit sans hésitation', date: "Plus tôt aujourd'hui", medium: 'Certitude, chose rare', dims: "Aucun changement d'avis", prov: "Don de la personne à l'écran", titles: ['Certitude', 'Un cartel écrit sans hésitation', 'Jamais un doute !'] }),
+      'you-inc': p => ({ title: `L'incident de la salle ${p.g}`, date: p.clock, medium: `Un cartel indiquant « ${p.words} »`, dims: `EAO ${p.r}`, prov: 'Récupéré dans le dossier du conseil municipal', titles: [`Salle ${p.g}`, `L'incident de la salle ${p.g}`, 'Ça a recommencé'] }),
+      'you-fav': p => ({ title: `La salle ${p.g}, exactement comme annoncé`, date: "Tout l'après-midi", medium: 'Sol, murs, choses accrochées par vous', dims: `${p.n} objets`, prov: "Don de la personne à l'écran", titles: ['Une pièce', `La salle ${p.g}, exactement comme annoncé`, 'La salle parfaite !'] }),
+      'you-now': p => ({ title: "Quelqu'un qui regarde un écran, en fin de journée", date: `${p.time}, ${p.day}`, medium: "Lumière d'écran, attention, une chaise (probablement)", dims: `${p.w} × ${p.h} px`, prov: "Don de la personne à l'écran", titles: ['Un écran', "Quelqu'un qui regarde un écran, en fin de journée", 'Regardez qui regarde !'] }),
+    },
+    // Fragments avoid il/elle for the object: the French nouns behind the objects vary in gender.
+    desc: {
+      low: ["Rien n'a changé depuis son arrivée.", "C'est ainsi depuis un certain temps.", "C'est à peu près à sa place d'origine.", "L'artiste n'était pas là."],
+      mid: ["C'était ici un jour de semaine.", 'Remarquez la lumière, qui est ordinaire.', "On en situe l'origine vers trois heures.", "Cela a duré la majeure partie d'un après-midi."],
+      high: ["À un moment, quelqu'un a failli y jeter un œil.", "Quelques instants plus tôt, une porte s'était fermée.", 'Des témoins évoquent un léger bourdonnement.', 'Cela cache un secret. (Non.)', 'Et puis : rien. Vraiment ?'],
+    },
+    note: {
+      low: ['Merci de ne rien attendre.', 'Des sièges sont prévus pour toute la durée.', "L'esprit des visiteurs peut vagabonder. C'est voulu."],
+      mid: ["Prêt d'une cuisine.", 'Acquisition rendue possible par une semaine calme.', "Don d'un mardi anonyme."],
+      high: ['Contient des scènes que certains visiteurs pourraient trouver vaguement intéressantes.', 'Déconseillé aux personnes qui sursautent.', "Le flash peut provoquer l'événement."],
+    },
+    youDesc: {
+      low: ['Le sujet est en position assise.', 'Le sujet cligne des yeux à un rythme ordinaire.'],
+      mid: ['Remarquez la main, posée près des commandes.', 'Le sujet est en train de lire ceci.'],
+      high: ['En ce moment même, quelqu\'un regarde le sujet.', 'Il va arriver quelque chose au sujet. (Non.)'],
+    },
+    youNote: {
+      low: ['Merci de ne pas déranger le sujet.', "Le sujet sera là tout l'après-midi."],
+      mid: ['Prêt permanent du sujet.', "Entrée à l'inventaire aujourd'hui."],
+      high: ['ATTENTION : le sujet peut vous regarder en retour.', "Personne n'a prévenu le sujet."],
+    },
+    book: {
+      ok: ["Exactement aussi ennuyeux que je l'espérais. Je reviendrai mardi.|R.", "Je suis restée vingt minutes devant et il ne s'est rien passé. Merveilleux.|Mme D. Pike", "J'ai amené mon père. Il a dit « hm ». Venant de lui, c'est un compliment.|G.", "C'était froid, comme promis.|anon.", 'Jamais nous ne nous sommes sentis aussi quelconques. Merci.|B. & T.', "Cinq étoiles. Il ne s'est rien produit.|un groupe en car de Rotherham", "Mon fils a demandé quand il allait se passer quelque chose. J'ai dit jamais. On a pleuré tous les deux, mais en bien.|L.", 'Reposant. Comme un abribus, en mieux éclairé.|M. K. Osei', "Je suis entré pour m'abriter de la pluie et rien n'était différent. Parfait.|P.", "Je l'ai vu, puis j'ai regardé le sol un moment. Bel après-midi.|anon."],
+      lively: ["La salle {g} était un peu forte. J'ai dû m'asseoir.|anon.", "J'ai ressenti une lueur d'intérêt en salle {g}. Merci d'y remédier.|M. H. Croft", 'Salle {g} : sulfureux.|V.', 'Il a failli se passer quelque chose en salle {g}. Même « failli », c\'est trop.|Mme S. Lund'],
+      incident: ["IL S'EST PASSÉ QUELQUE CHOSE EN SALLE {g}.|plusieurs visiteurs", 'Un homme, en salle {g}, a dit « oh ! » à voix haute. Il y avait des enfants.|un parent inquiet', "Je venais ici me remettre d'un mariage. La salle {g}, c'était un autre mariage.|P.", "Mon rythme cardiaque a AUGMENTÉ en salle {g}. J'ai écrit au conseil municipal.|M. R. Twine"],
+      dull: ["La salle {g} était moins mouvementée qu'annoncé. Je ne pensais pas que c'était possible.|K.", 'Je venais pour du tranquille. La salle {g} était à peine là.|anon.', "La salle {g} se sous-estime. On m'avait promis un peu plus de rien.|D."],
+      asleep: ['Je me suis endormi en salle {g}. Au réveil, on était jeudi.|F.', 'Un visiteur dort en salle {g} depuis le déjeuner. Le personnel a posé une petite couverture.|Gerald (Sécurité)', 'La salle {g} a endormi mon mari. Pas comme annoncé. Très reposant, cela dit.|Mme E. Platt'],
+    },
+    end: {
+      opening: {
+        kick: "Soirée d'inauguration · 19 h (une dérogation nocturne a été accordée)",
+        h: "Soirée d'inauguration",
+        body: (v, share, ok, placed, gerald) => `<p class="lede">${v} invités sont venus. Personne n'a eu le souffle coupé. Les petits-fours étaient servis à température ambiante, comme annoncé. Le maire a coupé le ruban très lentement.</p>
+      <p>${share >= 0.7 ? "« Il ne s'y passe absolument rien, et c'est superbement fait. »" : share >= 0.45 ? "« Presque rien, avec des écarts. La salle 4 frôlait l'événement. »" : '« Inégal. Plusieurs salles étaient presque intéressantes. »'} <span class="small">— le journal du dimanche, page 31</span></p>
+      <p class="small">${ok} objets sur ${placed} accrochés exactement comme annoncé. ${gerald ? `Gerald en a accroché ${gerald}.` : "Gerald n'en a accroché aucun, et il est discrètement fier de vous."}</p>
+      <p>En salle 2, un socle reste vide, marqué RÉSERVÉ. Personne ne sait pour qui. Il a à peu près la taille d'un après-midi.</p>`,
+      },
+      closed: {
+        kick: 'Avis de fermeture · remis en main propre · 16 h 59',
+        h: "Fermé pour excès d'événements",
+        line: (clock, g, words, r, tg) => `· ${clock}, salle ${g} : « ${words} » (mesuré ${r} EAO ; annoncé ${tg})`,
+        body: (n, lines) => `<p class="notice">LOI DE 1974 SUR LA QUIÉTUDE DES LIEUX DE LOISIRS, art. 4, al. 2
+
+Le Musée des après-midi ordinaires a été jugé trop mouvementé à ${n} reprises :
+${lines}
+
+Un visiteur a déclaré « bien s'amuser ». Merci d'évacuer tous les après-midi des locaux avant la fermeture des bureaux. Les après-midi non récupérés seront éliminés selon la procédure habituelle (on les laissera tranquilles jusqu'à ce qu'ils finissent).
+
+Le conseil municipal</p>
+      <p class="small">Gerald ferme à clé. Il laisse une lumière allumée en salle 1 : la chose la plus palpitante qui s'y soit produite de la journée.</p>`,
+      },
+      permanent: {
+        kick: date => `Collection permanente · entrée à l'inventaire le ${date}`,
+        h: 'Un après-midi (le vôtre)',
+        lede: 'Le don est complet. Il a été accroché dans les quatre salles, qui se sont révélées exactement de la bonne taille.',
+        la: (acc, g, r) => `${acc} · salle ${g} · ${r} EAO`,
+        yours: (from, to, day, mins) => `Votre après-midi : de ${from} à ${to}, ${day}. ${mins === 1 ? 'Une minute, passée presque entièrement' : `${mins} minutes, passées pour la plupart`} à décider où vont les choses.`,
+        small: "Les visiteurs restent devant vous exactement aussi longtemps qu'annoncé. Le musée n'accepte plus de nouvelles acquisitions. Il a tout ce qu'il lui faut.",
+      },
+    },
+  },
+};
+
+// French typography: a narrow no-break space before ? ! : ; » and after «, applied once to every
+// French string and to whatever a French string function returns (objects included). It only
+// fires after a space, so 1:00 pm-style clocks and times are left alone.
+(function frenchSpacing() {
+  const fix = s => s.replace(/ ([?!:;»])/g, '\u202f$1').replace(/« /g, '«\u202f');
+  const deep = v => typeof v === 'string' ? fix(v)
+    : typeof v === 'function' ? (...a) => deep(v(...a))
+    : Array.isArray(v) ? v.map(deep)
+    : v && typeof v === 'object' ? Object.fromEntries(Object.entries(v).map(([k, x]) => [k, deep(x)]))
+    : v;
+  I18N.fr = deep(I18N.fr);
+})();
+
+let lang = 'en';
+const t = k => I18N[lang][k] ?? I18N.en[k];
+const num = x => t('num')(x);
+
+// Index-matched tables must stay the same length in both languages.
+(function checkTables() {
+  const walk = (a, b, path) => {
+    if (Array.isArray(a)) { if (!Array.isArray(b) || a.length !== b.length) console.error(`i18n: ${path} differs in length`); return; }
+    if (a && typeof a === 'object') for (const k of Object.keys(a)) {
+      if (!(k in b)) console.error(`i18n: ${path}.${k} missing in fr`);
+      else walk(a[k], b[k], `${path}.${k}`);
+    }
+  };
+  walk(I18N.en, I18N.fr, 'I18N');
+})();
+
+const $ = s => document.querySelector(s);
+const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;');
+
+// Names and adverts live in I18N gal[i].
+const GALLERIES = [{ target: 1.0 }, { target: 2.5 }, { target: 4.0 }, { target: 5.5 }];
+const CAP = 5;
+const OK_BAND = 0.75, HOT = 1.75;  // |label − advert| ≤ 0.75 is as advertised; > +1.75 is an incident
+const MAX_INC = 3;
+const GERALD_BUMP = 3.0;  // Gerald's labels are three OAS livelier than the object deserves
+
+// Objects. tv: OAS change of each title (I18N obj[k].titles, same order; index 1 is the proper
+// title). base is the object's OAS before the label. Words are in I18N obj[k].
+const OBJECTS = [
+  { k: 'tea', base: 1.5, tv: [-0.5, 0, 1.5] },
+  { k: 'cat', base: 3.0, tv: [-0.5, 0, 1.5] },
+  { k: 'tues', base: 1.0, tv: [-0.5, 0, 1.0] },
+  { k: 'radiator', base: 2.0, tv: [-0.5, 0, 1.5] },
+  { k: 'queue', base: 4.0, tv: [-0.5, 0, 1.5] },
+  { k: 'washing', base: 2.5, tv: [-0.5, 0, 1.5] },
+  { k: 'spoon', base: 5.5, tv: [-1.0, 0, 1.5] },
+  { k: 'kettle', base: 4.5, tv: [-1.0, 0, 1.5] },
+  { k: 'rain', base: 3.0, tv: [-0.5, 0, 1.5] },
+  { k: 'bus', base: 5.0, tv: [-1.0, 0, 1.5] },
+  { k: 'biscuit', base: 4.5, tv: [-1.0, 0, 1.5] },
+  { k: 'carpet', base: 0.5, tv: [-0.5, 0, 1.5] },
+  { k: 'phone', base: 4.0, tv: [-1.0, 0, 1.5] },
+  { k: 'fridge', base: 5.0, tv: [-1.0, 0, 1.5] },
+  { k: 'pen', base: 0.5, tv: [-0.5, 0, 1.5] },
+];
+// Day three: the visitors start bringing their own.
+const DONATED = [
+  { k: 'laund', base: 2.0, tv: [-0.5, 0, 1.5] },
+  { k: 'parcel', base: 3.5, tv: [-0.5, 0, 1.5] },
+  { k: 'ceiling', base: 0.5, tv: [-0.5, 0, 1.5] },
+];
+
+// Label fragments: the OAS change of each, by set and tier; the words are I18N[set][tier][i].
+// Every object is offered one calm, one middling and one lively fragment per row, shuffled.
+const FRAG = {
+  desc: { low: [-1.5, -1.0, -1.0, -1.5], mid: [0, -0.5, 0, 0.5], high: [1.5, 1.5, 2.0, 2.0, 2.0] },
+  note: { low: [-1.0, -1.0, -1.0], mid: [0, 0, 0.5], high: [1.0, 1.5, 2.0] },
+  youDesc: { low: [-1.0, -1.5], mid: [0, 0.5], high: [1.5, 2.0] },
+  youNote: { low: [-1.0, -1.0], mid: [0, 0], high: [2.0, 1.5] },
+};
+const GERALD_N = I18N.en.gerald.length;
+
+const C = Kit.tokens(['ink', 'muted', 'accent', 'calm', 'sleep', 'floor', 'panel', 'line']);
+let S = null;
+let best = 0;
+const shuffle = a => { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+const round1 = x => Math.round(x * 10) / 10;
+const wallTime = d => t('wall')(d);
+const weekday = d => d.toLocaleDateString(t('locale'), { weekday: 'long' });
+const dayOfYear = d => Math.floor((d - new Date(d.getFullYear(), 0, 0)) / 864e5);
+const quote = s => t('quote')(s);
+
+// Words for a card, an option and a hung item, in the current language.
+const objText = card => { const e = t('obj')[card.k]; return typeof e === 'function' ? e(ownParams(card)) : e; };
+const properTitle = card => objText(card).titles[1];
+const optText = (card, k, o) => (!o ? '' : k === 't' ? objText(card).titles[o[0]] : t(o[0].set)[o[0].tier][o[0].i]);
+function wordsText(item) {
+  const w = item.words;
+  if (w.gerald != null) return { t: t('gerald')[w.gerald](properTitle(item.card)), d: t('geraldBy'), n: '' };
+  return { t: optText(item.card, 't', w.t), d: optText(item.card, 'd', w.d), n: optText(item.card, 'n', w.n) };
+}
+const minClock = m => t('clock')(Math.floor(m / 60), m % 60);
+
+function fresh(sim = false) {
+  return {
+    phase: 'title', sim, day: 0, queue: [], card: null, n: 0, ch: { g: null, t: null, d: null, n: null },
+    timer: 0, timerMax: 0, total: 0, dayT: 0, cardT: 0,
+    galleries: GALLERIES.map(() => ({ items: [], last: null })),
+    incidents: [], placed: [], book: [], ok: 0, gerald: 0, reconsidered: null, longest: null,
+    startWall: new Date(), ending: null, endT: 0, bookI: {}, deck: shuffle(OBJECTS.filter(o => !['tea', 'cat', 'tues'].includes(o.k))),
+  };
+}
+
+// Day plans: objects per day and the courier's patience in seconds.
+const DAYS = [
+  { n: 3, wait: 40 },
+  { n: 4, wait: 34 },
+  { n: 4, wait: 30 },
+  { n: 5, wait: 34 },
+];
+
+function makeCard(spec, sets, accession) {
+  const row = set => shuffle(['low', 'mid', 'high'].map(tier => {
+    const i = Math.floor(Math.random() * FRAG[set][tier].length);
+    return [{ set, tier, i }, FRAG[set][tier][i]];
+  }));
+  return { ...spec, acc: accession, tOpts: shuffle(spec.tv.map((v, j) => [j, v])), dOpts: row(sets[0]), nOpts: row(sets[1]) };
+}
+
+function beginDay(d) {
+  S.day = d; S.dayT = 0; S.phase = 'play';
+  const yr = S.startWall.getFullYear();
+  if (d === 0) S.queue = ['tea', 'cat', 'tues'].map(k => OBJECTS.find(o => o.k === k));
+  else if (d === 1) S.queue = S.deck.splice(0, 4);
+  else if (d === 2) S.queue = shuffle([...S.deck.splice(0, 2), ...shuffle(DONATED.slice()).slice(0, 2)]);
+  else S.queue = ownAfternoon();
+  const batch = d === 3 ? dayOfYear(S.startWall) : 14 + d;
+  S.queue = S.queue.map((o, i) => makeCard(o, d === 3 ? ['youDesc', 'youNote'] : ['desc', 'note'], `${yr}.${batch}.${i + 1}`));
+  nextCard();
+}
+
+function nextCard() {
+  S.card = S.queue.shift() || null;
+  S.ch = { g: null, t: null, d: null, n: null };
+  S.timer = S.timerMax = DAYS[S.day].wait;
+  S.cardT = 0;
+  if (!S.sim) { renderCard(); renderLabel(); }
+}
+
+const reading = (card, ch) => card ? Math.max(0, round1(card.base + (ch.t != null ? card.tOpts[ch.t][1] : 0) + (ch.d != null ? card.dOpts[ch.d][1] : 0) + (ch.n != null ? card.nOpts[ch.n][1] : 0))) : 0;
+const ready = () => S.card && S.ch.g != null && S.ch.t != null && S.ch.d != null && S.ch.n != null && S.galleries[S.ch.g].items.length < CAP;
+function judge(r, target) {
+  const d = r - target;
+  if (Math.abs(d) <= OK_BAND) return 'ok';
+  if (d > HOT) return 'incident';
+  if (d > 0) return 'lively';
+  if (d < -HOT) return 'asleep';
+  return 'dull';
+}
+
+function choose(k, i) {
+  if (S.phase !== 'play' || !S.card) return;
+  if (k === 'g' && S.galleries[i].items.length >= CAP) return;
+  // Remember the first time the curator changes their mind about a label; it is accessioned later.
+  if (k !== 'g' && S.ch[k] != null && S.ch[k] !== i && !S.reconsidered) {
+    const opts = S.card[k + 'Opts'];
+    S.reconsidered = { k, from: opts[S.ch[k]], to: opts[i], card: S.card };
+  }
+  S.ch[k] = i;
+  if (!S.sim) { renderLabel(); renderPlan(); }
+}
+
+function hang() {
+  if (!ready() || S.phase !== 'play') return false;
+  const c = S.card, ch = S.ch;
+  place(ch.g, reading(c, ch), { t: c.tOpts[ch.t], d: c.dOpts[ch.d], n: c.nOpts[ch.n] }, 'curator');
+  return true;
+}
+
+// The courier gives up; Gerald hangs it in the gallery nearest the door, with feeling.
+function gerald() {
+  const c = S.card;
+  const g = S.galleries.findIndex(x => x.items.length < CAP);
+  S.gerald++;
+  place(g, round1(c.base + GERALD_BUMP), { gerald: S.gerald % GERALD_N }, 'gerald');
+}
+
+function place(g, r, words, by) {
+  const c = S.card, gal = S.galleries[g];
+  const out = judge(r, GALLERIES[g].target);
+  const secs = round1(S.cardT);
+  const item = { card: c, g, r, words, by, out, secs, min: clockMin(), you: S.day === 3 };
+  gal.items.push(item); gal.last = out;
+  S.placed.push(item);
+  if (out === 'ok') S.ok++;
+  if (by === 'curator' && (!S.longest || secs > S.longest.secs)) S.longest = { secs, card: c };
+  if (by === 'gerald') S.book.unshift({ gerald: true, card: c, g });
+  const n = I18N.en.book[out].length;
+  S.bookI[out] = (S.bookI[out] ?? Math.floor(Math.random() * n)) + 1;
+  S.book.unshift({ out, i: S.bookI[out] % n, g });
+  if (out === 'incident') S.incidents.push(item);
+  if (!S.sim) { renderPlan(); renderBook(); spawnVisitor(g); }
+  if (S.incidents.length >= MAX_INC) { finish('closed'); return; }
+  if (S.queue.length) nextCard();
+  else endDay();
+}
+
+function fillEvening() {
+  const today = S.placed.filter(p => p.card.acc.split('.')[1] === String(14 + S.day));
+  $('#ev-kick').textContent = t('evKick')(S.day + 1);
+  $('#ev-h').textContent = t('evH')[S.day === 0 ? 0 : 1];
+  $('#ev-sum').textContent = t('evSum')(today.length, today.filter(p => p.out === 'ok').length, S.incidents.length, MAX_INC);
+  $('#ev-memo').textContent = t('memos')[S.day];
+  $('#ev-btn').textContent = t('evBtn')(S.day + 2);
+}
+function fillDonation() { $('#don-letter').textContent = t('donLetter')(wallTime(S.startWall), weekday(S.startWall)); }
+
+function endDay() {
+  S.card = null;
+  if (S.day < 2) {
+    S.phase = 'evening';
+    if (S.sim) { beginDay(S.day + 1); return; }
+    fillEvening();
+    renderAll();
+    Kit.show($('#evening'));
+  } else if (S.day === 2) {
+    S.phase = 'donation';
+    if (S.sim) { beginDay(3); return; }
+    fillDonation();
+    renderAll();
+    Kit.show($('#donation'));
+  } else {
+    finish('permanent');
+  }
+}
+
+// The twist: the fifth day's objects are built from what the player actually did. The specs
+// carry facts (times, seconds, the cards involved); ownParams() words them per language.
+function ownAfternoon() {
+  const now = new Date(), st = S.startWall;
+  const lg = S.longest || { secs: 0, card: null };
+  const rc = S.reconsidered;
+  const galCount = S.galleries.map(g => g.items.filter(p => p.by === 'curator').length);
+  const favourite = galCount.indexOf(Math.max(...galCount));
+  const inc = S.incidents[0];
+  const tv = [-0.5, 0, 1.5];
+  return shuffle([
+    { k: 'you-open', base: 2.0, tv, f: { at: st } },
+    { k: 'you-think', base: 3.5, tv, f: { secs: lg.secs, card: lg.card } },
+    rc ? { k: 'you-nearly', base: 2.5, tv, f: { rc } } : { k: 'you-sure', base: 1.5, tv, f: {} },
+    inc ? { k: 'you-inc', base: 5.5, tv: [-1.0, 0, 1.5], f: { inc } } : { k: 'you-fav', base: 1.5, tv, f: { g: favourite, n: galCount[favourite] } },
+    { k: 'you-now', base: 1.0, tv, f: { at: now, w: innerWidth, h: innerHeight } },
+  ]);
+}
+function ownParams(card) {
+  const f = card.f || {};
+  switch (card.k) {
+    case 'you-open': case 'you-now': return { time: wallTime(f.at), day: weekday(f.at), w: f.w, h: f.h };
+    case 'you-think': return { secs: num(f.secs), about: f.card ? objText(f.card).title : null };
+    case 'you-nearly': return { from: optText(f.rc.card, f.rc.k, f.rc.from), to: optText(f.rc.card, f.rc.k, f.rc.to), obj: objText(f.rc.card).title };
+    case 'you-inc': return { g: f.inc.g + 1, clock: minClock(f.inc.min), words: wordsText(f.inc).t, r: num(f.inc.r) };
+    case 'you-fav': return { g: f.g + 1, n: f.n };
+    default: return {};
+  }
+}
+
+function finish(kind) {
+  if (S.ending) return;
+  S.ending = kind; S.phase = 'ending'; S.endT = 1.1; S.card = null;
+  if (S.sim) S.phase = 'end';
+  else { renderCard(); renderLabel(); }
+}
+
+const clockMin = () => 13 * 60 + Math.min(239, Math.floor(S.dayT * 1.5));
+const clockStr = () => minClock(clockMin());
+
+function tick(dt) {
+  S.total += dt;
+  if (S.phase === 'ending') {
+    S.endT -= dt;
+    if (S.endT <= 0) { S.phase = 'end'; showEnd(); }
+    return;
+  }
+  if (S.phase !== 'play' || !S.card) return;
+  S.dayT += dt; S.cardT += dt;
+  S.timer -= dt;
+  if (S.timer <= 0) gerald();
+}
+
+// Rendering.
+const planEl = $('#plan');
+const galEls = GALLERIES.map((g, i) => {
+  const b = document.createElement('button');
+  b.className = 'gal'; b.type = 'button'; b.dataset.g = i;
+  b.innerHTML = '<span class="no"></span><span class="nm"></span><span class="ad"></span><span class="plinths"></span><span class="mood"></span>';
+  b.addEventListener('click', () => choose('g', i));
+  planEl.insertBefore(b, planEl.querySelector('.lobby'));
+  return b;
+});
+
+function renderPlan() {
+  galEls.forEach((b, i) => {
+    const g = S.galleries[i], words = t('gal')[i];
+    b.querySelector('.no').textContent = t('gallery')(i + 1);
+    b.querySelector('.nm').textContent = words.name;
+    b.querySelector('.ad').innerHTML = `${t('advertised')(num(GALLERIES[i].target))} · ${esc(words.advert)}`;
+    b.classList.toggle('pick', S.ch.g === i);
+    b.classList.toggle('full', g.items.length >= CAP);
+    b.querySelector('.plinths').innerHTML = Array.from({ length: CAP }, (_, k) => `<i class="${g.items[k] ? (g.items[k].you ? 'you' : 'on') : ''}"></i>`).join('');
+    const mood = t('mood')[g.last || 'empty'];
+    const m = b.querySelector('.mood');
+    m.textContent = g.items.length >= CAP ? t('full')(mood) : mood;
+    m.className = 'mood ' + (g.last || '');
+    b.setAttribute('aria-label', t('galAria')(i + 1, words.name, num(GALLERIES[i].target), g.items.length, CAP));
+  });
+  $('#lobby-n').textContent = t('lobbyN')(S.visitors?.length ?? 0);
+}
+
+function renderCard() {
+  const c = S.card, el = $('#obj');
+  $('#queue-n').textContent = c ? t('queueN')(S.queue.length) : '';
+  if (!c) { el.innerHTML = `<p class="blank">${esc(t('deskClear'))}</p>`; renderChips(); return; }
+  const o = objText(c), dt = t('dt');
+  el.innerHTML = `<span class="acc">${esc(t('accNo')(c.acc))}${S.day === 3 ? esc(t('donated')) : ''}</span>
+    <h3>${esc(o.title)}</h3>
+    <dl><dt>${dt[0]}</dt><dd>${esc(o.date)}</dd><dt>${dt[1]}</dt><dd>${esc(o.medium)}</dd><dt>${dt[2]}</dt><dd>${esc(o.dims)}</dd><dt>${dt[3]}</dt><dd>${esc(o.prov)}</dd><dt>${dt[4]}</dt><dd>${t('condition')(num(c.base))}</dd></dl>
+    <div class="courier" id="courier"><span>${esc(t('courier'))}</span><span class="bar"><i id="courier-bar"></i></span><span id="courier-s"></span></div>`;
+  renderChips();
+}
+
+function renderChips() {
+  const rows = t('keyrows');
+  document.querySelectorAll('.frag').forEach(f => {
+    const k = f.dataset.k, box = f.querySelector('.chips');
+    const opts = S.card ? S.card[k + 'Opts'] : [];
+    box.innerHTML = opts.map((o, i) => `<button class="chip" type="button" data-k="${k}" data-i="${i}" aria-pressed="${S.ch[k] === i}"><kbd>${rows[k][i].toUpperCase()}</kbd>${esc(optText(S.card, k, o))}</button>`).join('');
+  });
+}
+
+function renderLabel() {
+  const c = S.card, ch = S.ch, el = $('#label');
+  document.querySelectorAll('.chip').forEach(b => b.setAttribute('aria-pressed', String(S.ch[b.dataset.k] === Number(b.dataset.i))));
+  if (!c) { el.innerHTML = `<span class="blank">${esc(t('noLabel'))}</span>`; $('#hang').disabled = true; $('#hang').textContent = t('hangIt'); $('#reading').textContent = S.ending ? '' : t('waitNext'); $('#needle').style.left = '0%'; $('#band').hidden = true; return; }
+  const o = objText(c);
+  const title = ch.t != null ? optText(c, 't', c.tOpts[ch.t]) : null;
+  el.innerHTML = `<span class="lt">${title ? esc(title) : `<span class="blank">${esc(t('blankT'))}</span>`}</span>
+    <span class="lm">${esc(o.date)}. ${esc(o.medium)}. ${esc(o.dims)}.</span>
+    <span class="lx">${ch.d != null ? esc(optText(c, 'd', c.dOpts[ch.d])) : `<span class="blank">${esc(t('blankD'))}</span>`}</span>
+    <span class="ln">${ch.n != null ? esc(optText(c, 'n', c.nOpts[ch.n])) : ''}</span>
+    <span class="la">${c.acc}</span>`;
+  const r = reading(c, ch);
+  $('#needle').style.left = `${Math.min(100, r * 10)}%`;
+  const band = $('#band');
+  if (ch.g != null) {
+    const tg = GALLERIES[ch.g].target;
+    band.hidden = false; band.style.left = `${(tg - OK_BAND) * 10}%`; band.style.width = `${OK_BAND * 20}%`;
+    $('#reading').innerHTML = t('readsAt')(num(r), ch.g + 1, num(tg), t('say')[judge(r, tg)]);
+  } else {
+    band.hidden = true;
+    $('#reading').innerHTML = t('readsPick')(num(r));
+  }
+  $('#hang').disabled = !ready();
+  $('#hang').textContent = ch.g != null ? t('hangIn')(ch.g + 1) : t('hangIt');
+}
+
+function renderBook() {
+  $('#book').innerHTML = S.book.slice(0, 3).map(b => {
+    const [text, who] = b.gerald ? [t('bookGerald')(properTitle(b.card), b.g + 1), t('geraldWho')]
+      : t('book')[b.out][b.i].replace('{g}', b.g + 1).split('|');
+    return `<li>${esc(quote(text))} <span class="who">— ${esc(who)}</span></li>`;
+  }).join('') || `<li><span class="who">${esc(t('bookEmpty'))}</span></li>`;
+}
+
+function renderHud() {
+  $('#m-day').textContent = String(S.day + 1);
+  $('#m-clock').textContent = clockStr();
+  $('#m-vis').textContent = String(S.visitors?.length ?? 0);
+  document.querySelectorAll('#m-inc i').forEach((r, k) => r.classList.toggle('on', k < S.incidents.length));
+  const bar = $('#courier-bar');
+  if (bar && S.card) {
+    const f = Math.max(0, S.timer / S.timerMax);
+    bar.style.width = `${f * 100}%`;
+    $('#courier').classList.toggle('late', f < 0.3);
+    $('#courier-s').textContent = `${Math.ceil(Math.max(0, S.timer))} s`;
+  }
+}
+function renderAll() { renderPlan(); renderCard(); renderLabel(); renderBook(); renderHud(); }
+
+// Visitors: dots drifting between galleries, drawn on the floor canvas.
+const view = Kit.canvas($('#floor'));
+// Visitors keep to the floor below a gallery's wall text, so they never walk across the words.
+function roomRect(i) {
+  const r = galEls[i].getBoundingClientRect(), p = view.el.getBoundingClientRect();
+  const text = [...galEls[i].children].filter(c => c.offsetParent).reduce((m, c) => Math.max(m, c.getBoundingClientRect().bottom), r.top);
+  const zy = Math.min(text + 8, r.bottom - 14) - p.top;
+  return { x: r.left - p.left, y: r.top - p.top, w: r.width, h: r.height, zy, zh: r.bottom - p.top - 7 - zy };
+}
+const spot = r => ({ x: r.x + Kit.rnd(12, r.w - 12), y: r.zy + Kit.rnd(0, Math.max(0, r.zh)) });
+function spawnVisitor(g = Math.floor(Math.random() * 4)) {
+  S.visitors = S.visitors || [];
+  if (S.visitors.length > 26) return;
+  const r = roomRect(g), s = spot(r);
+  S.visitors.push({ g, x: r.x + r.w / 2, y: view.H - 6, tx: s.x, ty: s.y, wait: Kit.rnd(1, 4), ph: Math.random() * 6 });
+}
+function moveVisitors(dt) {
+  for (const v of S.visitors || []) {
+    const mood = S.galleries[v.g].last;
+    const dx = v.tx - v.x, dy = v.ty - v.y, d = Math.hypot(dx, dy);
+    if (d > 1.5) { const sp = Math.min(d, (mood === 'incident' ? 60 : 22) * dt); v.x += dx / d * sp; v.y += dy / d * sp; continue; }
+    v.wait -= dt;
+    if (v.wait > 0) continue;
+    // Mostly they stay in the room; now and then they wander to another one.
+    if (Math.random() < 0.25) v.g = Math.floor(Math.random() * 4);
+    const r = roomRect(v.g), s = spot(r);
+    const crowd = S.galleries[v.g].last === 'incident';
+    v.tx = crowd ? r.x + r.w / 2 + Kit.rnd(-18, 18) : s.x;
+    v.ty = crowd ? r.zy + r.zh / 2 + Kit.rnd(-r.zh / 3, r.zh / 3) : s.y;
+    v.wait = S.galleries[v.g].last === 'asleep' ? Kit.rnd(8, 14) : Kit.rnd(2, 6);
+  }
+}
+function drawFloor(time) {
+  const { cx, W, H } = view;
+  cx.clearRect(0, 0, W, H);
+  // Parquet: faint herringbone-ish strokes, the floor of every municipal museum.
+  cx.strokeStyle = C.line; cx.lineWidth = 1;
+  for (let x = -H; x < W; x += 18) { cx.beginPath(); cx.moveTo(x, H); cx.lineTo(x + H * 0.4, 0); cx.stroke(); }
+  for (const v of S?.visitors || []) {
+    const mood = S.galleries[v.g].last;
+    const atRest = Math.hypot(v.tx - v.x, v.ty - v.y) < 2;
+    if (mood === 'asleep' && atRest) {
+      cx.fillStyle = C.sleep;
+      cx.beginPath(); cx.ellipse(v.x, v.y, 7, 3.5, 0, 0, Math.PI * 2); cx.fill();
+      cx.font = '10px ' + getComputedStyle(document.body).fontFamily;
+      cx.fillText('z', v.x + 6, v.y - 6 - (Kit.reduce ? 0 : Math.sin(time * 2 + v.ph) * 2));
+      continue;
+    }
+    const jit = mood === 'incident' && !Kit.reduce ? Math.sin(time * 20 + v.ph) * 1.2 : 0;
+    cx.fillStyle = mood === 'incident' ? C.accent : C.ink;
+    cx.beginPath(); cx.arc(v.x + jit, v.y, 4, 0, Math.PI * 2); cx.fill();
+  }
+}
+
+let clockT = 0;
+const loop = Kit.loop(dt => {
+  if (!S) return;
+  tick(dt);
+  if (!Kit.reduce) moveVisitors(dt);
+  else for (const v of S.visitors || []) { v.x = v.tx; v.y = v.ty; }
+  clockT += dt;
+  drawFloor(clockT);
+  renderHud();
+});
+
+function fillEnd() {
+  const k = S.ending, e = t('end')[k];
+  let kick = e.kick, body;
+  const visitors = 40 + S.placed.length * 9;
+  if (k === 'opening') {
+    const share = S.ok / Math.max(1, S.placed.length);
+    body = e.body(visitors, share, S.ok, S.placed.length, S.gerald);
+  } else if (k === 'closed') {
+    const lines = S.incidents.map(p => e.line(minClock(p.min), p.g + 1, wordsText(p).t, num(p.r), num(GALLERIES[p.g].target))).join('\n');
+    body = e.body(S.incidents.length, esc(lines));
+  } else {
+    const st = S.startWall, now = S.endWall || new Date();
+    const mins = Math.max(1, Math.round((now - st) / 60000));
+    kick = e.kick(now.toLocaleDateString(t('locale'), { day: 'numeric', month: 'long', year: 'numeric' }));
+    const mine = S.placed.filter(p => p.you);
+    body = `<p class="lede">${esc(e.lede)}</p>
+      <div class="cat">${mine.map(p => {
+        const o = objText(p.card), w = wordsText(p);
+        return `<div class="label"><span class="lt">${esc(w.t)}</span><span class="lm">${esc(o.date)}. ${esc(o.medium)}. ${esc(o.dims)}.</span><span class="lx">${esc(w.d)}</span><span class="ln">${esc(w.n)}</span><span class="la">${esc(e.la(p.card.acc, p.g + 1, num(p.r)))}</span></div>`;
+      }).join('')}</div>
+      <p>${esc(e.yours(wallTime(st), wallTime(now), weekday(now), mins))}</p>
+      <p class="small">${esc(e.small)}</p>`;
+  }
+  $('#end-kick').textContent = kick;
+  $('#end-h').textContent = e.h;
+  $('#end-body').innerHTML = body;
+}
+function showEnd() {
+  S.endWall = new Date();
+  fillEnd();
+  best = Math.max(best, S.ok);
+  Kit.show($('#end'));
+}
+
+// Input.
+document.querySelector('#compose').addEventListener('click', e => {
+  const b = e.target.closest('.chip');
+  if (b) choose(b.dataset.k, Number(b.dataset.i));
+});
+$('#hang').onclick = () => hang();
+Kit.keys.onPress((k, down) => {
+  if (!down || !S || S.phase !== 'play') return;
+  if (k >= '1' && k <= '4') { choose('g', Number(k) - 1); return; }
+  for (const [row, keys] of Object.entries(t('keyrows'))) {
+    const i = keys.indexOf(k);
+    if (i >= 0) { choose(row, i); return; }
+  }
+  if (k === 'Enter' && !document.activeElement?.closest('button')) hang();
+});
+
+function openMuseum() {
+  S = fresh();
+  S.visitors = [];
+  beginDay(0);
+  for (let i = 0; i < 6; i++) spawnVisitor();
+  renderAll();
+  Kit.show(null);
+  loop.start();
+}
+$('#startbtn').onclick = openMuseum;
+$('#end-btn').onclick = openMuseum;
+$('#ev-btn').onclick = () => { beginDay(S.day + 1); for (let i = 0; i < 4; i++) spawnVisitor(); renderAll(); Kit.show(null); };
+function acceptDonation() { beginDay(3); renderAll(); Kit.show(null); }
+function declineDonation() { finish('opening'); Kit.show(null); }
+$('#accept').onclick = acceptDonation;
+$('#decline').onclick = declineDonation;
+
+// Headless model for difficulty: bots play whole runs with no rendering.
+// skill.think: seconds per object; skill.aim: chance of choosing the best label; else random.
+function simulate(skill, runs = 200) {
+  const out = { permanent: 0, closed: 0, gerald: 0, ok: 0, placed: 0 };
+  const keep = S;
+  for (let r = 0; r < runs; r++) {
+    S = fresh(true);
+    beginDay(0);
+    let guard = 0;
+    while (!S.ending && guard++ < 100) {
+      const think = Kit.rnd(...skill.think);
+      if (think >= S.timer) { S.cardT = S.timer; gerald(); continue; }
+      S.cardT = think;
+      const best = bestChoice();
+      if (Math.random() < skill.aim) S.ch = best;
+      else {
+        // A careless curator picks the gallery nearest the object's own reading, then any label.
+        const near = GALLERIES.map((g, i) => [Math.abs(g.target - S.card.base + Kit.rnd(-1, 1)), i]).filter(([, i]) => S.galleries[i].items.length < CAP).sort((a, b) => a[0] - b[0])[0][1];
+        S.ch = { g: near, t: Math.floor(Math.random() * 3), d: Math.floor(Math.random() * 3), n: Math.floor(Math.random() * 3) };
+      }
+      hang();
+    }
+    out[S.ending]++; out.gerald += S.gerald; out.ok += S.ok; out.placed += S.placed.length;
+  }
+  S = keep;
+  return out;
+}
+function bestChoice() {
+  let bestC = null, bestD = 1e9;
+  S.galleries.forEach((g, gi) => {
+    if (g.items.length >= CAP) return;
+    for (let t = 0; t < 3; t++) for (let d = 0; d < 3; d++) for (let n = 0; n < 3; n++) {
+      const dev = Math.abs(reading(S.card, { t, d, n }) - GALLERIES[gi].target);
+      if (dev < bestD - 1e-9) { bestD = dev; bestC = { g: gi, t, d, n }; }
+    }
+  });
+  return bestC;
+}
+
+// Test shortcut: a careful curator plays days one to three in an instant, up to the donation letter.
+function autoplay() {
+  for (let i = 0; i < 40 && S.phase !== 'donation'; i++) {
+    if (S.phase === 'evening') { beginDay(S.day + 1); continue; }
+    S.cardT = Kit.rnd(5, 14);
+    S.ch = bestChoice();
+    hang();
+  }
+  renderAll();
+}
+
+Kit.expose({
+  state: () => S,
+  endings: {
+    opening: {
+      seconds: 7,
+      jump() {
+        openMuseum();
+        autoplay();
+        setTimeout(declineDonation, 1200);
+      },
+      reached: () => S.ending === 'opening' && !$('#end').hidden,
+    },
+    closed: {
+      seconds: 9,
+      jump() {
+        openMuseum();
+        // Two incidents already on file (the tea, labelled at its liveliest); the courier is nearly out of patience.
+        const c = S.card;
+        S.incidents = [c, c].map(card => ({ card, g: 0, r: 4.5, words: { t: card.tOpts.find(o => o[0] === 2) }, min: 14 * 60 + 14 }));
+        S.timer = 2;
+      },
+      reached: () => S.ending === 'closed' && !$('#end').hidden,
+    },
+    permanent: {
+      seconds: 9,
+      jump() {
+        openMuseum();
+        autoplay();
+        acceptDonation();
+        // Four of your own objects hang at once; the last goes up through the real hang().
+        for (let i = 0; i < 4; i++) { S.cardT = 5 + i * 3; S.ch = bestChoice(); hang(); }
+        setTimeout(() => { S.ch = bestChoice(); renderLabel(); setTimeout(hang, 700); }, 900);
+      },
+      reached: () => S.ending === 'permanent' && !$('#end').hidden,
+    },
+  },
+});
+
+// ---- language -------------------------------------------------------------------------------
+// Static markup carries data-t (text), data-th (trusted markup) and data-ta (aria-label). The
+// plan, card, chips, label and book are re-worded from ids; open overlays are refilled.
+function applyLang() {
+  document.documentElement.lang = lang;
+  document.title = t('docTitle');
+  for (const el of document.querySelectorAll('[data-t]')) el.textContent = t(el.dataset.t);
+  for (const el of document.querySelectorAll('[data-th]')) el.innerHTML = t(el.dataset.th);
+  for (const el of document.querySelectorAll('[data-ta]')) el.setAttribute('aria-label', t(el.dataset.ta));
+  for (const box of document.querySelectorAll('.lang')) {
+    if (!box.children.length) box.innerHTML = '<button type="button" data-lang="fr" lang="fr">FR</button><button type="button" data-lang="en" lang="en">EN</button>';
+    for (const b of box.children) b.setAttribute('aria-pressed', String(b.dataset.lang === lang));
+  }
+  $('#best').hidden = !best;
+  if (best) $('#best').textContent = t('best')(best);
+  if (!S) return;
+  renderAll();
+  if (!$('#evening').hidden) fillEvening();
+  if (!$('#donation').hidden) fillDonation();
+  if (!$('#end').hidden && S.ending) fillEnd();
+}
+function setLang(l) {
+  if (!(l in I18N) || l === lang) return;
+  lang = l;
+  applyLang();
+}
+document.addEventListener('click', e => {
+  const b = e.target.closest('[data-lang]');
+  if (b) setLang(b.dataset.lang);
+});
+
+Kit.boot(data => {
+  best = data.best || 0;
+  lang = data?.lang in I18N ? data.lang : (navigator.language || '').toLowerCase().startsWith('fr') ? 'fr' : 'en';
+  S = fresh();
+  S.visitors = [];
+  applyLang();
+  Kit.show($('#title'));
+  loop.start();
+}, () => ({ best: Math.max(best, S?.ok || 0), lang }));
+</script>
+</body>
+</html>

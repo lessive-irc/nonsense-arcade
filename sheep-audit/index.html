@@ -1,0 +1,956 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Sheep Audit</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sniglet:wght@400;800&family=Figtree:wght@400;600;700&family=VT323&display=swap">
+<style>
+/* Layout: flannel-pyjama page; a bedside LCD clock and drowsiness meter on top, the pasture window in the middle, the audit manual beside it, two fat stamp buttons below. */
+:root {
+  --sky: #cddbe9;
+  --field: #9db487;
+  --field-deep: #7c9869;
+  --wool: #fbfaf5;
+  --ink: #1d2836;
+  --ink-soft: #4d5b6c;
+  --lcd: #d8402f;
+  --lcd-bg: #1b2028;
+  --tag: #e3ae1f;
+  --good: #2b7449;
+  --bad: #c13628;
+  --star: rgba(29, 40, 54, 0);
+  --paper: #e5ecf3;
+  --stripe: #d3dfeb;
+  --panel: #f7f9fb;
+  --line: #c2cfdc;
+  --f-display: "Sniglet", "Arial Rounded MT Bold", "Trebuchet MS", system-ui, sans-serif;
+  --f-body: "Figtree", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-lcd: "VT323", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --sky: #12202f; --field: #2c4130; --field-deep: #213322; --wool: #ebe8de;
+    --ink: #e3eaf2; --ink-soft: #9eafc1; --lcd: #ff5a47; --lcd-bg: #070b10; --tag: #e8b52a;
+    --good: #5cc287; --bad: #ff6f5e; --star: rgba(235, 232, 222, .8);
+    --paper: #0e1824; --stripe: #132234; --panel: #172536; --line: #2a3b50;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --sky: #12202f; --field: #2c4130; --field-deep: #213322; --wool: #ebe8de;
+  --ink: #e3eaf2; --ink-soft: #9eafc1; --lcd: #ff5a47; --lcd-bg: #070b10; --tag: #e8b52a;
+  --good: #5cc287; --bad: #ff6f5e; --star: rgba(235, 232, 222, .8);
+  --paper: #0e1824; --stripe: #132234; --panel: #172536; --line: #2a3b50;
+  color-scheme: dark;
+}
+[hidden] { display: none !important; }
+* { box-sizing: border-box; }
+html, body { min-height: 100%; }
+body {
+  margin: 0;
+  color: var(--ink);
+  font: 15px/1.55 var(--f-body);
+  background-color: var(--paper);
+  background-image: repeating-linear-gradient(90deg, var(--paper) 0 26px, var(--stripe) 26px 32px, var(--paper) 32px 40px, var(--stripe) 40px 42px);
+  padding-block: 16px 24px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.app { max-width: 1100px; margin: 0 auto; display: grid; gap: 14px; }
+
+.hud { display: flex; flex-wrap: wrap; gap: 12px 22px; align-items: center; justify-content: space-between; }
+.brand { font: 800 26px/1 var(--f-display); letter-spacing: -.01em; }
+.brand small { display: block; font: 600 11px var(--f-body); letter-spacing: .12em; text-transform: uppercase; color: var(--ink-soft); margin-top: 4px; }
+.clock {
+  font: 400 40px/1 var(--f-lcd); color: var(--lcd); background: var(--lcd-bg);
+  padding: 4px 12px 2px; border-radius: 8px; letter-spacing: .06em; font-variant-numeric: tabular-nums;
+  text-shadow: 0 0 10px color-mix(in srgb, var(--lcd) 55%, transparent);
+}
+.clock small { font-size: 18px; color: color-mix(in srgb, var(--lcd) 60%, var(--lcd-bg)); margin-left: 6px; }
+.meter-box { display: grid; gap: 5px; min-width: 200px; flex: 1 1 200px; max-width: 340px; }
+.meter-label { display: flex; justify-content: space-between; font: 600 11px var(--f-body); letter-spacing: .1em; text-transform: uppercase; color: var(--ink-soft); }
+.meter { height: 14px; border-radius: 99px; background: var(--panel); box-shadow: inset 0 0 0 1px var(--line); overflow: hidden; }
+.meter i { display: block; height: 100%; width: 20%; border-radius: inherit; background: var(--ink-soft); transition: width .25s ease, background .25s; }
+.score { font: 800 22px/1 var(--f-display); font-variant-numeric: tabular-nums; text-align: right; }
+.score small { display: block; font: 600 11px var(--f-body); letter-spacing: .1em; text-transform: uppercase; color: var(--ink-soft); margin-top: 4px; }
+
+.main { display: grid; gap: 14px; grid-template-columns: minmax(0, 1fr); }
+@media (min-width: 860px) { .main { grid-template-columns: minmax(0, 1fr) 290px; } }
+
+.stage-wrap {
+  position: relative; height: clamp(280px, 56vh, 540px); border-radius: 16px; overflow: hidden;
+  background: var(--sky); box-shadow: 0 0 0 1px var(--line), 0 18px 40px -26px #00000088;
+}
+.stage-wrap.flip { animation: flip 1.1s ease-in-out; }
+@keyframes flip { 0% { transform: rotateX(0); } 50% { transform: rotateX(90deg) scale(.96); } 100% { transform: rotateX(0); } }
+canvas { display: block; width: 100%; height: 100%; touch-action: manipulation; }
+.banner {
+  position: absolute; left: 50%; top: 14px; transform: translateX(-50%) rotate(-2deg);
+  font: 800 15px var(--f-display); letter-spacing: .04em; color: var(--lcd-bg); background: var(--tag);
+  padding: 6px 14px; border-radius: 6px; white-space: nowrap; box-shadow: 0 6px 16px -8px #00000088;
+}
+.feedback { min-height: 1.6em; font-size: 15px; color: var(--ink-soft); }
+.feedback.good { color: var(--good); }
+.feedback.bad { color: var(--bad); }
+
+.manual { background: var(--panel); border-radius: 14px; padding: 16px 18px; box-shadow: 0 0 0 1px var(--line); display: grid; gap: 12px; align-content: start; }
+.manual h2 { margin: 0; font: 800 18px var(--f-display); }
+.manual h2 small { font: 600 11px var(--f-body); letter-spacing: .1em; text-transform: uppercase; color: var(--ink-soft); margin-left: 6px; }
+.manual ol { margin: 0; padding-left: 20px; display: grid; gap: 8px; font-size: 14px; line-height: 1.45; }
+.manual li::marker { font-weight: 700; color: var(--ink-soft); }
+.manual li.new { color: var(--ink); }
+.manual li.new::after { content: attr(data-new); margin-left: 6px; font: 700 10px var(--f-body); letter-spacing: .1em; text-transform: uppercase; color: var(--lcd-bg); background: var(--tag); padding: 1px 6px; border-radius: 4px; vertical-align: 2px; }
+.ledger h3 { margin: 0 0 6px; font: 600 11px var(--f-body); letter-spacing: .1em; text-transform: uppercase; color: var(--ink-soft); }
+.ledger ul { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; min-height: 26px; }
+.ledger li { font: 600 13px var(--f-body); font-variant-numeric: tabular-nums; background: var(--tag); color: #1d2836; padding: 2px 8px; border-radius: 4px 10px 10px 4px; }
+.ledger .empty { font-size: 13px; color: var(--ink-soft); }
+
+.controls { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.controls.solo { grid-template-columns: 1fr; }
+button {
+  font: 800 20px var(--f-display); letter-spacing: .02em; border: 0; border-radius: 14px; padding: 16px 18px;
+  cursor: pointer; touch-action: manipulation; transition: transform .12s ease, filter .12s ease;
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+}
+button:active { transform: translateY(2px) scale(.99); }
+button:hover { filter: brightness(1.06); }
+button:focus-visible { outline: 3px solid var(--tag); outline-offset: 3px; }
+kbd { font: 600 12px var(--f-body); padding: 2px 7px; border-radius: 5px; background: #ffffff33; }
+.b-count { background: var(--good); color: #fbfaf5; }
+.b-reject { background: var(--bad); color: #fbfaf5; }
+.b-jump { background: var(--tag); color: #1d2836; }
+.b-plain { background: var(--ink); color: var(--paper); font-size: 17px; padding: 12px 22px; }
+.b-ghost { background: transparent; color: var(--ink); box-shadow: inset 0 0 0 2px var(--line); font-size: 17px; padding: 12px 22px; }
+
+.lang { display: inline-flex; border-radius: 99px; overflow: hidden; background: var(--panel); box-shadow: inset 0 0 0 1px var(--line); }
+.lang button { font: 600 12px var(--f-body); letter-spacing: .1em; border-radius: 0; padding: 6px 11px; background: transparent; color: var(--ink-soft); }
+.lang button + button { box-shadow: inset 1px 0 0 var(--line); }
+.lang button[aria-pressed="true"] { background: var(--ink); color: var(--paper); }
+.overlay { position: absolute; inset: 0; display: grid; place-items: center; padding: 18px; overflow: auto; background: color-mix(in srgb, var(--sky) 82%, transparent); backdrop-filter: blur(3px); }
+.card { max-width: 500px; display: grid; gap: 12px; justify-items: center; text-align: center; }
+.card h1 { margin: 0; font: 800 clamp(44px, 9vw, 78px)/.92 var(--f-display); letter-spacing: -.02em; text-wrap: balance; }
+.card h2 { margin: 0; font: 800 clamp(26px, 5vw, 38px)/1 var(--f-display); text-wrap: balance; }
+.card p { margin: 0; max-width: 46ch; color: var(--ink-soft); text-wrap: pretty; }
+.card .stat { font: 400 24px var(--f-lcd); color: var(--lcd); background: var(--lcd-bg); padding: 2px 12px; border-radius: 6px; font-variant-numeric: tabular-nums; }
+.card .keys { font-size: 12px; color: var(--ink-soft); }
+.row { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+
+@media (max-width: 520px) {
+  .brand { font-size: 22px; }
+  .clock { font-size: 32px; }
+  button { font-size: 18px; padding: 14px 12px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .stage-wrap.flip { animation: none; }
+  button, .meter i { transition: none; }
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="hud">
+    <div class="brand"><span data-t="brand">Sheep Audit</span><small data-t="brandSub">night shift, unpaid</small></div>
+    <div class="clock" data-ta="clockAria" aria-label="Bedside clock"><span id="clock">02:00</span><small data-t="am">AM</small></div>
+    <div class="meter-box">
+      <div class="meter-label"><span id="meter-name">drowsiness</span><span id="meter-val">20%</span></div>
+      <div class="meter"><i id="meter-fill"></i></div>
+    </div>
+    <div class="score"><span id="score">0</span><small data-t="scoreLbl">sheep certified</small></div>
+    <div class="lang" role="group" data-ta="langGroup" aria-label="Language"></div>
+  </header>
+
+  <div class="main">
+    <div>
+      <div class="stage-wrap" id="stage-wrap">
+        <canvas id="stage" data-ta="stageAria" aria-label="A pasture at night. Sheep, and things pretending to be sheep, jump a fence one at a time."></canvas>
+        <div class="banner" id="banner" hidden data-t="banner">New rule in the audit manual</div>
+
+        <div class="overlay" id="title">
+          <div class="card">
+            <h1 data-t="brand">Sheep Audit</h1>
+            <p data-t="titleP">It is 2:00 in the morning and you are counting sheep to fall asleep. Some of the sheep are committing fraud. Count the real ones, reject the rest, and fall asleep before the alarm at 06:00.</p>
+            <button class="b-plain" id="start" data-t="startBtn">Start counting</button>
+            <div class="keys" data-t="titleKeys">Count: C or ← · Reject: R or → · or the big buttons</div>
+          </div>
+        </div>
+
+        <div class="overlay" id="finale-intro" hidden>
+          <div class="card">
+            <h2 data-t="sleepH">You fall asleep.</h2>
+            <p id="finale-p" data-th="finaleP">Somewhere, someone else is counting sheep, and you are one of them. Your ear tag says <strong id="my-tag">#0000</strong>. Jump the fence when the ring closes. Three convincing jumps and you are certified. Look suspicious and the sleeper will reject you.</p>
+            <button class="b-jump" id="be-sheep" data-t="beSheep">Be a sheep</button>
+            <div class="keys" data-t="jumpKeys">Jump: Space, J, tap the pasture, or the button</div>
+          </div>
+        </div>
+
+        <div class="overlay" id="over" hidden>
+          <div class="card">
+            <h2 id="over-title">Certified.</h2>
+            <p id="over-text"></p>
+            <div class="stat" id="over-stat"></div>
+            <div class="row">
+              <button class="b-jump" id="retry" hidden data-t="retry">Jump again</button>
+              <button class="b-plain" id="again">Count again</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="feedback" id="fb" aria-live="polite"></div>
+    </div>
+
+    <aside class="manual" data-ta="manualAria" aria-label="Audit manual">
+      <h2><span data-t="manualH">Audit manual</span> <small data-t="manualRev">rev. 3:00 am</small></h2>
+      <ol id="rules">
+        <li data-level="1" data-t="rule0">Count every sheep. Each sheep wears a numbered ear tag.</li>
+        <li data-level="1" data-t="rule1">Reject goats in wool coats. Look for horns and a beard.</li>
+        <li data-level="2" data-t="rule2">Reject any tag you have already counted. The ledger below lists the last eight.</li>
+        <li data-level="2" data-t="rule3">Reject clouds. A cloud has no legs, however convincing its tag.</li>
+        <li data-level="3" data-t="rule4">Two lambs in a trench coat are two sheep. Press Count twice before they leave.</li>
+        <li data-level="3" data-t="rule5">The fence may move. The sheep will find it.</li>
+        <li data-level="4" data-t="rule6">A sheep holding an APPEAL sign is counted only if it brought a lawyer (red tie). Otherwise reject it.</li>
+        <li data-level="5" data-t="rule7">If a sheep stops on the fence to count you, hold still until it finishes. Then audit it as usual.</li>
+      </ol>
+      <div class="ledger">
+        <h3 data-t="ledgerH">Ledger · last eight counted</h3>
+        <ul id="ledger"><li class="empty">nothing counted yet</li></ul>
+      </div>
+    </aside>
+  </div>
+
+  <div class="controls" id="controls">
+    <button class="b-count" id="btn-count" data-th="countBtn">Count <kbd>C</kbd></button>
+    <button class="b-reject" id="btn-reject" data-th="rejectBtn">Reject <kbd>R</kbd></button>
+    <button class="b-jump" id="btn-jump" hidden data-th="jumpBtn">Jump <kbd>Space</kbd></button>
+  </div>
+</div>
+
+<script>
+const $ = s => document.querySelector(s);
+const cv = $('#stage'), cx = cv.getContext('2d');
+const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+let W = 0, H = 0, sc = 1;
+const T = {};
+function readTokens() {
+  const cs = getComputedStyle(document.documentElement);
+  for (const k of ['sky', 'field', 'field-deep', 'wool', 'ink', 'ink-soft', 'lcd', 'tag', 'good', 'bad', 'star', 'panel'])
+    T[k] = cs.getPropertyValue('--' + k).trim();
+}
+function resize() {
+  const r = cv.getBoundingClientRect(), d = Math.min(2, devicePixelRatio || 1);
+  W = r.width; H = r.height; sc = H / 380;
+  cv.width = Math.round(W * d); cv.height = Math.round(H * d);
+  cx.setTransform(d, 0, 0, d, 0, 0);
+}
+new ResizeObserver(resize).observe(cv);
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', readTokens);
+new MutationObserver(readTokens).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+
+// Every player-visible string, per language. Tags are numbers, so counting and the ledger work the
+// same in both; logic keeps creature types and keys, and text is read when shown.
+const I18N = {
+  en: {
+    docTitle: 'Sheep Audit', langGroup: 'Language',
+    brand: 'Sheep Audit', brandSub: 'night shift, unpaid', clockAria: 'Bedside clock', am: 'AM',
+    drowsiness: 'drowsiness', suspicion: "sleeper's suspicion", scoreLbl: 'sheep certified',
+    stageAria: 'A pasture at night. Sheep, and things pretending to be sheep, jump a fence one at a time.',
+    banner: 'New rule in the audit manual',
+    titleP: 'It is 2:00 in the morning and you are counting sheep to fall asleep. Some of the sheep are committing fraud. Count the real ones, reject the rest, and fall asleep before the alarm at 06:00.',
+    startBtn: 'Start counting', titleKeys: 'Count: C or ← · Reject: R or → · or the big buttons',
+    sleepH: 'You fall asleep.',
+    finaleP: '<span>Somewhere, someone else is counting sheep, and you are one of them. Your ear tag says </span><strong id="my-tag"></strong><span>. Jump the fence when the ring closes. Three convincing jumps and you are certified. Look suspicious and the sleeper will reject you.</span>',
+    beSheep: 'Be a sheep', jumpKeys: 'Jump: Space, J, tap the pasture, or the button',
+    retry: 'Jump again', countAgain: 'Count again', startOver: 'Start over',
+    manualAria: 'Audit manual', manualH: 'Audit manual', manualRev: 'rev. 3:00 am', isNew: 'new',
+    rule0: 'Count every sheep. Each sheep wears a numbered ear tag.',
+    rule1: 'Reject goats in wool coats. Look for horns and a beard.',
+    rule2: 'Reject any tag you have already counted. The ledger below lists the last eight.',
+    rule3: 'Reject clouds. A cloud has no legs, however convincing its tag.',
+    rule4: 'Two lambs in a trench coat are two sheep. Press Count twice before they leave.',
+    rule5: 'The fence may move. The sheep will find it.',
+    rule6: 'A sheep holding an APPEAL sign is counted only if it brought a lawyer (red tie). Otherwise reject it.',
+    rule7: 'If a sheep stops on the fence to count you, hold still until it finishes. Then audit it as usual.',
+    ledgerH: 'Ledger · last eight counted', ledgerEmpty: 'nothing counted yet',
+    countBtn: 'Count <kbd>C</kbd>', rejectBtn: 'Reject <kbd>R</kbd>', jumpBtn: 'Jump <kbd>Space</kbd>',
+    right: {
+      goat: 'Goat rejected. The horns gave it away.',
+      repeat: t => `Tag #${t} rejected. It already went round once.`,
+      cloud: 'Cloud rejected. No legs, no certificate.',
+      appealNo: 'Appeal rejected. It came without a lawyer.',
+    },
+    wrong: {
+      sheep: t => `Sheep #${t} was a real sheep.`,
+      counter: t => `Sheep #${t} was a real sheep. It was only counting you.`,
+      appealTie: 'It brought a lawyer. Appeals with a red tie are counted.',
+      goat: 'That was a goat in a wool coat. Look for horns and a beard.',
+      repeat: t => `Tag #${t} was already in the ledger. It went round again.`,
+      cloud: 'That was a cloud. Clouds have no legs.',
+      appealNo: 'No red tie, no lawyer. That appeal should have been rejected.',
+    },
+    flinched: 'You flinched. The sheep lost count and is starting again.',
+    oneLamb: 'One lamb counted. There is another one in that coat.',
+    lambs: (a, b) => `Lambs #${a} and #${b} counted. That is two sheep.`,
+    counted: t => `Sheep #${t} counted.`,
+    trenchOne: 'Two lambs, one count. A trench coat needs Count twice.',
+    trenchNone: 'Two lambs in a trench coat are still two sheep. Press Count twice.',
+    unaudited: 'Unaudited. ', firstOne: 'Here comes the first one. Count it if it is a sheep.',
+    stamp: { one: '1…', counted: 'COUNTED', rejected: 'REJECTED', missed: 'MISSED', wrongS: 'WRONG' },
+    appealSign: 'APPEAL', countingYou: n => `counting you: ${n}…`,
+    says: { first: 'mm. sheep. one more…', perfect: ['one…', 'two…', 'three…'], ok: ['one… hm.', 'two…? fine.', 'three… i suppose.'],
+      fence: 'that sheep walked into the fence.', early: 'that one jumped early. suspicious.', late: 'late. is that a goat?' },
+    you: t => `#${t} (you)`, jumpOf: n => `jump ${n} of 3 · jump when the ring closes`,
+    ends: {
+      certified: ['Certified.', n => `The sleeper is asleep. You were sheep number ${n + 1}. Somewhere, someone has started counting the sleeper.`],
+      rejected: ['Rejected.', () => 'The sleeper has flagged you as a goat in a wool coat. You may appeal, but you did not bring a lawyer.'],
+      awake: ['You are completely awake.', (n, c) => `It is ${c}. The sheep have formed a union and are not taking questions.`],
+      alarm: ['06:00. The alarm is ringing.', n => `You certified ${n} sheep. It was not enough sheep.`],
+    },
+    overStat: (s, b, c) => `${s} certified · best ${b} · ${c}`,
+  },
+  fr: {
+    docTitle: 'Audit des moutons', langGroup: 'Langue',
+    brand: 'Audit des moutons', brandSub: 'service de nuit, non payé', clockAria: 'Réveil de chevet', am: '',
+    drowsiness: 'somnolence', suspicion: 'soupçons', scoreLbl: 'moutons certifiés',
+    stageAria: 'Un pré, la nuit. Des moutons, et des choses qui se font passer pour des moutons, sautent une clôture un par un.',
+    banner: "Nouvelle règle dans le manuel d'audit",
+    titleP: "Il est 2 h du matin et vous comptez les moutons pour vous endormir. Certains moutons fraudent. Comptez les vrais, rejetez les autres, et endormez-vous avant le réveil de 06:00.",
+    startBtn: 'Commencer à compter', titleKeys: 'Compter : C ou ← · Rejeter : R ou → · ou les gros boutons',
+    sleepH: 'Vous vous endormez.',
+    finaleP: "<span>Quelque part, quelqu'un d'autre compte les moutons, et vous en faites partie. Votre boucle d'oreille porte le </span><strong id=\"my-tag\"></strong><span>. Sautez la clôture quand le cercle se referme. Trois sauts convaincants et c'est la certification. Ayez l'air louche, et la personne qui dort vous rejettera.</span>",
+    beSheep: 'Être un mouton', jumpKeys: 'Sauter : Espace, J, touchez le pré, ou le bouton',
+    retry: 'Ressauter', countAgain: 'Recompter', startOver: 'Recommencer',
+    manualAria: "Manuel d'audit", manualH: "Manuel d'audit", manualRev: 'rév. 3 h du matin', isNew: 'nouveau',
+    rule0: "Comptez chaque mouton. Chaque mouton porte une boucle d'oreille numérotée.",
+    rule1: 'Rejetez les chèvres en manteau de laine. Cherchez les cornes et la barbiche.',
+    rule2: 'Rejetez tout numéro déjà compté. Le registre ci-dessous affiche les huit derniers.',
+    rule3: "Rejetez les nuages. Un nuage n'a pas de pattes, même avec un numéro convaincant.",
+    rule4: 'Deux agneaux dans un trench font deux moutons. Appuyez deux fois sur Compter avant leur départ.',
+    rule5: 'La clôture peut bouger. Les moutons la trouveront.',
+    rule6: "Un mouton qui brandit une pancarte APPEL n'est compté que s'il a amené son avocat (cravate rouge). Sinon, rejetez-le.",
+    rule7: "Si un mouton s'arrête sur la clôture pour vous compter, ne bougez plus jusqu'à ce qu'il ait fini. Puis auditez-le normalement.",
+    ledgerH: 'Registre · huit derniers comptés', ledgerEmpty: "rien de compté pour l'instant",
+    countBtn: 'Compter <kbd>C</kbd>', rejectBtn: 'Rejeter <kbd>R</kbd>', jumpBtn: 'Sauter <kbd>Espace</kbd>',
+    right: {
+      goat: "Chèvre rejetée. Les cornes l'ont trahie.",
+      repeat: t => `Numéro #${t} rejeté. Il a déjà fait un tour.`,
+      cloud: 'Nuage rejeté. Pas de pattes, pas de certificat.',
+      appealNo: 'Appel rejeté. Il est venu sans avocat.',
+    },
+    wrong: {
+      sheep: t => `Le mouton #${t} était un vrai mouton.`,
+      counter: t => `Le mouton #${t} était un vrai mouton. Il ne faisait que vous compter.`,
+      appealTie: 'Il avait amené un avocat. Les appels en cravate rouge sont comptés.',
+      goat: "C'était une chèvre en manteau de laine. Cherchez les cornes et la barbiche.",
+      repeat: t => `Le numéro #${t} était déjà au registre. Il a refait un tour.`,
+      cloud: "C'était un nuage. Les nuages n'ont pas de pattes.",
+      appealNo: "Pas de cravate rouge, pas d'avocat. Cet appel aurait dû être rejeté.",
+    },
+    flinched: 'Vous avez bougé. Le mouton a perdu le fil et recommence.',
+    oneLamb: 'Un agneau compté. Il y en a un autre dans ce manteau.',
+    lambs: (a, b) => `Agneaux #${a} et #${b} comptés. Ça fait deux moutons.`,
+    counted: t => `Mouton #${t} compté.`,
+    trenchOne: 'Deux agneaux, un seul compte. Un trench demande deux fois Compter.',
+    trenchNone: 'Deux agneaux dans un trench, ça reste deux moutons. Appuyez deux fois sur Compter.',
+    unaudited: 'Pas audité. ', firstOne: "Voici le premier. Comptez-le si c'est un mouton.",
+    stamp: { one: '1…', counted: 'COMPTÉ', rejected: 'REJETÉ', missed: 'RATÉ', wrongS: 'ERREUR' },
+    appealSign: 'APPEL', countingYou: n => `je vous compte : ${n}…`,
+    says: { first: 'mm. moutons. encore un…', perfect: ['un…', 'deux…', 'trois…'], ok: ['un… hm.', 'deux… ? bon.', 'trois… admettons.'],
+      fence: 'ce mouton est rentré dans la clôture.', early: 'celui-là a sauté trop tôt. louche.', late: "en retard. c'est une chèvre ?" },
+    you: t => `#${t} (vous)`, jumpOf: n => `saut ${n} sur 3 · sautez quand le cercle se referme`,
+    // No title or line may agree with the player: « certifié », « réveillé » and « rejeté » would.
+    ends: {
+      certified: ['Certification accordée.', n => `La personne endormie dort. Vous étiez le mouton numéro ${n + 1}. Quelque part, quelqu'un a commencé à compter la personne endormie.`],
+      rejected: ['Dossier rejeté.', () => "Pour la personne endormie, vous êtes une chèvre en manteau de laine. Vous pouvez faire appel, mais vous n'avez pas amené d'avocat."],
+      awake: ['Le sommeil a filé.', (n, c) => `Il est ${c}. Les moutons ont monté un syndicat et ne répondent à aucune question.`],
+      alarm: ['06:00. Le réveil sonne.', n => `Vous avez certifié ${n} mouton${n > 1 ? 's' : ''}. Ce n'était pas assez de moutons.`],
+    },
+    overStat: (s, b, c) => `${s} certifié${s > 1 ? 's' : ''} · record ${b} · ${c}`,
+  },
+};
+
+// French typography: a narrow no-break space before ? ! : ; » and after «, applied once to every
+// French string (and to whatever a French string function returns).
+(function frenchSpacing() {
+  const fix = s => s.replace(/ ([?!:;»])/g, ' $1').replace(/« /g, '« ');
+  const deep = v => typeof v === 'string' ? fix(v)
+    : typeof v === 'function' ? (...a) => fix(v(...a))
+    : Array.isArray(v) ? v.map(deep)
+    : v && typeof v === 'object' ? Object.fromEntries(Object.entries(v).map(([k, x]) => [k, deep(x)]))
+    : v;
+  I18N.fr = deep(I18N.fr);
+})();
+
+let lang = 'en';
+const t = k => I18N[lang][k] ?? I18N.en[k];
+
+const ANSWER = { sheep: 'count', goat: 'reject', repeat: 'reject', cloud: 'reject', trench: 'count2', appealTie: 'count', appealNo: 'reject', counter: 'count' };
+
+let S;
+function fresh(best = 0) {
+  return { mode: 'title', t: 0, drowsy: 20, level: 1, score: 0, best, clock: 120, crit: [], spawnT: .6,
+    used: new Set(), ledger: [], fenceX: .52, fenceTarget: .52, fin: null, myTag: '' };
+}
+const stars = Array.from({ length: 60 }, () => ({ x: Math.random(), y: Math.random() * .6, r: Math.random() * 1.3 + .4, p: Math.random() * 6.28 }));
+
+function newTag() {
+  let t;
+  do { t = String(1000 + Math.floor(Math.random() * 9000)); } while (S.used.has(t));
+  S.used.add(t);
+  return t;
+}
+function pushLedger(t) {
+  S.ledger.push(t);
+  if (S.ledger.length > 8) S.ledger.shift();
+  $('#ledger').innerHTML = S.ledger.slice().reverse().map(x => `<li>#${x}</li>`).join('');
+}
+function clockText() {
+  const m = S.clock, h = Math.floor(m / 60), mm = m % 60;
+  return `${String(h).padStart(2, '0')}:${String(mm).padStart(2, '0')}`;
+}
+
+// feedback() takes a thunk, kept until the line clears, so a switch re-reads it in the new language.
+let fbTimer = null, fbLine = null, fbGood = true;
+function feedback(good, line) {
+  const el = $('#fb');
+  fbLine = line; fbGood = good;
+  renderFeedback();
+  el.className = 'feedback ' + (good ? 'good' : 'bad');
+  clearTimeout(fbTimer);
+  fbTimer = setTimeout(() => { fbLine = null; el.textContent = ''; el.className = 'feedback'; }, 3200);
+}
+function renderFeedback() { if (fbLine) $('#fb').textContent = (fbGood ? '✓ ' : '✗ ') + fbLine(); }
+const ledgerEmpty = () => `<li class="empty">${t('ledgerEmpty')}</li>`;
+let bannerTimer = null;
+function banner() {
+  const b = $('#banner');
+  b.textContent = t('banner'); b.hidden = false;
+  clearTimeout(bannerTimer);
+  bannerTimer = setTimeout(() => { b.hidden = true; }, 2400);
+}
+function showRules(markNew) {
+  for (const li of document.querySelectorAll('#rules li')) {
+    const lv = +li.dataset.level;
+    li.hidden = lv > S.level;
+    li.classList.toggle('new', markNew && lv === S.level && S.level > 1);
+  }
+}
+
+function levelFor(d) { return d < 35 ? 1 : d < 55 ? 2 : d < 70 ? 3 : d < 85 ? 4 : 5; }
+function adjust(d) {
+  S.drowsy = Math.max(0, Math.min(100, S.drowsy + d));
+  const L = levelFor(S.drowsy);
+  if (L > S.level) { S.level = L; showRules(true); banner(); }
+}
+
+function spawn() {
+  const L = S.level, w = [['sheep', 55], ['goat', 20]];
+  if (L >= 2) { if (S.ledger.length) w.push(['repeat', 12]); w.push(['cloud', 10]); }
+  if (L >= 3) w.push(['trench', 10]);
+  if (L >= 4) { w.push(['appealTie', 7]); w.push(['appealNo', 7]); }
+  if (L >= 5) w.push(['counter', 11]);
+  let r = Math.random() * w.reduce((a, b) => a + b[1], 0), type = 'sheep';
+  for (const [k, v] of w) { if ((r -= v) < 0) { type = k; break; } }
+  const c = { type, x: -70 * sc, decided: false, counts: 0, stamp: null, pause: 0, paused: false, bob: Math.random() * 6.28 };
+  c.tag = type === 'repeat' ? S.ledger[Math.floor(Math.random() * S.ledger.length)] : newTag();
+  if (type === 'trench') c.tag2 = newTag();
+  S.crit.push(c);
+  S.clock += 3;
+  if (L >= 3) S.fenceTarget = .4 + Math.random() * .25;
+}
+
+function current() { return S.crit.find(c => !c.decided); }
+function pick(v, tag) { return typeof v === 'function' ? v(tag) : v; }
+
+function act(kind) {
+  if (S.mode !== 'play') return;
+  const pausing = S.crit.find(c => c.pause > 0);
+  if (pausing) {
+    pausing.pause = 2.4;
+    adjust(-6);
+    feedback(false, () => t('flinched'));
+    return;
+  }
+  const c = current();
+  if (!c) return;
+  if (c.type === 'trench') {
+    if (kind === 'count') {
+      c.counts++;
+      if (c.counts >= 2) resolve(c, true);
+      else { c.stamp = { key: 'one', good: true, t: 0 }; feedback(true, () => t('oneLamb')); }
+    } else resolve(c, false);
+    return;
+  }
+  resolve(c, (kind === 'count') === (ANSWER[c.type] === 'count'));
+}
+
+function resolve(c, ok, missed = false) {
+  c.decided = true;
+  const counts = ANSWER[c.type] !== 'reject';
+  if (ok) {
+    adjust(5);
+    if (counts) {
+      S.score += c.type === 'trench' ? 2 : 1;
+      pushLedger(c.tag);
+      if (c.tag2) pushLedger(c.tag2);
+      c.stamp = { key: 'counted', good: true, t: 0 };
+      feedback(true, c.type === 'trench' ? () => t('lambs')(c.tag, c.tag2) : () => t('counted')(c.tag));
+    } else {
+      c.stamp = { key: 'rejected', good: true, t: 0 };
+      feedback(true, () => pick(t('right')[c.type], c.tag));
+    }
+    return;
+  }
+  adjust(missed ? -6 : -10);
+  c.stamp = { key: missed ? 'missed' : 'wrongS', good: false, t: 0 };
+  const counts1 = c.counts;
+  const why = () => c.type === 'trench' ? t(counts1 === 1 ? 'trenchOne' : 'trenchNone') : pick(t('wrong')[c.type], c.tag);
+  feedback(false, () => (missed ? t('unaudited') : '') + why());
+}
+
+function update(dt) {
+  S.t += dt;
+  S.fenceX += (S.fenceTarget - S.fenceX) * Math.min(1, dt * 1.5);
+  const pausing = S.crit.find(c => c.pause > 0);
+  if (pausing) {
+    pausing.pause = Math.max(0, pausing.pause - dt);
+  } else {
+    const sp = W * (.13 + .025 * S.level);
+    for (const c of S.crit) c.x += sp * dt * (c.type === 'cloud' ? .85 : 1);
+    for (const c of S.crit) {
+      if (c.type === 'counter' && !c.paused && c.x >= S.fenceX * W) { c.paused = true; c.x = S.fenceX * W; c.pause = 2.4; }
+    }
+    S.spawnT -= dt;
+    const last = S.crit[S.crit.length - 1];
+    if (S.spawnT <= 0 && (!last || last.x > 90 * sc)) {
+      if (S.clock >= 360) return end('alarm');
+      spawn();
+      S.spawnT = Math.max(1.25, 2.7 - .28 * S.level);
+    }
+  }
+  for (const c of S.crit) {
+    if (c.stamp) c.stamp.t += dt;
+    if (!c.decided && c.x > W + 50 * sc) resolve(c, false, true);
+  }
+  S.crit = S.crit.filter(c => c.x < W + 140 * sc);
+  if (S.drowsy <= 0) return end('awake');
+  if (S.drowsy >= 100) return startFinale();
+}
+
+const DURS = [1.7, 1.35, 1.05];
+function startFinale() {
+  S.mode = 'finale-intro';
+  S.best = Math.max(S.best, S.score);
+  S.myTag = newTag();
+  $('#my-tag').textContent = '#' + S.myTag;
+  $('#finale-intro').hidden = false;
+  $('#be-sheep').focus();
+}
+function beginFinale() {
+  $('#finale-intro').hidden = true;
+  $('#over').hidden = true;
+  S.mode = 'finale';
+  S.fin = { i: 0, sus: 0, phase: 'wait', t: 0, next: 1.2, start: 0, dur: 0, grade: null, err: 0, jt: 0, says: ['first'], saysT: 2.4 };
+  $('#btn-count').hidden = true; $('#btn-reject').hidden = true; $('#btn-jump').hidden = false;
+  $('#controls').classList.add('solo');
+  meterName();
+  const wrap = $('#stage-wrap');
+  wrap.classList.remove('flip'); void wrap.offsetWidth; wrap.classList.add('flip');
+  $('#btn-jump').focus();
+}
+function finUpdate(dt) {
+  const F = S.fin;
+  F.t += dt;
+  if (F.saysT > 0) F.saysT -= dt;
+  if (F.phase === 'wait') {
+    if (F.t >= F.next) { F.phase = 'ring'; F.start = F.t; F.dur = DURS[F.i]; }
+  } else if (F.phase === 'ring') {
+    if (F.t > F.start + F.dur + .3) grade(null);
+  } else if (F.phase === 'jump') {
+    F.jt += dt;
+    if (F.jt >= .9) {
+      F.i++;
+      if (F.sus >= 4) return end('rejected');
+      if (F.i >= 3) return end('certified');
+      F.phase = 'wait'; F.next = F.t + 1.1;
+    }
+  }
+}
+function jump() {
+  if (S.mode !== 'finale' || S.fin.phase !== 'ring') return;
+  grade(S.fin.t - (S.fin.start + S.fin.dur));
+}
+function grade(err) {
+  const F = S.fin, a = err == null ? Infinity : Math.abs(err);
+  const g = a < .11 ? 'perfect' : a < .22 ? 'ok' : 'bad';
+  F.grade = g; F.err = err; F.phase = 'jump'; F.jt = 0;
+  F.sus += g === 'perfect' ? 0 : g === 'ok' ? 1 : 2;
+  // A key into I18N.*.says (and an index for the per-jump lines), read when drawn.
+  F.says = g === 'perfect' ? ['perfect', F.i] : g === 'ok' ? ['ok', F.i]
+    : err == null ? ['fence'] : err < 0 ? ['early'] : ['late'];
+  F.saysT = 2.2;
+}
+const saysText = s => { const v = t('says')[s[0]]; return s.length > 1 ? v[s[1]] : v; };
+function meterName() { $('#meter-name').textContent = S.mode === 'finale' || (S.mode === 'over' && S.fin) ? t('suspicion') : t('drowsiness'); }
+
+function end(kind) {
+  S.mode = 'over';
+  S.best = Math.max(S.best, S.score);
+  S.endKind = kind;
+  fillOver();
+  $('#retry').hidden = kind !== 'rejected';
+  $('#over').hidden = false;
+  (kind === 'rejected' ? $('#retry') : $('#again')).focus();
+}
+
+function fillOver() {
+  const kind = S.endKind, [title, text] = t('ends')[kind];
+  $('#over-title').textContent = title;
+  $('#over-text').textContent = text(S.score, clockText());
+  $('#over-stat').textContent = t('overStat')(S.score, S.best, clockText());
+  $('#again').textContent = kind === 'certified' ? t('countAgain') : t('startOver');
+}
+
+function begin() {
+  S = fresh(S.best);
+  S.mode = 'play';
+  for (const id of ['#title', '#over', '#finale-intro']) $(id).hidden = true;
+  $('#btn-count').hidden = false; $('#btn-reject').hidden = false; $('#btn-jump').hidden = true;
+  $('#controls').classList.remove('solo');
+  meterName();
+  $('#ledger').innerHTML = ledgerEmpty();
+  showRules(false);
+  feedback(true, () => t('firstOne'));
+}
+
+function drawScene(finale) {
+  const g = cx.createLinearGradient(0, 0, 0, H);
+  g.addColorStop(0, T.sky); g.addColorStop(1, T.panel);
+  cx.fillStyle = g; cx.fillRect(0, 0, W, H);
+  cx.fillStyle = T.star;
+  for (const s of stars) {
+    cx.globalAlpha = reduce ? .8 : .5 + .5 * Math.sin(S.t * 1.2 + s.p);
+    cx.beginPath(); cx.arc(s.x * W, s.y * H, s.r, 0, 6.283); cx.fill();
+  }
+  cx.globalAlpha = 1;
+  const gy = H * .74;
+  cx.fillStyle = T['field-deep'];
+  cx.beginPath(); cx.moveTo(0, gy - 26 * sc);
+  for (let x = 0; x <= W; x += 24) cx.lineTo(x, gy - 26 * sc - Math.sin(x * .008 + 2) * 18 * sc);
+  cx.lineTo(W, H); cx.lineTo(0, H); cx.fill();
+  cx.fillStyle = T.field;
+  cx.fillRect(0, gy, W, H - gy);
+  cx.strokeStyle = T['field-deep']; cx.lineWidth = 1.5;
+  for (let x = 12; x < W; x += 37) {
+    const y = gy + 16 * sc + ((x * 7) % 40) * sc;
+    cx.beginPath(); cx.moveTo(x, y); cx.lineTo(x - 3, y - 6 * sc); cx.moveTo(x, y); cx.lineTo(x + 3, y - 7 * sc); cx.stroke();
+  }
+  drawFence(finale ? .55 : S.fenceX, gy);
+  return gy;
+}
+function drawFence(fx, gy) {
+  const f = fx * W, h = fenceH();
+  cx.fillStyle = '#8b6a45'; cx.strokeStyle = '#5e4630'; cx.lineWidth = 1.5;
+  for (const dx of [-26, 26]) { cx.fillRect(f + dx * sc - 4 * sc, gy - h - 6 * sc, 8 * sc, h + 10 * sc); cx.strokeRect(f + dx * sc - 4 * sc, gy - h - 6 * sc, 8 * sc, h + 10 * sc); }
+  cx.fillStyle = '#9b7a52';
+  cx.fillRect(f - 36 * sc, gy - h * .85, 72 * sc, 7 * sc);
+  cx.fillRect(f - 36 * sc, gy - h * .4, 72 * sc, 7 * sc);
+}
+function fenceH() { return 52 * sc; }
+function jumpOffset(x, fx) {
+  const f = fx * W, half = 58 * sc;
+  if (x < f - half || x > f + half) return 0;
+  return -Math.sin(((x - (f - half)) / (2 * half)) * Math.PI) * fenceH() * 1.55;
+}
+
+function woolBlob(x, y, col) {
+  cx.fillStyle = col;
+  for (const [dx, dy, r] of [[-14, 0, 13], [0, -6, 15], [14, 0, 13], [-6, 8, 12], [8, 8, 12], [0, 2, 14]]) {
+    cx.beginPath(); cx.arc(x + dx * sc, y + dy * sc, r * sc, 0, 6.283); cx.fill();
+  }
+}
+function drawLegs(bx, by, feet, phase, tucked) {
+  cx.strokeStyle = T.ink; cx.lineWidth = 3 * sc; cx.lineCap = 'round';
+  for (const dx of [-12, -5, 6, 13]) {
+    const sw = tucked ? 0 : Math.sin(phase + dx) * 3 * sc;
+    cx.beginPath(); cx.moveTo(bx + dx * sc, by + 10 * sc);
+    cx.lineTo(bx + dx * sc + sw, tucked ? by + 20 * sc : feet); cx.stroke();
+  }
+}
+function drawHead(hx, hy, col, goat, tagCol) {
+  if (goat) {
+    cx.strokeStyle = '#d7c7a6'; cx.lineWidth = 3 * sc; cx.lineCap = 'round';
+    cx.beginPath(); cx.moveTo(hx - 3 * sc, hy - 5 * sc); cx.quadraticCurveTo(hx - 14 * sc, hy - 20 * sc, hx - 18 * sc, hy - 8 * sc); cx.stroke();
+    cx.beginPath(); cx.moveTo(hx + 2 * sc, hy - 6 * sc); cx.quadraticCurveTo(hx - 6 * sc, hy - 24 * sc, hx - 12 * sc, hy - 14 * sc); cx.stroke();
+  }
+  cx.fillStyle = col;
+  cx.beginPath(); cx.ellipse(hx, hy, 9 * sc, 7 * sc, .2, 0, 6.283); cx.fill();
+  cx.beginPath(); cx.ellipse(hx - 8 * sc, hy - 4 * sc, 5 * sc, 2.6 * sc, -.5, 0, 6.283); cx.fill();
+  cx.fillStyle = tagCol;
+  cx.fillRect(hx - 12 * sc, hy - 3 * sc, 5 * sc, 4 * sc);
+  cx.fillStyle = '#f4f1e8';
+  cx.beginPath(); cx.arc(hx + 3 * sc, hy - 2 * sc, 1.6 * sc, 0, 6.283); cx.fill();
+  if (goat) {
+    cx.fillStyle = '#e9e0cc';
+    cx.beginPath(); cx.moveTo(hx + 2 * sc, hy + 5 * sc); cx.lineTo(hx + 8 * sc, hy + 6 * sc); cx.lineTo(hx + 4 * sc, hy + 15 * sc); cx.fill();
+  }
+}
+function tagPill(x, y, text, mine) {
+  cx.font = `600 ${Math.max(11, 12 * sc)}px Figtree, system-ui, sans-serif`;
+  const w = cx.measureText(text).width + 12;
+  const h = Math.max(16, 17 * sc);
+  cx.fillStyle = mine ? T.lcd : T.tag;
+  cx.beginPath(); cx.roundRect(x - w / 2, y - h / 2, w, h, 5); cx.fill();
+  cx.fillStyle = '#1d2836'; cx.textAlign = 'center'; cx.textBaseline = 'middle';
+  cx.fillText(text, x, y + 1);
+}
+function stampMark(x, y, st) {
+  const a = Math.max(0, 1 - Math.max(0, st.t - 1.1) / .5);
+  if (a <= 0) return;
+  cx.save(); cx.globalAlpha = a; cx.translate(x, y); cx.rotate(-.18);
+  cx.font = `800 ${Math.max(14, 16 * sc)}px Sniglet, system-ui, sans-serif`;
+  const text = t('stamp')[st.key], w = cx.measureText(text).width + 14;
+  cx.strokeStyle = st.good ? T.good : T.bad; cx.fillStyle = cx.strokeStyle; cx.lineWidth = 2.5;
+  cx.strokeRect(-w / 2, -13 * sc, w, 26 * sc);
+  cx.textAlign = 'center'; cx.textBaseline = 'middle'; cx.fillText(text, 0, 1);
+  cx.restore();
+}
+
+function drawCreature(c, gy, isCurrent) {
+  const x = c.x, phase = S.t * 10 + c.bob;
+  const airborne = c.type !== 'cloud' ? jumpOffset(x, S.fenceX) : 0;
+  const feet = gy + airborne;
+  let by = feet - 30 * sc, top;
+
+  if (isCurrent) {
+    cx.save(); cx.setLineDash([5, 5]); cx.strokeStyle = T.lcd; cx.lineWidth = 2;
+    cx.beginPath(); cx.ellipse(x, gy + 4 * sc, 34 * sc, 7 * sc, 0, 0, 6.283); cx.stroke(); cx.restore();
+  }
+
+  if (c.type === 'cloud') {
+    const cy = gy - 78 * sc + Math.sin(S.t * 2 + c.bob) * 6 * sc;
+    cx.fillStyle = T.wool; cx.globalAlpha = .92;
+    for (const [dx, dy, r] of [[-22, 4, 15], [0, -8, 20], [22, 4, 15], [-8, 10, 14], [10, 10, 14]]) {
+      cx.beginPath(); cx.arc(x + dx * sc, cy + dy * sc, r * sc, 0, 6.283); cx.fill();
+    }
+    cx.globalAlpha = 1;
+    cx.fillStyle = T.tag; cx.fillRect(x + 18 * sc, cy - 6 * sc, 5 * sc, 4 * sc);
+    top = cy - 34 * sc;
+  } else if (c.type === 'trench') {
+    drawLegs(x, feet - 22 * sc, feet, phase, airborne < -4 * sc);
+    const coatTop = feet - 72 * sc, coatBot = feet - 12 * sc;
+    cx.fillStyle = '#b08d57';
+    cx.beginPath();
+    cx.moveTo(x - 20 * sc, coatBot); cx.lineTo(x + 20 * sc, coatBot); cx.lineTo(x + 13 * sc, coatTop); cx.lineTo(x - 13 * sc, coatTop); cx.fill();
+    cx.strokeStyle = '#7a5f36'; cx.lineWidth = 2;
+    cx.beginPath(); cx.moveTo(x - 17 * sc, feet - 40 * sc); cx.lineTo(x + 17 * sc, feet - 40 * sc); cx.stroke();
+    cx.beginPath(); cx.moveTo(x, coatTop); cx.lineTo(x, coatBot); cx.stroke();
+    woolBlob(x, coatTop - 6 * sc, T.wool);
+    drawHead(x + 12 * sc, coatTop - 8 * sc, '#2a2f38', false, T.tag);
+    drawHead(x + 20 * sc, feet - 50 * sc, '#2a2f38', false, T.tag);
+    top = coatTop - 34 * sc;
+  } else {
+    drawLegs(x, by, feet, phase, airborne < -4 * sc);
+    woolBlob(x, by, T.wool);
+    const goat = c.type === 'goat';
+    if (goat) {
+      cx.strokeStyle = T['ink-soft']; cx.lineWidth = 2;
+      cx.beginPath(); cx.moveTo(x - 4 * sc, by - 18 * sc); cx.lineTo(x - 4 * sc, by + 12 * sc); cx.stroke();
+      cx.beginPath(); cx.moveTo(x + 8 * sc, by - 18 * sc); cx.lineTo(x + 8 * sc, by + 12 * sc); cx.stroke();
+    }
+    const hx = x + 24 * sc, hy = by - 6 * sc;
+    drawHead(hx, hy, goat ? '#8a6a48' : '#2a2f38', goat, T.tag);
+    top = by - 30 * sc;
+    if (c.type === 'appealTie' || c.type === 'appealNo') {
+      cx.strokeStyle = '#8b6a45'; cx.lineWidth = 3 * sc;
+      cx.beginPath(); cx.moveTo(x - 8 * sc, by - 4 * sc); cx.lineTo(x - 8 * sc, by - 54 * sc); cx.stroke();
+      cx.fillStyle = T.panel; cx.strokeStyle = T.ink; cx.lineWidth = 1.5;
+      cx.fillRect(x - 36 * sc, by - 76 * sc, 56 * sc, 22 * sc); cx.strokeRect(x - 36 * sc, by - 76 * sc, 56 * sc, 22 * sc);
+      cx.fillStyle = T.ink; cx.font = `800 ${Math.max(10, 11 * sc)}px Sniglet, system-ui, sans-serif`;
+      cx.textAlign = 'center'; cx.textBaseline = 'middle'; cx.fillText(t('appealSign'), x - 8 * sc, by - 64 * sc, 52 * sc);
+      top = by - 90 * sc;
+      if (c.type === 'appealTie') {
+        cx.fillStyle = '#c8322a';
+        cx.beginPath(); cx.moveTo(hx - 4 * sc, hy + 6 * sc); cx.lineTo(hx + 2 * sc, hy + 6 * sc); cx.lineTo(hx + 1 * sc, hy + 20 * sc); cx.lineTo(hx - 3 * sc, hy + 20 * sc); cx.fill();
+        cx.fillStyle = '#4a3423';
+        cx.fillRect(x + 12 * sc, by + 12 * sc, 14 * sc, 10 * sc);
+      }
+    }
+    if (c.type === 'counter' && c.pause > 0) {
+      const n = Math.min(4, Math.floor((2.4 - c.pause) / .6) + 1);
+      const bx = hx + 18 * sc, byy = hy - 26 * sc;
+      cx.font = `600 ${Math.max(11, 12 * sc)}px Figtree, system-ui, sans-serif`;
+      // The bubble grows to fit the longer French line; the English one keeps its 104 px.
+      const label = t('countingYou')(n), bw = Math.max(104 * sc, cx.measureText(label).width + 16 * sc);
+      cx.fillStyle = T.panel; cx.strokeStyle = T.ink; cx.lineWidth = 1.5;
+      cx.beginPath(); cx.roundRect(bx, byy - 16 * sc, bw, 30 * sc, 8); cx.fill(); cx.stroke();
+      cx.fillStyle = T.ink;
+      cx.textAlign = 'left'; cx.textBaseline = 'middle';
+      cx.fillText(label, bx + 8 * sc, byy - 1 * sc);
+    }
+  }
+  const label = c.type === 'trench' ? `#${c.tag} + #${c.tag2}` : `#${c.tag}`;
+  tagPill(x, top, label, false);
+  if (c.stamp) stampMark(x, top - 26 * sc, c.stamp);
+}
+
+function drawSleeper() {
+  const r = Math.min(W * .22, H * .24), hx = W - r * .55, hy = r * .85;
+  cx.fillStyle = T.panel;
+  cx.beginPath(); cx.ellipse(hx + r * .2, hy + r * .9, r * 1.3, r * .5, 0, 0, 6.283); cx.fill();
+  cx.fillStyle = '#e7c4a3';
+  cx.beginPath(); cx.arc(hx, hy, r, 0, 6.283); cx.fill();
+  cx.fillStyle = T.lcd;
+  cx.beginPath(); cx.moveTo(hx - r * .95, hy - r * .35); cx.quadraticCurveTo(hx - r * .2, hy - r * 1.9, hx + r * .9, hy - r * .45); cx.fill();
+  cx.fillStyle = T.wool; cx.beginPath(); cx.arc(hx - r * .2, hy - r * 1.35, r * .16, 0, 6.283); cx.fill();
+  const F = S.fin, open = F && F.phase === 'ring' ? .55 : .2;
+  cx.fillStyle = '#2a2f38';
+  for (const dx of [-.42, .12]) {
+    cx.beginPath(); cx.ellipse(hx + dx * r, hy + r * .05, r * .14, r * .14 * open, 0, 0, 6.283); cx.fill();
+  }
+  cx.strokeStyle = '#2a2f38'; cx.lineWidth = 2;
+  for (const dx of [-.42, .12]) { cx.beginPath(); cx.moveTo(hx + dx * r - r * .16, hy - r * .02); cx.lineTo(hx + dx * r + r * .16, hy - r * .02); cx.stroke(); }
+  if (F && F.saysT > 0) {
+    cx.font = `600 ${Math.max(12, 13 * sc)}px Figtree, system-ui, sans-serif`;
+    const says = saysText(F.says), w = cx.measureText(says).width + 18, bx = Math.max(8, hx - r - w - 6), by = hy - 6;
+    cx.fillStyle = T.panel; cx.strokeStyle = T.ink; cx.lineWidth = 1.5;
+    cx.beginPath(); cx.roundRect(bx, by - 16, w, 30, 10); cx.fill(); cx.stroke();
+    cx.fillStyle = T.ink; cx.textAlign = 'left'; cx.textBaseline = 'middle';
+    cx.fillText(says, bx + 9, by);
+  }
+}
+
+function drawFinale() {
+  const gy = drawScene(true), F = S.fin, f = .55 * W;
+  drawSleeper();
+  let x = f - 80 * sc, lift = 0, rot = 0;
+  if (F.phase === 'jump') {
+    const p = Math.min(1, F.jt / .75);
+    x = f - 80 * sc + p * 170 * sc;
+    const peak = F.grade === 'bad' ? fenceH() * .75 : fenceH() * 1.6;
+    lift = -Math.sin(p * Math.PI) * peak;
+    if (F.grade === 'bad') rot = p * 1.4;
+    if (F.grade === 'ok') rot = Math.sin(p * 18) * .12;
+  }
+  const feet = gy + lift, by = feet - 30 * sc;
+  cx.save(); cx.translate(x, by); cx.rotate(rot); cx.translate(-x, -by);
+  drawLegs(x, by, feet, S.t * 6, lift < -4 * sc);
+  woolBlob(x, by, T.wool);
+  drawHead(x + 24 * sc, by - 6 * sc, '#2a2f38', false, T.lcd);
+  cx.restore();
+  tagPill(x, by - 30 * sc + lift * 0, t('you')(S.myTag), true);
+
+  if (F.phase === 'ring') {
+    const p = (F.t - F.start) / F.dur, tx = f, ty = gy - fenceH() - 22 * sc;
+    const rr = Math.max(2, 14 * sc + 120 * sc * (1 - p));
+    cx.fillStyle = T.lcd; cx.beginPath(); cx.arc(tx, ty, 6 * sc, 0, 6.283); cx.fill();
+    cx.save(); cx.setLineDash([3, 4]); cx.strokeStyle = T.lcd; cx.lineWidth = 2;
+    cx.beginPath(); cx.arc(tx, ty, 14 * sc, 0, 6.283); cx.stroke(); cx.restore();
+    cx.strokeStyle = T.ink; cx.lineWidth = 3;
+    cx.beginPath(); cx.arc(tx, ty, rr, 0, 6.283); cx.stroke();
+  }
+  cx.fillStyle = T.ink; cx.font = `600 ${Math.max(12, 13 * sc)}px Figtree, system-ui, sans-serif`;
+  cx.textAlign = 'left'; cx.textBaseline = 'top';
+  cx.fillText(t('jumpOf')(Math.min(3, F.i + 1)), 12, 12, W - 24);
+}
+
+function drawPlay() {
+  const gy = drawScene(false);
+  const cur = S.mode === 'play' ? current() : null;
+  for (const c of S.crit) drawCreature(c, gy, c === cur);
+}
+
+function hud() {
+  $('#clock').textContent = clockText();
+  $('#score').textContent = S.score;
+  const fill = $('#meter-fill');
+  if (S.fin && (S.mode === 'finale' || S.mode === 'over')) {
+    const v = Math.min(100, S.fin.sus / 4 * 100);
+    fill.style.width = v + '%';
+    fill.style.background = v >= 50 ? T.bad : T.tag;
+    $('#meter-val').textContent = `${S.fin.sus} / 4`;
+  } else {
+    fill.style.width = S.drowsy + '%';
+    fill.style.background = S.drowsy < 25 ? T.bad : T.good;
+    $('#meter-val').textContent = Math.round(S.drowsy) + '%';
+  }
+}
+
+let last = 0, tokenT = 0;
+function frame(now) {
+  const dt = Math.min(.05, (now - last) / 1000 || 0); last = now;
+  tokenT += dt; if (tokenT > 2) { tokenT = 0; readTokens(); }
+  if (W > 0) {
+    if (S.mode === 'play') update(dt);
+    else if (S.mode === 'finale') finUpdate(dt);
+    else S.t += dt;
+    if (S.mode === 'finale' || (S.mode === 'over' && S.fin)) drawFinale(); else drawPlay();
+    hud();
+  }
+  requestAnimationFrame(frame);
+}
+
+addEventListener('keydown', e => {
+  if (e.repeat) return;
+  const k = e.key;
+  if ((k === ' ' || k === 'Enter') && e.target.tagName === 'BUTTON') return;
+  if (S.mode === 'play') {
+    if (k === 'c' || k === 'C' || k === 'a' || k === 'A' || k === 'ArrowLeft') { e.preventDefault(); act('count'); }
+    else if (k === 'r' || k === 'R' || k === 'd' || k === 'D' || k === 'ArrowRight') { e.preventDefault(); act('reject'); }
+  } else if (S.mode === 'finale') {
+    if (k === ' ' || k === 'j' || k === 'J') { e.preventDefault(); jump(); }
+  }
+});
+cv.addEventListener('pointerdown', () => { if (S.mode === 'finale') jump(); });
+$('#btn-count').onclick = () => act('count');
+$('#btn-reject').onclick = () => act('reject');
+$('#btn-jump').onclick = () => jump();
+$('#start').onclick = begin;
+$('#again').onclick = begin;
+$('#retry').onclick = beginFinale;
+$('#be-sheep').onclick = beginFinale;
+
+// ---- language ------------------------------------------------------------------------------
+// Static markup carries data-t / data-th / data-ta; the meter label, ledger placeholder, feedback
+// line and end card are re-rendered; stamps, signs and speech bubbles redraw every frame.
+function applyLang() {
+  document.documentElement.lang = lang;
+  document.title = t('docTitle');
+  for (const el of document.querySelectorAll('[data-t]')) el.textContent = t(el.dataset.t);
+  for (const el of document.querySelectorAll('[data-th]')) el.innerHTML = t(el.dataset.th);
+  for (const el of document.querySelectorAll('[data-ta]')) el.setAttribute('aria-label', t(el.dataset.ta));
+  for (const box of document.querySelectorAll('.lang')) {
+    if (!box.children.length) box.innerHTML = '<button type="button" data-lang="fr" lang="fr">FR</button><button type="button" data-lang="en" lang="en">EN</button>';
+    for (const b of box.children) b.setAttribute('aria-pressed', String(b.dataset.lang === lang));
+  }
+  for (const li of document.querySelectorAll('#rules li')) li.dataset.new = t('isNew');
+  if (!S) return;
+  $('#my-tag').textContent = S.myTag ? '#' + S.myTag : '#0000';
+  meterName();
+  if (!S.ledger.length) $('#ledger').innerHTML = ledgerEmpty();
+  renderFeedback();
+  if (S.endKind && S.mode === 'over') fillOver();
+}
+function setLang(l) {
+  if (!(l in I18N) || l === lang) return;
+  lang = l;
+  applyLang();
+}
+document.addEventListener('click', e => {
+  const b = e.target.closest('[data-lang]');
+  if (b) setLang(b.dataset.lang);
+});
+
+function start(data) {
+  lang = data?.lang in I18N ? data.lang : (navigator.language || '').toLowerCase().startsWith('fr') ? 'fr' : 'en';
+  S = fresh(data.best || 0);
+  readTokens();
+  resize();
+  showRules(false);
+  applyLang();
+  requestAnimationFrame(frame);
+}
+window.claude?.hot?.snapshot?.(() => ({ best: Math.max(S?.best || 0, S?.score || 0), lang }));
+window.claude?.hot?.ready ? window.claude.hot.ready(start) : start(window.claude?.hot?.data ?? {});
+</script>
+</body>
+</html>

@@ -1,0 +1,890 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Typing Tutor for Whales</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IM+Fell+English:ital@0;1&family=Atkinson+Hyperlegible:wght@400;700&family=Courier+Prime:wght@400;700&display=swap">
+<style>
+/* Layout: a framed nautical chart. Songs sink through the soundings toward a dotted seabed; the keyboard sits below like a chart table. */
+:root {
+  --paper: #e7ede6;
+  --water-hi: #d4e5e1;
+  --water-lo: #9dbfc4;
+  --ink: #1a3340;
+  --ink-soft: #546e77;
+  --rule: #1a334033;
+  --magenta: #a3316b;
+  --ochre: #a86f0e;
+  --cold: #2a6894;
+  --tag: #f3f6f0ee;
+  --veil: #e7ede6eb;
+  --flood: #2a68944d;
+  --key: #f4f7f1;
+  --key-edge: #1a334040;
+  --f-display: "IM Fell English", "Iowan Old Style", Georgia, serif;
+  --f-ui: "Atkinson Hyperlegible", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-song: "Courier Prime", "Courier New", ui-monospace, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #0d1a1f; --water-hi: #12313b; --water-lo: #061820;
+    --ink: #d3e5e0; --ink-soft: #8eaab0; --rule: #d3e5e02e;
+    --magenta: #e47fae; --ochre: #e2a94c; --cold: #80c3e8;
+    --tag: #0d1a1fe6; --veil: #0d1a1feb; --flood: #80c3e838;
+    --key: #142a31; --key-edge: #d3e5e033;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #0d1a1f; --water-hi: #12313b; --water-lo: #061820;
+  --ink: #d3e5e0; --ink-soft: #8eaab0; --rule: #d3e5e02e;
+  --magenta: #e47fae; --ochre: #e2a94c; --cold: #80c3e8;
+  --tag: #0d1a1fe6; --veil: #0d1a1feb; --flood: #80c3e838;
+  --key: #142a31; --key-edge: #d3e5e033;
+  color-scheme: dark;
+}
+[hidden] { display: none !important; }
+html, body { height: 100%; }
+body { margin: 0; background: var(--paper); color: var(--ink); font: 15px/1.5 var(--f-ui); }
+.app {
+  box-sizing: border-box; height: 100%; max-width: 980px; margin: 0 auto;
+  display: grid; grid-template-rows: auto minmax(0, 1fr) auto auto; gap: 10px;
+  padding-block: 12px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+header { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 8px 20px; }
+.title { font-family: var(--f-display); font-size: clamp(20px, 3vw, 28px); line-height: 1.1; }
+.lesson { font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--magenta); margin-top: 2px; }
+.stats { display: flex; gap: 18px; align-items: baseline; font-variant-numeric: tabular-nums; }
+.stat b { font-size: 18px; }
+.stat span { display: block; font-size: 10px; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-soft); }
+.breaths b { letter-spacing: .15em; }
+.lang { display: flex; align-self: center; border: 1px solid var(--ink); border-radius: 3px; overflow: hidden; background: var(--tag); }
+.lang button { border: 0; background: transparent; padding: 5px 9px; font: 700 11px var(--f-ui); letter-spacing: .1em; color: var(--ink-soft); cursor: pointer; }
+.lang button + button { border-left: 1px solid var(--rule); }
+.lang button:hover { color: var(--ink); }
+.lang button[aria-pressed="true"] { background: var(--ink); color: var(--paper); }
+
+.chart {
+  position: relative; margin: 4px; min-height: 220px; overflow: hidden;
+  border: 1px solid var(--ink); outline: 1px solid var(--ink); outline-offset: 3px;
+  background: var(--water-hi);
+}
+.chart canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.scale { position: absolute; left: 0; top: 0; bottom: 26px; width: 42px; border-right: 1px solid var(--rule); font-size: 10px; color: var(--ink-soft); font-variant-numeric: tabular-nums; pointer-events: none; }
+.scale div { position: absolute; right: 8px; transform: translateY(-50%); }
+.scale div::after { content: ""; position: absolute; right: -8px; top: 50%; width: 5px; border-top: 1px solid var(--ink-soft); }
+.layer { position: absolute; inset: 0; pointer-events: none; }
+.seabed {
+  position: absolute; left: 0; right: 0; bottom: 0; height: 26px; border-top: 1px solid var(--ink);
+  background-color: var(--water-lo);
+  background-image: radial-gradient(var(--ink-soft) 1px, transparent 1.6px); background-size: 7px 7px;
+}
+.seabed span { position: absolute; right: 8px; top: 50%; transform: translateY(-50%); font-size: 10px; letter-spacing: .1em; text-transform: uppercase; background: var(--tag); padding: 0 6px; }
+
+.word {
+  position: absolute; left: 0; top: 0; display: grid; gap: 1px; padding: 3px 8px 5px;
+  background: var(--tag); border: 1px solid var(--rule); border-radius: 3px;
+  font-family: var(--f-song); font-size: clamp(17px, 2.3vw, 22px); line-height: 1.25;
+  white-space: nowrap; color: var(--ink); will-change: transform;
+}
+.word small { font-family: var(--f-ui); font-size: 9px; letter-spacing: .12em; text-transform: uppercase; color: var(--ink-soft); }
+.word .c { position: relative; }
+.word .typed { color: var(--magenta); font-weight: 700; }
+.word .half { color: var(--ochre); font-weight: 700; }
+.word .tilde::after { content: "~"; position: absolute; left: 50%; top: -.6em; transform: translateX(-50%); color: var(--ochre); font-size: .85em; }
+.word .eaten { opacity: .35; text-decoration: line-through; }
+.word .murk { color: var(--ink-soft); opacity: .6; }
+.word.cold { border-color: var(--cold); }
+.word.cold small, .word.cold .c:not(.typed) { color: var(--cold); }
+.word.sonar small { color: var(--ochre); }
+.word.locked { border-color: var(--magenta); box-shadow: 0 0 0 1px var(--magenta); }
+.word.done { animation: pop .35s forwards; }
+.shake { animation: shake .25s; }
+@keyframes shake { 25% { margin-left: -5px; } 75% { margin-left: 5px; } }
+@keyframes pop { to { opacity: 0; scale: 1.25; } }
+
+.plaque { position: absolute; top: 5%; left: 52px; right: 12px; z-index: 2; background: var(--tag); border: 3px double var(--ink); padding: 10px 14px; text-align: center; }
+.plaque small { display: block; font-size: 10px; letter-spacing: .12em; text-transform: uppercase; color: var(--magenta); margin-bottom: 6px; }
+.plaque p { margin: 0; font-family: var(--f-song); font-size: clamp(16px, 2.4vw, 22px); line-height: 1.5; text-wrap: balance; }
+.plaque .typed { color: var(--magenta); font-weight: 700; }
+.plaque .cur { border-bottom: 2px solid var(--magenta); }
+.flood { position: absolute; left: 0; right: 0; bottom: 0; height: 0; z-index: 1; background: var(--flood); border-top: 2px solid var(--cold); }
+.flood span { position: absolute; right: 8px; top: 4px; font-size: 10px; letter-spacing: .1em; text-transform: uppercase; color: var(--cold); }
+
+.overlay { position: absolute; inset: 0; z-index: 5; display: grid; place-items: center; padding: 20px; background: var(--veil); overflow: auto; }
+.card { max-width: 560px; display: grid; gap: 12px; justify-items: start; }
+.eyebrow { font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--magenta); }
+.card h1, .card h2 { margin: 0; font-family: var(--f-display); font-weight: 400; line-height: 1.05; text-wrap: balance; }
+.card h1 { font-size: clamp(38px, 7vw, 66px); }
+.card h1 i { color: var(--magenta); }
+.card h2 { font-size: clamp(26px, 4.5vw, 40px); }
+.card p { margin: 0; max-width: 60ch; }
+.card .whale { font-family: var(--f-display); font-style: italic; font-size: 19px; line-height: 1.4; }
+.card blockquote { margin: 0; padding: 10px 14px; border: 3px double var(--ink); background: var(--tag); font-family: var(--f-song); font-size: 18px; }
+.card .tally { font-size: 13px; color: var(--ink-soft); font-variant-numeric: tabular-nums; }
+.notice { border: 1px solid var(--magenta); padding: 8px 12px; font-size: 14px; max-width: 60ch; background: var(--tag); }
+.notice b { display: block; font-size: 10px; letter-spacing: .12em; text-transform: uppercase; color: var(--magenta); margin-bottom: 2px; }
+.hint { font-size: 12px; color: var(--ink-soft); }
+.primary { font: 700 14px var(--f-ui); letter-spacing: .02em; color: var(--paper); background: var(--ink); border: 0; border-radius: 3px; padding: 11px 20px; cursor: pointer; }
+.primary:hover { background: var(--magenta); }
+button:focus-visible { outline: 2px solid var(--magenta); outline-offset: 3px; }
+
+.voice { min-height: 2.6em; display: flex; gap: 10px; align-items: baseline; font-family: var(--f-display); font-style: italic; font-size: clamp(16px, 2.2vw, 20px); line-height: 1.3; }
+.voice b { font-family: var(--f-ui); font-style: normal; font-size: 10px; letter-spacing: .12em; text-transform: uppercase; color: var(--ochre); white-space: nowrap; }
+
+.kb { display: grid; gap: 5px; max-width: 640px; width: 100%; margin: 0 auto; user-select: none; -webkit-user-select: none; }
+.kb .row { display: flex; gap: 5px; justify-content: center; }
+.kb button {
+  flex: 1 1 0; max-width: 56px; height: 40px; padding: 0; border-radius: 4px;
+  border: 1px solid var(--key-edge); background: var(--key); color: var(--ink);
+  font: 700 16px var(--f-song); cursor: pointer; touch-action: manipulation;
+}
+.kb button.inked { background: var(--ink); color: var(--paper); }
+.kb button.wide { max-width: none; flex: 2 1 0; font: 700 12px var(--f-ui); letter-spacing: .06em; text-transform: uppercase; }
+.kb button.space { flex: 5 1 0; }
+.kb button.press { background: var(--magenta); color: var(--paper); }
+@media (max-width: 480px) {
+  .kb button { height: 36px; font-size: 14px; }
+  .stats { gap: 12px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .word.done, .shake { animation: none; }
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div>
+      <div class="title" data-t="title">Typing Tutor for Whales</div>
+      <div class="lesson" id="lesson">Enrolment</div>
+    </div>
+    <div class="stats">
+      <div class="stat"><b id="score">0</b><span data-t="statScore">fathoms of literacy</span></div>
+      <div class="stat breaths"><b id="breaths">●●●●●</b><span data-t="statPatience">whale's patience</span></div>
+      <div class="lang" role="group" data-ta="langGroup" aria-label="Language"></div>
+    </div>
+  </header>
+
+  <main class="chart" id="chart">
+    <canvas id="sea" aria-hidden="true"></canvas>
+    <div class="scale" id="scale" aria-hidden="true"></div>
+    <div class="layer" id="layer"></div>
+    <div class="seabed"><span data-t="seabed">Seabed · 120 fm</span></div>
+    <div class="flood" id="flood" hidden><span id="floodlbl"></span></div>
+    <div class="plaque" id="plaque" hidden><small data-t="plaque">Final exam · composed by the whale from your homework</small><p id="exam"></p></div>
+    <div class="overlay" id="ov">
+      <div class="card" id="card">
+        <div class="eyebrow">Enrolment · humpback, adult, 14 m</div>
+        <h1>Typing Tutor for <i>Whales</i></h1>
+        <p>A whale has enrolled in your typing course. Its songs sink through the chart as words. Type each one before it reaches the seabed at 120 fathoms. Seven lessons, then a final exam.</p>
+        <p class="hint">Physical keyboard or the keys below · Backspace lets go of a song</p>
+        <button class="primary" id="go" type="button">Begin lesson one</button>
+      </div>
+    </div>
+  </main>
+
+  <div class="voice" aria-live="polite"><b data-t="whaleName">The whale</b><span id="voice">I would like to learn to type. I have a lot to say.</span></div>
+  <div class="kb" id="kb"></div>
+</div>
+
+<script>
+const $ = s => document.querySelector(s);
+const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const VOW = 'aeiou';
+const SEABED_FM = 120;
+
+// Every song has a meaning; the final exam is assembled from the meanings of songs the player typed.
+// Songs and meanings live per language in I18N.*.vocab, same index and category in both. The French
+// songs are re-spelt with French sound conventions (ou for oo, no th / wh / ee) and keep each
+// song's length, its doubled letters (the stretch) and its consonant count (the krill filter).
+const CATS = [...'sssssvvvvvoooooppppaaaa'];
+const I18N = {
+  en: {
+    docTitle: 'Typing Tutor for Whales', langGroup: 'Language',
+    title: 'Typing Tutor for Whales', statScore: 'fathoms of literacy', statPatience: "whale's patience",
+    seabed: 'Seabed · 120 fm', plaque: 'Final exam · composed by the whale from your homework',
+    whaleName: 'The whale',
+    vocab: [
+      { w: 'hwooom', m: 'I' }, { w: 'mmrraa', m: 'my mother' }, { w: 'oooaaoo', m: 'the whole sea' },
+      { w: 'kreelik', m: 'a small boat' }, { w: 'thuuum', m: 'everyone I know' },
+      { w: 'krrrlik', m: 'remembered' }, { w: 'wuuuuh', m: 'forgave' }, { w: 'eeeorr', m: 'outlived' },
+      { w: 'blorrp', m: 'swallowed' }, { w: 'nnhooo', m: 'sang to' },
+      { w: 'grooonk', m: 'the moon' }, { w: 'pliiik', m: 'your hands' }, { w: 'skooaa', m: 'a lighthouse' },
+      { w: 'urrmmm', m: 'nine winters' }, { w: 'tikktikk', m: 'the letter q' },
+      { w: 'wheeoo', m: 'under the ice' }, { w: 'brummm', m: 'in the dark' },
+      { w: 'aaoouu', m: 'far below Norway' }, { w: 'zwiiip', m: 'inside a song' },
+      { w: 'mooorn', m: 'slowly' }, { w: 'kalooo', m: 'on purpose' }, { w: 'hrrrrm', m: 'every Tuesday' },
+      { w: 'eeeep', m: 'without blinking' },
+    ],
+    // s v o p, a — English needs no agreement.
+    compose: (s, v, o, p, a) => `${s.m} ${v.m} ${o.m} ${p.m}, ${a.m}.`,
+    squidPool: 'okrmhlewiu', rows: ['qwertyuiop', 'asdfghjkl', 'zxcvbnm'],
+    lessons: [
+      { title: 'Plain song', whale: 'I sing, you type. That is the whole arrangement.',
+        notice: 'Type each song before it touches the seabed. Your first key picks the deepest song that starts with that letter. Backspace lets go of it.' },
+      { title: 'Held notes', whale: 'Sometimes I hold a note for a long time. Years, once.',
+        notice: 'A letter with a tilde (~) above it was held. Type that letter twice.' },
+      { title: 'The cold current', whale: 'Songs in the cold current arrive backwards. It is not my fault. It is the current.',
+        notice: 'Songs marked COLD CURRENT are typed backwards, last letter first.' },
+      { title: 'The squid', whale: 'A squid has climbed onto your keyboard. It means well.',
+        notice: 'The squid swaps two keys. Inked keys on the keyboard below show what each key now types. It moves every three songs.' },
+      { title: 'Krill', whale: 'The krill got into the vowels again. I will speak to them.',
+        notice: 'Crossed-out vowels were eaten. Type only the letters that are left.' },
+      { title: 'Sonar', whale: 'Some of my songs are too deep for your little eyes.',
+        notice: 'Songs marked TOO DEEP show only after a sonar ping. Pings happen by themselves, or press Space. You can also type a song blind.' },
+      { title: 'Everything at once', whale: 'Everything at once. I am very proud of you. This is not relevant.',
+        notice: 'Every rule so far can appear, and the squid is back. Read each label.' },
+    ],
+    beginLesson: i => `Begin lesson ${['one', 'two', 'three', 'four', 'five', 'six', 'seven'][i]}`,
+    label: { cold: 'cold current · backwards', sonar: 'too deep · ping', tilde: 'held notes · type twice', krill: 'krill damage · consonants' },
+    good: ['Good. I am writing that down.', 'Yes. Exactly as I sang it.', 'Your fingers are very small and very fast.', 'Lovely. The plankton are applauding. You cannot hear it.'],
+    wrong: ['That is not a sound a whale makes.', 'Gentler. You are typing on my feelings.', 'No. Try the key that is correct.', 'A dolphin would have got that. I am only saying.'],
+    sink: ['That song is a fossil now.', 'It has joined the other songs on the bottom. They are fine down there.', 'Gone. I will sing it again in about forty years.'],
+    hello: 'I would like to learn to type. I have a lot to say.',
+    keyLetGo: '⌫ Let go', keySpace: 'Space · ping',
+    squid: (a, b) => `The squid has swapped ${a} and ${b}. The inked keys show the new letters.`,
+    meaning: (w, m) => `“${w}.” That one means “${m}.” I am writing it down.`,
+    enrolment: 'Enrolment',
+    titleCard: '<div class="eyebrow">Enrolment · humpback, adult, 14 m</div><h1>Typing Tutor for <i>Whales</i></h1>' +
+      '<p>A whale has enrolled in your typing course. Its songs sink through the chart as words. Type each one before it reaches the seabed at 120 fathoms. Seven lessons, then a final exam.</p>' +
+      '<p class="hint">Physical keyboard or the keys below · Backspace lets go of a song</p>',
+    titleGo: 'Begin lesson one',
+    lessonOf: (i, n) => `Lesson ${i} of ${n}`, notice: 'Notice to mariners',
+    examHead: 'Final exam',
+    examCard: '<div class="eyebrow">Final exam</div><h2>The whale has been writing something</h2>' +
+      '<p class="whale">“The course is finished. I have been composing this the whole time, from the songs you typed. Now you sit the exam. No tricks.”</p>' +
+      '<div class="notice"><b>Notice to mariners</b>Type the whale\'s sentence before the water rises over it. Punctuation types itself. Capitals do not matter.</div>',
+    examGo: 'Sit the exam', examSay: 'Take your time. Not too much of it.',
+    floodLbl: n => `Water ${n} fm below the sentence`,
+    ends: {
+      diploma: ['Course complete', 'Diploma, printed on kelp',
+        'The whale has learned to type. So, it turns out, have you. It asks whether you remember being the student, or whether you were the course.'],
+      flood: ['Final exam', 'The water closed over the sentence',
+        'You are a whale now. It is quieter down here. Somewhere above you, someone is enrolling.'],
+      patience: [n => `Lesson ${n}`, 'The whale has gone back to clicking',
+        'It says this is not your fault. It says it in clicks, so you will never know.'],
+    },
+    tally: (sc, songs, missed, wrong, best) => `${sc} fathoms of literacy · ${songs} songs typed · ${missed} sank · ${wrong} wrong keys · best ${best}`,
+    again: 'Enrol again', framed: 'I will frame it. I do not have walls.',
+    quote: s => `“${s}”`,
+  },
+  fr: {
+    docTitle: 'Dactylo pour baleines', langGroup: 'Langue',
+    title: 'Dactylo pour baleines', statScore: "brasses d'alphabétisation", statPatience: 'patience de la baleine',
+    seabed: 'Fond marin · 120 brasses', plaque: 'Examen final · composé par la baleine à partir de vos devoirs',
+    whaleName: 'La baleine',
+    vocab: [
+      { w: 'houuum', m: 'je' }, { w: 'mmrraa', m: 'ma mère' }, { w: 'ouuaaou', m: 'toute la mer' },
+      { w: 'criilic', m: 'un petit bateau' }, { w: 'touuum', m: 'tous ceux que je connais' },
+      { w: 'crrrlic', m: 'retenu' }, { w: 'vouuuh', m: 'pardonné à' }, { w: 'euuorr', m: 'survécu à' },
+      { w: 'blorrp', m: 'avalé' }, { w: 'nnhouu', m: 'chanté pour' },
+      { w: 'grouunc', m: 'la lune' }, { w: 'pliiic', m: 'vos mains' }, { w: 'scouaa', m: 'un phare' },
+      { w: 'ourrmm', m: 'neuf hivers' }, { w: 'tiktakk', m: 'la lettre q' },
+      { w: 'vriiiou', m: 'sous la glace' }, { w: 'broumm', m: 'dans le noir' },
+      { w: 'aaoouu', m: 'loin sous la Norvège' }, { w: 'zouiip', m: "au fond d'une chanson" },
+      { w: 'mouuun', m: 'lentement' }, { w: 'calouu', m: 'exprès' }, { w: 'hrrrrm', m: 'tous les mardis' },
+      { w: 'iiiip', m: 'sans ciller' },
+    ],
+    // Passé composé with avoir and the object after the verb, so no participle ever agrees. The
+    // auxiliary follows the subject: j'ai, il/elle a, ils ont. No object starts with le / les, so
+    // « à » never has to contract.
+    compose: (s, v, o, p, a) => {
+      const subj = s.i === 0 ? "j'ai" : `${s.m} ${s.i === 4 ? 'ont' : 'a'}`;
+      return `${subj} ${v.m} ${o.m} ${p.m}, ${a.m}.`;
+    },
+    squidPool: 'ourmhclipa', rows: ['azertyuiop', 'qsdfghjklm', 'wxcvbn'],
+    lessons: [
+      { title: 'Chant simple', whale: "Je chante, vous tapez. C'est tout l'arrangement.",
+        notice: "Tapez chaque chant avant qu'il touche le fond. Votre première touche choisit le chant le plus profond qui commence par cette lettre. Retour arrière le relâche." },
+      { title: 'Notes tenues', whale: 'Parfois, je tiens une note très longtemps. Des années, une fois.',
+        notice: "Une lettre surmontée d'un tilde (~) a été tenue. Tapez-la deux fois." },
+      { title: 'Le courant froid', whale: "Dans le courant froid, mes chants arrivent à l'envers. Ce n'est pas ma faute. C'est le courant.",
+        notice: "Les chants marqués COURANT FROID se tapent à l'envers, dernière lettre en premier." },
+      { title: 'Le calmar', whale: "Un calmar est monté sur votre clavier. Il part d'un bon sentiment.",
+        notice: 'Le calmar échange deux touches. Les touches encrées du clavier ci-dessous montrent ce que chaque touche tape désormais. Il change tous les trois chants.' },
+      { title: 'Le krill', whale: "Le krill s'est encore attaqué aux voyelles. Je vais lui parler.",
+        notice: 'Les voyelles barrées ont été mangées. Tapez seulement les lettres qui restent.' },
+      { title: 'Sonar', whale: 'Certains de mes chants sont trop profonds pour vos petits yeux.',
+        notice: "Les chants marqués TROP PROFOND n'apparaissent qu'après un ping du sonar. Les pings partent tout seuls, ou appuyez sur Espace. Vous pouvez aussi taper un chant à l'aveugle." },
+      { title: 'Tout à la fois', whale: "Tout à la fois. Je suis très fière de vous. Ce n'est pas le sujet.",
+        notice: "Toutes les règles vues jusqu'ici peuvent revenir, et le calmar aussi. Lisez chaque étiquette." },
+    ],
+    beginLesson: i => `Commencer la ${['première', 'deuxième', 'troisième', 'quatrième', 'cinquième', 'sixième', 'septième'][i]} leçon`,
+    label: { cold: "courant froid · à l'envers", sonar: 'trop profond · ping', tilde: 'notes tenues · tapez deux fois', krill: 'dégâts de krill · consonnes' },
+    good: ['Bien. Je le note.', "Oui. Exactement comme je l'ai chanté.", 'Vos doigts sont tout petits et très rapides.', "Charmant. Le plancton applaudit. Vous ne pouvez pas l'entendre."],
+    wrong: ["Ce n'est pas un son de baleine, ça.", 'Plus doucement. Vous tapez sur mes sentiments.', 'Non. Essayez la bonne touche.', "Un dauphin l'aurait eu. Je dis ça, je ne dis rien."],
+    sink: ['Ce chant est un fossile, maintenant.', 'Il a rejoint les autres chants, au fond. Ils sont bien, là-dessous.', "Perdu. Je le rechanterai dans une quarantaine d'années."],
+    hello: "J'aimerais apprendre à taper. J'ai beaucoup de choses à dire.",
+    keyLetGo: '⌫ Lâcher', keySpace: 'Espace · ping',
+    squid: (a, b) => `Le calmar a échangé ${a} et ${b}. Les touches encrées montrent les nouvelles lettres.`,
+    meaning: (w, m) => `« ${w}. » Celui-là veut dire « ${m} ». Je le note.`,
+    enrolment: 'Inscription',
+    titleCard: '<div class="eyebrow">Inscription · baleine à bosse, adulte, 14 m</div><h1>Dactylo pour <i>baleines</i></h1>' +
+      "<p>Une baleine s'est inscrite à votre cours de dactylo. Ses chants coulent à travers la carte sous forme de mots. Tapez chacun d'eux avant qu'il atteigne le fond, à 120 brasses. Sept leçons, puis un examen final.</p>" +
+      '<p class="hint">Clavier physique ou touches ci-dessous · Retour arrière relâche un chant · Les accents sont facultatifs : e vaut é</p>',
+    titleGo: 'Commencer la première leçon',
+    lessonOf: (i, n) => `Leçon ${i} sur ${n}`, notice: 'Avis aux navigateurs',
+    examHead: 'Examen final',
+    examCard: '<div class="eyebrow">Examen final</div><h2>La baleine écrivait quelque chose</h2>' +
+      "<p class=\"whale\">« Le cours est terminé. J'ai composé ceci pendant tout ce temps, à partir des chants que vous avez tapés. Maintenant, vous passez l'examen. Sans piège. »</p>" +
+      "<div class=\"notice\"><b>Avis aux navigateurs</b>Tapez la phrase de la baleine avant que l'eau la recouvre. La ponctuation se tape toute seule. Majuscules et accents ne comptent pas.</div>",
+    examGo: "Passer l'examen", examSay: 'Prenez votre temps. Mais pas trop.',
+    floodLbl: n => `Eau à ${n} brasses sous la phrase`,
+    ends: {
+      diploma: ['Cours terminé', 'Diplôme, imprimé sur varech',
+        "La baleine a appris à taper. Vous aussi, apparemment. Elle demande si vous vous souvenez d'avoir été l'élève, ou si c'était vous, le cours."],
+      flood: ['Examen final', "L'eau s'est refermée sur la phrase",
+        "Vous êtes une baleine, maintenant. C'est plus calme, ici en bas. Quelque part au-dessus de vous, quelqu'un s'inscrit."],
+      patience: [n => `Leçon ${n}`, 'La baleine est retournée à ses clics',
+        "Elle dit que ce n'est pas votre faute. Elle le dit en clics, alors vous ne le saurez jamais."],
+    },
+    tally: (sc, songs, missed, wrong, best) => `${sc} brasses d'alphabétisation · ${songs} chants tapés · ${missed} coulés · ${wrong} fausses touches · record ${best}`,
+    again: 'Se réinscrire', framed: "Je vais l'encadrer. Je n'ai pas de murs.",
+    quote: s => `« ${s} »`,
+  },
+};
+
+// French typography: a narrow no-break space before ? ! : ; » and after «, applied once to every
+// French string (and to whatever a French string function returns).
+(function frenchSpacing() {
+  const fix = s => s.replace(/ ([?!:;»])/g, '\u202f$1').replace(/« /g, '«\u202f');
+  const deep = v => typeof v === 'string' ? fix(v)
+    : typeof v === 'function' ? (...a) => { const r = v(...a); return typeof r === 'string' ? fix(r) : r; }
+    : Array.isArray(v) ? v.map(deep)
+    : v && typeof v === 'object' ? Object.fromEntries(Object.entries(v).map(([k, x]) => [k, deep(x)]))
+    : v;
+  I18N.fr = deep(I18N.fr);
+})();
+
+let lang = 'en';
+const t = k => I18N[lang][k] ?? I18N.en[k];
+// Indexed tables are read across a mid-game switch, so both languages must hold the same count.
+for (const k of ['vocab', 'lessons', 'good', 'wrong', 'sink']) {
+  if (I18N.en[k].length !== I18N.fr[k].length) console.error(`i18n: ${k} differs in length`);
+}
+
+// é matches e: the player may type the accent or not, on QWERTY or AZERTY. ç → c, è → e, and so on.
+const fold = c => c.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+
+// Game logic holds ids (index + category); the song and meaning are read in the current language.
+const VOCAB = CATS.map((cat, i) => ({ i, cat, get w() { return t('vocab')[i].w; }, get m() { return t('vocab')[i].m; } }));
+
+const LESSONS = [
+  { rule: 'plain', quota: 6 }, { rule: 'tilde', quota: 6 }, { rule: 'cold', quota: 6 },
+  { rule: 'squid', quota: 6 }, { rule: 'krill', quota: 6 }, { rule: 'sonar', quota: 6 }, { rule: 'mixed', quota: 8 },
+];
+const lessonText = i => t('lessons')[i];
+
+const pick = a => a[Math.floor(Math.random() * a.length)];
+const pickI = a => Math.floor(Math.random() * a.length);
+const isCons = ch => !VOW.includes(ch);
+const stretch = w => w.replace(/(.)\1+/g, (m, c) => c.repeat(2 + Math.floor(Math.random() * 3)));
+
+const chart = $('#chart'), cv = $('#sea'), cx = cv.getContext('2d'), layer = $('#layer');
+let W = 0, H = 0, BED = 0;
+function resize() {
+  const r = chart.getBoundingClientRect(), d = Math.min(2, devicePixelRatio || 1);
+  W = r.width; H = r.height; BED = H - 26;
+  cv.width = W * d; cv.height = H * d; cx.setTransform(d, 0, 0, d, 0, 0);
+  $('#scale').innerHTML = [0, 20, 40, 60, 80, 100, 120]
+    .map(f => `<div style="top:${Math.max(7, (f / SEABED_FM) * BED)}px">${f}</div>`).join('');
+}
+new ResizeObserver(resize).observe(chart);
+
+let T = {};
+function readTokens() {
+  const cs = getComputedStyle(document.documentElement);
+  for (const k of ['water-hi', 'water-lo', 'ink', 'magenta', 'paper']) T[k] = cs.getPropertyValue('--' + k).trim();
+}
+
+const soundings = Array.from({ length: 26 }, () => {
+  const y = Math.random();
+  return { x: .08 + Math.random() * .88, y, n: Math.round(y * 110 + 4 + Math.random() * 6) };
+});
+const snow = Array.from({ length: 70 }, () => ({ x: Math.random(), y: Math.random(), s: Math.random() * .02 + .01, r: Math.random() * 1.3 + .4 }));
+
+let S;
+function fresh(best = 0) {
+  return { mode: 'title', t: 0, lesson: 0, spawned: 0, spawnT: 0, words: [], locked: null,
+    score: 0, best, breaths: 5, mistakes: 0, missed: 0, songs: 0, typed: [],
+    pingT: 99, pingCool: 0, swap: null, squidCount: 0, exam: null, lastWrong: -9, onGo: null,
+    card: null, head: () => t('enrolment') };
+}
+
+// say() takes a thunk so the line on show can be re-read in the other language.
+let typing = null, voiceLine = () => t('hello');
+function say(line, instant = false) {
+  voiceLine = line;
+  const el = $('#voice'), text = line();
+  clearInterval(typing);
+  if (reduce || instant) { el.textContent = text; return; }
+  let i = 0; el.textContent = '';
+  typing = setInterval(() => { el.textContent = text.slice(0, ++i); if (i >= text.length) clearInterval(typing); }, 26);
+}
+
+function hud() {
+  const b = Math.max(0, S.breaths);
+  $('#score').textContent = S.score;
+  $('#breaths').textContent = '●'.repeat(b) + '○'.repeat(5 - b);
+}
+
+// The squid: a physical key types its partner's letter. Labels on the on-screen keys show the output.
+const out = k => !S.swap ? k : k === S.swap.a ? S.swap.b : k === S.swap.b ? S.swap.a : k;
+// The on-screen rows follow the language (QWERTY / AZERTY); keys are letters, so the squid and the
+// physical keyboard are unaffected by which layout is drawn.
+function renderKeys() {
+  $('#kb').innerHTML = t('rows').map(r => `<div class="row">${[...r].map(k => {
+    const o = out(k);
+    return `<button type="button" data-k="${k}" class="${o !== k ? 'inked' : ''}" aria-label="${o}">${o}</button>`;
+  }).join('')}</div>`).join('') +
+    `<div class="row"><button type="button" class="wide" data-k="Backspace">${t('keyLetGo')}</button>` +
+    `<button type="button" class="wide space" data-k=" ">${t('keySpace')}</button></div>`;
+}
+function flash(b) { b.classList.add('press'); setTimeout(() => b.classList.remove('press'), 120); }
+$('#kb').addEventListener('pointerdown', e => {
+  const b = e.target.closest('button');
+  if (!b) return;
+  e.preventDefault(); flash(b); press(b.dataset.k);
+});
+
+function newSwap() {
+  const pool = [...t('squidPool')].sort(() => Math.random() - .5);
+  S.swap = { a: pool[0], b: pool[1] };
+  renderKeys();
+  say(() => t('squid')(pool[0].toUpperCase(), pool[1].toUpperCase()));
+}
+
+function ruleFor(L) {
+  switch (L.rule) {
+    case 'cold': return Math.random() < .6 ? 'cold' : 'plain';
+    case 'sonar': return Math.random() < .6 ? 'sonar' : 'plain';
+    case 'mixed': return pick(['plain', 'tilde', 'cold', 'krill', 'sonar']);
+    case 'squid': return 'plain';
+    default: return L.rule;
+  }
+}
+
+// target[] is what must be typed, in order; each entry points back at the displayed letter it consumes (di).
+function makeWord(rule) {
+  const pool = rule === 'krill' ? VOCAB.filter(v => [...v.w].filter(isCons).length >= 2) : VOCAB;
+  const v = pick(pool), text = stretch(v.w);
+  const disp = [...text].map(ch => ({ ch, tilde: false, eaten: false }));
+  if (rule === 'tilde') {
+    const vi = disp.map((d, i) => VOW.includes(d.ch) ? i : -1).filter(i => i >= 0).sort(() => Math.random() - .5);
+    vi.slice(0, 2).forEach(i => { disp[i].tilde = true; });
+  }
+  if (rule === 'krill') disp.forEach(d => { d.eaten = VOW.includes(d.ch); });
+  const target = [];
+  disp.forEach((d, i) => {
+    if (d.eaten) return;
+    target.push({ ch: d.ch, di: i });
+    if (d.tilde) target.push({ ch: d.ch, di: i });
+  });
+  if (rule === 'cold') target.reverse();
+  return { v, text, disp, target, rule, prog: 0, x: 0, y: 0, h: 0, el: null, hidden: rule === 'sonar', revealed: false, shown: null, gone: false };
+}
+
+function renderWord(w) {
+  const total = w.disp.map(() => 0), done = w.disp.map(() => 0);
+  w.target.forEach((t, i) => { total[t.di]++; if (i < w.prog) done[t.di]++; });
+  const show = !w.hidden || w.revealed || S.pingT < 1.6;
+  w.shown = show;
+  const chars = w.disp.map((d, i) => {
+    if (!show) return '<span class="c murk">≈</span>';
+    const cls = ['c', d.tilde && 'tilde', d.eaten && 'eaten',
+      total[i] && done[i] === total[i] && 'typed', done[i] && done[i] < total[i] && 'half'].filter(Boolean).join(' ');
+    return `<span class="${cls}">${d.ch}</span>`;
+  }).join('');
+  const lbl = t('label')[w.rule];
+  w.el.innerHTML = (lbl ? `<small>${lbl}</small>` : '') + `<span>${chars}</span>`;
+}
+
+function spawn() {
+  const w = makeWord(ruleFor(LESSONS[S.lesson]));
+  w.el = document.createElement('div');
+  w.el.className = 'word' + (w.rule === 'cold' ? ' cold' : '') + (w.rule === 'sonar' ? ' sonar' : '');
+  layer.appendChild(w.el);
+  renderWord(w);
+  const ww = w.el.offsetWidth;
+  w.h = w.el.offsetHeight;
+  const minX = 50, maxX = Math.max(minX, W - ww - 10);
+  w.x = minX + Math.random() * (maxX - minX);
+  w.y = -w.h;
+  w.el.style.transform = `translate(${w.x}px, ${w.y}px)`;
+  S.words.push(w);
+  S.spawned++;
+}
+
+function removeWord(w) {
+  w.gone = true;
+  S.words = S.words.filter(x => x !== w);
+  w.el.classList.add('done');
+  setTimeout(() => w.el.remove(), reduce ? 0 : 350);
+}
+
+function lockOn(c) {
+  const cands = S.words.filter(w => w.target[0].ch === c);
+  if (!cands.length) return null;
+  const w = cands.reduce((a, b) => (b.y > a.y ? b : a));
+  S.locked = w; w.revealed = true; w.el.classList.add('locked');
+  return w;
+}
+
+function shake(el) {
+  if (!el || reduce) return;
+  el.classList.remove('shake'); void el.offsetWidth; el.classList.add('shake');
+}
+
+function wrong(w) {
+  S.mistakes++;
+  S.score = Math.max(0, S.score - 1);
+  hud();
+  shake(w && w.el);
+  if (S.t - S.lastWrong > 2.5) { sayOne('wrong'); S.lastWrong = S.t; }
+}
+
+function typeChar(c) {
+  if (S.mode === 'exam') return examChar(c);
+  if (S.mode !== 'play') return;
+  let w = S.locked;
+  if (!w) {
+    w = lockOn(c);
+    if (!w) return wrong(null);
+  } else if (w.target[w.prog].ch !== c) return wrong(w);
+  w.prog++;
+  renderWord(w);
+  if (w.prog >= w.target.length) complete(w);
+}
+
+function complete(w) {
+  S.score += Math.round(w.target.length * (1 + S.lesson * .25));
+  S.typed.push(w.v); S.songs++;
+  S.locked = null;
+  removeWord(w);
+  const v = w.v, text = w.text;
+  if (Math.random() < .45) say(() => t('meaning')(text, v.m)); else sayOne('good');
+  const L = LESSONS[S.lesson];
+  if ((L.rule === 'squid' || L.rule === 'mixed') && ++S.squidCount % 3 === 0) newSwap();
+  hud();
+}
+
+function sink(w) {
+  if (S.locked === w) S.locked = null;
+  removeWord(w);
+  S.missed++; S.breaths--;
+  hud();
+  if (S.breaths <= 0) return end('patience');
+  sayOne('sink');
+}
+
+function release() {
+  const w = S.locked;
+  if (!w) return;
+  w.prog = 0; w.el.classList.remove('locked'); renderWord(w);
+  S.locked = null;
+}
+
+function ping() { S.pingT = 0; }
+function space() {
+  if (S.mode === 'exam') return examChar(' ');
+  if (S.mode === 'play' && S.pingCool <= 0) { ping(); S.pingCool = 1.5; }
+}
+
+function press(k) {
+  if (k === 'Backspace' || k === 'Escape') return release();
+  if (k === ' ') return space();
+  if (/^[a-z]$/.test(k)) typeChar(out(k));
+}
+
+addEventListener('keydown', e => {
+  if (e.metaKey || e.ctrlKey || e.altKey) return;
+  if (!$('#ov').hidden) {
+    if (e.key === 'Enter') { e.preventDefault(); S.onGo?.(); }
+    return;
+  }
+  // An AZERTY é key arrives as "é"; folded, it types e.
+  const k = e.key.length === 1 ? fold(e.key) : e.key;
+  if (k === ' ' || k === 'Backspace' || k === 'Escape' || /^[a-z]$/.test(k)) {
+    e.preventDefault();
+    const b = document.querySelector(`#kb [data-k="${k}"]`);
+    if (b) flash(b);
+    press(k);
+  }
+});
+
+function sayOne(key) { const i = pickI(t(key)); say(() => t(key)[i]); }
+
+// card() returns [html, button label]; kept on S so a language switch can re-render the open card.
+function renderCard(focus) {
+  const [html, label] = S.card();
+  $('#card').innerHTML = html + `<button class="primary" id="go" type="button">${label}</button>`;
+  $('#go').onclick = S.onGo;
+  if (focus) $('#go').focus({ preventScroll: true });
+}
+function showCard(card, go) {
+  S.card = card; S.onGo = go;
+  renderCard(true);
+  $('#ov').hidden = false;
+}
+function hideCard() { $('#ov').hidden = true; S.onGo = null; }
+function setHead(fn) { S.head = fn; $('#lesson').textContent = fn(); }
+const titleCard = () => [t('titleCard'), t('titleGo')];
+
+function showLesson(i) {
+  S.mode = 'card'; S.lesson = i; S.swap = null; renderKeys();
+  const n = LESSONS.length;
+  setHead(() => `${t('lessonOf')(i + 1, n)} · ${lessonText(i).title}`);
+  showCard(() => {
+    const L = lessonText(i);
+    return [`<div class="eyebrow">${t('lessonOf')(i + 1, n)}</div><h2>${L.title}</h2>` +
+      `<p class="whale">${t('quote')(L.whale)}</p><div class="notice"><b>${t('notice')}</b>${L.notice}</div>`,
+      t('beginLesson')(i)];
+  }, () => startLesson(i));
+}
+
+function startLesson(i) {
+  hideCard();
+  S.mode = 'play'; S.spawned = 0; S.spawnT = .6; S.pingT = 99; S.squidCount = 0;
+  const L = LESSONS[i];
+  if (L.rule === 'squid' || L.rule === 'mixed') newSwap(); else say(() => lessonText(i).whale);
+}
+
+function lessonDone() {
+  S.breaths = Math.min(5, S.breaths + 1);
+  hud();
+  if (S.lesson + 1 < LESSONS.length) showLesson(S.lesson + 1); else examIntro();
+}
+
+// The parts are chosen once (by id); the words are composed in the current language.
+function sentenceParts() {
+  const by = c => [...S.typed].reverse().find(v => v.cat === c) || pick(VOCAB.filter(v => v.cat === c));
+  return ['s', 'v', 'o', 'p', 'a'].map(by);
+}
+function sentence(parts) {
+  const s = t('compose')(...parts);
+  return s[0].toUpperCase() + s.slice(1);
+}
+function setExamText() {
+  const text = sentence(S.exam.parts);
+  Object.assign(S.exam, { text, limit: 10 + text.length * .5 });
+}
+
+function examIntro() {
+  S.mode = 'card'; S.swap = null; renderKeys();
+  setHead(() => t('examHead'));
+  S.exam = { parts: sentenceParts(), text: '', ptr: 0, t: 0, limit: 0 };
+  setExamText();
+  showCard(() => [t('examCard'), t('examGo')], startExam);
+}
+
+const typable = ch => /[a-z ]/.test(fold(ch));
+function skipPunct() {
+  const e = S.exam;
+  while (e.ptr < e.text.length && !typable(e.text[e.ptr])) e.ptr++;
+}
+function renderExam() {
+  const e = S.exam;
+  $('#exam').innerHTML = [...e.text].map((ch, i) =>
+    `<span class="${i < e.ptr ? 'typed' : i === e.ptr ? 'cur' : ''}">${ch}</span>`).join('');
+}
+
+function startExam() {
+  hideCard();
+  S.mode = 'exam';
+  for (const w of S.words) w.el.remove();
+  S.words = []; S.locked = null;
+  $('#plaque').hidden = false; $('#flood').hidden = false;
+  skipPunct(); renderExam();
+  say(() => t('examSay'));
+}
+
+function examChar(c) {
+  const e = S.exam;
+  if (c === fold(e.text[e.ptr])) {
+    e.ptr++; skipPunct(); renderExam();
+    if (e.ptr >= e.text.length) end('diploma');
+  } else {
+    S.mistakes++;
+    shake($('#plaque'));
+  }
+}
+
+function updateExam(dt) {
+  const e = S.exam;
+  e.t += dt;
+  const pb = $('#plaque'), top = pb.offsetTop + pb.offsetHeight;
+  const frac = Math.min(1, e.t / e.limit);
+  $('#flood').style.height = (frac * (H - top)) + 'px';
+  $('#floodlbl').textContent = t('floodLbl')(Math.max(0, Math.round((1 - frac) * SEABED_FM)));
+  if (frac >= 1) end('flood');
+}
+
+function end(kind) {
+  S.mode = 'end';
+  if (kind === 'diploma') S.score += S.exam.text.length + Math.round((1 - S.exam.t / S.exam.limit) * 60);
+  S.best = Math.max(S.best, S.score);
+  hud();
+  // The quoted sentence stays in the language it was typed in.
+  const quote = kind !== 'patience' && S.exam ? `<blockquote>${S.exam.text}</blockquote>` : '';
+  const n = S.lesson + 1;
+  showCard(() => {
+    const C = t('ends')[kind], eyebrow = typeof C[0] === 'function' ? C[0](n) : C[0];
+    return [`<div class="eyebrow">${eyebrow}</div><h2>${C[1]}</h2>${quote}<p class="whale">${C[2]}</p>` +
+      `<p class="tally">${t('tally')(S.score, S.songs, S.missed, S.mistakes, S.best)}</p>`, t('again')];
+  }, begin);
+  say(kind === 'diploma' ? () => t('framed') : () => '…');
+}
+
+function begin() {
+  for (const w of S.words) w.el.remove();
+  S = fresh(S.best);
+  $('#plaque').hidden = true; $('#flood').hidden = true; $('#flood').style.height = '0';
+  hud();
+  showLesson(0);
+}
+
+function update(dt) {
+  const i = S.lesson, L = LESSONS[i];
+  if ((L.rule === 'sonar' || L.rule === 'mixed') && S.pingT > 4.2) ping();
+  S.spawnT -= dt;
+  if (S.spawned < L.quota && S.spawnT <= 0 && S.words.length < 3 + (i >> 1)) {
+    spawn();
+    S.spawnT = 3 - i * .2;
+  }
+  const v = BED / (24 - i * 1.6);
+  for (const w of [...S.words]) {
+    w.y += v * dt;
+    const show = !w.hidden || w.revealed || S.pingT < 1.6;
+    if (show !== w.shown) renderWord(w);
+    w.el.style.transform = `translate(${w.x}px, ${w.y}px)`;
+    if (w.y + w.h > BED) sink(w);
+    if (S.mode !== 'play') return;
+  }
+  if (S.spawned >= L.quota && !S.words.length) { S.mode = 'card'; lessonDone(); }
+}
+
+function drawWhale() {
+  const t = S.t, L = Math.min(W * .55, H * 1.1);
+  const x = W * (.5 + .38 * Math.sin(t * .045)), y = BED * .58 + Math.sin(t * .4) * 8;
+  const dir = Math.cos(t * .045) >= 0 ? 1 : -1;
+  const a = S.mode === 'exam' ? .2 : .1;
+  cx.save();
+  cx.translate(x, y); cx.scale(dir, 1); cx.rotate(Math.sin(t * .4) * .03);
+  cx.globalAlpha = a; cx.fillStyle = T.ink;
+  cx.beginPath(); cx.ellipse(0, 0, L * .5, L * .14, 0, 0, 6.283); cx.fill();
+  cx.beginPath();
+  cx.moveTo(-L * .42, -L * .05);
+  cx.quadraticCurveTo(-L * .62, -L * .01, -L * .74, -L * .13);
+  cx.lineTo(-L * .67, 0);
+  cx.lineTo(-L * .74, L * .13);
+  cx.quadraticCurveTo(-L * .62, L * .01, -L * .42, L * .05);
+  cx.closePath(); cx.fill();
+  cx.beginPath(); cx.ellipse(L * .08, L * .15, L * .16, L * .028, .45, 0, 6.283); cx.fill();
+  cx.strokeStyle = T.paper; cx.lineWidth = 1;
+  for (let i = 0; i < 4; i++) {
+    cx.beginPath(); cx.moveTo(L * .44, L * (.03 + i * .022)); cx.lineTo(L * .05, L * (.06 + i * .022)); cx.stroke();
+  }
+  cx.globalAlpha = .5; cx.fillStyle = T.paper;
+  cx.beginPath(); cx.arc(L * .33, -L * .02, Math.max(2, L * .012), 0, 6.283); cx.fill();
+  cx.restore();
+}
+
+function drawSea(dt) {
+  if (!W) return;
+  const g = cx.createLinearGradient(0, 0, 0, H);
+  g.addColorStop(0, T['water-hi']); g.addColorStop(1, T['water-lo']);
+  cx.fillStyle = g; cx.fillRect(0, 0, W, H);
+
+  cx.strokeStyle = T.ink; cx.lineWidth = 1;
+  for (let k = 1; k <= 5; k++) {
+    const y0 = BED * k / 6;
+    cx.globalAlpha = .14; cx.setLineDash(k % 2 ? [] : [6, 5]);
+    cx.beginPath();
+    for (let x = 0; x <= W; x += 12) {
+      const y = y0 + Math.sin(x * .012 + k * 1.7) * 10 + Math.sin(x * .031 + k) * 4;
+      if (x) cx.lineTo(x, y); else cx.moveTo(x, y);
+    }
+    cx.stroke();
+  }
+  cx.setLineDash([]);
+
+  cx.fillStyle = T.ink; cx.globalAlpha = .32;
+  cx.font = 'italic 11px "Atkinson Hyperlegible", system-ui, sans-serif';
+  for (const s of soundings) cx.fillText(s.n, s.x * W, s.y * BED);
+
+  drawWhale();
+
+  cx.globalAlpha = .25; cx.fillStyle = T.ink;
+  for (const p of snow) {
+    if (!reduce) { p.y += p.s * dt; if (p.y > 1) { p.y = 0; p.x = Math.random(); } }
+    cx.beginPath(); cx.arc(p.x * W, p.y * BED, p.r, 0, 6.283); cx.fill();
+  }
+
+  if (S.pingT < 1.6) {
+    cx.globalAlpha = (1 - S.pingT / 1.6) * .7; cx.strokeStyle = T.magenta; cx.lineWidth = 2;
+    cx.beginPath(); cx.arc(W / 2, 0, S.pingT * Math.max(W, H) * .8, 0, Math.PI); cx.stroke();
+  }
+  cx.globalAlpha = 1;
+}
+
+let last = 0, tick = 0;
+function frame(now) {
+  const dt = Math.min(.05, (now - last) / 1000 || 0);
+  last = now;
+  S.t += dt; S.pingT += dt; S.pingCool -= dt;
+  if (tick++ % 60 === 0) readTokens();
+  if (S.mode === 'play') update(dt);
+  else if (S.mode === 'exam') updateExam(dt);
+  drawSea(dt);
+  requestAnimationFrame(frame);
+}
+
+// ---- language ------------------------------------------------------------------------------
+// Static markup carries data-t (text) and data-ta (aria-label); the keyboard, the open card, the
+// header line, the whale's current line and the labels on falling songs are re-rendered. A song
+// already falling keeps its letters, and an exam already under way keeps its sentence.
+function applyLang() {
+  document.documentElement.lang = lang;
+  document.title = t('docTitle');
+  for (const el of document.querySelectorAll('[data-t]')) el.textContent = t(el.dataset.t);
+  for (const el of document.querySelectorAll('[data-ta]')) el.setAttribute('aria-label', t(el.dataset.ta));
+  for (const box of document.querySelectorAll('.lang')) {
+    if (!box.children.length) box.innerHTML = '<button type="button" data-lang="fr" lang="fr">FR</button><button type="button" data-lang="en" lang="en">EN</button>';
+    for (const b of box.children) b.setAttribute('aria-pressed', String(b.dataset.lang === lang));
+  }
+  if (!S) return;
+  renderKeys();
+  $('#lesson').textContent = S.head();
+  if (S.exam && S.mode === 'card' && S.exam.t === 0) setExamText();
+  if (!$('#ov').hidden && S.card) renderCard(false);
+  for (const w of S.words) renderWord(w);
+  say(voiceLine, true);
+}
+function setLang(l) {
+  if (!(l in I18N) || l === lang) return;
+  lang = l;
+  applyLang();
+}
+document.addEventListener('click', e => {
+  const b = e.target.closest('[data-lang]');
+  if (b) setLang(b.dataset.lang);
+});
+
+function start(data) {
+  lang = data?.lang in I18N ? data.lang : (navigator.language || '').toLowerCase().startsWith('fr') ? 'fr' : 'en';
+  S = fresh(data.best || 0);
+  resize(); readTokens(); hud();
+  S.card = titleCard; S.onGo = begin;
+  applyLang();
+  requestAnimationFrame(frame);
+}
+window.claude?.hot?.snapshot?.(() => ({ best: Math.max(S?.best || 0, S?.score || 0), lang }));
+window.claude?.hot?.ready ? window.claude.hot.ready(start) : start(window.claude?.hot?.data ?? {});
+</script>
+</body>
+</html>

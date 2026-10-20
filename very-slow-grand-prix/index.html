@@ -1,0 +1,835 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Very Slow Grand Prix</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Racing+Sans+One&family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@500;600;700&display=swap">
+<style>
+/* Layout: a race-control screen — the oval fills the left, the timing tower runs down the right, the commentary ticker and throttle span the foot. */
+:root {
+  --paper: #e6ebe5;
+  --surface: #f5f7f3;
+  --ink: #18201c;
+  --muted: #56635c;
+  --line: #c3cdc6;
+  --signal: #d94f0a;
+  --green: #1d5a43;
+  --amber: #b98a00;
+  --tarmac: #3a403d;
+  --infield: #a9c3a4;
+  --kerb: #f5f7f3;
+  --c-glacier: #3f93b8;
+  --c-sloth: #8a5a35;
+  --c-tc: #5f6280;
+  --c-plant: #3a8a35;
+  --c-time: #a8206f;
+  --f-display: "Racing Sans One", Impact, "Arial Narrow Bold", sans-serif;
+  --f-body: "Barlow", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-data: "Barlow Condensed", "Arial Narrow", system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #101513; --surface: #19201c; --ink: #e4ebe6; --muted: #93a19a; --line: #2d3732;
+    --signal: #ff7433; --green: #4cb38b; --amber: #f0c23a; --tarmac: #2c3230; --infield: #1e3324; --kerb: #d8dfda;
+    --c-glacier: #7cc6e6; --c-sloth: #c98f60; --c-tc: #a7aacb; --c-plant: #6cc464; --c-time: #e660ae;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #101513; --surface: #19201c; --ink: #e4ebe6; --muted: #93a19a; --line: #2d3732;
+  --signal: #ff7433; --green: #4cb38b; --amber: #f0c23a; --tarmac: #2c3230; --infield: #1e3324; --kerb: #d8dfda;
+  --c-glacier: #7cc6e6; --c-sloth: #c98f60; --c-tc: #a7aacb; --c-plant: #6cc464; --c-time: #e660ae;
+  color-scheme: dark;
+}
+[hidden] { display: none !important; }
+html, body { height: 100%; }
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font: 15px/1.5 var(--f-body);
+  padding-block: 16px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  box-sizing: border-box;
+}
+*, *::before, *::after { box-sizing: border-box; }
+.app {
+  position: relative;
+  height: 100%;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 300px;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  gap: 14px;
+}
+header { grid-column: 1 / -1; display: flex; align-items: baseline; justify-content: space-between; gap: 8px 20px; flex-wrap: wrap; }
+.race-name { margin: 0; font: 400 clamp(26px, 4vw, 40px)/1 var(--f-display); color: var(--ink); text-wrap: balance; }
+.race-name span { color: var(--signal); }
+.meta { display: flex; gap: 18px; font: 600 14px var(--f-data); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-variant-numeric: tabular-nums; }
+.meta b { color: var(--ink); font-weight: 700; }
+.stage { position: relative; min-height: 0; border-radius: 14px; overflow: hidden; background: var(--surface); box-shadow: inset 0 0 0 1px var(--line); }
+canvas { display: block; width: 100%; height: 100%; touch-action: none; cursor: pointer; user-select: none; -webkit-user-select: none; }
+.banner {
+  position: absolute; left: 50%; top: 14px; transform: translateX(-50%);
+  background: var(--amber); color: #18201c; font: 700 13px var(--f-data); letter-spacing: .1em; text-transform: uppercase;
+  padding: 6px 14px; border-radius: 4px; white-space: nowrap; max-width: calc(100% - 24px); overflow: hidden; text-overflow: ellipsis;
+}
+.tower { display: grid; align-content: start; gap: 14px; min-height: 0; overflow: auto; }
+.panel { background: var(--surface); border-radius: 14px; padding: 14px 16px; box-shadow: inset 0 0 0 1px var(--line); display: grid; gap: 10px; }
+.label { font: 600 11px var(--f-data); letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+.pos-row { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.pos { font: 400 52px/1 var(--f-display); color: var(--ink); font-variant-numeric: tabular-nums; }
+.pos small { font-size: 22px; color: var(--muted); }
+.pos-note { font: 600 13px var(--f-data); letter-spacing: .06em; text-transform: uppercase; text-align: right; }
+.pos-note.good { color: var(--green); }
+.pos-note.bad { color: var(--signal); }
+.speed { font: 700 30px/1 var(--f-data); font-variant-numeric: tabular-nums; }
+.speed small { font-size: 13px; font-weight: 600; color: var(--muted); letter-spacing: .06em; }
+.speed-ms { font: 500 13px var(--f-data); color: var(--muted); font-variant-numeric: tabular-nums; }
+.gauge { display: grid; gap: 4px; }
+.gauge-head { display: flex; justify-content: space-between; font: 600 12px var(--f-data); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.gauge-head b { color: var(--ink); font-variant-numeric: tabular-nums; }
+.bar { height: 8px; border-radius: 99px; background: var(--line); overflow: hidden; }
+.bar i { display: block; height: 100%; width: 0; border-radius: inherit; background: var(--green); }
+.bar.warn i { background: var(--amber); }
+.bar.crit i { background: var(--signal); }
+.standings { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+.standings li { display: grid; grid-template-columns: 22px 12px 1fr auto; align-items: center; gap: 8px; padding: 5px 6px; border-radius: 6px; font: 500 14px var(--f-data); font-variant-numeric: tabular-nums; }
+.standings li.you { background: color-mix(in srgb, var(--signal) 14%, transparent); font-weight: 700; }
+.standings .rk { color: var(--muted); }
+.standings .dot { width: 10px; height: 10px; border-radius: 50%; }
+.standings .nm { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.standings .d { color: var(--muted); }
+.foot { grid-column: 1 / -1; display: flex; gap: 14px; align-items: stretch; flex-wrap: wrap; }
+.ticker {
+  flex: 1 1 320px; min-width: 0; display: flex; align-items: center; gap: 12px;
+  background: var(--ink); color: var(--paper); border-radius: 14px; padding: 12px 16px; overflow: hidden;
+}
+.live { flex: none; font: 700 12px var(--f-data); letter-spacing: .14em; color: var(--signal); }
+.ticker p { margin: 0; font: 500 16px/1.35 var(--f-body); }
+.ticker p.in { animation: slide .45s ease-out; }
+@keyframes slide { from { transform: translateY(70%); opacity: 0; } to { transform: none; opacity: 1; } }
+button {
+  font: 700 15px var(--f-data); letter-spacing: .1em; text-transform: uppercase;
+  border: 0; border-radius: 12px; padding: 12px 22px; cursor: pointer;
+  background: var(--signal); color: #fff; transition: transform .12s, filter .12s;
+}
+button:hover { filter: brightness(1.08); }
+button:focus-visible { outline: 3px solid var(--amber); outline-offset: 3px; }
+button.quiet { background: transparent; color: var(--ink); box-shadow: inset 0 0 0 2px var(--line); }
+.throttle { flex: 0 1 220px; min-height: 64px; font-size: 18px; touch-action: none; user-select: none; -webkit-user-select: none; }
+.throttle.on { transform: scale(.97); filter: brightness(1.15); }
+.overlay {
+  position: absolute; inset: 0; z-index: 5; display: grid; place-items: center; padding: 20px;
+  background: color-mix(in srgb, var(--paper) 88%, transparent); border-radius: 14px; overflow: auto;
+}
+.card { max-width: 560px; display: grid; gap: 16px; background: var(--surface); padding: 28px; border-radius: 18px; box-shadow: 0 0 0 1px var(--line), 0 24px 60px #0000002a; }
+.card h1 { margin: 0; font: 400 clamp(38px, 7vw, 64px)/.95 var(--f-display); text-wrap: balance; }
+.card h1 span { color: var(--signal); }
+.card h2 { margin: 0; font: 400 clamp(28px, 5vw, 40px)/1.05 var(--f-display); text-wrap: balance; }
+.card p { margin: 0; color: var(--muted); max-width: 60ch; }
+.card .rules { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
+.card .stat { font: 600 14px var(--f-data); letter-spacing: .06em; text-transform: uppercase; color: var(--ink); font-variant-numeric: tabular-nums; }
+.row { display: flex; gap: 10px; flex-wrap: wrap; }
+.keys { font: 500 13px var(--f-data); letter-spacing: .05em; color: var(--muted); }
+.trophy { width: 96px; height: 96px; }
+.lang { display: inline-flex; align-self: center; border-radius: 8px; overflow: hidden; box-shadow: inset 0 0 0 2px var(--line); }
+.lang button { font: 700 12px var(--f-data); letter-spacing: .12em; border-radius: 0; padding: 5px 10px; background: transparent; color: var(--muted); }
+.lang button + button { box-shadow: inset 2px 0 0 var(--line); }
+.lang button[aria-pressed="true"] { background: var(--ink); color: var(--paper); }
+.card > .lang { justify-self: end; }
+@media (max-width: 760px) {
+  html, body { height: auto; }
+  .app { height: auto; grid-template-columns: 1fr; grid-template-rows: auto; }
+  .stage { aspect-ratio: 1 / 1; max-height: 70vh; }
+  .tower { overflow: visible; }
+  .throttle { flex: 1 1 100%; }
+  .overlay { position: fixed; border-radius: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ticker p.in { animation: none; }
+  button, .throttle.on { transition: none; transform: none; }
+}
+</style>
+</head>
+<body>
+<div class="app" id="app">
+  <header>
+    <h1 class="race-name" id="race-name">Very Slow <span>Grand Prix</span></h1>
+    <div class="meta">
+      <span><span data-t="lapLbl">Lap</span> <b id="lap">1/3</b></span>
+      <span><span data-t="clockLbl">Clock</span> <b id="clock">00:00.0</b></span>
+    </div>
+    <div class="lang" role="group" data-ta="langGroup" aria-label="Language"></div>
+  </header>
+
+  <div class="stage">
+    <canvas id="track" data-ta="trackAria" aria-label="Race track seen from above"></canvas>
+    <div class="banner" id="banner" hidden></div>
+  </div>
+
+  <aside class="tower">
+    <div class="panel">
+      <div class="pos-row">
+        <div>
+          <div class="label" data-t="posLbl">Position</div>
+          <div class="pos" id="pos">P5<small>/5</small></div>
+        </div>
+        <div class="pos-note good" id="pos-note">Last. Lovely.</div>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="label" data-t="speedLbl">Speed</div>
+      <div class="speed" id="speed">0 <small>furlongs / fortnight</small></div>
+      <div class="speed-ms" id="speed-ms">0.00 m/s</div>
+      <div class="gauge">
+        <div class="gauge-head"><span data-t="boreLbl">Engine boredom</span><b id="bore-v">0%</b></div>
+        <div class="bar" id="bore-bar"><i></i></div>
+      </div>
+      <div class="gauge">
+        <div class="gauge-head"><span data-t="loitLbl">Loitering</span><b id="loit-v">fine</b></div>
+        <div class="bar" id="loit-bar"><i></i></div>
+      </div>
+      <div class="gauge">
+        <div class="gauge-head"><span data-t="shameLbl">Shame of leading</span><b id="shame-v">0%</b></div>
+        <div class="bar" id="shame-bar"><i></i></div>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="label" data-t="towerLbl">Timing tower</div>
+      <ol class="standings" id="standings"></ol>
+    </div>
+  </aside>
+
+  <div class="foot">
+    <div class="ticker" aria-live="polite">
+      <span class="live" data-t="live">LIVE</span>
+      <p id="ticker">Welcome to the slowest motor race in the calendar.</p>
+    </div>
+    <button class="throttle" id="throttle" data-t="throttleBtn">Hold throttle</button>
+  </div>
+
+  <div class="overlay" id="title">
+    <div class="card">
+      <div class="lang" role="group" data-ta="langGroup" aria-label="Language"></div>
+      <h1 id="title-h1">Very Slow <span>Grand Prix</span></h1>
+      <p data-t="titleP">Three laps. Five competitors. The winner is whoever finishes last.</p>
+      <ul class="rules">
+        <li data-t="rule0">Every rival must cross the line before you do.</li>
+        <li data-t="rule1">Never stop. Below 0.25 m/s for 1.5 seconds and the stewards disqualify you for loitering.</li>
+        <li data-t="rule2">Your engine gets bored below 0.9 m/s. When boredom is full, the car lurches forward on its own.</li>
+        <li data-t="rule3">Lead the race for too long and you are declared the winner. The shame gauge ends your career.</li>
+        <li data-t="rule4">Expect track works on lap two and a restless finish line on lap three.</li>
+      </ul>
+      <div class="row"><button id="start" data-t="startBtn">Start engines</button></div>
+      <div class="keys" data-t="titleKeys">Hold the throttle button, the track, Space or Up arrow. Release to coast.</div>
+    </div>
+  </div>
+
+  <div class="overlay" id="result" hidden>
+    <div class="card">
+      <div class="lang" role="group" data-ta="langGroup" aria-label="Language"></div>
+      <svg class="trophy" id="trophy" viewBox="0 0 96 96" hidden aria-hidden="true">
+        <path d="M30 14h36v20a18 18 0 0 1-36 0z" fill="var(--amber)"/>
+        <path d="M30 20H18a12 12 0 0 0 12 16M66 20h12a12 12 0 0 1-12 16" fill="none" stroke="var(--amber)" stroke-width="5"/>
+        <rect x="44" y="50" width="8" height="18" fill="var(--amber)"/>
+        <rect x="30" y="68" width="36" height="12" rx="2" fill="var(--ink)"/>
+      </svg>
+      <h2 id="res-title">Result</h2>
+      <p id="res-body"></p>
+      <div class="stat" id="res-stat"></div>
+      <div class="row" id="res-actions"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const $ = s => document.querySelector(s);
+const cv = $('#track'), g = cv.getContext('2d');
+const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+let W = 0, H = 0;
+function resize() {
+  const r = cv.getBoundingClientRect(), d = Math.min(2, devicePixelRatio || 1);
+  W = r.width; H = r.height;
+  cv.width = Math.max(1, Math.round(W * d)); cv.height = Math.max(1, Math.round(H * d));
+  g.setTransform(d, 0, 0, d, 0, 0);
+}
+new ResizeObserver(resize).observe(cv);
+
+const tok = {};
+const TOKENS = ['paper', 'surface', 'ink', 'muted', 'line', 'signal', 'green', 'amber', 'tarmac', 'infield', 'kerb',
+  'c-glacier', 'c-sloth', 'c-tc', 'c-plant', 'c-time'];
+function readTokens() {
+  const cs = getComputedStyle(document.documentElement);
+  for (const k of TOKENS) tok[k] = cs.getPropertyValue('--' + k).trim();
+}
+readTokens();
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', readTokens);
+new MutationObserver(readTokens).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+
+const LAP = 60, LAPS = 3, FUR_PER_FTN = 6012.88;
+const ACC = 1.6, COAST = 2.0, VMAX = 6;
+const LOITER_V = .25, LOITER_T = 1.5, BORE_V = .9, LURCH_V = 3.6, LURCH_T = .8;
+
+// Every player-visible string, per language. Rivals, commentary lines and endings are keyed by id
+// and index, so the ticker, the timing tower and an open result card re-read in the new language.
+// French race names put « Grand Prix » first, hence a separate raceHtml for the highlighted part.
+const I18N = {
+  en: {
+    docTitle: 'Very Slow Grand Prix', langGroup: 'Language',
+    raceName: n => (['Very Slow', 'Even Slower', 'Slower Still'][n - 1] || `Geological No. ${n}`) + ' Grand Prix',
+    raceHtml: n => `${(['Very Slow', 'Even Slower', 'Slower Still'][n - 1] || `Geological No. ${n}`)} <span>Grand Prix</span>`,
+    lapLbl: 'Lap', clockLbl: 'Clock', trackAria: 'Race track seen from above',
+    posLbl: 'Position', speedLbl: 'Speed', unit: 'furlongs / fortnight', lurching: ' · asleep and lurching',
+    boreLbl: 'Engine boredom', loitLbl: 'Loitering', shameLbl: 'Shame of leading', loitFine: 'fine', loitWatch: 'stewards watching',
+    towerLbl: 'Timing tower', you: 'You', fin: 'FIN', live: 'LIVE', throttleBtn: 'Hold throttle',
+    note: { mobBad: 'Last means leading!', mobOk: 'Safely not last', last: 'Last. Lovely.', lead: 'Leading. Shameful.', mid: 'Not last yet' },
+    mobBanner: s => `Möbius section · last counts as leading · ${s}s`, migBanner: 'The finish line is wandering',
+    go: 'GO', lapOf: (l, n, m) => `LAP ${l} OF ${n} · ${m} M PER LAP`,
+    titleP: 'Three laps. Five competitors. The winner is whoever finishes last.',
+    rule0: 'Every rival must cross the line before you do.',
+    rule1: 'Never stop. Below 0.25 m/s for 1.5 seconds and the stewards disqualify you for loitering.',
+    rule2: 'Your engine gets bored below 0.9 m/s. When boredom is full, the car lurches forward on its own.',
+    rule3: 'Lead the race for too long and you are declared the winner. The shame gauge ends your career.',
+    rule4: 'Expect track works on lap two and a restless finish line on lap three.',
+    startBtn: 'Start engines', titleKeys: 'Hold the throttle button, the track, Space or Up arrow. Release to coast.',
+    rivals: { glacier: 'The Glacier', sloth: 'Sloth on a mobility scooter', tc: 'Man reading the T&Cs',
+      plant: 'Houseplant on a skateboard', time: 'Time itself' },
+    tickerWelcome: 'Welcome to the slowest motor race in the calendar.',
+    say: {
+      lightsOut: 'Lights out! And they are off. Gently.',
+      mobWarn: 'Track engineers report a half-twist ahead. Last place may briefly count as leading.',
+      mobOn: 'The track is a Möbius strip! Behind is ahead! Get out of last place!',
+      mobOff: 'The track untwists. Last place is a virtue again.',
+      mig: 'Final lap, and the finish line has started to wander.',
+      crosses: id => `${tx('rivals')[id]} crosses the line. Unforgivably early.`,
+      grid1: 'Engines idling. The Glacier has been on the grid since Tuesday.',
+      gridN: n => `Welcome to the ${tx('raceName')(n)}. Time itself has qualified.`,
+    },
+    lines: {
+      glacier: { calve: ['The Glacier calves! A sudden burst of three metres per second. Reckless.',
+        'Ice falls off the front of the Glacier. In some jurisdictions that is overtaking.'] },
+      sloth: { nap: ['The sloth is napping. Sloths are exempt from the loitering rule. Nobody knows why.',
+        'Sloth asleep at the wheel. The scooter waits politely.'],
+        cruise: ['The sloth wakes and opens the scooter up to a terrifying 1.6.', 'Sloth is back on the throttle. Somebody hold the crowd back.'] },
+      tc: { clause: ['He has found a clause. He is reversing to re-read it.', 'The man reverses. Clause 14(b) troubles him deeply.'],
+        read: ['He has agreed to something and moves on.', 'Forward again. He has accepted all cookies.'] },
+      plant: { sun: ['Sun on the houseplant! Photosynthesis! Speed!', 'The houseplant turns toward the light and goes for it.'] },
+    },
+    filler: [
+      ['A quiet stretch. Lovely and quiet. Nobody is enjoying it.', 'The crowd has brought sandwiches. Some have brought second sandwiches.',
+        'A steward is measuring the grass. It has grown two millimetres since the start.'],
+      ['Reports that a spectator has aged visibly.', 'The pit crews are playing chess. The chess is faster.',
+        'We have received a complaint that the race is too fast. It is from the Glacier.'],
+      ['The commentary box is four metres further from the track. Nobody moved it.', 'I had a moustache when this race started.',
+        'Several of the spectators are now different spectators.'],
+      ['Time is in the race. Time is also the race. Time is winning, which here means losing.', 'The clock is running backwards to keep up.',
+        'Please remain seated until the heat death of the universe.'],
+    ],
+    lurch: ['Your engine has fallen asleep and lurched forward. Disgraceful pace.', 'Bored engine! The car leaps ahead in its sleep.',
+      'The engine dreamt it was a real racing car. It woke up three metres later.'],
+    ends: {
+      dq: ['Disqualified for loitering.', m => `Your car came to a complete stop at ${m} metres. The stewards were appalled. Loitering is for sloths.`],
+      shame: ['Declared the winner.', () => 'You led for far too long. Your name is being engraved on the trophy. You will never live this down.'],
+      early: [left => 'You finished ahead of ' + (left.length > 1 ? left.slice(0, -1).join(', ') + ' and ' + left.at(-1) : left[0]) + '.',
+        () => 'Crossing the line with rivals still racing is the fastest way to lose.'],
+      win: ['Last place. Magnificent.', () => 'Every rival finished before you. The crowd, what is left of it, rises slowly to its feet.'],
+    },
+    resStat: (name, clock, m, best) => `${name} · ${clock} · ${m} m covered` + (best ? ` · best: race ${best} won` : ''),
+    inspect: 'Inspect trophy', trophyH: 'The trophy is a starting line.',
+    trophyP: n => `Underneath the cup, painted on the base, is the grid of the ${tx('raceName')(n)}. Time itself has entered. They always were starting lines.`,
+    lineUp: 'Line up', retry: n => `Retry the ${tx('raceName')(n)}`, backFirst: 'Back to the first race',
+  },
+  fr: {
+    docTitle: 'Grand Prix très lent', langGroup: 'Langue',
+    raceName: n => 'Grand Prix ' + (['très lent', 'encore plus lent', 'plus lent encore'][n - 1] || `géologique n° ${n}`),
+    raceHtml: n => `<span>Grand Prix</span> ${(['très lent', 'encore plus lent', 'plus lent encore'][n - 1] || `géologique n° ${n}`)}`,
+    lapLbl: 'Tour', clockLbl: 'Chrono', trackAria: 'Le circuit vu du ciel',
+    posLbl: 'Position', speedLbl: 'Vitesse', unit: 'furlongs / quinzaine', lurching: ' · le moteur dort et bondit',
+    boreLbl: 'Ennui du moteur', loitLbl: 'Flânerie', shameLbl: 'Honte de mener', loitFine: 'ça va', loitWatch: 'commissaires aux aguets',
+    towerLbl: 'Classement', you: 'Vous', fin: 'FIN', live: 'DIRECT', throttleBtn: 'Maintenir les gaz',
+    // Every note is about the place, never the player: « Dernier » / « Honteux » would agree with them.
+    note: { mobBad: 'La dernière place mène !', mobOk: 'Hors de la dernière place', last: 'Dernière place. Charmant.', lead: 'En tête. Quelle honte.', mid: 'Pas encore à la traîne' },
+    mobBanner: s => `Section Möbius · dernière place = tête · ${s} s`, migBanner: "La ligne d'arrivée vagabonde",
+    go: 'PARTEZ', lapOf: (l, n, m) => `TOUR ${l} SUR ${n} · ${m} M PAR TOUR`,
+    titleP: 'Trois tours. Cinq concurrents. La victoire revient à qui finit en dernier.',
+    rule0: 'Chaque rival doit franchir la ligne avant vous.',
+    rule1: 'Ne vous arrêtez jamais. Sous 0,25 m/s pendant 1,5 seconde, les commissaires vous disqualifient pour flânerie.',
+    rule2: "Votre moteur s'ennuie sous 0,9 m/s. Quand l'ennui est au maximum, la voiture bondit en avant toute seule.",
+    rule3: 'Menez la course trop longtemps et la victoire vous est décernée. La jauge de honte met fin à votre carrière.',
+    rule4: "Prévoyez des travaux sur la piste au deuxième tour et une ligne d'arrivée agitée au troisième.",
+    startBtn: 'Démarrez les moteurs', titleKeys: 'Maintenez le bouton des gaz, la piste, Espace ou Flèche haut. Relâchez pour rouler en roue libre.',
+    rivals: { glacier: 'Le Glacier', sloth: 'Le paresseux en scooter PMR', tc: 'Le monsieur qui lit les CGU',
+      plant: 'La plante verte en skate', time: 'Le Temps lui-même' },
+    tickerWelcome: 'Bienvenue dans la course automobile la plus lente du calendrier.',
+    say: {
+      lightsOut: "Extinction des feux ! Et c'est parti. Tout doucement.",
+      mobWarn: 'Les ingénieurs signalent une demi-torsion plus loin. La dernière place pourrait brièvement compter comme la tête.',
+      mobOn: "La piste est un ruban de Möbius ! Derrière, c'est devant ! Sortez de la dernière place !",
+      mobOff: 'La piste se détord. La dernière place redevient une vertu.',
+      mig: "Dernier tour, et la ligne d'arrivée s'est mise à vagabonder.",
+      crosses: id => `${tx('rivals')[id]} franchit la ligne. Impardonnablement tôt.`,
+      grid1: 'Moteurs au ralenti. Le Glacier est sur la grille depuis mardi.',
+      gridN: n => `Bienvenue au ${tx('raceName')(n)}. Le Temps lui-même s'est qualifié.`,
+    },
+    lines: {
+      glacier: { calve: ['Le Glacier vêle ! Une soudaine pointe à trois mètres par seconde. Inconscient.',
+        "De la glace se détache à l'avant du Glacier. Dans certaines juridictions, c'est un dépassement."] },
+      sloth: { nap: ["Le paresseux fait la sieste. Les paresseux sont exemptés de la règle anti-flânerie. Personne ne sait pourquoi.",
+        'Paresseux endormi au volant. Le scooter attend poliment.'],
+        cruise: ["Le paresseux se réveille et pousse le scooter jusqu'à un terrifiant 1,6.", 'Le paresseux remet les gaz. Que quelqu\'un retienne la foule.'] },
+      tc: { clause: ['Il a trouvé une clause. Il recule pour la relire.', "Le monsieur recule. L'article 14 b le trouble profondément."],
+        read: ['Il a accepté quelque chose et repart.', 'Il repart. Il a accepté tous les cookies.'] },
+      plant: { sun: ['Du soleil sur la plante verte ! Photosynthèse ! Vitesse !', 'La plante verte se tourne vers la lumière et fonce.'] },
+    },
+    filler: [
+      ["Une portion tranquille. Bien tranquille. Personne n'en profite.", 'Le public a apporté des sandwichs. Certains en ont apporté un deuxième.',
+        "Un commissaire mesure l'herbe. Elle a poussé de deux millimètres depuis le départ."],
+      ['On signale un spectateur qui a visiblement vieilli.', 'Les équipes des stands jouent aux échecs. Les échecs vont plus vite.',
+        'Nous avons reçu une plainte : la course serait trop rapide. Elle vient du Glacier.'],
+      ["La cabine des commentateurs est quatre mètres plus loin de la piste. Personne ne l'a déplacée.", "J'avais une moustache quand cette course a commencé.",
+        "Plusieurs spectateurs sont désormais d'autres spectateurs."],
+      ['Le Temps est dans la course. Le Temps est aussi la course. Le Temps gagne, ce qui ici veut dire perdre.', "L'horloge tourne à l'envers pour suivre.",
+        "Merci de garder vos places jusqu'à la mort thermique de l'univers."],
+    ],
+    lurch: ["Votre moteur s'est endormi et a bondi en avant. Une allure scandaleuse.", "Moteur qui s'ennuie ! La voiture bondit dans son sommeil.",
+      "Le moteur a rêvé qu'il était une vraie voiture de course. Il s'est réveillé trois mètres plus loin."],
+    // Titles name the outcome, not the player: « Disqualifié », « Déclaré vainqueur » would agree.
+    ends: {
+      dq: ['Disqualification pour flânerie.', m => `Votre voiture s'est complètement arrêtée à ${m} mètres. Les commissaires sont consternés. La flânerie, c'est pour les paresseux.`],
+      shame: ['Victoire, hélas.', () => "Vous avez mené bien trop longtemps. On grave votre nom sur le trophée. Vous ne vous en remettrez jamais."],
+      early: [left => 'Vous avez fini devant ' + (left.length > 1 ? left.slice(0, -1).join(', ') + ' et ' + left.at(-1) : left[0]) + '.',
+        () => "Franchir la ligne quand des rivaux courent encore, c'est le moyen le plus rapide de perdre."],
+      win: ['Dernière place. Magnifique.', () => "Tous les rivaux ont fini avant vous. Le public, ou ce qu'il en reste, se lève lentement."],
+    },
+    resStat: (name, clock, m, best) => `${name} · ${clock} · ${m} m parcourus` + (best ? ` · record : course ${best} gagnée` : ''),
+    inspect: 'Examiner le trophée', trophyH: 'Le trophée est une ligne de départ.',
+    trophyP: n => `Sous la coupe, peinte sur le socle, il y a la grille du ${tx('raceName')(n)}. Le Temps lui-même est inscrit. Ça a toujours été des lignes de départ.`,
+    lineUp: 'Se mettre en grille', retry: n => `Retenter le ${tx('raceName')(n)}`, backFirst: 'Retour à la première course',
+  },
+};
+
+// French typography: a narrow no-break space before ? ! : ; » and after «, applied once to every
+// French string (and to whatever a French string function returns).
+(function frenchSpacing() {
+  const fix = s => s.replace(/ ([?!:;»])/g, ' $1').replace(/« /g, '« ');
+  const deep = v => typeof v === 'string' ? fix(v)
+    : typeof v === 'function' ? (...a) => fix(v(...a))
+    : Array.isArray(v) ? v.map(deep)
+    : v && typeof v === 'object' ? Object.fromEntries(Object.entries(v).map(([k, x]) => [k, deep(x)]))
+    : v;
+  I18N.fr = deep(I18N.fr);
+})();
+
+let lang = 'en';
+// "tx", not "t": t is the race clock in update() and the rival speed functions.
+const tx = k => I18N[lang][k] ?? I18N.en[k];
+const raceName = n => tx('raceName')(n);
+const rivalName = id => tx('rivals')[id];
+// French text for m/s and metres uses a decimal comma.
+const dec = (v, d) => lang === 'fr' ? v.toFixed(d).replace('.', ',') : v.toFixed(d);
+
+function rivalDefs(n) {
+  const k = Math.pow(.95, n - 1);
+  const d = [
+    { id: 'glacier', f: t => (t + 5) % 22 > 20.8 ? ['calve', 3 * k] : ['flow', .95 * k] },
+    { id: 'sloth', f: t => (t + 3) % 19 < 12 ? ['cruise', 1.6 * k] : ['nap', 0] },
+    { id: 'tc', f: t => (t + 8) % 18 < 14 ? ['read', 1.35 * k] : ['clause', -.6 * k] },
+    { id: 'plant', f: t => {
+      const sun = (t + 11) % 30 > 27;
+      return [sun ? 'sun' : 'drift', (1 + .75 * Math.sin(t * .45 + 1) + (sun ? 1.5 : 0)) * k];
+    } },
+  ];
+  if (n >= 2) d.push({ id: 'time', f: () => ['tick', Math.max(.77, .86 - .04 * (n - 2))] });
+  return d.map((r, i) => ({ ...r, pos: 0, v: 0, state: '', finished: false, lane: i + 1 }));
+}
+
+let S;
+function fresh(n, best) {
+  return {
+    mode: 'count', n, best, t: 0, cd: 3.2,
+    p: { pos: 0, v: 0, bore: 0, loiter: 0, lurch: 0, shame: 0 },
+    rivals: rivalDefs(n), order: [],
+    mob: { on: false, done: false, warned: false, t: 0, vis: 0 },
+    mig: { on: false, t: 0 }, F: LAPS * LAP, lastSay: 0, sayIdx: 0,
+  };
+}
+
+const held = new Set();
+function throttleOn() { return held.size > 0; }
+
+// The ticker line is kept as a thunk, so a language switch re-reads it in place.
+let lastLine = '', tickerFn = () => tx('tickerWelcome');
+function say(fn) {
+  if (!S) return;
+  S.lastSay = S.t;
+  const text = fn();
+  if (text === lastLine) return;
+  lastLine = text; tickerFn = fn;
+  const p = $('#ticker');
+  p.textContent = text;
+  p.classList.remove('in');
+  if (!reduce) { void p.offsetWidth; p.classList.add('in'); }
+}
+const pickI = a => Math.floor(Math.random() * a.length);
+// say() a random line of an I18N list; the index is fixed, so the line survives a language switch.
+const sayPick = get => { const i = pickI(get()); say(() => get()[i]); };
+const sayKey = (k, ...a) => say(() => { const v = tx('say')[k]; return typeof v === 'function' ? v(...a) : v; });
+
+function rankOf() {
+  const p = S.p;
+  let ahead = S.order.length;
+  for (const r of S.rivals) if (!r.finished && r.pos >= p.pos) ahead++;
+  return ahead + 1;
+}
+
+function update(dt) {
+  if (S.mode === 'count') {
+    S.cd -= dt;
+    if (S.cd <= 0) { S.mode = 'race'; say('Lights out! And they are off. Gently.'); }
+    return;
+  }
+  if (S.mode !== 'race') return;
+  S.t += dt;
+  const p = S.p, total = S.rivals.length + 1;
+
+  for (const r of S.rivals) {
+    if (r.finished) continue;
+    const [st, v] = r.f(S.t);
+    if (st !== r.state) {
+      const lines = LINES[r.id]?.[st];
+      if (r.state && lines) say(pick(lines));
+      r.state = st;
+    }
+    r.v = v;
+    r.pos = Math.max(0, r.pos + v * dt);
+  }
+
+  if (p.lurch > 0) { p.lurch -= dt; p.v = LURCH_V; }
+  else p.v = Math.max(0, Math.min(VMAX, p.v + (throttleOn() ? ACC : -COAST) * dt));
+  p.pos += p.v * dt;
+
+  if (p.lurch <= 0) {
+    p.bore += p.v < BORE_V ? (BORE_V - p.v) * 15 * dt : -(p.v - BORE_V) * 12 * dt;
+    p.bore = Math.max(0, Math.min(100, p.bore));
+    if (p.bore >= 100) { p.lurch = LURCH_T; p.bore = 25; say(pick(LURCH)); }
+  }
+
+  if (S.t > 2.5 && p.v < LOITER_V) p.loiter += dt; else p.loiter = Math.max(0, p.loiter - dt * 2);
+  if (p.loiter >= LOITER_T) return end('dq');
+
+  let leader = p.pos;
+  for (const r of S.rivals) leader = Math.max(leader, r.pos);
+
+  if (!S.mob.warned && leader >= LAP * 1.15) { S.mob.warned = true; say('Track engineers report a half-twist ahead. Last place may briefly count as leading.'); }
+  if (!S.mob.on && !S.mob.done && leader >= LAP * 1.3) {
+    S.mob.on = true; S.mob.t = 12;
+    say('The track is a Möbius strip! Behind is ahead! Get out of last place!');
+  }
+  if (S.mob.on) {
+    S.mob.t -= dt;
+    if (S.mob.t <= 0) { S.mob.on = false; S.mob.done = true; say('The track untwists. Last place is a virtue again.'); }
+  }
+  S.mob.vis += ((S.mob.on ? 1 : 0) - S.mob.vis) * Math.min(1, dt * 2.5);
+
+  if (!S.mig.on && leader >= (LAPS - 1) * LAP) { S.mig.on = true; say('Final lap, and the finish line has started to wander.'); }
+  if (S.mig.on) S.mig.t += dt;
+  S.F = LAPS * LAP + (S.mig.on ? 9 * Math.sin(S.mig.t * .4) : 0);
+
+  for (const r of S.rivals) {
+    if (!r.finished && r.pos >= S.F) {
+      r.finished = true; S.order.push(r);
+      say(`${r.name} crosses the line. Unforgivably early.`);
+    }
+  }
+
+  const rank = rankOf();
+  const leading = S.mob.on ? rank === total : rank === 1;
+  p.shame = Math.max(0, Math.min(100, p.shame + (leading ? (S.mob.on ? 10 : 18) : -8) * dt));
+  if (p.shame >= 100) return end('shame');
+
+  if (p.pos >= S.F) return end(S.order.length === S.rivals.length ? 'win' : 'early');
+
+  if (S.t - S.lastSay > 8) {
+    const tier = S.n >= 2 && Math.random() < .5 ? 3 : S.t < 60 ? 0 : S.t < 140 ? 1 : 2;
+    say(pick(FILLER[tier]));
+  }
+}
+
+function fmtClock(t) {
+  const neg = S.n >= 2, a = Math.abs(t);
+  const m = Math.floor(a / 60), s = a - m * 60;
+  return (neg && a > 0 ? '−' : '') + String(m).padStart(2, '0') + ':' + s.toFixed(1).padStart(4, '0');
+}
+
+function setBar(id, v, warnAt, critAt) {
+  const el = $(id);
+  el.firstElementChild.style.width = Math.max(0, Math.min(100, v)) + '%';
+  el.classList.toggle('warn', v >= warnAt && v < critAt);
+  el.classList.toggle('crit', v >= critAt);
+}
+
+let hudTick = 0;
+function hud(dt) {
+  const p = S.p, total = S.rivals.length + 1, rank = rankOf();
+  $('#lap').textContent = `${Math.min(LAPS, Math.floor(p.pos / LAP) + 1)}/${LAPS}`;
+  $('#clock').textContent = fmtClock(S.t);
+  $('#pos').innerHTML = `P${rank}<small>/${total}</small>`;
+  const note = $('#pos-note');
+  const bad = S.mob.on ? rank === total : rank === 1;
+  note.textContent = S.mob.on ? (bad ? 'Last means leading!' : 'Safely not last') : rank === total ? 'Last. Lovely.' : bad ? 'Leading. Shameful.' : 'Not last yet';
+  note.className = 'pos-note ' + (bad ? 'bad' : 'good');
+  $('#speed').innerHTML = `${Math.round(p.v * FUR_PER_FTN).toLocaleString()} <small>furlongs / fortnight</small>`;
+  $('#speed-ms').textContent = `${p.v.toFixed(2)} m/s${p.lurch > 0 ? ' · asleep and lurching' : ''}`;
+  $('#bore-v').textContent = Math.round(p.bore) + '%';
+  setBar('#bore-bar', p.bore, 60, 85);
+  const lo = p.loiter / LOITER_T * 100;
+  $('#loit-v').textContent = lo > 0 ? 'stewards watching' : 'fine';
+  setBar('#loit-bar', lo, 1, 50);
+  $('#shame-v').textContent = Math.round(p.shame) + '%';
+  setBar('#shame-bar', p.shame, 40, 75);
+
+  const banner = $('#banner');
+  if (S.mob.on) { banner.hidden = false; banner.textContent = `Möbius section · last counts as leading · ${Math.ceil(S.mob.t)}s`; }
+  else if (S.mig.on && S.mode === 'race') { banner.hidden = false; banner.textContent = 'The finish line is wandering'; }
+  else banner.hidden = true;
+
+  hudTick -= dt;
+  if (hudTick > 0) return;
+  hudTick = .2;
+  const rows = [...S.order.map(r => ({ r, fin: true }))];
+  const live = [{ r: null, pos: p.pos }, ...S.rivals.filter(r => !r.finished).map(r => ({ r, pos: r.pos }))];
+  live.sort((a, b) => (b.pos - a.pos) || (a.r ? -1 : 1));
+  rows.push(...live);
+  $('#standings').innerHTML = rows.map((x, i) => {
+    const you = !x.r;
+    const col = you ? tok.signal : tok['c-' + x.r.id];
+    const name = you ? 'You' : x.r.name;
+    const d = x.fin ? 'FIN' : `${(you ? p.pos : x.r.pos).toFixed(1)} m`;
+    return `<li class="${you ? 'you' : ''}"><span class="rk">${i + 1}</span><span class="dot" style="background:${col}"></span><span class="nm">${name}</span><span class="d">${d}</span></li>`;
+  }).join('');
+}
+
+function geom() {
+  const tw = Math.min(W, H) * .17;
+  return { cx: W / 2, cy: H / 2, tw, rx: Math.max(20, W / 2 - tw * .6 - 10), ry: Math.max(20, H / 2 - tw * .6 - 10) };
+}
+function pt(G, frac, off) {
+  const a = -Math.PI / 2 + frac * Math.PI * 2;
+  const twist = 1 + (Math.cos(frac * Math.PI) - 1) * S.mob.vis;
+  const o = off * twist;
+  return [G.cx + (G.rx + o) * Math.cos(a), G.cy + (G.ry + o) * Math.sin(a), a];
+}
+const fracOf = pos => (((pos % LAP) + LAP) % LAP) / LAP;
+
+function drawTrack(G) {
+  g.fillStyle = tok.surface; g.fillRect(0, 0, W, H);
+  g.fillStyle = tok.infield;
+  g.beginPath(); g.ellipse(G.cx, G.cy, Math.max(4, G.rx - G.tw * .5), Math.max(4, G.ry - G.tw * .5), 0, 0, Math.PI * 2); g.fill();
+
+  const N = 160;
+  g.fillStyle = tok.tarmac;
+  g.beginPath();
+  for (let i = 0; i <= N; i++) { const [x, y] = pt(G, i / N, G.tw / 2); i ? g.lineTo(x, y) : g.moveTo(x, y); }
+  for (let i = N; i >= 0; i--) { const [x, y] = pt(G, i / N, -G.tw / 2); g.lineTo(x, y); }
+  g.closePath(); g.fill('evenodd');
+
+  for (const [side, w] of [[1, 4], [-1, 4]]) {
+    g.beginPath();
+    for (let i = 0; i <= N; i++) { const [x, y] = pt(G, i / N, side * G.tw / 2); i ? g.lineTo(x, y) : g.moveTo(x, y); }
+    g.lineWidth = w; g.setLineDash([]); g.strokeStyle = tok.kerb; g.stroke();
+    g.setLineDash([9, 9]); g.strokeStyle = tok.signal; g.stroke();
+  }
+  g.setLineDash([]);
+
+  const ff = fracOf(S.F), cells = 6;
+  for (let i = 0; i < cells; i++) {
+    for (let j = 0; j < 2; j++) {
+      const o0 = -G.tw / 2 + (i / cells) * G.tw;
+      const [x, y, a] = pt(G, ff + (j ? .004 : 0), o0 + G.tw / cells / 2);
+      g.save(); g.translate(x, y); g.rotate(a);
+      g.fillStyle = (i + j) % 2 ? tok.ink : tok.kerb;
+      const c = G.tw / cells;
+      g.fillRect(-c / 2, -c / 2, c, c);
+      g.restore();
+    }
+  }
+
+  g.fillStyle = tok.muted; g.textAlign = 'center'; g.textBaseline = 'middle';
+  if (S.mode === 'count') {
+    const c = Math.ceil(S.cd);
+    g.fillStyle = tok.signal;
+    g.font = `${Math.round(Math.min(W, H) * .22)}px "Racing Sans One", Impact, sans-serif`;
+    g.fillText(c > 3 ? '' : c > 0 ? String(c) : 'GO', G.cx, G.cy);
+  } else {
+    g.font = `600 ${Math.round(Math.max(11, Math.min(W, H) * .035))}px "Barlow Condensed", sans-serif`;
+    g.fillText(`LAP ${Math.min(LAPS, Math.floor(S.p.pos / LAP) + 1)} OF ${LAPS} · ${LAP} M PER LAP`, G.cx, G.cy);
+  }
+}
+
+function icon(id, s, t) {
+  switch (id) {
+    case 'you': {
+      g.fillStyle = tok.signal;
+      g.beginPath(); g.roundRect(-s * .55, -s, s * 1.1, s * 2, s * .35); g.fill();
+      g.fillStyle = tok.ink;
+      for (const [x, y] of [[-.65, -.6], [.65, -.6], [-.65, .6], [.65, .6]]) g.fillRect(x * s - s * .15, y * s - s * .25, s * .3, s * .5);
+      g.fillStyle = tok.kerb; g.fillRect(-s * .35, -s * .55, s * .7, s * .35);
+      break;
+    }
+    case 'glacier':
+      g.fillStyle = tok['c-glacier'];
+      g.beginPath(); g.moveTo(-s, s * .8); g.lineTo(-s * .5, -s); g.lineTo(s * .2, -s * .5); g.lineTo(s, -s * .9); g.lineTo(s * .9, s * .8); g.closePath(); g.fill();
+      g.fillStyle = tok.kerb; g.globalAlpha = .6; g.fillRect(-s * .4, -s * .4, s * .3, s * .6); g.globalAlpha = 1;
+      break;
+    case 'sloth':
+      g.fillStyle = tok.ink; g.fillRect(-s * .7, -s * .9, s * 1.4, s * 1.8);
+      g.fillStyle = tok['c-sloth']; g.beginPath(); g.arc(0, 0, s * .75, 0, Math.PI * 2); g.fill();
+      g.fillStyle = tok.kerb; g.beginPath(); g.arc(0, -s * .2, s * .35, 0, Math.PI * 2); g.fill();
+      break;
+    case 'tc':
+      g.fillStyle = tok['c-tc']; g.beginPath(); g.roundRect(-s * .6, -s * .8, s * 1.2, s * 1.6, s * .3); g.fill();
+      g.fillStyle = tok.kerb; g.fillRect(-s * .5, -s * 1.15, s, s * .55);
+      g.fillStyle = tok.muted; for (let i = 0; i < 3; i++) g.fillRect(-s * .4, -s * 1.05 + i * s * .15, s * .8, s * .05);
+      break;
+    case 'plant':
+      g.fillStyle = tok.ink; g.beginPath(); g.roundRect(-s * .45, -s, s * .9, s * 2, s * .4); g.fill();
+      g.fillStyle = tok['c-plant'];
+      for (const a of [-.9, 0, .9]) { g.beginPath(); g.ellipse(Math.sin(a) * s * .5, -Math.cos(a) * s * .3, s * .3, s * .7, a, 0, Math.PI * 2); g.fill(); }
+      break;
+    case 'time': {
+      g.fillStyle = tok['c-time']; g.beginPath(); g.arc(0, 0, s * .9, 0, Math.PI * 2); g.fill();
+      g.strokeStyle = tok.kerb; g.lineWidth = Math.max(1.5, s * .15); g.lineCap = 'round';
+      const a = -t * 2, b = -t / 6;
+      g.beginPath(); g.moveTo(0, 0); g.lineTo(Math.sin(a) * s * .65, -Math.cos(a) * s * .65);
+      g.moveTo(0, 0); g.lineTo(Math.sin(b) * s * .4, -Math.cos(b) * s * .4); g.stroke();
+      break;
+    }
+  }
+}
+
+function drawRacers(G) {
+  const lanes = S.rivals.length + 1, s = Math.max(6, G.tw * .11);
+  const laneOff = i => (-.5 + (i + .5) / lanes) * G.tw * .82;
+  const list = [...S.rivals.map(r => ({ id: r.id, pos: r.pos, lane: r.lane })), { id: 'you', pos: S.p.pos, lane: 0 }];
+  for (const r of list) {
+    const [x, y, a] = pt(G, fracOf(r.pos), laneOff(r.lane));
+    g.save(); g.translate(x, y); g.rotate(a + Math.PI); icon(r.id, s, S.t); g.restore();
+    if (r.id === 'you') {
+      g.strokeStyle = tok.signal; g.lineWidth = 2;
+      g.beginPath(); g.arc(x, y, s * 1.9, 0, Math.PI * 2); g.stroke();
+      if (S.p.lurch > 0) {
+        g.fillStyle = tok.ink; g.font = `600 ${Math.round(s * 1.6)}px "Barlow Condensed", sans-serif`;
+        g.fillText('z z', x + s * 2, y - s * 2);
+      }
+    }
+  }
+}
+
+let last = 0;
+function frame(now) {
+  const dt = Math.min(.05, (now - last) / 1000 || 0); last = now;
+  if (S && W > 0) {
+    update(dt);
+    const G = geom();
+    drawTrack(G); drawRacers(G);
+    hud(dt);
+  }
+  requestAnimationFrame(frame);
+}
+
+function setRaceName(n) {
+  const name = raceName(n), cut = name.lastIndexOf(' Grand Prix');
+  $('#race-name').innerHTML = `${name.slice(0, cut)} <span>Grand Prix</span>`;
+}
+
+function startRace(n) {
+  const best = S ? S.best : 0;
+  S = fresh(n, best);
+  lastLine = '';
+  held.clear();
+  setRaceName(n);
+  $('#title').hidden = true; $('#result').hidden = true;
+  say(n === 1 ? 'Engines idling. The Glacier has been on the grid since Tuesday.' : `Welcome to the ${raceName(n)}. Time itself has qualified.`);
+  hudTick = 0;
+}
+
+function button(label, fn, quiet) {
+  const b = document.createElement('button');
+  b.textContent = label; b.onclick = fn;
+  if (quiet) b.className = 'quiet';
+  return b;
+}
+
+function end(kind) {
+  S.mode = 'over';
+  held.clear();
+  const p = S.p, left = S.rivals.filter(r => !r.finished).map(r => r.name);
+  const T = {
+    dq: ['Disqualified for loitering.', `Your car came to a complete stop at ${p.pos.toFixed(1)} metres. The stewards were appalled. Loitering is for sloths.`],
+    shame: ['Declared the winner.', 'You led for far too long. Your name is being engraved on the trophy. You will never live this down.'],
+    early: ['You finished ahead of ' + (left.length > 1 ? left.slice(0, -1).join(', ') + ' and ' + left.at(-1) : left[0]) + '.',
+      'Crossing the line with rivals still racing is the fastest way to lose.'],
+    win: ['Last place. Magnificent.', 'Every rival finished before you. The crowd, what is left of it, rises slowly to its feet.'],
+  }[kind];
+  if (kind === 'win') S.best = Math.max(S.best, S.n);
+  $('#trophy').hidden = kind !== 'win';
+  $('#res-title').textContent = T[0];
+  $('#res-body').textContent = T[1];
+  $('#res-stat').textContent = `${raceName(S.n)} · ${fmtClock(S.t)} · ${p.pos.toFixed(1)} m covered` + (S.best ? ` · best: race ${S.best} won` : '');
+  const acts = $('#res-actions');
+  acts.replaceChildren();
+  if (kind === 'win') {
+    acts.append(button('Inspect trophy', () => {
+      $('#res-title').textContent = 'The trophy is a starting line.';
+      $('#res-body').textContent = `Underneath the cup, painted on the base, is the grid of the ${raceName(S.n + 1)}. Time itself has entered. They always were starting lines.`;
+      acts.replaceChildren(button('Line up', () => startRace(S.n + 1)));
+      acts.firstChild.focus();
+    }));
+  } else {
+    acts.append(button(`Retry the ${raceName(S.n)}`, () => startRace(S.n)));
+    if (S.n > 1) acts.append(button('Back to the first race', () => startRace(1), true));
+  }
+  $('#result').hidden = false;
+  acts.firstChild.focus();
+}
+
+function hold(key, el) {
+  const on = e => { if (S?.mode !== 'race' && S?.mode !== 'count') return; e.preventDefault(); held.add(key + (e.pointerId ?? '')); el.classList?.add('on'); };
+  const off = e => { held.delete(key + (e.pointerId ?? '')); if (![...held].some(k => k.startsWith(key))) el.classList?.remove('on'); };
+  el.addEventListener('pointerdown', e => { on(e); el.setPointerCapture?.(e.pointerId); });
+  el.addEventListener('pointerup', off);
+  el.addEventListener('pointercancel', off);
+  el.addEventListener('lostpointercapture', off);
+}
+hold('btn', $('#throttle'));
+hold('trk', cv);
+$('#throttle').addEventListener('contextmenu', e => e.preventDefault());
+const KEYS = ['Space', 'ArrowUp', 'KeyW'];
+addEventListener('keydown', e => {
+  if (!KEYS.includes(e.code)) return;
+  if (S?.mode === 'race' || S?.mode === 'count') { e.preventDefault(); held.add('k' + e.code); $('#throttle').classList.add('on'); }
+});
+addEventListener('keyup', e => {
+  if (!KEYS.includes(e.code)) return;
+  held.delete('k' + e.code);
+  if (![...held].some(k => k.startsWith('k') || k.startsWith('btn'))) $('#throttle').classList.remove('on');
+});
+addEventListener('blur', () => { held.clear(); $('#throttle').classList.remove('on'); });
+$('#start').onclick = () => startRace(1);
+
+function boot(data) {
+  // a preview race sits on the grid behind the title card so the first frame shows the track
+  S = fresh(1, data.best || 0);
+  S.mode = 'idle';
+  resize();
+  hud(0);
+  requestAnimationFrame(frame);
+}
+window.claude?.hot?.snapshot?.(() => ({ best: S?.best || 0 }));
+window.claude?.hot?.ready ? window.claude.hot.ready(boot) : boot(window.claude?.hot?.data ?? {});
+</script>
+</body>
+</html>

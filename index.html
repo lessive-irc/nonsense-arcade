@@ -1,0 +1,296 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>The Nonsense Arcade</title>
+<meta name="description" content="Small browser games that make no sense and then, briefly, perfect sense.">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bagel+Fat+One&family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=DM+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: a prize-counter ticket roll — a loud wordmark, then one perforated ticket per game in a wrapping grid. */
+:root {
+  --paper: #eef1e4;
+  --ticket: #fbfcf5;
+  --ink: #22261e;
+  --ink-soft: #5d6455;
+  --marigold: #e39b2d;
+  --plum: #7a3d63;
+  --rule: #c9cfb9;
+  --f-display: "Bagel Fat One", "Arial Rounded MT Bold", system-ui, sans-serif;
+  --f-body: "Atkinson Hyperlegible", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-mono: "DM Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #161a14; --ticket: #20251d; --ink: #e9ecdd; --ink-soft: #a3aa96;
+    --marigold: #f0ad45; --plum: #d58fbb; --rule: #353c2f;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #161a14; --ticket: #20251d; --ink: #e9ecdd; --ink-soft: #a3aa96;
+  --marigold: #f0ad45; --plum: #d58fbb; --rule: #353c2f;
+  color-scheme: dark;
+}
+[hidden] { display: none !important; }
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font: 16px/1.6 var(--f-body);
+  padding-block: 48px 64px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.wrap { max-width: 1080px; margin: 0 auto; display: grid; gap: 40px; }
+header { display: grid; gap: 14px; }
+.eyebrow { font: 500 12px var(--f-mono); letter-spacing: .14em; text-transform: uppercase; color: var(--plum); }
+h1 {
+  margin: 0; font: 400 clamp(52px, 11vw, 128px)/.88 var(--f-display);
+  letter-spacing: -.01em; text-wrap: balance; color: var(--ink);
+}
+h1 span { color: var(--marigold); display: inline-block; transform: rotate(-3deg); }
+.lede { margin: 0; max-width: 58ch; color: var(--ink-soft); font-size: 18px; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); gap: 20px; }
+.ticket {
+  position: relative; display: grid; grid-template-rows: auto auto 1fr auto; gap: 10px;
+  padding: 22px 22px 18px; background: var(--ticket); color: inherit; text-decoration: none;
+  border-radius: 6px; box-shadow: 0 1px 0 var(--rule), 0 10px 24px -18px #00000066;
+  transition: transform .18s ease, box-shadow .18s ease;
+}
+/* punched notches on both long edges, like a torn-off prize ticket */
+.ticket::before, .ticket::after {
+  content: ""; position: absolute; top: 50%; width: 18px; height: 18px; margin-top: -9px;
+  border-radius: 50%; background: var(--paper);
+}
+.ticket::before { left: -9px; }
+.ticket::after { right: -9px; }
+.ticket:hover { transform: translateY(-3px) rotate(-.6deg); box-shadow: 0 1px 0 var(--rule), 0 18px 30px -18px #00000080; }
+.ticket:focus-visible { outline: 3px solid var(--marigold); outline-offset: 3px; }
+.no { font: 500 11px var(--f-mono); letter-spacing: .12em; text-transform: uppercase; color: var(--ink-soft); font-variant-numeric: tabular-nums; }
+.ticket h2 { margin: 0; font: 400 26px/1.05 var(--f-display); text-wrap: balance; }
+.ticket p { margin: 0; color: var(--ink-soft); font-size: 15px; }
+.stub {
+  display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap;
+  padding-top: 12px; border-top: 2px dashed var(--rule);
+  font: 400 12px var(--f-mono); color: var(--ink-soft);
+}
+.stub b { font-weight: 500; color: var(--plum); }
+.play { color: var(--marigold); font-weight: 500; }
+footer { font: 400 12px var(--f-mono); color: var(--ink-soft); display: flex; gap: 16px; flex-wrap: wrap; justify-content: space-between; border-top: 1px solid var(--rule); padding-top: 16px; }
+@media (prefers-reduced-motion: reduce) {
+  .ticket, .ticket:hover { transition: none; transform: none; }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Nonsense Arcade · admission free · refunds in soup</div>
+    <h1>The Nonsense <span>Arcade</span></h1>
+    <p class="lede">Small browser games that make no sense, then make perfect sense for about four seconds, then stop again. Each one runs in your browser with nothing to install. Every one of them ends with a twist.</p>
+  </header>
+
+  <main class="grid">
+    <a class="ticket" href="moon-moist/">
+      <div class="no">Ticket 001</div>
+      <h2>Please Keep the Moon Moist</h2>
+      <p>You are a cloud and the moon is dry. Rain on it, but not too much. The rules change every fifteen seconds and the moon explains why, which does not help.</p>
+      <div class="stub"><span>scored in <b>moist points</b></span><span class="play">Play →</span></div>
+    </a>
+    <a class="ticket" href="bureau-of-unfiled-weather/">
+      <div class="no">Ticket 002</div>
+      <h2>Bureau of Unfiled Weather</h2>
+      <p>Stamp weather applications APPROVED, DENIED or SOUP while memos rewrite the rulebook. Goats are clouds now. Thursday has been discontinued.</p>
+      <div class="stub"><span>scored in <b>standing with the Bureau</b></span><span class="play">Play →</span></div>
+    </a>
+    <a class="ticket" href="hold-the-door/">
+      <div class="no">Ticket 003</div>
+      <h2>Hold the Door</h2>
+      <p>A snail is eighteen metres from a fire door. Hold it open. Your arm gets tired, the corridor gets longer, and a man is selling smaller doors.</p>
+      <div class="stub"><span>scored in <b>courtesy</b></span><span class="play">Play →</span></div>
+    </a>
+    <a class="ticket" href="furniture-choir/">
+      <div class="no">Ticket 004</div>
+      <h2>Furniture Choir</h2>
+      <p>A floor lamp conducts and six pieces of furniture sing. Repeat the phrase. Sing it backwards. The toaster has left the choir and is still singing.</p>
+      <div class="stub"><span>scored in <b>standing ovations</b></span><span class="play">Play →</span></div>
+    </a>
+    <a class="ticket" href="very-slow-grand-prix/">
+      <div class="no">Ticket 005</div>
+      <h2>Very Slow Grand Prix</h2>
+      <p>Finish last without ever stopping. Your rivals are a glacier, a napping sloth on a scooter and a man reading the terms and conditions. The finish line wanders.</p>
+      <div class="stub"><span>speed in <b>furlongs per fortnight</b></span><span class="play">Play →</span></div>
+    </a>
+    <a class="ticket" href="sandwich-diplomacy/">
+      <div class="no">Ticket 006</div>
+      <h2>Sandwich Diplomacy</h2>
+      <p>Stack ingredients that hold grudges. The tomato will not touch the cheese, and the sock is hated by everyone for being neutral. Treaties rewrite the rules.</p>
+      <div class="stub"><span>collapse into <b>salad</b> at 100% tension</span><span class="play">Play →</span></div>
+    </a>
+    <a class="ticket" href="typing-tutor-for-whales/">
+      <div class="no">Ticket 007</div>
+      <h2>Typing Tutor for Whales</h2>
+      <p>Type whale-song before it sinks to the seabed. A squid swaps your keys, krill eat your vowels, and the final exam is a sentence the whale wrote from your work.</p>
+      <div class="stub"><span>scored in <b>fathoms of literacy</b></span><span class="play">Play →</span></div>
+    </a>
+    <a class="ticket" href="floor-seven-and-a-half/">
+      <div class="no">Ticket 008</div>
+      <h2>Floor 7½</h2>
+      <p>Run the lift in a building that should not exist. Floor 7½ is only there on the way down, and Yesterday opens only if you have been below the lobby.</p>
+      <div class="stub"><span><b>5 complaints</b> and you take the stairs</span><span class="play">Play →</span></div>
+    </a>
+    <a class="ticket" href="gardening-for-rocks/">
+      <div class="no">Ticket 009</div>
+      <h2>Gardening for Rocks</h2>
+      <p>Tend a raked gravel garden of rocks that grow a few millimetres per geological mood. Water them, talk to them, buy them tiny hats.</p>
+      <div class="stub"><span>scored in <b>patience</b></span><span class="play">Play →</span></div>
+    </a>
+    <a class="ticket" href="sheep-audit/">
+      <div class="no">Ticket 010</div>
+      <h2>Sheep Audit</h2>
+      <p>Count sheep to fall asleep, but some of the sheep are committing fraud: goats in wool coats, clouds with ear tags, two lambs in a trench coat.</p>
+      <div class="stub"><span>scored in <b>sheep certified</b></span><span class="play">Play →</span></div>
+    </a>
+    <a class="ticket" href="the-haunted-spreadsheet/">
+      <div class="no">Ticket 011</div>
+      <h2>The Haunted Spreadsheet</h2>
+      <p>Find the ghosts in Q3_FINAL_final_v7.xls without clicking them. Some cells count their row, some lie, and some are only afraid of corners.</p>
+      <div class="stub"><span>scored in <b>reconciled cells</b></span><span class="play">Play →</span></div>
+    </a>
+    <a class="ticket" href="night-shift-at-the-gallery/">
+      <div class="no">Ticket 012</div>
+      <h2>Night Shift at the Gallery</h2>
+      <p>Guard a wall of oil paintings by torchlight and report what changed while the torch was away. Every pear is a suspect.</p>
+      <div class="stub"><span>scored in <b>incidents logged</b></span><span class="play">Play →</span></div>
+    </a>
+    <a class="ticket" href="the-last-sock/">
+      <div class="no">Ticket 013</div>
+      <h2>The Last Sock</h2>
+      <p>You are a sock in a turning washing-machine drum. Every quarter-turn, down becomes a different wall. Find your missing partner.</p>
+      <div class="stub"><span>scored in <b>time spent missing</b></span><span class="play">Play →</span></div>
+    </a>
+    <a class="ticket" href="fishing-in-the-bath/">
+      <div class="no">Ticket 014</div>
+      <h2>Fishing in the Bath</h2>
+      <p>Fish in a bathtub that goes down forty metres. Catch a rubber duck, last Tuesday and an apology you never sent, then work out which bait the plug wants.</p>
+      <div class="stub"><span>scored in <b>litres displaced</b></span><span class="play">Play →</span></div>
+    </a>
+    <a class="ticket" href="tarot-of-mild-inconveniences/">
+      <div class="no">Ticket 015</div>
+      <h2>The Tarot of Mild Inconveniences</h2>
+      <p>Get through one ordinary day with a tarot deck of wet socks, reply-alls and perfectly ripe avocados, then let the deck read your day back to you.</p>
+      <div class="stub"><span>scored in <b>composure, punctuality, dignity</b></span><span class="play">Play →</span></div>
+    </a>
+    <a class="ticket" href="speed-dating-at-lost-property/">
+      <div class="no">Ticket 016</div>
+      <h2>Speed Dating at Lost Property</h2>
+      <p>You are a single navy glove, speed dating the unclaimed items in a railway lost-property office: an umbrella with commitment issues, a violin from the 7:42, and a wedding cake nobody will explain.</p>
+      <div class="stub"><span>scored in <b>claim tickets</b></span><span class="play">Play →</span></div>
+    </a>
+    <a class="ticket" href="aunts-vs-ants/">
+      <div class="no">Ticket 017</div>
+      <h2>Aunts vs. Ants</h2>
+      <p>Seat your aunts beside the crumb trail and keep the ants off the potato salad. Aunts sitting side by side gossip, and the gossip changes how they swat.</p>
+      <div class="stub"><span>scored in <b>ants turned away</b></span><span class="play">Play →</span></div>
+    </a>
+    <a class="ticket" href="pigeon-polka/">
+      <div class="no">Ticket 018</div>
+      <h2>Pigeon Polka</h2>
+      <p>The municipal brass band plays polkas and four pigeons wait for breadcrumbs. Feed each one on the beat, mind the seagull, and never trust the statue.</p>
+      <div class="stub"><span>scored in <b>crumbs pecked</b></span><span class="play">Play →</span></div>
+    </a>
+    <a class="ticket" href="customer-service-for-ghosts/">
+      <div class="no">Ticket 019</div>
+      <h2>Customer Service for Ghosts</h2>
+      <p>Route the dead to the right decade on a night-exchange switchboard. Nobody has ever filled in the survey. The hold music sounds familiar.</p>
+      <div class="stub"><span>scored in <b>calls connected</b></span><span class="play">Play →</span></div>
+    </a>
+    <a class="ticket" href="museum-of-ordinary-afternoons/">
+      <div class="no">Ticket 020</div>
+      <h2>Museum of Ordinary Afternoons</h2>
+      <p>Curate a museum where nothing happens: a cup of tea going cold, a cat watching a door. Visitors expect exactly that much nothing.</p>
+      <div class="stub"><span>measured on the <b>Ordinary Afternoon Scale</b></span><span class="play">Play →</span></div>
+    </a>
+    <a class="ticket" href="escape-room-escaped/">
+      <div class="no">Ticket 021</div>
+      <h2>Escape Room (Escaped)</h2>
+      <p>You escaped with eighteen minutes to spare. You would like to go back in. Re-lock every padlock, re-hide every key, and put the dust back.</p>
+      <div class="stub"><span>timed in <b>minutes on the clock</b></span><span class="play">Play →</span></div>
+    </a>
+    <a class="ticket" href="weather-forecast-for-a-single-house/">
+      <div class="no">Ticket 022</div>
+      <h2>Weather Forecast for a Single House</h2>
+      <p>Forecast six rooms in three time slots. Kitchen: toast smoke likely. Hallway: westerly, occasionally sock. The house has seen your forecast.</p>
+      <div class="stub"><span>scored in <b>viewer confidence</b></span><span class="play">Play →</span></div>
+    </a>
+    <a class="ticket" href="slow-cooker-grand-opera/">
+      <div class="no">Ticket 023</div>
+      <h2>Slow Cooker Grand Opera</h2>
+      <p>A beef stew sings the title role and you are at the heat dial. Too hot and it shrieks. Below 55 °C, aspic.</p>
+      <div class="stub"><span>scored in <b>applause</b></span><span class="play">Play →</span></div>
+    </a>
+    <a class="ticket" href="unpaid-intern-at-the-volcano/">
+      <div class="no">Ticket 024</div>
+      <h2>Unpaid Intern at the Volcano</h2>
+      <p>Keep the volcano's diary, route its magma memos and approve its eruption requests. Silence counts as yes, under Clause 7(b).</p>
+      <div class="stub"><span>scored on the <b>Volcanic Explosivity Index</b></span><span class="play">Play →</span></div>
+    </a>
+    <a class="ticket" href="lighthouse-for-one-boat/">
+      <div class="no">Ticket 025</div>
+      <h2>Lighthouse for One Boat</h2>
+      <p>Keep a lighthouse with one client: a rowboat that cannot make up its mind. Sweep the beam, mind the rocks, and watch for a lamp flashing back.</p>
+      <div class="stub"><span>light characteristic <b>Fl(2) W 10s</b></span><span class="play">Play →</span></div>
+    </a>
+    <a class="ticket" href="speedrun-of-a-nap/">
+      <div class="no">Ticket 026</div>
+      <h2>Speedrun of a Nap</h2>
+      <p>Any% nap. The world record is 4:02.71, held by a cat. Breathe slowly, swat the fly and resist the phone. Sub-4 has never been done.</p>
+      <div class="stub"><span>timed in <b>gold splits</b></span><span class="play">Play →</span></div>
+    </a>
+    <a class="ticket" href="bus-stop-chess/">
+      <div class="no">Ticket 027</div>
+      <h2>Bus Stop Chess</h2>
+      <p>Solve chess puzzles against strangers before their bus comes. A pensioner moves only knights. The timetable has been watching the board.</p>
+      <div class="stub"><span>scored in <b>strangers beaten</b></span><span class="play">Play →</span></div>
+    </a>
+    <a class="ticket" href="committee-for-naming-clouds/">
+      <div class="no">Ticket 028</div>
+      <h2>The Committee for Naming Clouds</h2>
+      <p>Chair a committee that must name each cloud before it evaporates. Reach quorum, take the vote, minute it. The sky is finite.</p>
+      <div class="stub"><span>recorded in <b>approved minutes</b></span><span class="play">Play →</span></div>
+    </a>
+    <a class="ticket" href="parallel-parking-on-the-moon/">
+      <div class="no">Ticket 029</div>
+      <h2>Parallel Parking on the Moon</h2>
+      <p>Parallel park a hire car at 1.62 m/s² between a lander and a golf buggy from 1971. Tiny taps, huge consequences. The space was never empty.</p>
+      <div class="stub"><span>measured in <b>centimetres from the kerb</b></span><span class="play">Play →</span></div>
+    </a>
+    <a class="ticket" href="lost-and-found-the-sequel/">
+      <div class="no">Ticket 030</div>
+      <h2>Lost &amp; Found: The Sequel</h2>
+      <p>Owners describe their lost things badly. Find them on the shelves before they give up. Everything you return comes back the next day, happier.</p>
+      <div class="stub"><span>scored in <b>people reunited</b></span><span class="play">Play →</span></div>
+    </a>
+    <a class="ticket" href="tax-return-of-a-dragon/">
+      <div class="no">Ticket 031</div>
+      <h2>Tax Return of a Dragon</h2>
+      <p>Itemise a dragon's hoard on Form DRG-1 before its patience runs out. Gold is income. Knights are not deductible. The goblet is listening.</p>
+      <div class="stub"><span>filed under <b>Schedules A to X</b></span><span class="play">Play →</span></div>
+    </a>
+    <a class="ticket" href="queue-simulator-deluxe/">
+      <div class="no">Ticket 032</div>
+      <h2>Queue Simulator Deluxe</h2>
+      <p>Hold your place in a queue for something. Nobody knows what. People want to go ahead of you, just for a quick question. It moves, though.</p>
+      <div class="stub"><span>scored in <b>dignity</b></span><span class="play">Play →</span></div>
+    </a>
+  </main>
+
+  <footer>
+    <span>Mouse, touch or keyboard. Sound in Furniture Choir, Floor 7½ and Pigeon Polka.</span>
+    <span>No accounts, no tracking, nothing stored.</span>
+  </footer>
+</div>
+</body>
+</html>

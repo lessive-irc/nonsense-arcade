@@ -1,0 +1,1130 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Gardening for Rocks</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Darumadrop+One&family=Karla:ital,wght@0,400;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: a raked dry garden seen from above on the left, the gardener's slate on the right; stacks on phones. */
+:root {
+  --bg: #e4e7ea;
+  --surface: #f3f5f6;
+  --ink: #1c2025;
+  --ink-soft: #59616a;
+  --line: #c4c9ce;
+  --gravel: #d9dcd6;
+  --rake: #c3c7bf;
+  --shadow: rgba(30, 34, 40, .22);
+  --rim: rgba(0, 0, 0, .28);
+  --moss: #557a33;
+  --amethyst: #6c4ea1;
+  --mountain: #7a838d;
+  --f-display: "Darumadrop One", "Arial Rounded MT Bold", "Trebuchet MS", system-ui, sans-serif;
+  --f-body: "Karla", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #14171b; --surface: #1c2025; --ink: #e1e5e9; --ink-soft: #9aa3ad; --line: #30363d;
+    --gravel: #23282d; --rake: #2f353b; --shadow: rgba(0, 0, 0, .45); --rim: rgba(255, 255, 255, .22);
+    --moss: #95b866; --amethyst: #b49be6; --mountain: #3d454d;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #14171b; --surface: #1c2025; --ink: #e1e5e9; --ink-soft: #9aa3ad; --line: #30363d;
+  --gravel: #23282d; --rake: #2f353b; --shadow: rgba(0, 0, 0, .45); --rim: rgba(255, 255, 255, .22);
+  --moss: #95b866; --amethyst: #b49be6; --mountain: #3d454d;
+  color-scheme: dark;
+}
+[hidden] { display: none !important; }
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font: 15px/1.55 var(--f-body);
+  padding-block: 24px 40px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.page { max-width: 1200px; margin: 0 auto; display: grid; gap: 20px; }
+.mast { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px 24px; }
+h1 { margin: 0; font: 400 clamp(38px, 6.5vw, 64px)/.95 var(--f-display); letter-spacing: .01em; text-wrap: balance; }
+h1 span { color: var(--moss); }
+.tag { margin: 0; color: var(--ink-soft); max-width: 46ch; }
+.layout { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(300px, 1fr); gap: 24px; align-items: start; }
+.layout.ending { grid-template-columns: minmax(0, 1fr); max-width: 860px; margin: 0 auto; width: 100%; }
+.layout.ending .panel { display: none; }
+@media (max-width: 860px) { .layout { grid-template-columns: minmax(0, 1fr); } }
+.stage { display: grid; gap: 10px; }
+.garden {
+  position: relative; aspect-ratio: 4 / 3; max-width: 100%; border-radius: 20px; overflow: hidden;
+  background: var(--gravel); box-shadow: inset 0 0 0 1px var(--line);
+}
+canvas { display: block; width: 100%; height: 100%; touch-action: manipulation; cursor: pointer; }
+.caption { font: 400 12px/1.5 var(--f-mono); color: var(--ink-soft); letter-spacing: .02em; min-height: 1.5em; }
+.speech { font-style: italic; font-size: 17px; min-height: 1.6em; text-wrap: balance; }
+.speech b { font-style: normal; font-weight: 700; color: var(--amethyst); }
+.panel { display: grid; gap: 18px; }
+.slate { background: var(--surface); border-radius: 16px; padding: 16px 18px; display: grid; gap: 10px; box-shadow: 0 1px 0 var(--line); }
+.label { font: 600 11px var(--f-mono); letter-spacing: .12em; text-transform: uppercase; color: var(--ink-soft); }
+.patience { font: 600 clamp(24px, 3.4vw, 32px)/1.1 var(--f-mono); font-variant-numeric: tabular-nums; }
+.sub { font: 400 12px/1.5 var(--f-mono); color: var(--ink-soft); font-variant-numeric: tabular-nums; }
+.actions { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+button {
+  font: 600 14px var(--f-body); color: var(--ink); background: var(--bg);
+  border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; cursor: pointer; text-align: left;
+  transition: border-color .15s, transform .15s;
+}
+button:hover:not(:disabled) { border-color: var(--moss); }
+button:active:not(:disabled) { transform: translateY(1px); }
+button:focus-visible { outline: 2px solid var(--amethyst); outline-offset: 2px; }
+button:disabled { cursor: default; opacity: .5; }
+.act { position: relative; overflow: hidden; display: grid; gap: 2px; }
+.act small { font: 400 11px var(--f-mono); color: var(--ink-soft); }
+.act::after {
+  content: ""; position: absolute; left: 0; bottom: 0; height: 3px; width: calc(var(--cd, 0) * 100%);
+  background: var(--moss);
+}
+.hint { margin: 0; font-size: 13px; color: var(--ink-soft); }
+.event { border: 2px solid var(--amethyst); }
+.event p { margin: 0; font-size: 16px; text-wrap: balance; }
+.event .row { display: flex; gap: 8px; flex-wrap: wrap; }
+.event .row button { flex: 1 1 140px; }
+.shop { display: grid; gap: 8px; }
+.item { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 12px; align-items: baseline; }
+.item .nm { font-weight: 700; }
+.item .ds { grid-column: 1 / -1; font-weight: 400; font-size: 13px; color: var(--ink-soft); }
+.item .ct { font: 600 12px var(--f-mono); color: var(--moss); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.item kbd { font: 400 10px var(--f-mono); color: var(--ink-soft); border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; margin-right: 6px; }
+.rocks { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.rocks li { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 0 12px; font-size: 14px; }
+.rocks li span:last-child { font: 400 12px var(--f-mono); color: var(--ink-soft); text-align: right; font-variant-numeric: tabular-nums; }
+.rocks li em { grid-column: 1 / -1; font-size: 12px; color: var(--ink-soft); }
+.finale { justify-items: center; text-align: center; }
+.finale p { margin: 0; max-width: 52ch; color: var(--ink-soft); }
+.wait { position: relative; text-align: center; font: 400 22px var(--f-display); padding: 14px 32px; border-radius: 999px; }
+.ring { width: min(260px, 70%); height: 6px; border-radius: 99px; background: var(--line); overflow: hidden; }
+.ring i { display: block; height: 100%; width: 0; background: var(--amethyst); }
+.credits {
+  position: fixed; inset: 0; z-index: 20; display: grid; place-items: center; background: var(--bg);
+  padding: max(24px, env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px)) max(24px, env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px));
+}
+.credits .card { display: grid; gap: 16px; max-width: 560px; text-align: center; justify-items: center; }
+.credits h2 { margin: 0; font: 400 clamp(34px, 6vw, 56px)/1 var(--f-display); text-wrap: balance; }
+.credits p { margin: 0; color: var(--ink-soft); font-size: 17px; text-wrap: balance; }
+.credits .stat { font: 400 12px var(--f-mono); color: var(--ink-soft); }
+.credits button { text-align: center; }
+.lang { display: inline-flex; align-self: center; border: 1px solid var(--line); border-radius: 999px; overflow: hidden; background: var(--surface); }
+.lang button { border: 0; border-radius: 0; background: transparent; padding: 5px 11px; font: 600 11px var(--f-mono); letter-spacing: .1em; color: var(--ink-soft); text-align: center; }
+.lang button + button { border-left: 1px solid var(--line); }
+.lang button:hover { color: var(--ink); }
+.lang button[aria-pressed="true"] { background: var(--ink); color: var(--surface); }
+.lang.top { order: -1; justify-self: end; margin-bottom: -12px; }
+@media (prefers-reduced-motion: reduce) { button { transition: none; } }
+</style>
+</head>
+<body>
+<div class="page">
+  <header class="mast">
+    <h1 data-th="titleH">Gardening for <span>Rocks</span></h1>
+    <p class="tag" data-t="tag">A very slow garden. Water it, talk to it, play it music. It grows a few millimetres per geological mood.</p>
+  </header>
+
+  <main class="layout" id="layout">
+    <section class="stage">
+      <div class="garden"><canvas id="garden" data-ta="gardenAria" aria-label="A raked gravel garden with rocks in it"></canvas></div>
+      <div class="caption" id="caption">Gerald the pebble has arrived. He is 0 mm tall and in no hurry.</div>
+      <div class="speech" id="speech" aria-live="polite"></div>
+
+      <div class="slate finale" id="finale" hidden>
+        <div class="label" data-t="finaleLabel">The mountain is tending you now</div>
+        <p id="finale-text">There is one thing left to do.</p>
+        <button class="wait" id="wait" data-t="wait">Be patient</button>
+        <div class="ring" aria-hidden="true"><i id="ring"></i></div>
+      </div>
+    </section>
+
+    <aside class="panel">
+      <div class="slate">
+        <div class="label" data-t="patLabel">Patience</div>
+        <div class="patience" id="pat">0 moments</div>
+        <div class="sub" id="rate">+0 per mood</div>
+        <div class="sub" id="biggest"></div>
+      </div>
+
+      <div class="slate">
+        <div class="label" data-t="tend">Tend</div>
+        <div class="actions">
+          <button class="act" id="act-water"><span data-t="water">Water</span><small data-t="waterSub">W · growth up</small></button>
+          <button class="act" id="act-talk"><span data-t="talk">Talk</span><small data-t="talkSub">T · patience</small></button>
+          <button class="act" id="act-music"><span data-t="music">Music</span><small data-t="musicSub">M · growth ×2</small></button>
+        </div>
+        <p class="hint" data-t="hint">Tap a rock or press Space to pat it. Rocks like that, quietly.</p>
+      </div>
+
+      <div class="slate event" id="event" hidden>
+        <div class="label" id="event-who" data-t="eventWhoAny">A rock would like a word</div>
+        <p id="event-q"></p>
+        <div class="row">
+          <button id="event-a"></button>
+          <button id="event-b"></button>
+        </div>
+      </div>
+
+      <div class="slate">
+        <div class="label" data-t="shop">Garden shop · keys 1–9</div>
+        <div class="shop" id="shop"></div>
+      </div>
+
+      <div class="slate">
+        <div class="label" data-t="yourRocks">Your rocks</div>
+        <ul class="rocks" id="rocks"></ul>
+      </div>
+    </aside>
+  </main>
+  <!-- Last in the DOM so Tab and the first-button order still reach the garden first; drawn at the top. -->
+  <div class="lang top" role="group" data-ta="langGroup" aria-label="Language"></div>
+</div>
+
+<div class="credits" id="credits" hidden>
+  <div class="card">
+    <h2 data-t="creditsH">You grew 0.4 mm</h2>
+    <p data-t="creditsP">It took four billion years. It felt like a moment. The mountain says you are coming along nicely.</p>
+    <div class="stat" id="credit-stat"></div>
+    <button id="restart" data-t="restart">Start a new garden</button>
+    <div class="lang" role="group" data-ta="langGroup" aria-label="Language"></div>
+  </div>
+</div>
+
+<script>
+const $ = s => document.querySelector(s);
+const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const cv = $('#garden'), cx = cv.getContext('2d');
+let W = 0, H = 0;
+
+// Every player-visible string, per language. Logic keeps indexes and ids; text is read when shown.
+// Rocks are referred to by index into I18N.*.rocks; events by index into I18N.*.events.
+const I18N = {
+  en: {
+    docTitle: 'Gardening for Rocks', langGroup: 'Language',
+    titleH: 'Gardening for <span>Rocks</span>',
+    tag: 'A very slow garden. Water it, talk to it, play it music. It grows a few millimetres per geological mood.',
+    gardenAria: 'A raked gravel garden with rocks in it',
+    finaleLabel: 'The mountain is tending you now', finaleStart: 'There is one thing left to do.', wait: 'Be patient',
+    patLabel: 'Patience', tend: 'Tend', water: 'Water', waterSub: 'W · growth up', talk: 'Talk', talkSub: 'T · patience',
+    music: 'Music', musicSub: 'M · growth ×2', hint: 'Tap a rock or press Space to pat it. Rocks like that, quietly.',
+    shop: 'Garden shop · keys 1–9', yourRocks: 'Your rocks',
+    creditsH: 'You grew 0.4 mm',
+    creditsP: 'It took four billion years. It felt like a moment. The mountain says you are coming along nicely.',
+    restart: 'Start a new garden',
+    units: ['eons', 'eras', 'epochs', 'millennia', 'seasons'], moments: 'moments', dec: '.',
+    rate: (p, tended) => `+${p} per mood${tended ? ' · tended' : ''}`,
+    tallest: (n, l) => `tallest: ${n}, ${l}`,
+    speaker: n => `${n}: `,
+    rocks: [
+      { name: 'Gerald', kind: 'pebble', a: 'A pebble', mood: 'in no hurry',
+        lines: ['Gerald is thinking about sand.', 'Gerald appreciates the gesture.', 'Gerald would like you to know he is round on purpose.'] },
+      { name: 'Doris', kind: 'basalt', a: 'A basalt', mood: 'brooding, volcanic past',
+        lines: ['Doris was lava once. She does not talk about it.', 'Doris says: fine.', 'Doris has been cold for a very long time and prefers it.'] },
+      { name: 'Pim', kind: 'pumice', a: 'A pumice', mood: 'anxious, floats',
+        lines: ['Pim is worried it is too light to be taken seriously.', 'Pim floated once. Pim still thinks about it.', 'Pim asks if this is a safe garden.'] },
+      { name: 'Opal', kind: 'geode', a: 'A geode', mood: 'secretly sparkly',
+        lines: ['Opal is plain on the outside. That is the point.', 'Opal is keeping something inside. It is sparkly.', 'Opal winks. Rocks cannot wink. Opal did.'] },
+      { name: 'Graham', kind: 'granite', a: 'A granite', mood: 'stoic',
+        lines: ['Graham says nothing. It is a warm nothing.', 'Graham has been here since before here.', 'Graham nods. Nobody saw it move.'] },
+      { name: 'Shelley', kind: 'shale', a: 'A shale', mood: 'gossip, flaky',
+        lines: ['Shelley says Graham used to be magma. Everyone did, Shelley.', 'Shelley heard the moss is seeing someone.', 'Shelley is coming apart in layers. It is a lifestyle.'] },
+      { name: 'Vex', kind: 'obsidian', a: 'An obsidian', mood: 'very dry wit',
+        lines: ['Vex says your raking is adequate. High praise.', 'Vex is sharp. Vex knows.', 'Vex was formed in an instant. Vex will not let anyone forget it.'] },
+      { name: 'Unit 7', kind: 'meteorite', a: 'A meteorite', mood: 'not from here',
+        lines: ['Unit 7 is reporting back to somewhere.', 'Unit 7 says your sky is the wrong colour, but nicely.', 'Unit 7 has decided to stay. For now.'] },
+    ],
+    upgrades: {
+      can: ['Watering can with a spout', 'Watering doubles growth instead of ×1.5.'],
+      lawyer: ['A lawyer for the pebble', 'Gerald sues gravity and wins. Gerald grows ×5.'],
+      hands: ['Gentler hands', 'Patting gives far more patience.'],
+      moss: ['Moss blanket', 'Every rock grows ×2. They look cosy.'],
+      records: ['A record collection', 'Music lasts twice as long and comes back twice as fast.'],
+      tortoise: ['A rock (it is a tortoise)', 'It wanders off. It comes back with gifts of patience.'],
+      sun: ['A second sun', 'Every rock grows ×3. Every rock gets a second shadow.'],
+      tect: ['Plate tectonics subscription', 'Every rock grows ×5. The ground hums.'],
+      tues: ['The concept of Tuesday', 'Every rock grows ×4. Nobody asked for this.'],
+      moon: ['Ask the moon for advice', 'Every rock grows ×10. The moon says: stay moist.'],
+      deep: ['Deep time', 'Every rock grows ×20. Minutes feel like millennia, correctly.'],
+      mountain: ['Let it become a mountain', 'Your biggest rock is ready. It has been ready for ages.'],
+    },
+    bought: { can: 'The can has a spout now. The rocks notice.', lawyer: 'Gerald has representation. Gravity is nervous.',
+      hands: 'Your hands are gentler. The rocks lean in.', moss: 'Moss is tucked around everyone.', records: 'Mostly whale song and one polka.',
+      tortoise: 'You buy a rock. It walks away. It is a tortoise.', sun: 'A second sun rises. Nobody comments.',
+      tect: 'The continents shuffle closer, supportively.', tues: 'It is Tuesday now. It is always going to be a bit Tuesday.',
+      moon: 'The moon is very damp about the whole thing.', deep: 'Time stretches out like a cat.' },
+    boughtDefault: 'Bought.',
+    milestones: [
+      n => `${n} has noticed you. All the rocks have faces now. They always did.`,
+      () => 'Lichen has arrived. It is pleased to be here.',
+      () => 'You rake the gravel into waves. The rocks approve, slowly.',
+      () => 'A small cloud has started visiting. It does not stay long.',
+      n => `Birds have landed on ${n}. ${n} is ready to become something.`,
+    ],
+    // q, answer a, answer b, reply to a, reply to b.
+    events: [
+      ['Gerald’s lawyer has sent an invoice.', 'Pay it', 'Ignore it', 'Gerald is now legally larger. Permanently ×2.', 'Gerald will represent himself. He says nothing, persuasively.'],
+      ['Doris would like to be left alone for a while.', 'Leave her be', 'Hug her anyway', 'Doris grows ×3 in peace for a minute.', 'Doris tolerated it. You feel patient. She is sulking.'],
+      ['Pim is afraid of sinking.', 'Reassure Pim', 'Teach it to float', 'Pim feels heavier, in a good way.', 'Pim floats on the gravel. Pim grows ×2 forever.'],
+      ['Opal wants to show you what is inside.', 'Look', 'Respect its privacy', 'It is beautiful. Every rock grows ×2 for 45 moods.', 'Opal is relieved. It was mostly being polite.'],
+      ['Graham has been thinking.', 'Ask about what', 'Let him think', 'Graham does not say. You feel slightly wiser anyway.', 'Graham thinks for a thousand years. Graham grows ×2.'],
+      ['Shelley has heard a rumour about Graham.', 'Listen', 'Change the subject', 'Graham was once a beach. Scandalous.', 'Graham is grateful. Graham grows ×2.'],
+      ['Vex has written a joke. It is very dry.', 'Laugh', 'Pretend not to get it', 'Vex pretends not to care. Everyone grows ×1.5 for a bit.', 'Vex respects that.'],
+      ['Unit 7 wants to go home.', 'Point at the sky', 'Show it the garden', 'Unit 7 looks up for a long time. It grows ×3, homesick.', 'Unit 7 says this will do. For now.'],
+    ],
+    eventWho: n => `${n} would like a word`, eventWhoAny: 'A rock would like a word',
+    adopt: n => `Adopt ${n}`, adoptDesc: (a, mood) => `${a}. ${mood[0].toUpperCase() + mood.slice(1)}.`,
+    hat: 'A tiny hat', hatDesc: n => `+3% growth for every rock. You own ${n}.`,
+    hatted: ' · hatted', perMood: '/mood',
+    tortName: 'The tortoise · not a rock', tortMood: 'insists it is a rock when asked', away: 'away', here: 'here',
+    sprinkle: 'You water the rocks. Growth ×1.5 for 12 moods.', spout: 'The spout is precise. Growth doubles for 12 moods.',
+    play: n => `You play them something slow. Growth ×2 for ${n} moods.`,
+    tortBack: p => `The tortoise has returned with a smooth feeling. +${p}.`,
+    stopWaiting: 'The rock has stopped waiting. Rocks are good at that.',
+    tortPat: 'The tortoise says it is a rock. Please stop.',
+    becoming: n => `${n} is becoming a mountain. This usually takes longer.`,
+    thanks: 'thank you for waiting. i have been waiting too.',
+    pullCap: 'The view pulls back. Your whole garden is a pebble in a much larger garden.',
+    pebbleIsYou: 'The pebble is you. It always was.',
+    youCap: 'A mountain tends a small rock. The rock is you.',
+    finaleTend: 'The mountain tends rocks the way you did. Press the button once, then let it.',
+    grown: 'You have grown. The mountain is very proud of you, very slowly.',
+    cycles: ['The mountain waters you. It takes a while. Rain is slow up here.',
+      'The mountain talks to you. It says: there you are.',
+      'The mountain plays you music. It is the sound of erosion. It is lovely.'],
+    shush: ['The mountain says: patience.', 'Shh.', 'Rocks do not fidget.', 'You are doing too much. Do less. Less than that.'],
+    shushTail: ' Press the button once, then let it.',
+    creditStat: (time, r, h, p) => `gardened for ${time} · ${r} rocks · ${h} hats · ${p} of patience`,
+    arrived: 'Gerald the pebble has arrived. He is 0 mm tall and in no hurry.',
+    hello: 'Gerald is here. Tap him, gently. Or water him. He has time.',
+  },
+  fr: {
+    docTitle: 'Jardinage pour cailloux', langGroup: 'Langue',
+    titleH: 'Jardinage pour <span>cailloux</span>',
+    tag: 'Un jardin très lent. Arrosez-le, parlez-lui, passez-lui de la musique. Il pousse de quelques millimètres par humeur géologique.',
+    gardenAria: 'Un jardin de gravier ratissé, avec des pierres dedans',
+    finaleLabel: "C'est la montagne qui s'occupe de vous, maintenant", finaleStart: 'Il reste une chose à faire.', wait: 'Patienter',
+    patLabel: 'Patience', tend: 'Soigner', water: 'Arroser', waterSub: 'W · croissance +', talk: 'Parler', talkSub: 'T · patience',
+    music: 'Musique', musicSub: 'M · croissance ×2', hint: 'Touchez une pierre ou appuyez sur Espace pour la tapoter. Les pierres aiment ça, en silence.',
+    shop: 'Jardinerie · touches 1–9', yourRocks: 'Vos pierres',
+    creditsH: 'Vous avez poussé de 0,4 mm',
+    creditsP: "Il a fallu quatre milliards d'années. On aurait dit un instant. La montagne dit que vous faites de beaux progrès.",
+    restart: 'Commencer un nouveau jardin',
+    units: ['éons', 'ères', 'époques', 'millénaires', 'saisons'], moments: 'instants', dec: ',',
+    rate: (p, tended) => `+${p} par humeur${tended ? ' · choyé' : ''}`,
+    tallest: (n, l) => `record de taille : ${n}, ${l}`,
+    speaker: n => `${n} : `,
+    rocks: [
+      { name: 'Gérald', kind: 'galet', a: 'Un galet', mood: 'pas pressé',
+        lines: ['Gérald pense au sable.', 'Gérald apprécie le geste.', "Gérald tient à préciser qu'il est rond exprès."] },
+      { name: 'Doris', kind: 'basalte', a: 'Un basalte', mood: 'ténébreuse, passé volcanique',
+        lines: ["Doris a été de la lave, autrefois. Elle n'en parle pas.", 'Doris dit : bien.', 'Doris est froide depuis très longtemps et elle préfère ça.'] },
+      { name: 'Pim', kind: 'pierre ponce', a: 'Une pierre ponce', mood: 'anxieux, flotte',
+        lines: ["Pim a peur d'être trop léger pour être pris au sérieux.", 'Pim a flotté, une fois. Pim y pense encore.', 'Pim demande si ce jardin est sûr.'] },
+      { name: 'Opale', kind: 'géode', a: 'Une géode', mood: 'secrètement pailletée',
+        lines: ["Opale est quelconque à l'extérieur. C'est tout l'intérêt.", "Opale garde quelque chose à l'intérieur. Ça brille.", "Opale fait un clin d'œil. Les pierres ne font pas de clin d'œil. Opale, si."] },
+      { name: 'Graham', kind: 'granit', a: 'Un granit', mood: 'stoïque',
+        lines: ['Graham ne dit rien. Un rien chaleureux.', 'Graham est là depuis avant ici.', "Graham hoche la tête. Personne ne l'a vu bouger."] },
+      // Shale splits into feuillets: Shelley becomes Feuilletine, gossip and flaky like the pastry.
+      { name: 'Feuilletine', kind: 'schiste', a: 'Un schiste', mood: 'commère, feuilletée',
+        lines: ["Feuilletine dit que Graham était du magma, avant. Comme tout le monde, Feuilletine.", "Feuilletine a entendu dire que la mousse voit quelqu'un.", "Feuilletine part en feuillets. C'est un art de vivre."] },
+      { name: 'Vex', kind: 'obsidienne', a: 'Une obsidienne', mood: 'humour très sec',
+        lines: ['Vex trouve votre ratissage convenable. Un grand compliment.', 'Vex est tranchante. Vex le sait.', "Vex s'est formée en un instant. Vex ne laissera personne l'oublier."] },
+      { name: 'Unité 7', kind: 'météorite', a: 'Une météorite', mood: "pas d'ici",
+        lines: ['Unité 7 envoie un rapport quelque part.', "Unité 7 dit que votre ciel n'est pas de la bonne couleur, mais gentiment.", "Unité 7 a décidé de rester. Pour l'instant."] },
+    ],
+    upgrades: {
+      can: ['Arrosoir à bec', 'Arroser double la croissance au lieu de ×1,5.'],
+      lawyer: ['Un avocat pour le galet', 'Gérald attaque la gravité en justice et gagne. Gérald grandit ×5.'],
+      hands: ['Des mains plus douces', 'Tapoter donne bien plus de patience.'],
+      moss: ['Couverture de mousse', "Chaque pierre grandit ×2. Elles ont l'air bien au chaud."],
+      records: ['Une collection de disques', 'La musique dure deux fois plus longtemps et revient deux fois plus vite.'],
+      tortoise: ["Une pierre (c'est une tortue)", "Elle s'en va. Elle revient avec des cadeaux de patience."],
+      sun: ['Un second soleil', 'Chaque pierre grandit ×3. Chaque pierre a une seconde ombre.'],
+      tect: ['Abonnement à la tectonique des plaques', 'Chaque pierre grandit ×5. Le sol bourdonne.'],
+      tues: ['Le concept de mardi', "Chaque pierre grandit ×4. Personne n'a rien demandé."],
+      moon: ['Demander conseil à la lune', 'Chaque pierre grandit ×10. La lune dit : restez humides.'],
+      deep: ['Le temps profond', 'Chaque pierre grandit ×20. Les minutes durent des millénaires, à juste titre.'],
+      mountain: ['La laisser devenir une montagne', 'Votre plus grosse pierre est prête. Elle est prête depuis des lustres.'],
+    },
+    bought: { can: "L'arrosoir a un bec, maintenant. Les pierres le remarquent.", lawyer: 'Gérald a un avocat. La gravité est nerveuse.',
+      hands: 'Vos mains sont plus douces. Les pierres se penchent vers vous.', moss: 'Tout le monde est bordé de mousse.', records: 'Surtout des chants de baleine, et une polka.',
+      tortoise: "Vous achetez une pierre. Elle s'en va à pied. C'est une tortue.", sun: 'Un second soleil se lève. Personne ne fait de commentaire.',
+      tect: 'Les continents se rapprochent, par solidarité.', tues: "C'est mardi, maintenant. Ce sera toujours un peu mardi.",
+      moon: "La lune prend tout ça avec beaucoup d'humidité.", deep: "Le temps s'étire comme un chat." },
+    boughtDefault: 'Acheté.',
+    milestones: [
+      n => `${n} fait attention à vous. Toutes les pierres ont un visage, maintenant. Elles en ont toujours eu un.`,
+      () => "Le lichen est arrivé. Il est ravi d'être là.",
+      () => 'Vous ratissez le gravier en vagues. Les pierres approuvent, lentement.',
+      () => 'Un petit nuage passe vous voir. Il ne reste jamais longtemps.',
+      n => `Des oiseaux se sont posés sur ${n}. Pour ${n}, le moment est venu de devenir quelque chose.`,
+    ],
+    events: [
+      ["L'avocat de Gérald a envoyé une facture.", 'La payer', "L'ignorer", 'Gérald est désormais légalement plus grand. ×2 pour toujours.', 'Gérald assurera sa propre défense. Il ne dit rien, de façon convaincante.'],
+      ["Doris aimerait qu'on la laisse tranquille un moment.", 'La laisser tranquille', 'Un câlin quand même', 'Doris grandit ×3 en paix pendant une minute.', 'Doris a toléré. Votre patience augmente. Elle boude.'],
+      ['Pim a peur de couler.', 'Rassurer Pim', 'Lui apprendre à flotter', 'Pim se sent plus lourd, dans le bon sens.', 'Pim flotte sur le gravier. Pim grandit ×2 pour toujours.'],
+      ["Opale veut vous montrer ce qu'il y a à l'intérieur.", 'Regarder', 'Respecter son intimité', "C'est magnifique. Chaque pierre grandit ×2 pendant 45 humeurs.", "Opale est soulagée. C'était surtout par politesse."],
+      ['Graham a réfléchi.', 'Demander à quoi', 'Le laisser réfléchir', 'Graham ne le dit pas. Vous vous sentez un peu plus sage quand même.', 'Graham réfléchit mille ans. Graham grandit ×2.'],
+      ['Feuilletine a entendu une rumeur sur Graham.', 'Écouter', 'Changer de sujet', 'Graham a été une plage, autrefois. Scandaleux.', 'Graham vous en est reconnaissant. Graham grandit ×2.'],
+      ['Vex a écrit une blague. Elle est très sèche.', 'Rire', 'Faire semblant de ne pas comprendre', "Vex fait mine de s'en moquer. Tout le monde grandit ×1,5 un moment.", 'Vex respecte ça.'],
+      ['Unité 7 veut rentrer chez elle.', 'Montrer le ciel', 'Lui montrer le jardin', 'Unité 7 regarde en haut très longtemps. Elle grandit ×3, par mal du pays.', "Unité 7 dit que ça ira. Pour l'instant."],
+    ],
+    eventWho: n => `${n} voudrait vous parler`, eventWhoAny: 'Une pierre voudrait vous parler',
+    adopt: n => `Adopter ${n}`, adoptDesc: (a, mood) => `${a}. ${mood[0].toUpperCase() + mood.slice(1)}.`,
+    hat: 'Un minuscule chapeau', hatDesc: n => `+3\u202f% de croissance pour chaque pierre. Vous en avez ${n}.`,
+    hatted: ' · avec chapeau', perMood: '/humeur',
+    tortName: 'La tortue · pas une pierre', tortMood: "affirme être une pierre si on lui demande", away: 'partie', here: 'là',
+    sprinkle: 'Vous arrosez les pierres. Croissance ×1,5 pendant 12 humeurs.', spout: 'Le bec est précis. La croissance double pendant 12 humeurs.',
+    play: n => `Vous leur passez quelque chose de lent. Croissance ×2 pendant ${n} humeurs.`,
+    tortBack: p => `La tortue est revenue avec une sensation de douceur. +${p}.`,
+    stopWaiting: "La pierre a cessé d'attendre. Les pierres sont douées pour ça.",
+    tortPat: "La tortue dit qu'elle est une pierre. Arrêtez, s'il vous plaît.",
+    becoming: n => `${n} devient une montagne. D'habitude, ça prend plus de temps.`,
+    thanks: "merci d'avoir attendu. moi aussi, j'attendais.",
+    pullCap: 'Le regard recule. Tout votre jardin est un galet dans un jardin bien plus grand.',
+    pebbleIsYou: "Le galet, c'est vous. Depuis toujours.",
+    youCap: "Une montagne s'occupe d'une petite pierre. La pierre, c'est vous.",
+    finaleTend: 'La montagne soigne les pierres comme vous le faisiez. Appuyez une fois sur le bouton, puis laissez-la faire.',
+    grown: 'Vous avez poussé. La montagne est très fière de vous, très lentement.',
+    cycles: ['La montagne vous arrose. Ça prend du temps. La pluie est lente, là-haut.',
+      'La montagne vous parle. Elle dit : vous voilà.',
+      "La montagne vous passe de la musique. C'est le bruit de l'érosion. C'est très beau."],
+    shush: ['La montagne dit : patience.', 'Chut.', 'Les pierres ne gigotent pas.', 'Vous en faites trop. Faites moins. Encore moins que ça.'],
+    shushTail: ' Appuyez une fois sur le bouton, puis laissez-la faire.',
+    creditStat: (time, r, h, p) => `${time} de jardinage · ${r} pierres · ${h} chapeaux · ${p} de patience`,
+    arrived: 'Gérald le galet est arrivé. Il mesure 0 mm et ne se presse pas.',
+    hello: "Gérald est là. Tapotez-le, doucement. Ou arrosez-le. Il a le temps.",
+  },
+};
+
+// French typography: a narrow no-break space before ? ! : ; » and after «, applied once to every
+// French string (and to whatever a French string function returns).
+(function frenchSpacing() {
+  const fix = s => s.replace(/ ([?!:;»])/g, '\u202f$1').replace(/« /g, '«\u202f');
+  const deep = v => typeof v === 'string' ? fix(v)
+    : typeof v === 'function' ? (...a) => fix(v(...a))
+    : Array.isArray(v) ? v.map(deep)
+    : v && typeof v === 'object' ? Object.fromEntries(Object.entries(v).map(([k, x]) => [k, deep(x)]))
+    : v;
+  I18N.fr = deep(I18N.fr);
+})();
+
+let lang = 'en';
+const t = k => I18N[lang][k] ?? I18N.en[k];
+for (const k of ['rocks', 'milestones', 'events', 'cycles', 'shush', 'units']) {
+  if (I18N.en[k].length !== I18N.fr[k].length) console.error(`i18n: ${k} differs in length`);
+}
+const rockText = k => t('rocks')[k];
+
+const KINDS = [
+  { kind: 'pebble', base: .02, color: '#9a958c', cost: 0 },
+  { kind: 'basalt', base: .06, color: '#4b5059', cost: 15 },
+  { kind: 'pumice', base: .18, color: '#cdc4b2', cost: 120 },
+  { kind: 'geode', base: .54, color: '#7e6e93', cost: 900 },
+  { kind: 'granite', base: 1.62, color: '#a39a91', cost: 7000 },
+  { kind: 'shale', base: 4.86, color: '#6c7581', cost: 55000 },
+  { kind: 'obsidian', base: 14.6, color: '#2b2631', cost: 450000 },
+  { kind: 'meteorite', base: 43.7, color: '#6b5544', cost: 4e6 },
+];
+
+const UPGRADES = [
+  { id: 'can', cost: 80 }, { id: 'lawyer', cost: 150 }, { id: 'hands', cost: 300 }, { id: 'moss', cost: 400, mult: 2 },
+  { id: 'records', cost: 1200 }, { id: 'tortoise', cost: 2500 }, { id: 'sun', cost: 6000, mult: 3 },
+  { id: 'tect', cost: 60000, mult: 5 }, { id: 'tues', cost: 5e5, mult: 4 }, { id: 'moon', cost: 5e6, mult: 10 },
+  { id: 'deep', cost: 6e7, mult: 20 }, { id: 'mountain', cost: 1e9 },
+];
+
+const MILESTONES = [10, 100, 1000, 1e4, 1e5];
+
+// Each event: who (kind index) and the effect of each answer. Gifts are in seconds of income.
+// The question, answers and replies live in I18N.*.events at the same index.
+const EVENTS = [
+  { k: 0, a: () => { spendSec(20); perm(0, 2); }, b: () => { gift(10); } },
+  { k: 1, a: () => { temp(1, 3, 60); }, b: () => { gift(60); temp(1, .5, 30); } },
+  { k: 2, a: () => { gift(25); }, b: () => { perm(2, 2); } },
+  { k: 3, a: () => { temp(-1, 2, 45); }, b: () => { gift(40); } },
+  { k: 4, a: () => { gift(10); }, b: () => { perm(4, 2); } },
+  { k: 5, a: () => { gift(30); }, b: () => { perm(4, 2); } },
+  { k: 6, a: () => { temp(-1, 1.5, 30); }, b: () => { gift(30); } },
+  { k: 7, a: () => { perm(7, 3); }, b: () => { gift(90); } },
+];
+
+const SLOTS = [[.34, .58], [.64, .34], [.76, .7], [.18, .3], [.5, .82], [.88, .26], [.12, .78], [.5, .14]];
+
+function mulberry(a) { return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+const SHAPES = KINDS.map((_, i) => { const r = mulberry(i * 97 + 13); return { pts: Array.from({ length: 14 }, () => .84 + r() * .26), spots: Array.from({ length: 6 }, () => [r() * 2 - 1, r() * 2 - 1, r()]) }; });
+
+function fresh() {
+  return { phase: 'garden', t: 0, pat: 0, total: 0, rocks: [{ k: 0, size: 0 }], owned: {}, hats: 0, perm: KINDS.map(() => 1),
+    temps: [], water: 0, music: 0, cd: { water: 0, talk: 0, music: 0 }, milestone: 0, nextEvent: 40, event: null, seen: {},
+    revealed: {}, tort: null, end: null };
+}
+let S = fresh();
+const fx = { ripples: [], notes: [], drops: [], wob: {} };
+
+const dec = s => String(s).replace('.', t('dec'));
+function fmtP(n) {
+  const V = [1e15, 1e12, 1e9, 1e6, 1e3], U = t('units');
+  for (let i = 0; i < V.length; i++) if (n >= V[i]) { const x = n / V[i]; return `${dec(x < 10 ? x.toFixed(2) : x < 100 ? x.toFixed(1) : Math.floor(x))} ${U[i]}`; }
+  return `${dec(n < 10 ? n.toFixed(1) : Math.floor(n))} ${t('moments')}`;
+}
+function fmtLen(mm) {
+  if (mm < 10) return dec(mm.toFixed(2)) + ' mm';
+  if (mm < 1000) return mm.toFixed(0) + ' mm';
+  if (mm < 1e6) return dec((mm / 1000).toFixed(mm < 1e4 ? 2 : 1)) + ' m';
+  return dec((mm / 1e6).toFixed(2)) + ' km';
+}
+
+function globalMult() {
+  let m = Math.pow(1.03, S.hats);
+  for (const u of UPGRADES) if (u.mult && S.owned[u.id]) m *= u.mult;
+  return m;
+}
+function tempMult(i) {
+  let m = 1;
+  for (const t of S.temps) if (S.t < t.until && (t.k === -1 || t.k === i)) m *= t.m;
+  return m;
+}
+function buffMult() {
+  let m = 1;
+  if (S.t < S.water) m *= S.owned.can ? 2 : 1.5;
+  if (S.t < S.music) m *= 2;
+  return m;
+}
+function rockRate(r, withBuffs = true) {
+  let v = KINDS[r.k].base * S.perm[r.k] * globalMult();
+  if (r.k === 0 && S.owned.lawyer) v *= 5;
+  if (withBuffs) v *= tempMult(r.k) * buffMult();
+  return v;
+}
+function income(withBuffs = true) { return 25 * S.rocks.reduce((a, r) => a + rockRate(r, withBuffs), 0); }
+function biggest() { return S.rocks.reduce((a, r) => (r.size > a.size ? r : a), S.rocks[0]); }
+
+function earn(n) { S.pat += n; S.total += n; }
+function gift(sec) { earn(Math.max(5, income(false) * sec)); }
+function spendSec(sec) { S.pat = Math.max(0, S.pat - income(false) * sec); }
+function perm(k, m) { S.perm[k] *= m; }
+function temp(k, m, dur) { S.temps.push({ k, m, until: S.t + dur }); }
+
+// say(), setCaption() and setFinale() take thunks so the line on show can be re-read in the
+// other language. They live outside S, which the hot snapshot serialises.
+let sayTimer = 0, sayK = null, sayLine = null;
+function say(k, line) {
+  sayK = k; sayLine = line;
+  renderSay();
+  sayTimer = 9;
+}
+function renderSay() {
+  const el = $('#speech');
+  el.innerHTML = '';
+  if (!sayLine) return;
+  if (sayK !== null && sayK >= 0) { const b = document.createElement('b'); b.textContent = t('speaker')(rockText(sayK).name); el.append(b); }
+  el.append(document.createTextNode(sayLine()));
+}
+let captionLine = () => t('arrived'), finaleLine = () => t('finaleStart');
+function setCaption(line) { captionLine = line; $('#caption').textContent = line(); }
+function setFinale(line) { finaleLine = line; $('#finale-text').textContent = line(); }
+const sayLineOf = k => { const i = Math.floor(Math.random() * rockText(k).lines.length); return () => rockText(k).lines[i]; };
+
+function rockPos(i) {
+  const [x, y] = SLOTS[i % SLOTS.length];
+  return { x: x * W, y: y * H };
+}
+function rockRadius(size) {
+  const m = Math.min(W, H);
+  return Math.min(m * .16, m * (.035 + .018 * Math.log10(1 + size)));
+}
+
+function pat(i) {
+  const r = S.rocks[i];
+  const g = Math.max(S.owned.hands ? 2 : 1, income(false) * (S.owned.hands ? .6 : .25));
+  earn(g);
+  fx.wob[i] = 1;
+  const p = rockPos(i);
+  fx.ripples.push({ x: p.x, y: p.y, r: rockRadius(r.size), life: 1 });
+  if (Math.random() < .18) say(r.k, sayLineOf(r.k));
+}
+
+function act(kind) {
+  if (S.phase !== 'garden' || S.cd[kind] > 0) return;
+  if (kind === 'water') {
+    S.water = S.t + 12; S.cd.water = 6;
+    for (let i = 0; i < 14; i++) fx.drops.push({ x: Math.random() * W, y: Math.random() * H, life: Math.random() * .6 + .6 });
+    say(null, S.owned.can ? () => t('spout') : () => t('sprinkle'));
+  } else if (kind === 'talk') {
+    S.cd.talk = 10; gift(15);
+    const r = S.rocks[Math.floor(Math.random() * S.rocks.length)];
+    say(r.k, sayLineOf(r.k));
+  } else if (kind === 'music') {
+    const rec = S.owned.records;
+    S.music = S.t + (rec ? 20 : 10); S.cd.music = rec ? 15 : 30;
+    say(null, () => t('play')(rec ? 20 : 10));
+  }
+}
+
+function shopItems() {
+  const items = [];
+  const n = S.rocks.length;
+  if (n < KINDS.length) {
+    const k = KINDS[n], tx = rockText(n);
+    items.push({ id: 'rock' + n, name: t('adopt')(tx.name), desc: t('adoptDesc')(tx.a, tx.mood), cost: k.cost,
+      buy: () => { S.rocks.push({ k: n, size: 0 }); say(n, () => rockText(n).lines[0]); } });
+  }
+  items.push({ id: 'hat' + S.hats, name: t('hat'), desc: t('hatDesc')(S.hats), cost: 25 * Math.pow(1.2, S.hats),
+    buy: () => { S.hats++; } });
+  for (const u of UPGRADES) {
+    if (S.owned[u.id]) continue;
+    if (u.id === 'mountain' && biggest().size < 1e5) continue;
+    if (!S.revealed[u.id] && S.pat < u.cost * .25 && u.id !== 'mountain') continue;
+    S.revealed[u.id] = true;
+    const [name, desc] = t('upgrades')[u.id];
+    items.push({ id: u.id, name, desc, cost: u.cost, buy: () => buyUpgrade(u) });
+  }
+  return items;
+}
+
+function buyUpgrade(u) {
+  S.owned[u.id] = true;
+  if (u.id === 'tortoise') S.tort = { x: W * .5, y: H * .5, tx: W * .5, ty: H * .5, state: 'here', timer: 25 };
+  if (u.id === 'mountain') return beginEnding();
+  say(null, () => t('bought')[u.id] || t('boughtDefault'));
+}
+
+let shopKey = '', shopEls = new Map(), current = [];
+function renderShop() {
+  current = shopItems();
+  const key = current.map(i => i.id).join('|');
+  const box = $('#shop');
+  if (key !== shopKey) {
+    const focused = document.activeElement?.dataset?.id;
+    box.innerHTML = '';
+    shopEls = new Map();
+    current.forEach((it, idx) => {
+      const b = document.createElement('button');
+      b.className = 'item'; b.dataset.id = it.id;
+      b.innerHTML = `<span class="nm"></span><span class="ct"></span><span class="ds"></span>`;
+      b.querySelector('.nm').innerHTML = idx < 9 ? `<kbd>${idx + 1}</kbd>` : '';
+      b.querySelector('.nm').append(document.createTextNode(it.name));
+      b.querySelector('.ds').textContent = it.desc;
+      b.addEventListener('click', () => buy(b.dataset.id));
+      box.append(b);
+      shopEls.set(it.id, b);
+    });
+    shopKey = key;
+    if (focused && shopEls.get(focused)) shopEls.get(focused).focus();
+  }
+  for (const it of current) {
+    const b = shopEls.get(it.id);
+    b.querySelector('.ct').textContent = fmtP(it.cost);
+    b.disabled = S.pat < it.cost || S.phase !== 'garden';
+  }
+}
+function buy(id) {
+  const it = current.find(i => i.id === id);
+  if (!it || S.pat < it.cost || S.phase !== 'garden') return;
+  S.pat -= it.cost;
+  it.buy();
+  shopKey = '';
+  renderShop();
+}
+
+function renderRocks() {
+  const ul = $('#rocks');
+  ul.innerHTML = '';
+  S.rocks.forEach(r => {
+    const k = rockText(r.k);
+    const li = document.createElement('li');
+    li.innerHTML = `<span></span><span></span><em></em>`;
+    li.children[0].textContent = `${k.name} · ${k.kind}${S.hats > S.rocks.indexOf(r) ? t('hatted') : ''}`;
+    li.children[1].textContent = `${fmtLen(r.size)} · ${fmtLen(rockRate(r))}${t('perMood')}`;
+    li.children[2].textContent = k.mood;
+    ul.append(li);
+  });
+  if (S.owned.tortoise) {
+    const li = document.createElement('li');
+    li.innerHTML = '<span></span><span></span><em></em>';
+    li.children[0].textContent = t('tortName');
+    li.children[1].textContent = S.tort?.state === 'away' ? t('away') : t('here');
+    li.children[2].textContent = t('tortMood');
+    ul.append(li);
+  }
+}
+
+function showEvent() {
+  const owned = S.rocks.map(r => r.k);
+  const pool = EVENTS.filter(e => owned.includes(e.k) && (e.k !== 5 || owned.includes(4)));
+  if (!pool.length) return;
+  const unseen = pool.filter(e => !S.seen[e.k]);
+  const e = (unseen.length ? unseen : pool)[Math.floor(Math.random() * (unseen.length || pool.length))];
+  S.seen[e.k] = true;
+  S.event = { i: EVENTS.indexOf(e), until: S.t + 20 };
+  renderEvent();
+  $('#event').hidden = false;
+}
+function renderEvent() {
+  if (!S.event) return;
+  const i = S.event.i, [q, a, b] = t('events')[i];
+  $('#event-who').textContent = t('eventWho')(rockText(EVENTS[i].k).name);
+  $('#event-q').textContent = q;
+  $('#event-a').textContent = a;
+  $('#event-b').textContent = b;
+}
+function answer(which) {
+  if (!S.event) return;
+  const i = S.event.i, e = EVENTS[i];
+  (which === 'a' ? e.a : e.b)();
+  say(e.k, () => t('events')[i][which === 'a' ? 3 : 4]);
+  S.event = null;
+  $('#event').hidden = true;
+}
+
+function update(dt) {
+  S.t += dt;
+  if (sayTimer > 0 && (sayTimer -= dt) <= 0) { sayLine = null; $('#speech').textContent = ''; }
+  for (const k in S.cd) S.cd[k] = Math.max(0, S.cd[k] - dt);
+  S.temps = S.temps.filter(t => S.t < t.until);
+
+  const inc = income();
+  earn(inc * dt);
+  for (const r of S.rocks) r.size += rockRate(r) * dt;
+
+  if (S.tort) {
+    const tt = S.tort;
+    tt.timer -= dt;
+    if (tt.state === 'here') {
+      if (Math.hypot(tt.tx - tt.x, tt.ty - tt.y) < 4) { tt.tx = W * (.1 + Math.random() * .8); tt.ty = H * (.15 + Math.random() * .7); }
+      const a = Math.atan2(tt.ty - tt.y, tt.tx - tt.x);
+      tt.x += Math.cos(a) * 14 * dt; tt.y += Math.sin(a) * 14 * dt; tt.a = a;
+      if (tt.timer <= 0) { tt.state = 'leaving'; tt.tx = W + 40; tt.ty = tt.y; }
+    } else if (tt.state === 'leaving') {
+      tt.x += 30 * dt; tt.a = 0;
+      if (tt.x > W + 30) { tt.state = 'away'; tt.timer = 20; }
+    } else if (tt.state === 'away' && tt.timer <= 0) {
+      tt.state = 'here'; tt.x = -30; tt.y = H * .5; tt.tx = W * .3; tt.ty = H * .5; tt.timer = 25;
+      const before = S.pat; gift(30);
+      const got = S.pat - before;
+      say(null, () => t('tortBack')(fmtP(got)));
+    }
+  }
+
+  if (S.event && S.t > S.event.until) { S.event = null; $('#event').hidden = true; say(null, () => t('stopWaiting')); }
+  if (!S.event && (S.nextEvent -= dt) <= 0 && S.rocks.length >= 2) { showEvent(); S.nextEvent = 50 + Math.random() * 30; }
+
+  const big = biggest();
+  while (S.milestone < MILESTONES.length && big.size >= MILESTONES[S.milestone]) {
+    const m = S.milestone, bk = big.k;
+    setCaption(() => t('milestones')[m](rockText(bk).name));
+    S.milestone++;
+  }
+
+  if (S.t < S.music && Math.random() < dt * 4) fx.notes.push({ x: Math.random() * W, y: H * (.3 + Math.random() * .6), life: 1.6, g: Math.random() < .5 ? '♪' : '♫' });
+}
+
+let tok = {}, tokAt = -1;
+function tokens() {
+  const cs = getComputedStyle(document.documentElement), g = n => cs.getPropertyValue(n).trim();
+  tok = { gravel: g('--gravel'), rake: g('--rake'), shadow: g('--shadow'), rim: g('--rim'), moss: g('--moss'), ink: g('--ink'),
+    amethyst: g('--amethyst'), mountain: g('--mountain'), surface: g('--surface'), soft: g('--ink-soft') };
+}
+
+function drawGravel(rocks, waves, scale = 1) {
+  cx.fillStyle = tok.gravel; cx.fillRect(0, 0, W, H);
+  cx.strokeStyle = tok.rake; cx.lineWidth = 1.5;
+  const step = Math.max(5, 9 * scale);
+  for (let y = step / 2; y < H; y += step) {
+    cx.beginPath();
+    for (let x = 0; x <= W; x += 12) {
+      const yy = waves ? y + Math.sin(x * .025 + y * .05) * 3 : y;
+      x === 0 ? cx.moveTo(x, yy) : cx.lineTo(x, yy);
+    }
+    cx.stroke();
+  }
+  for (const r of rocks) {
+    cx.fillStyle = tok.gravel; cx.beginPath(); cx.arc(r.x, r.y, r.r * 1.95, 0, 6.29); cx.fill();
+    for (const f of [1.3, 1.55, 1.8]) { cx.beginPath(); cx.arc(r.x, r.y, r.r * f, 0, 6.29); cx.stroke(); }
+  }
+}
+
+function rockPath(x, y, r, k) {
+  const pts = SHAPES[k].pts;
+  cx.beginPath();
+  pts.forEach((f, i) => {
+    const a = i / pts.length * 6.283;
+    const px = x + Math.cos(a) * r * f, py = y + Math.sin(a) * r * f * .86;
+    i === 0 ? cx.moveTo(px, py) : cx.lineTo(px, py);
+  });
+  cx.closePath();
+}
+
+function drawRock(x, y, r, k, opts) {
+  const suns = S.owned.sun ? [[.22, .18], [-.2, .2]] : [[.22, .18]];
+  cx.fillStyle = tok.shadow;
+  for (const [dx, dy] of suns) { rockPath(x + dx * r, y + dy * r, r, k); cx.fill(); }
+  rockPath(x, y, r, k);
+  cx.fillStyle = KINDS[k].color; cx.fill();
+  cx.strokeStyle = tok.rim; cx.lineWidth = 1.2; cx.stroke();
+  cx.fillStyle = 'rgba(255,255,255,.14)';
+  cx.beginPath(); cx.ellipse(x - r * .3, y - r * .32, r * .38, r * .2, -.4, 0, 6.29); cx.fill();
+  if (KINDS[k].kind === 'geode' && S.milestone >= 1) {
+    cx.fillStyle = '#c9b5f0';
+    for (let i = 0; i < 4; i++) { cx.beginPath(); cx.arc(x + r * (.25 - i * .12), y + r * .35, r * .05, 0, 6.29); cx.fill(); }
+  }
+  if (S.milestone >= 2) {
+    cx.fillStyle = tok.moss;
+    for (const [sx, sy, s] of SHAPES[k].spots) { cx.beginPath(); cx.arc(x + sx * r * .6, y + sy * r * .5, r * (.05 + s * .06), 0, 6.29); cx.fill(); }
+  }
+  if (opts.face) {
+    cx.fillStyle = '#1b1d22';
+    const blink = (S.t + k * 1.7) % 4.5 < .14;
+    for (const s of [-1, 1]) {
+      if (blink) cx.fillRect(x + s * r * .22 - r * .05, y - r * .05, r * .1, 1.5);
+      else { cx.beginPath(); cx.arc(x + s * r * .22, y - r * .05, Math.max(1.5, r * .045), 0, 6.29); cx.fill(); }
+    }
+    cx.strokeStyle = '#1b1d22'; cx.lineWidth = Math.max(1.2, r * .03); cx.lineCap = 'round';
+    cx.beginPath(); cx.arc(x, y + r * .08, r * .14, .2 * Math.PI, .8 * Math.PI); cx.stroke();
+  }
+  if (opts.hat) {
+    cx.fillStyle = '#1b1d22';
+    cx.fillRect(x - r * .32, y - r * .78, r * .64, r * .08);
+    cx.fillRect(x - r * .2, y - r * 1.08, r * .4, r * .32);
+    cx.fillStyle = tok.amethyst; cx.fillRect(x - r * .2, y - r * .84, r * .4, r * .06);
+  }
+}
+
+function drawTortoise(t) {
+  cx.save(); cx.translate(t.x, t.y); cx.rotate(t.a || 0);
+  cx.fillStyle = '#6b7a52';
+  for (const [dx, dy] of [[9, 8], [9, -8], [-9, 8], [-9, -8]]) { cx.beginPath(); cx.arc(dx, dy, 3.5, 0, 6.29); cx.fill(); }
+  cx.beginPath(); cx.arc(15, 0, 4.5, 0, 6.29); cx.fill();
+  cx.fillStyle = '#8f8a7e'; cx.beginPath(); cx.ellipse(0, 0, 13, 10, 0, 0, 6.29); cx.fill();
+  cx.strokeStyle = tok.rim; cx.stroke();
+  cx.restore();
+}
+
+function gardenRocks() {
+  return S.rocks.map((r, i) => {
+    const p = rockPos(i);
+    const w = fx.wob[i] || 0;
+    return { ...p, r: rockRadius(r.size) * (1 + Math.sin(w * 20) * w * .06), k: r.k, i };
+  });
+}
+
+function drawGarden() {
+  const rocks = gardenRocks();
+  drawGravel(rocks, S.milestone >= 3);
+  rocks.forEach(r => drawRock(r.x, r.y, r.r, r.k, { face: S.milestone >= 1, hat: r.i < S.hats }));
+  if (S.tort && S.tort.state !== 'away') drawTortoise(S.tort);
+  if (S.milestone >= 5) {
+    const b = rocks.reduce((a, r) => (S.rocks[r.i].size > S.rocks[a.i].size ? r : a), rocks[0]);
+    cx.strokeStyle = tok.ink; cx.lineWidth = 1.5;
+    for (let i = 0; i < 3; i++) {
+      const bx = b.x - b.r * .4 + i * b.r * .4, by = b.y - b.r * .55 + Math.sin(S.t * 3 + i) * 1.5;
+      cx.beginPath(); cx.moveTo(bx - 5, by - 3); cx.lineTo(bx, by); cx.lineTo(bx + 5, by - 3); cx.stroke();
+    }
+  }
+  if (S.milestone >= 4) {
+    const cxp = ((S.t * 18) % (W + 240)) - 120, cyp = H * .22;
+    cx.fillStyle = tok.shadow;
+    for (const [dx, dy, s] of [[0, 0, 26], [24, 6, 20], [-22, 8, 18]]) { cx.beginPath(); cx.arc(cxp + dx + 30, cyp + dy + 40, s, 0, 6.29); cx.fill(); }
+    cx.fillStyle = 'rgba(255,255,255,.75)';
+    for (const [dx, dy, s] of [[0, 0, 26], [24, 6, 20], [-22, 8, 18]]) { cx.beginPath(); cx.arc(cxp + dx, cyp + dy, s, 0, 6.29); cx.fill(); }
+  }
+}
+
+function drawFx(dt) {
+  for (const k in fx.wob) fx.wob[k] = Math.max(0, fx.wob[k] - dt * 1.5);
+  cx.strokeStyle = tok.rake; cx.lineWidth = 2;
+  fx.ripples = fx.ripples.filter(p => {
+    p.life -= dt; cx.globalAlpha = Math.max(0, p.life);
+    cx.beginPath(); cx.arc(p.x, p.y, p.r * (1.2 + (1 - p.life) * 1.2), 0, 6.29); cx.stroke();
+    return p.life > 0;
+  });
+  cx.strokeStyle = '#7fb6d6';
+  fx.drops = fx.drops.filter(d => {
+    d.life -= dt; cx.globalAlpha = Math.max(0, d.life);
+    cx.beginPath(); cx.arc(d.x, d.y, (1.2 - d.life) * 22, 0, 6.29); cx.stroke();
+    return d.life > 0;
+  });
+  cx.fillStyle = tok.amethyst; cx.font = '20px serif';
+  fx.notes = fx.notes.filter(n => {
+    n.life -= dt; n.y -= 22 * dt; cx.globalAlpha = Math.max(0, Math.min(1, n.life));
+    cx.fillText(n.g, n.x, n.y);
+    return n.life > 0;
+  });
+  cx.globalAlpha = 1;
+}
+
+function drawMountain(alpha, faceOpen) {
+  cx.globalAlpha = alpha;
+  cx.fillStyle = tok.mountain;
+  cx.beginPath();
+  cx.moveTo(-W * .1, H * .62);
+  cx.lineTo(W * .18, H * .3); cx.lineTo(W * .3, H * .38); cx.lineTo(W * .52, H * .02);
+  cx.lineTo(W * .74, H * .34); cx.lineTo(W * .86, H * .26); cx.lineTo(W * 1.1, H * .62);
+  cx.closePath(); cx.fill();
+  cx.fillStyle = tok.surface;
+  cx.beginPath(); cx.moveTo(W * .52, H * .02); cx.lineTo(W * .45, H * .13); cx.lineTo(W * .5, H * .11); cx.lineTo(W * .54, H * .15); cx.lineTo(W * .6, H * .14); cx.closePath(); cx.fill();
+  cx.strokeStyle = '#1b1d22'; cx.lineWidth = 3; cx.lineCap = 'round';
+  const fy = H * .28;
+  for (const s of [-1, 1]) {
+    cx.beginPath();
+    if (faceOpen) cx.arc(W * .52 + s * W * .05, fy, 4, 0, 6.29);
+    else cx.arc(W * .52 + s * W * .05, fy, 9, .15 * Math.PI, .85 * Math.PI);
+    faceOpen ? (cx.fillStyle = '#1b1d22', cx.fill()) : cx.stroke();
+  }
+  cx.beginPath(); cx.arc(W * .52, fy + 18, 12, .2 * Math.PI, .8 * Math.PI); cx.stroke();
+  cx.globalAlpha = 1;
+}
+
+function you() { return { x: W * .5, y: H * .78, r: Math.min(W, H) * .045 + (S.end?.cycles || 0) * 3 }; }
+
+function drawEnding() {
+  const e = S.end;
+  if (e.stage === 'grow') {
+    const p = Math.min(1, e.t / 6);
+    const rocks = gardenRocks();
+    const bi = S.rocks.indexOf(biggest());
+    const target = Math.min(W, H) * .42;
+    rocks.forEach(r => {
+      if (r.i === bi) { r.r += (target - r.r) * p; r.x += (W / 2 - r.x) * p; r.y += (H * .55 - r.y) * p; }
+      else r.r *= 1 - p * .9;
+    });
+    drawGravel(rocks, true);
+    rocks.forEach(r => drawRock(r.x, r.y, r.r, r.k, { face: true, hat: r.i < S.hats && r.i !== bi }));
+    if (p > .4) {
+      const b = rocks[bi];
+      cx.fillStyle = tok.surface; cx.globalAlpha = (p - .4) / .6;
+      cx.beginPath(); cx.moveTo(b.x - b.r * .3, b.y - b.r * .55); cx.lineTo(b.x, b.y - b.r * .86); cx.lineTo(b.x + b.r * .3, b.y - b.r * .55); cx.closePath(); cx.fill();
+      cx.globalAlpha = 1;
+    }
+    return;
+  }
+  const y = you();
+  if (e.stage === 'pull') {
+    const p = Math.min(1, e.t / 7), ease = reduce ? 1 : p * p * (3 - 2 * p);
+    drawGravel([{ ...y, r: y.r }], true, .6);
+    drawMountain(ease, false);
+    const s = 1 - ease * .955;
+    cx.save();
+    cx.translate(y.x * ease + W / 2 * (1 - ease), y.y * ease + H / 2 * (1 - ease));
+    cx.scale(s, s); cx.translate(-W / 2, -H / 2);
+    cx.beginPath(); cx.arc(W / 2, H / 2, Math.max(W, H) * .75, 0, 6.29); cx.clip();
+    drawGarden();
+    cx.restore();
+    if (p > .7) { cx.globalAlpha = (p - .7) / .3; drawRock(y.x, y.y, y.r, 0, { face: true, hat: false }); cx.globalAlpha = 1; }
+    return;
+  }
+  drawGravel([y], true, .6);
+  drawMountain(1, e.ring >= 0);
+  drawRock(y.x, y.y, y.r, 0, { face: true, hat: false });
+  if (e.ring >= 0) {
+    const c = e.cycles % 3;
+    if (c === 0 && Math.random() < .5) fx.drops.push({ x: y.x + (Math.random() - .5) * y.r * 6, y: y.y + (Math.random() - .5) * y.r * 3, life: 1 });
+    if (c === 2 && Math.random() < .08) fx.notes.push({ x: y.x + (Math.random() - .5) * y.r * 5, y: y.y - y.r, life: 1.8, g: '♪' });
+  }
+}
+
+function beginEnding() {
+  const b = biggest();
+  S.phase = 'end';
+  S.end = { stage: 'grow', t: 0, cycles: 0, ring: -1 };
+  S.event = null; $('#event').hidden = true;
+  setCaption(() => t('becoming')(rockText(b.k).name));
+  say(b.k, () => t('thanks'));
+  $('#layout').classList.add('ending');
+  window.scrollTo({ top: 0, behavior: reduce ? 'auto' : 'smooth' });
+}
+
+function updateEnding(dt) {
+  const e = S.end;
+  e.t += dt;
+  if (e.stage === 'grow' && e.t >= 6) {
+    e.stage = 'pull'; e.t = 0;
+    setCaption(() => t('pullCap'));
+    say(null, () => t('pebbleIsYou'));
+  } else if (e.stage === 'pull' && e.t >= 7) {
+    e.stage = 'you'; e.t = 0;
+    setCaption(() => t('youCap'));
+    $('#finale').hidden = false;
+    setFinale(() => t('finaleTend'));
+    $('#wait').focus();
+  } else if (e.stage === 'you' && e.ring >= 0) {
+    e.ring += dt / 12;
+    if (e.ring >= 1) {
+      e.cycles++;
+      if (e.cycles >= 3) {
+        e.stage = 'done'; e.ring = -1; e.t = 0;
+        setFinale(() => t('grown'));
+        $('#wait').disabled = true;
+      } else {
+        e.ring = 0;
+        const c = e.cycles;
+        setFinale(() => t('cycles')[c]);
+      }
+    }
+  } else if (e.stage === 'done' && e.t > 4 && $('#credits').hidden) {
+    creditStat();
+    $('#credits').hidden = false;
+    $('#restart').focus();
+  }
+  $('#ring').style.width = Math.max(0, e.ring) * 100 + '%';
+}
+function creditStat() {
+  const mins = Math.floor(S.t / 60), secs = Math.floor(S.t % 60);
+  $('#credit-stat').textContent = t('creditStat')(`${mins}:${String(secs).padStart(2, '0')}`, S.rocks.length, S.hats, fmtP(S.total));
+}
+
+function waitPress() {
+  const e = S.end;
+  if (!e || e.stage !== 'you') return;
+  if (e.ring >= 0) return interrupt();
+  e.ring = 0;
+  const c = e.cycles;
+  setFinale(() => t('cycles')[c]);
+}
+function interrupt() {
+  const e = S.end;
+  if (!e || e.stage !== 'you' || e.ring < 0) return;
+  e.ring = -1;
+  $('#ring').style.width = '0%';
+  const i = Math.floor(Math.random() * t('shush').length);
+  setFinale(() => t('shush')[i] + t('shushTail'));
+}
+
+function resize() {
+  const r = cv.getBoundingClientRect(), d = Math.min(2, devicePixelRatio || 1);
+  if (!r.width) return;
+  const ow = W, oh = H;
+  W = r.width; H = r.height;
+  cv.width = W * d; cv.height = H * d;
+  cx.setTransform(d, 0, 0, d, 0, 0);
+  if (S.tort && ow) { S.tort.x *= W / ow; S.tort.y *= H / oh; S.tort.tx *= W / ow; S.tort.ty *= H / oh; }
+}
+new ResizeObserver(resize).observe(cv);
+
+let last = 0, uiAcc = 0;
+function frame(now) {
+  const dt = Math.min(.1, (now - last) / 1000 || 0); last = now;
+  if (now - tokAt > 500) { tokens(); tokAt = now; }
+  if (S.phase === 'garden') update(dt);
+  else updateEnding(dt);
+  if (W) {
+    if (S.phase === 'garden') drawGarden(); else drawEnding();
+    drawFx(dt);
+  }
+  uiAcc += dt;
+  if (uiAcc > .2) {
+    uiAcc = 0;
+    $('#pat').textContent = fmtP(S.pat);
+    $('#rate').textContent = t('rate')(fmtP(income()), buffMult() > 1);
+    const b = biggest();
+    $('#biggest').textContent = t('tallest')(rockText(b.k).name, fmtLen(b.size));
+    renderShop();
+    renderRocks();
+  }
+  for (const k of ['water', 'talk', 'music']) {
+    const total = { water: 6, talk: 10, music: S.owned.records ? 15 : 30 }[k];
+    const btn = $('#act-' + k);
+    btn.style.setProperty('--cd', S.cd[k] / total);
+    btn.disabled = S.cd[k] > 0;
+  }
+  requestAnimationFrame(frame);
+}
+
+cv.addEventListener('pointerdown', e => {
+  if (S.phase !== 'garden') return interrupt();
+  const r = cv.getBoundingClientRect(), x = e.clientX - r.left, y = e.clientY - r.top;
+  if (S.tort && S.tort.state === 'here' && Math.hypot(x - S.tort.x, y - S.tort.y) < 18) {
+    earn(1); say(null, () => t('tortPat')); return;
+  }
+  const rocks = gardenRocks();
+  let hit = null;
+  for (const rk of rocks) if (Math.hypot(x - rk.x, y - rk.y) < rk.r * 1.15 && (!hit || rk.r < hit.r)) hit = rk;
+  if (hit) pat(hit.i);
+});
+addEventListener('keydown', e => {
+  if (e.metaKey || e.ctrlKey || e.altKey) return;
+  const onButton = e.target instanceof HTMLButtonElement;
+  if (S.phase !== 'garden') {
+    if (!(onButton && (e.key === ' ' || e.key === 'Enter')) && e.key !== 'Tab') interrupt();
+    return;
+  }
+  const k = e.key.toLowerCase();
+  if (k === 'w') act('water');
+  else if (k === 't') act('talk');
+  else if (k === 'm') act('music');
+  else if (k === ' ' && !onButton) { e.preventDefault(); pat(S.rocks.indexOf(biggest())); }
+  else if (/^[1-9]$/.test(k) && current[+k - 1]) buy(current[+k - 1].id);
+});
+$('#act-water').onclick = () => act('water');
+$('#act-talk').onclick = () => act('talk');
+$('#act-music').onclick = () => act('music');
+$('#event-a').onclick = () => answer('a');
+$('#event-b').onclick = () => answer('b');
+$('#wait').onclick = waitPress;
+$('#restart').onclick = () => {
+  S = fresh();
+  $('#credits').hidden = true; $('#finale').hidden = true; $('#wait').disabled = false;
+  $('#layout').classList.remove('ending');
+  setCaption(() => t('arrived'));
+  sayLine = null; $('#speech').textContent = '';
+  shopKey = '';
+};
+
+// ---- language ------------------------------------------------------------------------------
+// Static markup carries data-t / data-th / data-ta; the caption, speech line, open event, finale
+// text, credits line and shop are re-rendered; the rest of the panel refreshes five times a second.
+function applyLang() {
+  document.documentElement.lang = lang;
+  document.title = t('docTitle');
+  for (const el of document.querySelectorAll('[data-t]')) el.textContent = t(el.dataset.t);
+  for (const el of document.querySelectorAll('[data-th]')) el.innerHTML = t(el.dataset.th);
+  for (const el of document.querySelectorAll('[data-ta]')) el.setAttribute('aria-label', t(el.dataset.ta));
+  for (const box of document.querySelectorAll('.lang')) {
+    if (!box.children.length) box.innerHTML = '<button type="button" data-lang="fr" lang="fr">FR</button><button type="button" data-lang="en" lang="en">EN</button>';
+    for (const b of box.children) b.setAttribute('aria-pressed', String(b.dataset.lang === lang));
+  }
+  $('#caption').textContent = captionLine();
+  $('#finale-text').textContent = finaleLine();
+  renderSay();
+  renderEvent();
+  if (!$('#credits').hidden) creditStat();
+  shopKey = ''; renderShop(); renderRocks();
+}
+function setLang(l) {
+  if (!(l in I18N) || l === lang) return;
+  lang = l;
+  applyLang();
+}
+document.addEventListener('click', e => {
+  const b = e.target.closest('[data-lang]');
+  if (b) setLang(b.dataset.lang);
+});
+
+function start(data) {
+  if (data && data.S && data.S.rocks) {
+    S = Object.assign(fresh(), data.S);
+    if (S.phase === 'end') { S = fresh(); }
+  }
+  lang = data?.lang in I18N ? data.lang : (navigator.language || '').toLowerCase().startsWith('fr') ? 'fr' : 'en';
+  tokens();
+  resize();
+  applyLang();
+  say(0, () => t('hello'));
+  requestAnimationFrame(frame);
+}
+window.claude?.hot?.snapshot?.(() => ({ S, lang }));
+window.claude?.hot?.ready ? window.claude.hot.ready(start) : start(window.claude?.hot?.data ?? {});
+</script>
+</body>
+</html>

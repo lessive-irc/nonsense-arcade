@@ -1,0 +1,1093 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Furniture Choir</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Limelight&family=Alegreya:ital,wght@0,400;0,600;1,400&family=Overpass+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: a recital programme across the top, the stage filling the middle, the conductor's remarks and the applause meter down in the orchestra pit. */
+:root {
+  --page: #dfe6e1;
+  --paper: #f3f2ec;
+  --ink: #1d2624;
+  --ink-dim: #55635f;
+  --rule-line: #1d262426;
+  --wall: #cbd8d0;
+  --wall-2: #bccbc2;
+  --curtain: #8c2338;
+  --curtain-2: #6c1829;
+  --floor: #a8774f;
+  --floor-2: #956640;
+  --brass: #b5872c;
+  --brass-soft: #e2c27a;
+  --pit: #1b1416;
+  --pit-2: #2c2124;
+  --pit-ink: #efe7d8;
+  --chalk: #f7f4ee;
+  --f-display: "Limelight", "Didot", "Bodoni 72", Georgia, serif;
+  --f-body: "Alegreya", Georgia, "Times New Roman", serif;
+  --f-ui: "Overpass Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --page: #0e1412;
+    --paper: #18211e;
+    --ink: #ece6d6;
+    --ink-dim: #a7b0a8;
+    --rule-line: #ece6d624;
+    --wall: #1a2622;
+    --wall-2: #1f2d28;
+    --curtain: #6a1a2c;
+    --curtain-2: #4c1120;
+    --floor: #5a3e29;
+    --floor-2: #4c3322;
+    --brass: #d6a84e;
+    --brass-soft: #f0d08a;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --page: #0e1412;
+  --paper: #18211e;
+  --ink: #ece6d6;
+  --ink-dim: #a7b0a8;
+  --rule-line: #ece6d624;
+  --wall: #1a2622;
+  --wall-2: #1f2d28;
+  --curtain: #6a1a2c;
+  --curtain-2: #4c1120;
+  --floor: #5a3e29;
+  --floor-2: #4c3322;
+  --brass: #d6a84e;
+  --brass-soft: #f0d08a;
+  color-scheme: dark;
+}
+[hidden] { display: none !important; }
+html, body { height: 100%; }
+body {
+  margin: 0;
+  background: var(--page);
+  color: var(--ink);
+  font: 16px/1.5 var(--f-body);
+  box-sizing: border-box;
+  padding-block: max(12px, env(safe-area-inset-top, 0px)) max(12px, env(safe-area-inset-bottom, 0px));
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  overflow: hidden;
+}
+.hall {
+  position: relative;
+  height: 100%;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  max-width: 1100px;
+  margin-inline: auto;
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 0 0 1px var(--rule-line), 0 24px 60px #00000038;
+}
+.programme {
+  background: var(--paper);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  justify-content: space-between;
+  gap: 8px 28px;
+  padding: 14px 20px 12px;
+  border-bottom: 3px double var(--brass);
+}
+.mast h1 { margin: 0; font: 400 clamp(24px, 4vw, 34px)/1 var(--f-display); letter-spacing: .02em; color: var(--ink); }
+.mast span { display: block; margin-top: 4px; font-style: italic; font-size: 14px; color: var(--ink-dim); }
+.prog { display: flex; flex-wrap: wrap; gap: 6px 24px; margin: 0; }
+.prog div { display: grid; gap: 2px; min-width: 0; }
+.prog dt { font: 600 10px var(--f-ui); letter-spacing: .14em; text-transform: uppercase; color: var(--brass); }
+.prog dd { margin: 0; font-size: 15px; color: var(--ink); max-width: 30ch; }
+.stage-wrap { position: relative; min-height: 0; background: var(--pit); }
+canvas { display: block; width: 100%; height: 100%; touch-action: none; cursor: pointer; }
+.dots {
+  position: absolute; left: 50%; top: 12%; transform: translateX(-50%);
+  display: flex; gap: 6px; align-items: center; pointer-events: none;
+}
+.dots i { width: 10px; height: 10px; border-radius: 99px; border: 1.5px solid var(--brass-soft); background: transparent; transition: background .15s; }
+.dots i.on { background: var(--brass-soft); }
+.dots i.long { width: 34px; }
+.pit {
+  background: var(--pit);
+  color: var(--pit-ink);
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between;
+  gap: 10px 24px;
+  padding: 12px 20px 14px;
+  border-top: 1px solid #ffffff14;
+}
+.voice { margin: 0; flex: 1 1 280px; font-style: italic; font-size: clamp(16px, 2.2vw, 19px); line-height: 1.35; min-height: 2.7em; max-width: 60ch; }
+.voice b { font: 600 10px var(--f-ui); letter-spacing: .14em; text-transform: uppercase; font-style: normal; color: var(--brass-soft); margin-right: 8px; }
+.meters { display: grid; gap: 5px; justify-items: end; }
+.ov { font: 600 18px var(--f-ui); font-variant-numeric: tabular-nums; color: var(--pit-ink); }
+.ov small { font-weight: 400; font-size: 11px; letter-spacing: .06em; color: #c9bfae; }
+.applause { width: 180px; height: 8px; border-radius: 99px; background: #ffffff1c; overflow: hidden; }
+.applause i { display: block; height: 100%; width: 100%; background: var(--brass-soft); transition: width .4s ease, background .4s; }
+.lab { font: 10px var(--f-ui); letter-spacing: .14em; text-transform: uppercase; color: #c9bfae; }
+.overlay {
+  position: absolute; inset: 0; display: grid; place-items: center; padding: 20px;
+  background: color-mix(in srgb, var(--page) 70%, transparent);
+  backdrop-filter: blur(3px);
+  overflow-y: auto;
+}
+.card {
+  background: var(--paper); color: var(--ink);
+  max-width: 480px; width: 100%;
+  padding: 26px 26px 22px;
+  border-radius: 4px;
+  box-shadow: 0 0 0 1px var(--rule-line), 0 18px 50px #0000003d;
+  display: grid; gap: 14px;
+  border-top: 6px solid var(--curtain);
+}
+.card .eyebrow { font: 600 10px var(--f-ui); letter-spacing: .16em; text-transform: uppercase; color: var(--brass); }
+.card h2 { margin: 0; font: 400 clamp(30px, 6vw, 46px)/1.02 var(--f-display); text-wrap: balance; }
+.card p { margin: 0; color: var(--ink-dim); max-width: 60ch; }
+.card .cast { list-style: none; padding: 0; margin: 0; display: grid; gap: 4px; border-block: 1px solid var(--rule-line); padding-block: 10px; }
+.card .cast li { display: flex; justify-content: space-between; gap: 12px; font-size: 15px; }
+.card .cast li span:last-child { font-style: italic; color: var(--ink-dim); text-align: right; }
+.card .stat { font: 600 14px var(--f-ui); font-variant-numeric: tabular-nums; color: var(--curtain); }
+.row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+button {
+  font: 600 13px var(--f-ui); letter-spacing: .06em; text-transform: uppercase;
+  color: var(--paper); background: var(--curtain);
+  border: 0; border-radius: 3px; padding: 12px 18px; cursor: pointer;
+  transition: transform .15s, background .15s;
+}
+button:hover { background: var(--curtain-2); transform: translateY(-1px); }
+button:focus-visible { outline: 2px solid var(--brass); outline-offset: 3px; }
+button.ghost { background: transparent; color: var(--ink); box-shadow: inset 0 0 0 1px var(--rule-line); }
+.keys { font: 11px var(--f-ui); color: var(--ink-dim); letter-spacing: .04em; }
+.lang { display: inline-flex; border-radius: 3px; overflow: hidden; box-shadow: inset 0 0 0 1px var(--rule-line); }
+.lang button { padding: 6px 10px 5px; border-radius: 0; background: transparent; color: var(--ink-dim); font: 600 11px var(--f-ui); letter-spacing: .1em; }
+.lang button:hover { transform: none; background: var(--rule-line); color: var(--ink); }
+.lang button[aria-pressed="true"] { background: var(--curtain); color: var(--paper); }
+.card .row .lang { margin-left: auto; }
+@media (max-width: 520px) {
+  .programme { padding: 10px 14px; }
+  .prog dd { font-size: 13px; }
+  .pit { padding: 10px 14px; }
+  .applause { width: 140px; }
+}
+</style>
+</head>
+<body>
+<div class="hall" id="hall">
+  <header class="programme">
+    <div class="mast">
+      <h1 data-t="name">Furniture Choir</h1>
+      <span data-t="sub">a recital for several pieces of furniture</span>
+    </div>
+    <dl class="prog">
+      <div><dt data-t="mvtH">Movement</dt><dd id="mvt">Overture</dd></div>
+      <div><dt data-t="ruleH">Instruction</dt><dd id="rule">find your seat</dd></div>
+    </dl>
+    <div class="lang" role="group" data-ta="langLabel" aria-label="Language"></div>
+  </header>
+
+  <main class="stage-wrap">
+    <canvas id="stage" data-ta="stageLabel" aria-label="The stage. Each piece of furniture is a singer; tap one to sing its note."></canvas>
+    <div class="dots" id="dots" aria-hidden="true"></div>
+  </main>
+
+  <footer class="pit">
+    <p class="voice" id="voice" aria-live="polite"><b>conductor</b>The choir is tuning. The toaster is tuning loudest.</p>
+    <div class="meters">
+      <div class="ov"><span id="ov">0</span> <small data-t="ovUnit">standing ovations</small></div>
+      <div class="applause"><i id="ap"></i></div>
+      <div class="lab" data-t="applause">applause</div>
+    </div>
+  </footer>
+
+  <div class="overlay" id="title">
+    <div class="card">
+      <div class="eyebrow" data-t="tonight">Tonight · one performance only</div>
+      <h2 data-t="name">Furniture Choir</h2>
+      <ul class="cast">
+        <li><span data-t="cWard">Wardrobe</span><span data-t="cWardR">basso, walnut</span></li>
+        <li><span data-t="cArm">Armchair</span><span data-t="cArmR">baritone, velvet</span></li>
+        <li><span data-t="cLamp">Table lamp</span><span data-t="cLampR">tenor, 40 watts</span></li>
+        <li><span data-t="cToast">Toaster</span><span data-t="cToastR">soprano, insists it is furniture</span></li>
+        <li><span data-t="cCond">Conductor</span><span data-t="cCondR">a floor lamp</span></li>
+      </ul>
+      <p data-t="howTo">The conductor plays a phrase. Sing it back by tapping each performer, or press 1–6 for the seats from left to right. Between movements the conductor changes the rules. Listen to the conductor.</p>
+      <div class="row"><button id="start" data-t="startBtn">Take your seat</button><span class="keys" data-t="soundOn">sound on, ideally</span><div class="lang" role="group" data-ta="langLabel" aria-label="Language"></div></div>
+    </div>
+  </div>
+
+  <div class="overlay" id="fail" hidden>
+    <div class="card">
+      <div class="eyebrow" data-t="failEye">The hall empties</div>
+      <h2 data-t="failH">The furniture stays.</h2>
+      <p data-t="failP">It always stays. It will be talking about this for years.</p>
+      <div class="stat" id="fail-stat"></div>
+      <div class="row"><button id="retry" data-t="retryBtn">Try again</button><div class="lang" role="group" data-ta="langLabel" aria-label="Language"></div></div>
+    </div>
+  </div>
+
+  <div class="overlay" id="end" hidden>
+    <div class="card">
+      <div class="eyebrow" data-t="endEye">Curtain</div>
+      <h2 data-t="endH">You were a chair all along.</h2>
+      <p data-t="endP">The choir thanks its newest member. Please remain seated. You have no other option.</p>
+      <div class="stat" id="end-stat"></div>
+      <div class="row"><button id="encore" data-t="encoreBtn">Encore</button><button id="restart" class="ghost" data-t="restartBtn">Start over</button><div class="lang" role="group" data-ta="langLabel" aria-label="Language"></div></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const $ = s => document.querySelector(s);
+const cv = $('#stage'), cx = cv.getContext('2d');
+const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+let W = 0, H = 0;
+function resize() {
+  const r = cv.getBoundingClientRect(), d = Math.min(2, devicePixelRatio || 1);
+  W = r.width; H = r.height;
+  cv.width = Math.max(1, W * d); cv.height = Math.max(1, H * d);
+  cx.setTransform(d, 0, 0, d, 0, 0);
+  layout(true);
+}
+new ResizeObserver(resize).observe(cv);
+
+let T = {};
+function readTokens() {
+  const cs = getComputedStyle(document.documentElement);
+  for (const k of ['wall', 'wall-2', 'curtain', 'curtain-2', 'floor', 'floor-2', 'brass', 'brass-soft', 'pit', 'pit-2', 'pit-ink', 'chalk', 'f-body', 'f-ui'])
+    T[k] = cs.getPropertyValue('--' + k).trim();
+}
+
+// ---- words ----
+// Every player-visible string, read through t(). Phrases, seats and rounds are ids; the only
+// length-driven timing (the pause after the conductor speaks) reads the ENGLISH line, so a
+// French evening plays at exactly the same tempo as an English one.
+const I18N = {
+  en: {
+    docTitle: 'Furniture Choir',
+    langLabel: 'Language',
+    name: 'Furniture Choir', sub: 'a recital for several pieces of furniture',
+    mvtH: 'Movement', ruleH: 'Instruction', overture: 'Overture', seatRule: 'find your seat',
+    stageLabel: 'The stage. Each piece of furniture is a singer; tap one to sing its note.',
+    ovUnit: 'standing ovations', applause: 'applause',
+    conductor: 'conductor', tuning: 'The choir is tuning. The toaster is tuning loudest.',
+    tonight: 'Tonight · one performance only',
+    cWard: 'Wardrobe', cWardR: 'basso, walnut', cArm: 'Armchair', cArmR: 'baritone, velvet',
+    cLamp: 'Table lamp', cLampR: 'tenor, 40 watts', cToast: 'Toaster', cToastR: 'soprano, insists it is furniture',
+    cCond: 'Conductor', cCondR: 'a floor lamp',
+    howTo: 'The conductor plays a phrase. Sing it back by tapping each performer, or press 1–6 for the seats from left to right. Between movements the conductor changes the rules. Listen to the conductor.',
+    startBtn: 'Take your seat', soundOn: 'sound on, ideally',
+    failEye: 'The hall empties', failH: 'The furniture stays.', failP: 'It always stays. It will be talking about this for years.', retryBtn: 'Try again',
+    endEye: 'Curtain', endH: 'You were a chair all along.', endP: 'The choir thanks its newest member. Please remain seated. You have no other option.',
+    encoreBtn: 'Encore', restartBtn: 'Start over',
+    encoreN: n => ` (encore ${n})`,
+    names: { ward: 'wardrobe', arm: 'armchair', lamp: 'table lamp', toast: 'toaster', hat: 'hat stand', rug: 'rug' },
+    absent: ' (absent)', you: 'you', short: 'short', long: 'long', psst: 'psst',
+    whisper: name => `${name}, whispering`,
+    rounds: [
+      { mvt: 'I. Prelude for Wardrobe', rule: 'sing it back', say: 'Listen. Then sing it back. Furniture is patient.' },
+      { mvt: 'II. Étude in Armchair', rule: 'sing it back, a little longer', say: 'Again, a little longer. The armchair is warming up.' },
+      { mvt: 'III. Retrograde', rule: 'sing it backwards', say: 'This movement, sing it backwards. Last note first.' },
+      { mvt: 'IV. The Shy Wardrobe', rule: 'wardrobe ↔ armchair', say: "The wardrobe is shy. Sing its part by tapping the armchair, and the armchair's part by tapping the wardrobe." },
+      { mvt: 'V. Toast, Absent', rule: 'toaster: tap its chalk outline', say: 'The toaster has left the choir. It is still singing. Tap where it used to stand. Please welcome the hat stand.' },
+      { mvt: 'VI. In 7/4.37', rule: 'the rhythm is wrong, the order is not', say: 'This movement is in 7/4.37. Do not count. The rug is joining us.' },
+      { mvt: 'VII. Musical Chairs', rule: 'follow the singer, not the seat', say: 'Halfway through, everyone changes seats. Follow the voice, not the seat.' },
+      { mvt: 'VIII. Reprise, Rearranged', rule: 'backwards, and they move', say: 'The reprise. Backwards, and they will move. I am sorry.' },
+      { mvt: 'IX. Finale for One Chair', rule: '—', say: '' },
+    ],
+    humRule: 'hold to hum: short note, short hold · long note, long hold',
+    gossip: {
+      ward: ['I saw that. Everyone saw that.', 'I have heard better from a coat hanger.', 'My doors are closed to them.'],
+      arm: ['They sat on the wrong note.', 'I am too comfortable to be this disappointed.', 'Bless them. No, actually.'],
+      lamp: ['I am not saying they are dim. I am implying it.', 'I would switch myself off, if I could reach.'],
+      toast: ['I am furniture and even I know that was wrong.', 'That was burnt.', 'Ding. That was the sound of failure.'],
+      hat: ['I will keep this under my hat. I will not.', 'I have met hats with better pitch.'],
+      rug: ['I will be telling the floor about this.', 'Honestly, it pulled the rug out from under me.'],
+    },
+    bravo: [
+      'Bravo. An ottoman in row F is weeping.',
+      'Adequate. The wardrobe nodded, which is rare.',
+      'The armchair has sunk deeper into itself. That means joy.',
+      'Lovely. Somebody in the stalls just reupholstered.',
+      'Splendid. The toaster says it could have done better. It could not.',
+    ],
+    yourTurn: 'Your turn.', yourTurnBack: 'Your turn. Backwards.', fromTop: 'From the top.',
+    fin1: 'Before the last piece, I should tell you something.',
+    fin2: 'I have been facing the wrong way all evening. I was conducting you.',
+    fin3: 'You are a chair. Everyone knew. Now hum.',
+    finListen: 'Listen to the lengths.',
+    finTurn: 'Your turn. Hold anywhere, or hold Space.',
+    finWin: 'That was the finest humming this chair has ever done.',
+    failStat: (ov, best, mvt) => `${ov} standing ovations · best ${best} · lost during ${mvt}`,
+    endStat: (ov, best) => `${ov} standing ovations · best ${best}`,
+  },
+  fr: {
+    docTitle: 'Chœur de meubles',
+    langLabel: 'Langue',
+    name: 'Chœur de meubles', sub: 'récital pour plusieurs meubles',
+    mvtH: 'Mouvement', ruleH: 'Consigne', overture: 'Ouverture', seatRule: 'prenez place',
+    stageLabel: 'La scène. Chaque meuble est un chanteur ; touchez-en un pour lui faire chanter sa note.',
+    ovUnit: 'ovations debout', applause: 'applaudissements',
+    conductor: 'chef', tuning: 'Le chœur s’accorde. Le grille-pain s’accorde le plus fort.',
+    tonight: 'Ce soir · représentation unique',
+    cWard: 'Armoire', cWardR: 'basse, noyer', cArm: 'Fauteuil', cArmR: 'baryton, velours',
+    cLamp: 'Lampe de chevet', cLampR: 'ténor, 40 watts', cToast: 'Grille-pain', cToastR: 'soprano, se prétend meuble',
+    cCond: 'Chef d’orchestre', cCondR: 'un lampadaire',
+    howTo: 'Le chef joue une phrase. Rechantez-la en touchant chaque interprète, ou avec les touches 1 à 6 pour les places de gauche à droite. Entre les mouvements, le chef change les règles. Écoutez le chef.',
+    startBtn: 'Prendre place', soundOn: 'avec le son, idéalement',
+    failEye: 'La salle se vide', failH: 'Les meubles restent.', failP: 'Ils restent toujours. Ils en parleront pendant des années.', retryBtn: 'Réessayer',
+    endEye: 'Rideau', endH: 'Vous étiez une chaise depuis le début.', endP: 'Le chœur remercie son nouveau membre. Veuillez ne pas quitter votre siège. Vous n’avez pas le choix.',
+    encoreBtn: 'Bis', restartBtn: 'Recommencer',
+    encoreN: n => ` (bis ${n})`,
+    names: { ward: 'armoire', arm: 'fauteuil', lamp: 'lampe de chevet', toast: 'grille-pain', hat: 'portemanteau', rug: 'tapis' },
+    absent: ' (absent)', you: 'vous', short: 'court', long: 'long', psst: 'psst',
+    whisper: name => `${name}, en aparté`,
+    rounds: [
+      { mvt: 'I. Prélude pour armoire', rule: 'rechantez la phrase', say: 'Écoutez. Puis rechantez. Les meubles sont patients.' },
+      { mvt: 'II. Étude en fauteuil', rule: 'rechantez, un peu plus long', say: 'Encore, un peu plus long. Le fauteuil se chauffe la voix.' },
+      { mvt: 'III. Rétrograde', rule: 'chantez-la à l’envers', say: 'Pour ce mouvement, chantez à l’envers. Dernière note en premier.' },
+      { mvt: 'IV. L’armoire timide', rule: 'armoire ↔ fauteuil', say: 'L’armoire est timide. Chantez sa partie en touchant le fauteuil, et celle du fauteuil en touchant l’armoire.' },
+      { mvt: 'V. Toast porté disparu', rule: 'grille-pain : touchez sa silhouette à la craie', say: 'Le grille-pain a quitté le chœur. Il chante toujours. Touchez là où il se tenait. Accueillons le portemanteau.' },
+      { mvt: 'VI. En 7/4,37', rule: 'le rythme est faux, l’ordre non', say: 'Ce mouvement est en 7/4,37. Ne comptez pas. Le tapis nous rejoint.' },
+      { mvt: 'VII. Chaises musicales', rule: 'suivez la voix, pas la place', say: 'À mi-parcours, tout le monde change de place. Suivez la voix, pas la place.' },
+      { mvt: 'VIII. Reprise, réarrangée', rule: 'à l’envers, et ils bougent', say: 'La reprise. À l’envers, et ils vont bouger. Je suis désolé.' },
+      { mvt: 'IX. Finale pour une chaise', rule: '—', say: '' },
+    ],
+    humRule: 'maintenez pour fredonner : note courte, appui court · note longue, appui long',
+    gossip: {
+      ward: ['J’ai vu ça. Tout le monde a vu ça.', 'J’ai entendu mieux venant d’un cintre.', 'Mes portes lui sont fermées.'],
+      arm: ['Ça s’est assis sur la mauvaise note.', 'Je suis trop confortable pour être aussi déçu.', 'Pauvre chou. Non, en fait.'],
+      lamp: ['Je ne dis pas que ça manque de lumière. Je le laisse entendre.', 'Je m’éteindrais bien, si j’atteignais l’interrupteur.'],
+      toast: ['Je suis un meuble et même moi je sais que c’était faux.', 'C’était cramé.', 'Ding. C’était le bruit de l’échec.'],
+      hat: ['Motus et chapeau cousu. Enfin, non.', 'J’ai connu des chapeaux qui chantaient plus juste.'],
+      rug: ['Je vais raconter ça au parquet.', 'Franchement, ça m’a envoyé au tapis. Moi. Le tapis.'],
+    },
+    bravo: [
+      'Bravo. Une ottomane au rang F est en larmes.',
+      'Correct. L’armoire a hoché la tête, c’est rare.',
+      'Le fauteuil s’est enfoncé un peu plus en lui-même. C’est de la joie.',
+      'Charmant. Quelqu’un à l’orchestre vient de se faire retapisser.',
+      'Splendide. Le grille-pain dit qu’il aurait fait mieux. C’est faux.',
+    ],
+    yourTurn: 'À vous.', yourTurnBack: 'À vous. À l’envers.', fromTop: 'On reprend du début.',
+    fin1: 'Avant le dernier morceau, je dois vous dire quelque chose.',
+    fin2: 'Toute la soirée, je regardais dans le mauvais sens. C’est vous que je dirigeais.',
+    fin3: 'Vous êtes une chaise. Tout le monde le savait. Maintenant, fredonnez.',
+    finListen: 'Écoutez les durées.',
+    finTurn: 'À vous. Maintenez n’importe où, ou la barre d’espace.',
+    finWin: 'Jamais cette chaise n’avait si bien fredonné.',
+    failStat: (ov, best, mvt) => `${ov} ovations debout · record ${best} · chute pendant ${mvt}`,
+    endStat: (ov, best) => `${ov} ovations debout · record ${best}`,
+  },
+};
+
+// French typography: a narrow no-break space before ? ! : ; » and after «, applied once to every
+// French string (and to whatever a French string function returns) so no line starts with "?".
+(function frenchSpacing() {
+  const fix = s => s.replace(/ ([?!:;»])/g, '\u202f$1').replace(/« /g, '«\u202f');
+  const deep = v => typeof v === 'string' ? fix(v)
+    : typeof v === 'function' ? (...a) => fix(v(...a))
+    : Array.isArray(v) ? v.map(deep)
+    : v && typeof v === 'object' ? Object.fromEntries(Object.entries(v).map(([k, x]) => [k, deep(x)]))
+    : v;
+  I18N.fr = deep(I18N.fr);
+})();
+
+let lang = 'en';
+const t = k => I18N[lang][k] ?? I18N.en[k];
+const num = n => n.toLocaleString(lang);
+const NAMES = I18N.en.names;
+
+// ---- voices ----
+const P = {};
+for (const id of Object.keys(NAMES)) P[id] = { x: 0, tx: 0, lit: 0, glow: 0, bub: 0, tap: 0 };
+
+let ac = null, master = null, noiseBuf = null;
+function audioInit() {
+  if (ac) { ac.resume(); return; }
+  const C = window.AudioContext || window.webkitAudioContext;
+  if (!C) return;
+  ac = new C();
+  master = ac.createGain(); master.gain.value = .5; master.connect(ac.destination);
+  noiseBuf = ac.createBuffer(1, ac.sampleRate, ac.sampleRate);
+  const d = noiseBuf.getChannelData(0);
+  for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+}
+function env(g, t, a, dur, peak) {
+  g.gain.setValueAtTime(0, t);
+  g.gain.linearRampToValueAtTime(peak, t + a);
+  g.gain.setValueAtTime(peak, t + Math.max(a, dur - .04));
+  g.gain.linearRampToValueAtTime(0, t + dur + .12);
+}
+function osc(type, f, t, dur, dest, detune = 0) {
+  const o = ac.createOscillator();
+  o.type = type; o.frequency.value = f; o.detune.value = detune;
+  o.connect(dest); o.start(t); o.stop(t + dur + .25);
+  return o;
+}
+function filt(type, f, dest, q = 1) {
+  const b = ac.createBiquadFilter(); b.type = type; b.frequency.value = f; b.Q.value = q; b.connect(dest); return b;
+}
+function noise(t, dur, dest) {
+  const n = ac.createBufferSource(); n.buffer = noiseBuf; n.loop = true; n.connect(dest); n.start(t); n.stop(t + dur + .25); return n;
+}
+function sing(id, dur) {
+  if (!ac) return;
+  const t = ac.currentTime + .01, g = ac.createGain();
+  g.connect(master);
+  if (id === 'ward') {
+    const lp = filt('lowpass', 650, g);
+    osc('sawtooth', 196, t, dur, lp); osc('sawtooth', 196, t, dur, lp, 10);
+    env(g, t, .06, dur, .2);
+  } else if (id === 'arm') {
+    const o = osc('triangle', 261.63, t, dur, g);
+    const l = ac.createOscillator(), lg = ac.createGain();
+    l.frequency.value = 5.5; lg.gain.value = 5; l.connect(lg); lg.connect(o.frequency); l.start(t); l.stop(t + dur + .25);
+    env(g, t, .04, dur, .55);
+  } else if (id === 'lamp') {
+    osc('sine', 329.63, t, dur, g);
+    const g2 = ac.createGain(); g2.gain.value = .3; g2.connect(g); osc('sine', 659.26, t, dur, g2);
+    env(g, t, .02, dur, .45);
+  } else if (id === 'toast') {
+    osc('square', 392, t, dur, filt('lowpass', 2200, g));
+    env(g, t, .005, dur, .14);
+    const g3 = ac.createGain(); g3.connect(master);
+    osc('sine', 1568, t + dur, .2, g3); env(g3, t + dur, .003, .04, .12);
+  } else if (id === 'hat') {
+    osc('triangle', 440, t, dur, g); osc('sine', 880, t, dur, g);
+    g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(.45, t + .005);
+    g.gain.exponentialRampToValueAtTime(.04, t + Math.max(.1, dur)); g.gain.linearRampToValueAtTime(0, t + dur + .1);
+  } else if (id === 'rug') {
+    osc('sine', 523.25, t, dur, g);
+    const ng = ac.createGain(); ng.gain.value = .22; ng.connect(g);
+    noise(t, dur, filt('bandpass', 1800, ng, 2));
+    env(g, t, .08, dur, .35);
+  }
+}
+function groan() {
+  if (!ac) return;
+  const t = ac.currentTime + .01, g = ac.createGain(); g.connect(master);
+  const lp = filt('lowpass', 500, g);
+  for (const f of [110, 117]) { const o = osc('sawtooth', f, t, .6, lp); o.frequency.linearRampToValueAtTime(f * .8, t + .6); }
+  env(g, t, .03, .55, .22);
+}
+function applause(len = 1.4) {
+  if (!ac) return;
+  const t = ac.currentTime + .01, g = ac.createGain(); g.connect(master);
+  noise(t, len, filt('bandpass', 2600, g, .7));
+  g.gain.setValueAtTime(0, t);
+  for (let i = 0; i < len / .035; i++) g.gain.setValueAtTime((.15 + Math.random() * .35) * (1 - i * .035 / len), t + i * .035);
+  g.gain.setValueAtTime(0, t + len);
+}
+function humStart() {
+  if (!ac) return () => {};
+  const t = ac.currentTime + .01, g = ac.createGain(); g.connect(master);
+  const a = ac.createOscillator(), b = ac.createOscillator();
+  a.type = 'sine'; a.frequency.value = 130.81; b.type = 'triangle'; b.frequency.value = 261.63;
+  const gb = ac.createGain(); gb.gain.value = .25;
+  a.connect(g); b.connect(gb); gb.connect(g); a.start(t); b.start(t);
+  g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(.4, t + .05);
+  return () => {
+    const e = ac.currentTime;
+    g.gain.cancelScheduledValues(e); g.gain.setValueAtTime(g.gain.value, e); g.gain.linearRampToValueAtTime(0, e + .1);
+    a.stop(e + .15); b.stop(e + .15);
+  };
+}
+function play(id, ms) { sing(id, ms / 1000); P[id].lit = performance.now() + ms; }
+
+// ---- script ----
+// Round i's words are t('rounds')[i]; these are only the rules.
+const ROUNDS = [
+  {}, {}, { back: true }, { swap: true }, { join: 'hat', toastGone: true }, { join: 'rug', odd: true },
+  { shuffle: true }, { back: true, shuffle: true }, { finale: true },
+];
+const ODD = [1, .43, 1.37, .7, 1.12, .52, .9];
+const BRAVO_N = I18N.en.bravo.length;
+
+let G = null;
+function freshGame(best = 0) {
+  return { best, ov: 0, ap: 100, round: 0, loop: 0, phrase: [], slots: ['ward', 'arm', 'lamp', 'toast'],
+    toastGone: false, mode: 'title', facing: 0, facingAnim: 0, youShown: false, run: 0, input: [], expected: [], swap: false,
+    finalPhrase: [], hold: null, baton: 0, retry: null, ruleK: 'seat' };
+}
+const wait = ms => new Promise(r => setTimeout(r, ms));
+const live = run => G && run === G.run;
+
+// The pit line is held as getters (text, speaker), so a language switch re-says it.
+let said = [() => t('tuning'), () => t('conductor')];
+function voice(text, who = () => t('conductor')) {
+  said = [text, who];
+  const el = $('#voice');
+  el.textContent = '';
+  const b = document.createElement('b'); b.textContent = who();
+  el.append(b, document.createTextNode(text()));
+}
+const say = k => () => t(k);
+// the programme: movement and instruction, from the round and G.ruleK
+function programme() {
+  const r = t('rounds')[G.round];
+  $('#mvt').textContent = G.mode === 'title' ? t('overture') : r.mvt + (G.loop ? t('encoreN')(G.loop) : '');
+  $('#rule').textContent = G.ruleK === 'seat' ? t('seatRule') : G.ruleK === 'hum' ? t('humRule') : r.rule;
+}
+function hud() {
+  $('#ov').textContent = num(G.ov);
+  const ap = $('#ap');
+  ap.style.width = Math.max(0, G.ap) + '%';
+  ap.style.background = G.ap <= 34 ? 'var(--curtain)' : 'var(--brass-soft)';
+}
+function setDots(n, filled, kinds) {
+  const d = $('#dots'); d.textContent = '';
+  for (let i = 0; i < n; i++) {
+    const e = document.createElement('i');
+    if (i < filled) e.className = 'on';
+    if (kinds && kinds[i] === 'L') e.classList.add('long');
+    d.append(e);
+  }
+}
+
+function geom() {
+  const curtW = Math.max(18, W * .07);
+  const inner = W - curtW * 2;
+  const n = G ? G.slots.length : 4;
+  const slotW = inner / n;
+  const base = H * .66;
+  const s = Math.min(slotW * 1.15, H * .34);
+  return { curtW, inner, n, slotW, base, s };
+}
+function slotX(i) { const g = geom(); return g.curtW + g.slotW * (i + .5); }
+function layout(snap) {
+  if (!G) return;
+  G.slots.forEach((id, i) => { P[id].tx = slotX(i); if (snap) P[id].x = P[id].tx; });
+}
+
+function pick() {
+  const ph = G.phrase, pool = G.slots;
+  let id;
+  do id = pool[Math.floor(Math.random() * pool.length)];
+  while (ph.length >= 2 && ph[ph.length - 1] === id && ph[ph.length - 2] === id);
+  return id;
+}
+
+function shuffleSeats() {
+  const old = G.slots.slice();
+  let next;
+  do next = old.slice().sort(() => Math.random() - .5);
+  while (next.some((id, i) => id === old[i]));
+  G.slots = next;
+  layout(false);
+}
+
+async function nextRound() {
+  const run = G.run, R = ROUNDS[G.round], i = G.round;
+  if (R.finale) { G.ruleK = 'round'; G.mode = 'talk'; programme(); return finale(run); }
+  if (R.join && !G.slots.includes(R.join)) { G.slots.push(R.join); layout(false); P[R.join].x = W + 80; }
+  if (R.toastGone) G.toastGone = true;
+  G.ruleK = 'round';
+  voice(() => t('rounds')[i].say);
+  const target = Math.min(8, 3 + G.round + G.loop);
+  while (G.phrase.length < target) G.phrase.push(pick());
+  setDots(G.phrase.length, 0);
+  G.mode = 'intro';
+  programme();
+  await wait(Math.max(1800, I18N.en.rounds[i].say.length * 42));
+  if (!live(run)) return;
+  G.retry = () => perform(R, run);
+  perform(R, run);
+}
+
+async function perform(R, run) {
+  G.mode = 'listen';
+  setDots(G.phrase.length, 0);
+  const beat = 580 * Math.pow(.88, G.loop);
+  const n = G.phrase.length;
+  for (let k = 0; k < n; k++) {
+    const m = R.odd ? ODD[k % ODD.length] : 1;
+    play(G.phrase[k], beat * m * .72);
+    G.baton = 1;
+    await wait(beat * m);
+    if (!live(run)) return;
+    if (R.shuffle && k === Math.floor(n / 2) - 1) { shuffleSeats(); await wait(reduce ? 200 : 650); if (!live(run)) return; }
+  }
+  await wait(350);
+  if (!live(run)) return;
+  G.expected = R.back ? G.phrase.slice().reverse() : G.phrase.slice();
+  G.swap = !!R.swap;
+  G.input = [];
+  G.mode = 'echo';
+  voice(say(R.back ? 'yourTurnBack' : 'yourTurn'));
+}
+
+function tapSeat(i) {
+  if (!G || G.mode !== 'echo') return;
+  const seat = G.slots[i];
+  if (!seat) return;
+  P[seat].tap = performance.now();
+  let id = seat;
+  if (G.swap && id === 'ward') id = 'arm';
+  else if (G.swap && id === 'arm') id = 'ward';
+  play(id, 280);
+  if (id !== G.expected[G.input.length]) return mistake();
+  G.input.push(id);
+  setDots(G.expected.length, G.input.length);
+  if (G.input.length === G.expected.length) success();
+}
+
+async function mistake() {
+  const run = G.run;
+  G.mode = 'gossip';
+  G.ap -= 34;
+  hud();
+  groan();
+  const who = G.slots[Math.floor(Math.random() * G.slots.length)];
+  const li = Math.floor(Math.random() * I18N.en.gossip[who].length);
+  P[who].bub = performance.now() + 2800;
+  voice(() => t('gossip')[who][li], () => t('whisper')(t('names')[who]));
+  if (G.ap <= 0) {
+    await wait(1600);
+    if (!live(run)) return;
+    G.mode = 'over';
+    G.ending = 'fail';
+    G.best = Math.max(G.best, G.ov);
+    stats();
+    $('#fail').hidden = false;
+    $('#retry').focus();
+    return;
+  }
+  await wait(2600);
+  if (!live(run)) return;
+  voice(say('fromTop'));
+  await wait(900);
+  if (!live(run)) return;
+  G.retry();
+}
+
+async function success() {
+  const run = G.run;
+  G.mode = 'bow';
+  G.ov += G.expected.length * (1 + G.loop);
+  G.ap = Math.min(100, G.ap + 15);
+  hud();
+  applause();
+  const bi = Math.floor(Math.random() * BRAVO_N);
+  voice(() => t('bravo')[bi]);
+  await wait(1900);
+  if (!live(run)) return;
+  G.round++;
+  nextRound();
+}
+
+async function finale(run) {
+  G.mode = 'talk';
+  setDots(0, 0);
+  voice(say('fin1'));
+  await wait(2600); if (!live(run)) return;
+  G.facing = 1;
+  voice(say('fin2'));
+  await wait(3200); if (!live(run)) return;
+  G.youShown = true;
+  voice(say('fin3'));
+  await wait(2600); if (!live(run)) return;
+  G.ruleK = 'hum'; programme();
+  const f = [];
+  while (f.length < 5) f.push(Math.random() < .5 ? 'S' : 'L');
+  if (!f.includes('S')) f[1] = 'S';
+  if (!f.includes('L')) f[3] = 'L';
+  G.finalPhrase = f;
+  G.retry = () => finaleListen(run);
+  finaleListen(run);
+}
+
+async function finaleListen(run) {
+  G.mode = 'listen';
+  setDots(5, 0, G.finalPhrase);
+  voice(say('finListen'));
+  const tempo = Math.pow(.92, G.loop);
+  for (let k = 0; k < 5; k++) {
+    const ms = (G.finalPhrase[k] === 'L' ? 1000 : 300) * tempo;
+    for (const id of G.slots) play(id, ms);
+    G.baton = 1;
+    setDots(5, k + 1, G.finalPhrase);
+    await wait(ms + 380);
+    if (!live(run)) return;
+  }
+  G.input = [];
+  G.mode = 'hum';
+  setDots(5, 0);
+  voice(say('finTurn'));
+}
+
+const LONG_MS = 600;
+function holdStart() {
+  if (!G || G.mode !== 'hum' || G.hold) return;
+  G.hold = { t0: performance.now(), stop: humStart() };
+}
+function holdEnd() {
+  if (!G || !G.hold) return;
+  const dur = performance.now() - G.hold.t0;
+  G.hold.stop();
+  G.hold = null;
+  if (G.mode !== 'hum') return;
+  const kind = dur >= LONG_MS ? 'L' : 'S';
+  if (kind !== G.finalPhrase[G.input.length]) return mistake();
+  G.input.push(kind);
+  setDots(5, G.input.length, G.input);
+  if (G.input.length === 5) finaleWin();
+}
+
+async function finaleWin() {
+  const run = G.run;
+  G.mode = 'bow';
+  G.ov += 20 * (1 + G.loop);
+  G.ap = 100;
+  hud();
+  applause(2.6);
+  voice(say('finWin'));
+  await wait(2400);
+  if (!live(run)) return;
+  G.mode = 'over';
+  G.ending = 'end';
+  G.best = Math.max(G.best, G.ov);
+  stats();
+  $('#end').hidden = false;
+  $('#encore').focus();
+}
+
+function stats() {
+  if (G.ending === 'fail') $('#fail-stat').textContent = t('failStat')(num(G.ov), num(G.best), t('rounds')[G.round].mvt);
+  if (G.ending === 'end') $('#end-stat').textContent = t('endStat')(num(G.ov), num(G.best));
+}
+
+function newGame() {
+  audioInit();
+  const best = G ? Math.max(G.best, G.ov) : 0;
+  const run = G ? G.run + 1 : 1;
+  G = freshGame(best);
+  G.run = run;
+  layout(true);
+  for (const o of ['#title', '#fail', '#end']) $(o).hidden = true;
+  hud();
+  nextRound();
+}
+function encore() {
+  audioInit();
+  G.run++;
+  G.loop++;
+  G.round = 0;
+  G.phrase = [];
+  G.slots = ['ward', 'arm', 'lamp', 'toast'];
+  G.toastGone = false;
+  G.facing = 0;
+  G.youShown = false;
+  G.ap = 100;
+  layout(true);
+  $('#end').hidden = true;
+  hud();
+  nextRound();
+}
+
+// ---- input ----
+cv.addEventListener('pointerdown', e => {
+  if (!G) return;
+  if (G.mode === 'hum') { e.preventDefault(); cv.setPointerCapture(e.pointerId); return holdStart(); }
+  const r = cv.getBoundingClientRect(), x = e.clientX - r.left, g = geom();
+  const i = Math.floor((x - g.curtW) / g.slotW);
+  if (i >= 0 && i < G.slots.length) tapSeat(i);
+});
+addEventListener('pointerup', holdEnd);
+addEventListener('pointercancel', holdEnd);
+addEventListener('keydown', e => {
+  if (!G || e.repeat) return;
+  if (G.mode === 'hum' && (e.key === ' ' || e.key === 'Enter' || /^[1-6]$/.test(e.key))) { e.preventDefault(); return holdStart(); }
+  if (/^[1-6]$/.test(e.key)) tapSeat(+e.key - 1);
+});
+addEventListener('keyup', e => { if (e.key === ' ' || e.key === 'Enter' || /^[1-6]$/.test(e.key)) holdEnd(); });
+$('#start').onclick = newGame;
+$('#retry').onclick = newGame;
+$('#restart').onclick = newGame;
+$('#encore').onclick = encore;
+
+// ---- drawing ----
+function rr(x, y, w, h, r) {
+  r = Math.min(r, w / 2, h / 2);
+  cx.beginPath();
+  cx.moveTo(x + r, y); cx.arcTo(x + w, y, x + w, y + h, r); cx.arcTo(x + w, y + h, x, y + h, r);
+  cx.arcTo(x, y + h, x, y, r); cx.arcTo(x, y, x + w, y, r); cx.closePath();
+}
+function fillRR(x, y, w, h, r, col) { rr(x, y, w, h, r); cx.fillStyle = col; cx.fill(); }
+function face(x, y, size, open, blink) {
+  cx.fillStyle = '#21181a'; cx.strokeStyle = '#21181a'; cx.lineWidth = size * .09; cx.lineCap = 'round';
+  for (const s of [-1, 1]) {
+    if (blink) { cx.beginPath(); cx.moveTo(x + s * size * .3 - size * .08, y); cx.lineTo(x + s * size * .3 + size * .08, y); cx.stroke(); }
+    else { cx.beginPath(); cx.arc(x + s * size * .3, y, size * .07, 0, 6.283); cx.fill(); }
+  }
+  cx.beginPath();
+  if (open > .05) { cx.ellipse(x, y + size * .3, size * .12, size * .06 + size * .14 * open, 0, 0, 6.283); cx.fill(); }
+  else { cx.arc(x, y + size * .2, size * .14, .2 * Math.PI, .8 * Math.PI); cx.stroke(); }
+}
+
+function drawPiece(id, p, t) {
+  // unit space: y from -1 (top) to 0 (floor), x roughly -.4..4
+  const blink = ((t / 1000 + id.length * .7) % 3.7) < .12;
+  if (id === 'ward') {
+    fillRR(-.33, -1.04, .66, .07, .02, '#5e3820');
+    fillRR(-.3, -.98, .6, .92, .03, '#7b4a2b');
+    cx.fillStyle = '#00000030'; cx.fillRect(-.004, -.94, .008, .84);
+    cx.fillStyle = T['brass-soft'];
+    cx.beginPath(); cx.arc(-.05, -.5, .018, 0, 6.283); cx.arc(.05, -.5, .018, 0, 6.283); cx.fill();
+    fillRR(-.28, -.07, .07, .07, .01, '#4a2b18'); fillRR(.21, -.07, .07, .07, .01, '#4a2b18');
+    face(0, -.74, .34, p, blink);
+  } else if (id === 'arm') {
+    fillRR(-.3, -.08, .05, .08, .01, '#3a2416'); fillRR(.25, -.08, .05, .08, .01, '#3a2416');
+    fillRR(-.3, -.78, .6, .55, .14, '#2f6f73');
+    fillRR(-.36, -.3, .72, .22, .06, '#28605f');
+    fillRR(-.42, -.5, .14, .42, .07, '#357b7e'); fillRR(.28, -.5, .14, .42, .07, '#357b7e');
+    fillRR(-.26, -.36, .52, .1, .04, '#3f8a8c');
+    face(0, -.57, .32, p, blink);
+  } else if (id === 'lamp') {
+    fillRR(-.2, -.36, .4, .05, .015, '#5e3820');
+    cx.fillStyle = '#5e3820'; cx.fillRect(-.17, -.31, .03, .31); cx.fillRect(.14, -.31, .03, .31);
+    cx.fillStyle = T['brass'];
+    cx.beginPath(); cx.ellipse(0, -.38, .08, .025, 0, 0, 6.283); cx.fill();
+    cx.fillRect(-.012, -.68, .024, .3);
+    if (p > 0) {
+      const g = cx.createRadialGradient(0, -.62, .02, 0, -.62, .4);
+      g.addColorStop(0, `rgba(255,214,140,${.55 * p})`); g.addColorStop(1, 'rgba(255,214,140,0)');
+      cx.fillStyle = g; cx.beginPath(); cx.arc(0, -.62, .4, 0, 6.283); cx.fill();
+    }
+    cx.fillStyle = p > 0 ? '#f6d68a' : '#e0b35c';
+    cx.beginPath(); cx.moveTo(-.14, -.98); cx.lineTo(.14, -.98); cx.lineTo(.24, -.66); cx.lineTo(-.24, -.66); cx.closePath(); cx.fill();
+    face(0, -.82, .26, p, blink);
+  } else if (id === 'toast') {
+    const pop = .1 + .12 * p;
+    fillRR(-.2, -.4 - pop, .14, .2, .04, '#c58a4a'); fillRR(.06, -.4 - pop, .14, .2, .04, '#c58a4a');
+    const g = cx.createLinearGradient(-.3, 0, .3, 0);
+    g.addColorStop(0, '#9aa3a8'); g.addColorStop(.45, '#e6eaec'); g.addColorStop(1, '#8c959a');
+    rr(-.3, -.44, .6, .44, .1); cx.fillStyle = g; cx.fill();
+    cx.fillStyle = '#2a2a2a'; fillRR(-.21, -.44, .16, .035, .015, '#2a2a2a'); fillRR(.05, -.44, .16, .035, .015, '#2a2a2a');
+    fillRR(.3, -.3, .06, .03, .01, '#2a2a2a');
+    face(0, -.22, .28, p, blink);
+  } else if (id === 'hat') {
+    cx.strokeStyle = '#6b4a2f'; cx.lineWidth = .045; cx.lineCap = 'round';
+    cx.beginPath(); cx.moveTo(0, -.02); cx.lineTo(0, -.9);
+    cx.moveTo(-.18, 0); cx.lineTo(0, -.12); cx.lineTo(.18, 0);
+    cx.moveTo(0, -.78); cx.lineTo(-.14, -.86); cx.moveTo(0, -.78); cx.lineTo(.14, -.86); cx.stroke();
+    cx.fillStyle = '#a3263a';
+    cx.beginPath(); cx.ellipse(0, -.9, .2, .04, 0, 0, 6.283); cx.fill();
+    cx.beginPath(); cx.ellipse(0, -.93, .12, .13, 0, Math.PI, 0); cx.fill();
+    fillRR(-.13, -.6, .26, .2, .08, '#8a6a4a');
+    face(0, -.51, .24, p, blink);
+  } else if (id === 'rug') {
+    fillRR(-.15, -.9, .3, .9, .15, '#b04a5a');
+    cx.fillStyle = '#e6c27a';
+    for (const y of [-.72, -.5, -.28]) cx.fillRect(-.15, y, .3, .04);
+    cx.strokeStyle = '#e6c27a'; cx.lineWidth = .012;
+    cx.beginPath(); for (let i = -4; i <= 4; i++) { cx.moveTo(i * .03, -.9); cx.lineTo(i * .03, -.97); } cx.stroke();
+    face(0, -.62, .24, p, blink);
+  }
+}
+
+function pulse(id, now) {
+  const P_ = P[id];
+  const on = now < P_.lit ? 1 : 0;
+  P_.glow += (on - P_.glow) * .35;
+  return P_.glow;
+}
+
+function drawConductor(x, y, s, t) {
+  cx.save(); cx.translate(x, y); cx.scale(s, s);
+  cx.fillStyle = '#2c2124';
+  cx.beginPath(); cx.ellipse(0, -.02, .16, .04, 0, 0, 6.283); cx.fill();
+  cx.fillStyle = T['brass']; cx.fillRect(-.015, -1, .03, .98);
+  const ang = -.9 + G.baton * .9 + (reduce ? 0 : Math.sin(t / 300) * .05);
+  cx.save(); cx.translate(0, -.62); cx.rotate(ang);
+  cx.strokeStyle = T['brass']; cx.lineWidth = .025; cx.beginPath(); cx.moveTo(0, 0); cx.lineTo(.28, 0); cx.stroke();
+  cx.strokeStyle = '#f4efe4'; cx.lineWidth = .012; cx.beginPath(); cx.moveTo(.28, 0); cx.lineTo(.5, -.04); cx.stroke();
+  cx.restore();
+  const turn = Math.cos(G.facingAnim * Math.PI);
+  cx.save(); cx.translate(0, -1.08); cx.scale(Math.max(.08, Math.abs(turn)), 1);
+  cx.fillStyle = turn > 0 ? '#3c3a2e' : '#e9d9b0';
+  cx.beginPath(); cx.moveTo(-.18, -.16); cx.lineTo(.18, -.16); cx.lineTo(.28, .1); cx.lineTo(-.28, .1); cx.closePath(); cx.fill();
+  if (turn < 0) face(0, -.03, .3, G.mode === 'talk' ? .3 + .3 * Math.sin(t / 90) : 0, false);
+  else { cx.fillStyle = T['curtain']; cx.beginPath(); cx.moveTo(0, .1); cx.lineTo(-.07, .17); cx.lineTo(.07, .17); cx.closePath(); cx.fill(); }
+  cx.restore();
+  cx.restore();
+}
+
+function drawYou(tm) {
+  const s = Math.min(W, H) * .5;
+  const x = W - s * .15, y = H + s * .1;
+  const humming = !!G.hold;
+  if (humming) {
+    const g = cx.createRadialGradient(x, y - s * .4, 0, x, y - s * .4, s * .6);
+    g.addColorStop(0, 'rgba(240,208,138,.35)'); g.addColorStop(1, 'rgba(240,208,138,0)');
+    cx.fillStyle = g; cx.fillRect(x - s * .7, y - s, s * .9, s);
+  }
+  cx.fillStyle = T['pit-2'];
+  rr(x - s * .5, y - s * .75, s * .7, s * .8, s * .12); cx.fill();
+  rr(x - s * .62, y - s * .42, s * .18, s * .5, s * .08); cx.fillStyle = '#3a2c30'; cx.fill();
+  cx.fillStyle = T['brass-soft']; cx.font = `600 ${Math.max(11, s * .06)}px ${T['f-ui']}`; cx.textAlign = 'center';
+  cx.fillText(t('you'), x - s * .15, y - s * .5, s * .6);
+  if (G.mode === 'hum' || humming) {
+    const bw = Math.min(W * .36, 240), bx = 16, by = H * .84;
+    const dur = humming ? performance.now() - G.hold.t0 : 0;
+    const max = 1400;
+    cx.fillStyle = '#ffffff22'; rr(bx, by, bw, 10, 5); cx.fill();
+    cx.fillStyle = T['brass-soft']; rr(bx, by, bw * Math.min(1, dur / max), 10, 5); cx.fill();
+    const tx = bx + bw * LONG_MS / max;
+    cx.fillStyle = T['pit-ink']; cx.fillRect(tx - 1, by - 5, 2, 20);
+    cx.font = `11px ${T['f-ui']}`; cx.textAlign = 'left';
+    cx.fillText(t('short'), bx, by - 8); cx.fillText(t('long'), tx + 6, by - 8);
+  }
+}
+
+function draw(now) {
+  const g = geom(), tm = now;
+  // wall with stripes
+  cx.fillStyle = T['wall']; cx.fillRect(0, 0, W, H);
+  cx.fillStyle = T['wall-2'];
+  for (let x = 0; x < W; x += 28) cx.fillRect(x, 0, 12, H * .62);
+  // floor
+  const floorTop = H * .6, lip = H * .74;
+  cx.fillStyle = T['floor']; cx.fillRect(0, floorTop, W, lip - floorTop);
+  cx.fillStyle = T['floor-2'];
+  for (let i = 0, y = floorTop; y < lip; i++, y += (lip - floorTop) / 5) for (let x = (i % 2) * 40; x < W; x += 80) cx.fillRect(x, y, 38, (lip - floorTop) / 5 - 1);
+  // spotlights
+  for (const id of G.slots) {
+    if (id === 'toast' && G.toastGone) continue;
+    const p = P[id];
+    cx.fillStyle = `rgba(255,236,190,${.1 + .2 * p.glow})`;
+    cx.beginPath(); cx.ellipse(p.x, g.base, g.s * .42, g.s * .07, 0, 0, 6.283); cx.fill();
+  }
+  // performers
+  for (const id of G.slots) {
+    const p = P[id];
+    p.x += (p.tx - p.x) * (reduce ? 1 : .14);
+    const v = pulse(id, now);
+    if (id === 'toast' && G.toastGone) {
+      cx.save(); cx.setLineDash([5, 5]); cx.strokeStyle = T['chalk']; cx.lineWidth = 2;
+      rr(p.x - g.s * .3, g.base - g.s * .44, g.s * .6, g.s * .44, g.s * .1); cx.stroke(); cx.restore();
+      if (v > .05) { cx.fillStyle = `rgba(255,236,190,${.35 * v})`; rr(p.x - g.s * .3, g.base - g.s * .44, g.s * .6, g.s * .44, g.s * .1); cx.fill(); }
+      continue;
+    }
+    if (v > .02) {
+      const gl = cx.createRadialGradient(p.x, g.base - g.s * .5, 0, p.x, g.base - g.s * .5, g.s * .7);
+      gl.addColorStop(0, `rgba(240,208,138,${.45 * v})`); gl.addColorStop(1, 'rgba(240,208,138,0)');
+      cx.fillStyle = gl; cx.beginPath(); cx.arc(p.x, g.base - g.s * .5, g.s * .7, 0, 6.283); cx.fill();
+    }
+    const bounce = reduce ? 0 : v * .06 * (1 + Math.sin(tm / 60)) * .5;
+    cx.save(); cx.translate(p.x, g.base); cx.scale(g.s * (1 - bounce * .5), g.s * (1 + bounce));
+    drawPiece(id, v, tm);
+    cx.restore();
+    if (now - p.tap < 300) {
+      cx.strokeStyle = T['brass-soft']; cx.lineWidth = 2;
+      cx.beginPath(); cx.ellipse(p.x, g.base, g.s * (.35 + (now - p.tap) / 900), g.s * .08, 0, 0, 6.283); cx.stroke();
+    }
+  }
+  // the toaster, in the wings, still singing
+  if (G.toastGone) {
+    // the chalk outline keeps the seat; the voice comes from here
+    const v = P.toast.glow;
+    const wx = W - g.curtW * .55, ws = g.s * .6;
+    cx.save(); cx.translate(wx, g.base - H * .03); cx.scale(ws, ws * (1 + (reduce ? 0 : v * .05)));
+    drawPiece('toast', v, tm); cx.restore();
+  }
+  // curtains
+  for (const side of [0, 1]) {
+    const x0 = side ? W - g.curtW : 0;
+    for (let i = 0; i < 5; i++) {
+      cx.fillStyle = i % 2 ? T['curtain-2'] : T['curtain'];
+      cx.fillRect(x0 + (g.curtW / 5) * i, 0, g.curtW / 5 + .5, lip);
+    }
+  }
+  const valH = Math.max(22, H * .07);
+  cx.fillStyle = T['curtain']; cx.fillRect(0, 0, W, valH);
+  cx.fillStyle = T['curtain-2'];
+  const sc = Math.max(30, W / 16);
+  for (let x = 0; x < W; x += sc) { cx.beginPath(); cx.arc(x + sc / 2, valH, sc / 2, 0, Math.PI); cx.fill(); }
+  cx.fillStyle = T['brass']; cx.fillRect(0, valH - 3, W, 3);
+  // stage lip, footlights, pit
+  cx.fillStyle = T['pit']; cx.fillRect(0, lip, W, H - lip);
+  cx.fillStyle = T['brass']; cx.fillRect(0, lip, W, 4);
+  for (let x = g.curtW + 20; x < W - g.curtW; x += 44) {
+    const gl = cx.createRadialGradient(x, lip, 0, x, lip, 16);
+    gl.addColorStop(0, 'rgba(255,226,160,.55)'); gl.addColorStop(1, 'rgba(255,226,160,0)');
+    cx.fillStyle = gl; cx.beginPath(); cx.arc(x, lip, 16, Math.PI, 0); cx.fill();
+  }
+  // seat numbers
+  cx.textAlign = 'center';
+  cx.font = `600 12px ${T['f-ui']}`;
+  for (let i = 0; i < G.slots.length; i++) {
+    const id = G.slots[i], sx = slotX(i);
+    cx.fillStyle = T['brass-soft'];
+    const label = g.slotW > 96 ? `${i + 1} · ${t('names')[id]}${id === 'toast' && G.toastGone ? t('absent') : ''}` : String(i + 1);
+    cx.fillText(label, sx, lip + 22, g.slotW - 6);
+  }
+  // gossip bubbles
+  for (const id of G.slots) {
+    const p = P[id];
+    if (now < p.bub) {
+      const bx = id === 'toast' && G.toastGone ? W - g.curtW * .55 : p.x, by = g.base - g.s * 1.08;
+      cx.fillStyle = '#f4efe4'; rr(bx - 22, by - 16, 44, 22, 10); cx.fill();
+      cx.beginPath(); cx.moveTo(bx - 4, by + 6); cx.lineTo(bx + 4, by + 6); cx.lineTo(bx, by + 12); cx.fill();
+      cx.fillStyle = '#21181a'; cx.font = `600 12px ${T['f-ui']}`; cx.fillText(t('psst'), bx, by, 40);
+    }
+  }
+  // conductor
+  G.facingAnim += (G.facing - G.facingAnim) * (reduce ? 1 : .04);
+  G.baton *= .9;
+  const cs = Math.min(g.s * .8, (H - lip) * .75);
+  drawConductor(W / 2, H - 4, cs, tm);
+  if (G.youShown) drawYou(tm);
+}
+
+function frame(now) {
+  if (!(frame.n++ % 30)) readTokens();
+  if (W > 0 && G) draw(now);
+  requestAnimationFrame(frame);
+}
+frame.n = 0;
+
+// ---- language ----
+// Static markup carries data-t (text) and data-ta (aria-label). The programme, the pit line and
+// the end cards are re-worded from state; the canvas redraws every frame through t().
+function applyLang() {
+  document.documentElement.lang = lang;
+  document.title = t('docTitle');
+  for (const el of document.querySelectorAll('[data-t]')) el.textContent = t(el.dataset.t);
+  for (const el of document.querySelectorAll('[data-ta]')) el.setAttribute('aria-label', t(el.dataset.ta));
+  for (const box of document.querySelectorAll('.lang')) {
+    if (!box.children.length) box.innerHTML = '<button data-lang="fr" lang="fr">FR</button><button data-lang="en" lang="en">EN</button>';
+    for (const b of box.children) b.setAttribute('aria-pressed', String(b.dataset.lang === lang));
+  }
+  voice(...said);
+  if (!G) return;
+  programme();
+  hud();
+  stats();
+}
+function setLang(l) {
+  if (!(l in I18N) || l === lang) return;
+  lang = l;
+  applyLang();
+}
+document.addEventListener('click', e => {
+  const b = e.target.closest('[data-lang]');
+  if (b) setLang(b.dataset.lang);
+});
+
+function start(data) {
+  readTokens();
+  G = freshGame(data.best || 0);
+  lang = data?.lang in I18N ? data.lang : (navigator.language || '').toLowerCase().startsWith('fr') ? 'fr' : 'en';
+  resize();
+  applyLang();
+  requestAnimationFrame(frame);
+}
+window.claude?.hot?.snapshot?.(() => ({ best: G ? Math.max(G.best, G.ov) : 0, lang }));
+window.claude?.hot?.ready ? window.claude.hot.ready(start) : start(window.claude?.hot?.data ?? {});
+</script>
+</body>
+</html>

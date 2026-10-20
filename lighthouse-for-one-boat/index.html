@@ -1,0 +1,1426 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Lighthouse for One Boat</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,400;0,600;1,400;1,600&family=Spectral+SC:wght@600&family=Kalam:wght@400&family=Red+Hat+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: an Admiralty chart sheet on the left with a graduated neatline, the keeper's log ruled down the right; on a phone the log folds to a strip under the chart. */
+:root {
+  --bg: #e4e9e6;        /* chart-room table */
+  --sea: #f4f6f3;       /* deep water: chart white, faintly green */
+  --shoal: #c3dbe6;     /* the blue tint for shallows */
+  --land: #e8d397;      /* chart buff */
+  --ink: #1b2830;       /* chart black, blue-biased */
+  --muted: #5a6a72;
+  --accent: #b5177d;    /* light-flare magenta: the one loud thing */
+  --panel: #f8faf7;
+  --line: #1b28302e;
+  --beam: #f7d54a;
+  --night: rgba(27, 40, 48, .2);
+  --rock: #9c8a62;
+  --foam: #ffffff;
+  --signal: #ff9a1f;
+  --f-display: "Spectral SC", "Spectral", Georgia, serif;
+  --f-body: "Spectral", Georgia, "Times New Roman", serif;
+  --f-hand: "Kalam", "Segoe Print", "Comic Neue", cursive;
+  --f-mono: "Red Hat Mono", ui-monospace, Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #070c10; --sea: #0b151c; --shoal: #10283a; --land: #221f17; --ink: #e9dcc4; --muted: #8f958d;
+    --accent: #e0509f; --panel: #0f1a21; --line: #e9dcc426; --beam: #ffe7a0; --night: rgba(1, 4, 8, .66);
+    --rock: #57503f; --foam: #cfe3ea; --signal: #ffb347;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #070c10; --sea: #0b151c; --shoal: #10283a; --land: #221f17; --ink: #e9dcc4; --muted: #8f958d;
+  --accent: #e0509f; --panel: #0f1a21; --line: #e9dcc426; --beam: #ffe7a0; --night: rgba(1, 4, 8, .66);
+  --rock: #57503f; --foam: #cfe3ea; --signal: #ffb347;
+  color-scheme: dark;
+}
+/* kit:css:begin */
+/* Arcade kit: structure only, never a look. Inlined between kit:css markers by kit/inline.mjs.
+   The game's own :root must define --bg --ink --muted --accent --panel --line (light), and
+   redefine them in both dark blocks; everything here reads those tokens. */
+*, *::before, *::after { box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  -webkit-tap-highlight-color: transparent;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+button { font: inherit; color: inherit; cursor: pointer; }
+button:disabled { cursor: default; }
+:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+canvas { display: block; max-width: 100%; touch-action: none; }
+
+/* Full-stage screens (title, twist, end). Sit inside a position:relative stage. */
+.kit-overlay {
+  position: absolute; inset: 0; z-index: 5;
+  display: grid; place-items: center; padding: 24px;
+  background: color-mix(in srgb, var(--bg) 88%, transparent);
+  overflow-y: auto;
+}
+.kit-overlay[hidden] { display: none; }
+
+/* Touch pad: shown only on coarse pointers; buttons carry data-key (see Kit.keys). */
+.kit-pad { display: none; gap: 10px; justify-content: center; padding-block: 10px; user-select: none; }
+.kit-pad [data-key] { min-width: 56px; min-height: 56px; touch-action: none; border: 1px solid var(--line); background: var(--panel); }
+@media (pointer: coarse) { .kit-pad { display: flex; } }
+
+.kit-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+
+@media (prefers-reduced-motion: reduce) {
+  .kit-deco, .kit-deco * { animation: none !important; transition: none !important; }
+}
+/* kit:css:end */
+[hidden] { display: none !important; }
+body { font-family: var(--f-body); padding-block: 12px; overflow: hidden; }
+.stage {
+  position: relative; height: 100%; max-width: 1120px; margin: 0 auto;
+  display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 16px;
+}
+.sheet { position: relative; min-height: 0; height: calc(100% - 8px); aspect-ratio: 128 / 168; max-width: calc(100% - 8px); justify-self: end; background: var(--sea); border: 1px solid var(--ink); outline: 3px double var(--ink); outline-offset: 3px; margin: 4px; }
+.sheet canvas { width: 100%; height: 100%; cursor: crosshair; }
+.side { min-height: 0; display: grid; grid-template-rows: auto auto auto minmax(0, 1fr); gap: 12px; padding-top: 4px; }
+.cartouche { border-block: 1px solid var(--ink); padding: 8px 0 9px; }
+.cartouche h1 { margin: 0; font: 600 21px/1.05 var(--f-display); letter-spacing: .04em; }
+.cartouche p { margin: 3px 0 0; font-size: 13px; font-style: italic; color: var(--muted); }
+.chr { display: grid; grid-template-columns: auto 1fr; gap: 3px 10px; font-size: 13px; align-items: baseline; }
+.chr dt { font-style: italic; color: var(--muted); }
+.chr dd { margin: 0; font-family: var(--f-mono); font-size: 13px; color: var(--accent); font-weight: 500; }
+.chr dd.obs { color: var(--ink); }
+.wx { display: grid; grid-template-columns: auto 1fr; gap: 2px 12px; align-items: center; border: 1px solid var(--line); padding: 8px 10px; background: var(--panel); }
+.wx .f { grid-row: span 2; font: 500 30px/1 var(--f-mono); }
+.wx b { font-weight: 600; font-size: 14px; }
+.wx span { font-size: 12.5px; line-height: 1.3; color: var(--muted); font-style: italic; }
+.wx .row { grid-column: 1 / -1; display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; font-family: var(--f-mono); font-size: 11.5px; letter-spacing: .03em; padding-top: 5px; border-top: 1px solid var(--line); margin-top: 4px; }
+.planks i { display: inline-block; width: 13px; height: 6px; margin-left: 3px; background: var(--ink); vertical-align: middle; }
+.planks i.gone { background: none; outline: 1px dashed var(--muted); outline-offset: -1px; }
+.log { min-height: 0; display: grid; grid-template-rows: auto minmax(0, 1fr); }
+.log h2 { margin: 0 0 4px; font: 600 13px var(--f-display); letter-spacing: .08em; color: var(--muted); }
+.log ol {
+  margin: 0; padding: 0 2px 0 0; list-style: none; overflow-y: auto; font-family: var(--f-hand); font-size: 15px; line-height: 26px;
+  background: repeating-linear-gradient(to bottom, transparent 0 25px, var(--line) 25px 26px);
+}
+.log li { display: grid; grid-template-columns: 3.4em 1fr; }
+.log li time { font-family: var(--f-mono); font-size: 11.5px; color: var(--muted); }
+.log li.ntm { color: var(--accent); }
+.signal { font-family: var(--f-mono); font-size: 12px; padding: 7px 9px; border: 1px solid var(--signal); background: color-mix(in srgb, var(--signal) 14%, var(--panel)); display: flex; gap: 8px; align-items: center; justify-content: space-between; flex-wrap: wrap; }
+.signal button { font: 500 12px var(--f-mono); padding: 4px 8px; border: 1px solid var(--ink); background: var(--panel); }
+.kit-pad { grid-column: 1 / -1; }
+.kit-pad [data-key] { font: 500 13px var(--f-mono); color: var(--ink); padding: 0 14px; }
+
+/* overlays read like a chart's title block: left-set, ruled, never a floating card */
+.kit-overlay { background: color-mix(in srgb, var(--bg) 90%, transparent); place-items: center start; }
+.block { max-width: 560px; border-top: 3px double var(--ink); border-bottom: 1px solid var(--ink); padding: 18px 0 16px; display: grid; gap: 12px; margin-left: clamp(0px, 6vw, 80px); }
+.block .kicker { font-family: var(--f-mono); font-size: 11.5px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.block h1, .block h2 { margin: 0; font-family: var(--f-display); font-weight: 600; line-height: .98; letter-spacing: .02em; }
+.block h1 { font-size: clamp(38px, 7vw, 64px); }
+.block h2 { font-size: clamp(28px, 5vw, 42px); }
+.block .lt { font-family: var(--f-mono); color: var(--accent); font-size: 15px; font-weight: 500; }
+.block p { margin: 0; font-size: 16.5px; line-height: 1.5; max-width: 50ch; text-wrap: pretty; }
+.block p.lede { font-style: italic; font-size: 19px; }
+.block table { border-collapse: collapse; font-size: 14px; }
+.block td { padding: 3px 14px 3px 0; border-bottom: 1px solid var(--line); vertical-align: top; }
+.block td:first-child { font-style: italic; color: var(--muted); white-space: nowrap; }
+.block td.m { font-family: var(--f-mono); font-size: 13px; }
+.btns { display: flex; gap: 10px; flex-wrap: wrap; padding-top: 4px; }
+.btns button, .block > button {
+  justify-self: start; font: 600 16px var(--f-body); padding: 9px 18px; background: var(--ink); color: var(--sea);
+  border: 1px solid var(--ink); border-radius: 0;
+}
+.btns button.ghost { background: transparent; color: var(--ink); }
+.btns button:hover { background: var(--accent); border-color: var(--accent); color: #fff; }
+.reveal-line { font-size: clamp(20px, 3vw, 26px) !important; line-height: 1.4 !important; font-style: italic; min-height: 4.2em; }
+.reveal-line.morse { font-family: var(--f-mono); font-style: normal; color: var(--signal); }
+.small { font-family: var(--f-mono); font-size: 11.5px; letter-spacing: .04em; color: var(--muted); }
+
+/* FR | EN: a two-cell chart label, mono like the soundings; on a phone the cartouche is gone,
+   so a second copy rides in the weather row */
+.lang { display: inline-flex; flex: 0 0 auto; border: 1px solid var(--ink); background: var(--panel); }
+.lang button { border: 0; background: transparent; padding: 2px 8px; font: 500 11.5px var(--f-mono); letter-spacing: .06em; color: var(--muted); min-height: 24px; }
+.lang button + button { border-left: 1px solid var(--line); }
+.lang button:hover { color: var(--ink); }
+.lang button[aria-pressed="true"] { background: var(--ink); color: var(--sea); }
+.cartouche { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
+.wx .row .lang { display: none; }
+.foot { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.foot > button { font: 600 16px var(--f-body); padding: 9px 18px; background: var(--ink); color: var(--sea); border: 1px solid var(--ink); border-radius: 0; }
+.foot > button:hover { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+@media (max-width: 760px) {
+  body { padding-block: 8px; }
+  .wx .row .lang { display: inline-flex; }
+  .stage { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) auto auto; gap: 8px; }
+  .side { grid-template-columns: 1fr 1fr; grid-template-rows: auto auto; gap: 6px 10px; padding-top: 0; }
+  .cartouche { display: none; }
+  .chr { grid-column: 1 / -1; font-size: 12px; grid-template-columns: auto minmax(0, 1fr) auto minmax(0, 1fr); }
+  .chr dd, .chr dd.obs { font-size: 11.5px; }
+  .side > *, .sheet { min-width: 0; }
+  .sheet { justify-self: center; }
+  .chr dd { overflow-wrap: anywhere; }
+  .wx { grid-column: 1 / -1; padding: 5px 8px; }
+  .wx .f { font-size: 22px; }
+  .wx span { font-size: 11.5px; }
+  .log { grid-column: 1 / -1; }
+  .log h2 { display: none; }
+  .log ol { max-height: 52px; font-size: 14px; line-height: 26px; }
+  .signal { grid-column: 1 / -1; }
+  .block { margin-left: 0; }
+  .block p { font-size: 15.5px; }
+}
+</style>
+</head>
+<body>
+<div class="stage" id="stage">
+  <div class="sheet"><canvas id="chart" data-ta="chartAria" aria-label="A nautical chart at night: a lighthouse at the bottom sweeps its beam over rocks towards a small rowboat"></canvas></div>
+
+  <aside class="side" data-ta="sideAria" aria-label="Keeper's instruments and log">
+    <header class="cartouche">
+      <div><h1 data-t="cartH">Skerry Point Light</h1>
+      <p data-t="cartP">Penhallow Harbour approaches · soundings in metres</p></div>
+      <div class="lang" role="group" data-ta="langGroup" aria-label="Language"></div>
+    </header>
+    <dl class="chr">
+      <dt data-t="charted">Charted</dt><dd id="charted">Fl(2) W 10s 18M</dd>
+      <dt data-t="observed">Observed</dt><dd class="obs" id="observed">—</dd>
+    </dl>
+    <div class="wx">
+      <span class="f" id="wx-f">F3</span><b id="wx-name">Gentle breeze</b>
+      <span id="wx-sea">Large wavelets. Crests begin to break.</span>
+      <div class="row"><span id="wx-dir">Wind SW</span><span id="clock">21:40</span><span class="planks" id="planks">Hull</span><div class="lang" role="group" data-ta="langGroup" aria-label="Language"></div></div>
+    </div>
+    <div class="signal" id="signal" hidden aria-live="polite"><span id="signal-text">Boat showing ··– (U)</span><button id="answer" type="button" data-t="answer">Answer the boat</button></div>
+    <section class="log" data-ta="logAria" aria-label="Keeper's log">
+      <h2 data-t="logH">Keeper's log</h2>
+      <ol id="log" aria-live="polite"></ol>
+    </section>
+  </aside>
+
+  <div class="kit-pad" aria-hidden="true">
+    <button data-key="ArrowLeft" type="button" data-t="padPort">◀ port</button>
+    <button data-key=" " type="button" data-t="padShutter">shutter</button>
+    <button data-key="ArrowRight" type="button" data-t="padStbd">starboard ▶</button>
+  </div>
+
+  <div class="kit-overlay" id="title">
+    <div class="block">
+      <div class="kicker" data-t="titleKick">Admiralty chart 0247 · Skerry Point to Penhallow · 1:12 500</div>
+      <h1 data-t="titleH">Lighthouse for One Boat</h1>
+      <div class="lt" data-t="titleLt">Skerry Point Lt · Fl(2) W 10s 18M</div>
+      <p class="lede" data-t="titleLede">You keep the light. The light has one client: a small rowboat that cannot make up its mind.</p>
+      <p data-th="titleHow">Sweep the beam with <b>← →</b> (or A and D), or drag on the chart. The boat rows towards whatever is lit, along the beam, when it remembers to. Keep it lit, sweep it gently round the rocks and bring it under the light. Three planks of hull. Weather to follow.</p>
+      <button id="start" type="button" data-t="startBtn">Take the first watch</button>
+      <div class="foot"><div class="small" data-t="titleSmall">about 4 minutes · Space works the shutter</div><div class="lang" role="group" data-ta="langGroup" aria-label="Language"></div></div>
+    </div>
+  </div>
+
+  <div class="kit-overlay" id="reveal" hidden>
+    <div class="block">
+      <div class="kicker" id="rev-k" data-t="revKick">Keeper's log, continued</div>
+      <p class="reveal-line" id="rev-line"></p>
+      <div class="foot"><button id="rev-next" type="button">Go on</button><div class="lang" role="group" data-ta="langGroup" aria-label="Language"></div></div>
+    </div>
+  </div>
+
+  <div class="kit-overlay" id="end" hidden>
+    <div class="block">
+      <div class="kicker" id="end-k">Entry closed</div>
+      <h2 id="end-title"></h2>
+      <p class="lede" id="end-sub"></p>
+      <p id="end-body"></p>
+      <table><tbody id="end-stats"></tbody></table>
+      <div class="btns"><button id="end-a" type="button">Take another watch</button><button id="end-b" class="ghost" type="button" hidden></button></div>
+      <div class="foot"><div class="lang" role="group" data-ta="langGroup" aria-label="Language"></div></div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* kit:js:begin */
+// Arcade kit: the plumbing every game re-wrote by hand. Inlined between kit:js markers by
+// kit/inline.mjs, so a game stays one standalone file. Defines exactly two globals, `Kit` and
+// (once a game calls Kit.expose) `__arcade`; nothing else, because a bare top-level name can
+// collide with a window property (sandwich-diplomacy's `top()` shadowed by window.top).
+const Kit = (() => {
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const themeWatchers = [];
+  const onTheme = () => themeWatchers.forEach(f => f());
+  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', onTheme);
+  new MutationObserver(onTheme).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+
+  // Canvas code cannot read CSS variables, so mirror the named tokens into an object and
+  // re-read it whenever the theme flips: the viewer's toggle sets data-theme, the OS sets the media query.
+  function tokens(names, onChange) {
+    const C = {};
+    const read = () => {
+      const cs = getComputedStyle(document.documentElement);
+      for (const n of names) C[n] = cs.getPropertyValue('--' + n).trim();
+      onChange?.(C);
+    };
+    read();
+    themeWatchers.push(read);
+    return C;
+  }
+
+  // Keeps a canvas sharp at the device pixel ratio (capped at 2) and sized to its CSS box.
+  function canvas(el, onResize) {
+    const view = { el, cx: el.getContext('2d'), W: 0, H: 0 };
+    const fit = () => {
+      const r = el.getBoundingClientRect(), d = Math.min(2, devicePixelRatio || 1);
+      view.W = r.width; view.H = r.height;
+      el.width = Math.round(r.width * d); el.height = Math.round(r.height * d);
+      view.cx.setTransform(d, 0, 0, d, 0, 0);
+      onResize?.(view);
+    };
+    new ResizeObserver(fit).observe(el);
+    fit();
+    return view;
+  }
+
+  // step(dt) gets seconds, capped at 50 ms so a background tab or a stalled frame cannot
+  // teleport the game; the loop stops while the tab is hidden and resumes without a jump.
+  function loop(step) {
+    let last = 0, raf = 0, on = false;
+    const frame = t => {
+      const dt = last ? Math.min(0.05, (t - last) / 1000) : 0;
+      last = t;
+      step(dt);
+      if (on) raf = requestAnimationFrame(frame);
+    };
+    const ctl = {
+      start() { if (on) return; on = true; last = 0; raf = requestAnimationFrame(frame); },
+      stop() { on = false; cancelAnimationFrame(raf); },
+      get running() { return on; },
+    };
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden && on) { ctl.stop(); ctl.paused = true; }
+      else if (!document.hidden && ctl.paused) { ctl.paused = false; ctl.start(); }
+    });
+    return ctl;
+  }
+
+  // Held keys by KeyboardEvent.key, lower-cased (' ' for Space). Touch pads feed the same set:
+  // any element with data-key="<key>" inside a .kit-pad holds that key while pressed.
+  const held = new Set();
+  const pressFns = [];
+  const norm = k => (k.length === 1 ? k.toLowerCase() : k);
+  const press = (k, down) => {
+    k = norm(k);
+    if (down === held.has(k)) return;
+    down ? held.add(k) : held.delete(k);
+    pressFns.forEach(f => f(k, down));
+  };
+  const GAME_KEYS = new Set([' ', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight']);
+  addEventListener('keydown', e => {
+    if (e.target.closest?.('input, textarea, select, [contenteditable]')) return;
+    if (GAME_KEYS.has(e.key) && !e.target.closest?.('button')) e.preventDefault();
+    if (!e.repeat) press(e.key, true);
+  });
+  addEventListener('keyup', e => press(e.key, false));
+  addEventListener('blur', () => [...held].forEach(k => press(k, false)));
+  document.addEventListener('pointerdown', e => {
+    const b = e.target.closest?.('.kit-pad [data-key]');
+    if (!b) return;
+    e.preventDefault();
+    b.setPointerCapture?.(e.pointerId);
+    press(b.dataset.key, true);
+    const up = () => { press(b.dataset.key, false); b.removeEventListener('pointerup', up); b.removeEventListener('pointercancel', up); };
+    b.addEventListener('pointerup', up);
+    b.addEventListener('pointercancel', up);
+  });
+  const keys = {
+    down: k => held.has(norm(k)),
+    any: (...ks) => ks.some(k => held.has(norm(k))),
+    onPress(fn) { pressFns.push(fn); },
+  };
+
+  // The claude.ai viewer's hot-update hook: keeps `snapshot()` across a republish. Absent when
+  // self-hosted, so start() then receives {}.
+  function boot(start, snapshot) {
+    if (snapshot) window.claude?.hot?.snapshot?.(snapshot);
+    window.claude?.hot?.ready ? window.claude.hot.ready(start) : start(window.claude?.hot?.data ?? {});
+  }
+
+  // The test hook smoke.mjs drives. endings: { name: { jump(), reached(), seconds? } } where
+  // jump() may shortcut the set-up but must leave the ending's final stretch to real game
+  // logic, and reached() is true only once that ending's screen is actually showing.
+  function expose({ state, endings }) {
+    window.__arcade = {
+      get state() { return state(); },
+      endings: Object.fromEntries(Object.entries(endings).map(([k, v]) => [k, { seconds: v.seconds ?? 8 }])),
+      jump: name => endings[name].jump(),
+      reached: name => !!endings[name].reached(),
+    };
+  }
+
+  // Show one overlay and hide the others; focus its first button so Enter/Space continue.
+  function show(el) {
+    document.querySelectorAll('.kit-overlay').forEach(o => { o.hidden = o !== el; });
+    el?.querySelector('button')?.focus({ preventScroll: true });
+  }
+
+  const rnd = (a, b) => a + Math.random() * (b - a);
+  const pick = a => a[Math.floor(Math.random() * a.length)];
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+
+  return { reduce, tokens, canvas, loop, keys, boot, expose, show, rnd, pick, clamp };
+})();
+/* kit:js:end */
+const $ = s => document.querySelector(s);
+const view = Kit.canvas($('#chart'));
+const C = Kit.tokens(['sea', 'shoal', 'land', 'ink', 'muted', 'accent', 'panel', 'line', 'beam', 'night', 'rock', 'foam', 'signal']);
+const FONT = { body: '"Spectral", Georgia, serif', mono: '"Red Hat Mono", ui-monospace, Menlo, monospace' };
+const DEG = Math.PI / 180, HW1 = 6.5 * DEG, HW2 = 8.5 * DEG;
+const { clamp, rnd, pick } = Kit;
+
+// ---- language
+// Logic holds ids and indexes; every player-visible word is read through t(). Lists that are
+// picked from by index must be the same length in both languages.
+const I18N = {
+  en: {
+    docTitle: 'Lighthouse for One Boat',
+    langGroup: 'Language',
+    chartAria: 'A nautical chart at night: a lighthouse at the bottom sweeps its beam over rocks towards a small rowboat',
+    sideAria: "Keeper's instruments and log", logAria: "Keeper's log",
+    cartH: 'Skerry Point Light', cartP: 'Penhallow Harbour approaches · soundings in metres',
+    charted: 'Charted', observed: 'Observed',
+    logH: "Keeper's log",
+    answer: 'Answer the boat',
+    padPort: '◀ port', padShutter: 'shutter', padStbd: 'starboard ▶',
+    titleKick: 'Admiralty chart 0247 · Skerry Point to Penhallow · 1:12 500',
+    titleH: 'Lighthouse for One Boat',
+    titleLt: 'Skerry Point Lt · Fl(2) W 10s 18M',
+    titleLede: 'You keep the light. The light has one client: a small rowboat that cannot make up its mind.',
+    titleHow: 'Sweep the beam with <b>← →</b> (or A and D), or drag on the chart. The boat rows towards whatever is lit, along the beam, when it remembers to. Keep it lit, sweep it gently round the rocks and bring it under the light. Three planks of hull. Weather to follow.',
+    startBtn: 'Take the first watch',
+    titleSmall: 'about 4 minutes · Space works the shutter',
+    revKick: "Keeper's log, continued",
+    goOn: 'Go on', letSteer: 'Let the boat steer',
+    endKick: 'Entry closed',
+    againBtn: 'Take another watch', retryBtn: 'Try the passage again',
+    unlit: 'Unlit', isoBoat: 'Iso W (the boat)',
+    dir: { SW: 'SW', W: 'W', S: 'S', NW: 'NW', N: 'N', SE: 'SE' },
+    wind: (d, f, x) => `Wind ${d} ${f}${x === 'fog' ? ' · fog' : x === 'rain' ? ' · rain' : ''}`,
+    hull: 'Hull', masonry: 'Masonry',
+    showing: on => `Boat showing ${on ? '●' : '○'} ··– (U)`,
+    beaufort: {
+      2: ['Light breeze', 'Small wavelets. Crests have a glassy appearance.'],
+      3: ['Gentle breeze', 'Large wavelets. Crests begin to break.'],
+      4: ['Moderate breeze', 'Small waves, fairly frequent white horses.'],
+      5: ['Fresh breeze', 'Moderate waves, many white horses.'],
+      6: ['Strong breeze', 'Large waves begin to form; white foam crests.'],
+      7: ['Near gale', 'Sea heaps up; white foam blown in streaks.'],
+    },
+    rocks: ['The Mewstone', 'The Widow', "Dodman's Teeth", 'Little Grumbling', 'The Pews', "Old Harry's Elbow", 'Gull Rock', 'The Shilling', 'The Bishop', "Pollard's Ledge"],
+    wxLog: [
+      'Rain. Barometer 1009 and falling. Tapped it; it fell further, out of spite.',
+      'Wind veered W, freshening. White horses. The boat is not a horse and is unimpressed.',
+      'Fog bank. Visibility half a mile. Light now seen at 6 miles by anybody standing very close.',
+      'Fog lifting. Squall from the NW. The kettle has gone over.',
+      'Near gale. Spray over the gallery. Moved the biscuits inland.',
+      'Easing. Stars visible to the south, which is not where the boat is.',
+      'Wind SW 3. The sea has calmed down, unlike some.',
+    ],
+    lures: [
+      { name: 'a trawler', say: "Ooh. That one's got more lights. Is more lights better?", log: 'Trawler working inshore, lit like a ferry terminal. Boat interested.' },
+      { name: 'The Ship Inn', say: 'Is that a pub? Do lighthouses do food?', log: 'The Ship Inn has its lights on. The boat has noticed the Ship Inn.' },
+      { name: 'a man with a phone torch', say: 'A man on the cliff is waving his phone. He seems very sure.', log: 'Man on the cliff with a phone torch. Confident. Wrong.' },
+      { name: 'bioluminescence', say: "The sea's glowing. Is the sea a lighthouse now? Am I?", log: 'Bioluminescence off Grumbling. Very beautiful. Very unhelpful.' },
+      { name: 'lightning', say: "That was either a sign or electricity. I can't do both.", log: 'Lightning to seaward. The boat has taken it personally.' },
+    ],
+    dither: [
+      'Is that the harbour, or a very confident pub?', 'Hang on. Hang on. Which way is in?', "Is the light moving or am I? Don't answer that.",
+      "Sorry, I was rowing towards you, and then I was rowing towards a feeling.", "Can I get back to you on 'harbour'?",
+      'Left. No. My other left. No, your left. Hang on.', "I'm going to row towards it decisively. In a minute.",
+      'What if the rocks are the harbour and the harbour is the rocks?', 'Is that a lighthouse or a very tall man with a torch?',
+      'I was decisive once. In 1994. It was a whole thing.', 'Do you ever just want to be a buoy?',
+      "I've lost an oar. No, I'm holding it. I've found an oar.", 'Is it rude to be rowed at? Is it rude to row?',
+      "Quick question: what's a harbour, emotionally?", "I'll follow the light. Unless the light is a metaphor. Is it?",
+      'Sorry, which way is the sea? Apart from all of it.', 'What if I get there and it is just more sea with walls?',
+    ],
+    wander: ["Actually, I'll go back for my hat.", "Back in a minute. I've left the kettle on. I don't have a kettle.",
+      "I'm just going to have a little look at the dark.", 'Actually, never mind. Actually, mind. Actually—',
+      'You know what, I liked it better out there.', "Just checking the sea's still there behind me. It is. Good. Bye."],
+    unlitSay: ['Hello? Light? Did I do something?', "It's very dark. Is this the harbour? It's very roomy.",
+      "I'll just sit here and become driftwood, shall I.", 'Is this a test? I hate tests. I failed the one about buoys.',
+      "You've gone. That's fine. I'll navigate by feelings."],
+    hit: ['Sorry! That was a rock. I said sorry to it.', 'Ow. The rock started it.', "That's one plank fewer. I had a favourite. It was that one."],
+    signal: ["I'm flashing at you! Is that rude here?", 'Look at your feet! Your base! Your… whatever lighthouses have!',
+      'U! U! It means you! Well, it means danger. Also you!', "I've been flashing for ages. Do you not read lamp?"],
+    guide: ['This way! Probably!', "Follow me, I've done this once. Tonight.", "Am I doing it right? Don't tell me. I'll panic.",
+      'Mind the Pews. They are very religious about hulls.', 'Steady! I mean, I am not steady. You be steady.', "Nearly there. I think. I've never been there."],
+    idle: [
+      'Trimmed the wick. There is no wick; it is an LED. Trimmed it anyway.', 'Polished the lens. 2.4 tonnes of glass and it still shows thumbs.',
+      "The fog signal wants to be sounded. Told it no.", 'Wrote "boat still undecided" and underlined "still".',
+      'Took a bearing on the church spire. It disagrees with me by 4°. Logged the spire as faulty.',
+      'Tea. The boat would like some. The boat is 2 miles away.', 'Wound the clock. It was not a wind-up clock. It is now.',
+      "Read the List of Lights for comfort. We are in it. Page 214. It's a nice page.",
+      'Bearing to Penhallow church now 187°. It was 192° at dusk. Churches do not move. Noted.',
+    ],
+    idle2: ['Under way at about a knot. The lens is enjoying it.', 'Passed the Pews to port. They did not look up.', 'Rang the fog bell for morale.', 'The boat looks back a great deal. So do I.', 'Logged our position as "behind the boat".'],
+    hesitate: ['Boat stopped. Appears to be thinking.', 'Boat hesitating. Gave it a steady light.', 'Boat holding position for no reason it would share.'],
+    logTouched: (r, n) => `Boat touched ${r}. ${n === 1 ? 'One plank left. It is holding the others' + "'" + ' place.' : 'Lost a plank. It apologised to the rock.'}`,
+    logNtm: (no, bare) => `Notice to Mariners ${no}/26: Skerry Point Lt exhibiting ${bare === 'Unlit' ? 'no light' : bare}. Mariners to use caution. (The mariner is aware.)`,
+    logChar: bare => `Characteristic now ${bare}, as seen from the boat. Trinity House would want a word.`,
+    logSignal: 'Boat showing a light. Characteristic ··– repeated. Not in the List of Lights.',
+    logAnswered: 'Answered the boat with the shutter: ·–· (R, "received"). Felt silly. Felt seen.',
+    sayAnswered: 'Oh! Oh, you DO read lamp!',
+    logHandover: 'Handed over. Lighthouse now under way, following the boat. Not covered by the manual.',
+    logGrounded: r => `Grounded briefly on ${r}. Lost a course of masonry. The boat flashed U again, more gently.`,
+    sayGrounded: 'That was a rock! That one was a rock too! Most things here are rocks!',
+    logLit: 'Lit up at sunset. Fl(2) W 10s, as printed. One vessel in the approaches: a rowboat, undecided.',
+    logWind0: 'Wind SW 3. Large wavelets. Sea otherwise behaving.',
+    reveal: [
+      'The boat flashes back, slowly, the way you would to a child, or a lighthouse.',
+      '··–',
+      'U. International Code of Signals: "You are running into danger." It has been sending it all night. You logged it as weather.',
+      'You check the chart. The light is two-thirds of a mile east of where it was printed. So is Skerry. So is the harbour, the pier, and Mrs Penhallow’s washing.',
+      'The light has been drifting since about 1987. The boat was never lost. It was the only one who noticed.',
+      '“My turn,” it flashes. “Stay in my light. I am not very good at this either.”',
+    ],
+    closed: c => `Entry closed ${c}`,
+    endings: {
+      harbour: { title: () => 'The boat is in harbour.', sub: 'It ties up. It unties. It ties up again, with feeling.',
+        body: `Its lamp flashed ··– all the way in. U, in the International Code of Signals, means "You are running into danger". You logged it as weather. In the morning the harbourmaster will measure the pier and go very quiet.` },
+      lost: { title: r => `The boat is on ${r}.`, sub: 'For the first time tonight, it is completely certain of its position.',
+        body: 'The rower waded ashore onto the rock and is fine, if a little damp and a lot decisive. The boat has been entered in the List of Lights as an unlit hazard. It seems pleased to be listed.' },
+      aground: { title: r => `The lighthouse is aground on ${r}.`, sub: 'Technically, a lighthouse on a rock is a lighthouse doing its job.',
+        body: 'The boat circles, flashing ··– with enormous patience. You understand it now, which is more than you can say for the rock.' },
+      uncharted: { kick: 'New edition · chart 0247A', title: () => 'Somewhere not on the chart.',
+        sub: 'A lighthouse and a rowboat arrive at the same moment, which is the only way either of them has ever arrived anywhere.',
+        body: 'The sea here is unsurveyed, so you survey it: 11 metres, sand, very calm. The boat ties up to you. Nobody decides anything for a while. Notice to Mariners No. 1 of the new chart: a light has been established. It came with a boat. New characteristic Fl(2+1) W 10s: two flashes from the tower, one from the boat, slightly late.' },
+    },
+    rows: {
+      watch: ['Watch kept', (c, m) => `21:40 to ${c} (${m} min)`],
+      hull: ['Hull', n => n == null ? 'no planks, one opinion' : `${n} of 3 planks`],
+      masonry: ['Masonry', n => `${n} of 3 courses`],
+      obs: ['Observed characteristic'],
+      ntm: ['Notices to Mariners', n => `${n} issued about you`],
+      moved: ['Light moved', d => `${d} nautical miles from where it is printed`],
+      best: ['Fastest harbour', m => m == null ? 'not yet' : `${m} min`],
+      seen: ['Endings logged', n => `${n} of 4`],
+    },
+    unsurveyed: 'Unsurveyed', variation: 'Var 1°W (2026)', town: 'PENHALLOW', hbr: 'Hbr', church: 'Ch',
+  },
+  fr: {
+    docTitle: 'Un phare pour un canot',
+    langGroup: 'Langue',
+    chartAria: 'Une carte marine de nuit : en bas, un phare balaie de son faisceau les rochers jusqu’à un petit canot',
+    sideAria: 'Instruments et journal du phare', logAria: 'Journal du phare',
+    cartH: 'Feu de la pointe Skerry', cartP: 'Atterrages du port de Penhallow · sondes en mètres',
+    charted: 'Sur la carte', observed: 'Observé',
+    logH: 'Journal du phare',
+    answer: 'Répondre au canot',
+    padPort: '◀ bâbord', padShutter: 'volet', padStbd: 'tribord ▶',
+    titleKick: 'Carte marine 0247 · De la pointe Skerry à Penhallow · 1:12 500',
+    titleH: 'Un phare pour un canot',
+    titleLt: 'Feu de la pointe Skerry · Fl(2) W 10s 18M',
+    titleLede: 'Vous tenez le phare. Le phare a un seul client : un petit canot à rames qui n’arrive pas à se décider.',
+    titleHow: 'Balayez avec le faisceau grâce à <b>← →</b> (ou A et D), ou faites glisser sur la carte. Le canot rame vers ce qui est éclairé, le long du faisceau, quand il y pense. Gardez-le dans la lumière, guidez-le en douceur autour des rochers et ramenez-le sous le feu. Trois planches de coque. Météo à suivre.',
+    startBtn: 'Prendre le premier quart',
+    titleSmall: 'environ 4 minutes · Espace actionne le volet',
+    revKick: 'Journal du phare, suite',
+    goOn: 'Continuer', letSteer: 'Laisser le canot barrer',
+    endKick: 'Entrée close',
+    againBtn: 'Prendre un autre quart', retryBtn: 'Retenter le passage',
+    unlit: 'Éteint', isoBoat: 'Iso W (le canot)',
+    dir: { SW: 'SO', W: 'O', S: 'S', NW: 'NO', N: 'N', SE: 'SE' },
+    wind: (d, f, x) => `Vent ${d} ${f}${x === 'fog' ? ' · brume' : x === 'rain' ? ' · pluie' : ''}`,
+    hull: 'Coque', masonry: 'Maçonnerie',
+    showing: on => `Le canot montre ${on ? '●' : '○'} ··– (U)`,
+    beaufort: {
+      2: ['Légère brise', 'Vaguelettes. Les crêtes ont un aspect vitreux.'],
+      3: ['Petite brise', 'Très petites vagues. Les crêtes commencent à déferler.'],
+      4: ['Jolie brise', 'Petites vagues, moutons assez fréquents.'],
+      5: ['Bonne brise', 'Vagues modérées, nombreux moutons.'],
+      6: ['Vent frais', 'De grosses vagues se forment ; crêtes d’écume blanche.'],
+      7: ['Grand frais', 'La mer grossit ; l’écume est soufflée en traînées.'],
+    },
+    rocks: ['le Caillou des Mouettes', 'la Veuve', 'les Dents du Mort', 'la Petite Grogne', 'les Prie-Dieu', 'le Coude du Vieil Harry', 'la Roche aux Goélands', 'le Sou', 'l’Évêque', 'le Plateau de Pollard'],
+    wxLog: [
+      'Pluie. Baromètre à 1009 et en baisse. Tapoté dessus ; il a encore baissé, par dépit.',
+      'Le vent a viré à l’O et fraîchit. Des moutons. Le canot n’est pas un mouton et refuse de suivre.',
+      'Banc de brume. Visibilité un demi-mille. Feu désormais visible à 6 milles pour quiconque se tient très près.',
+      'La brume se lève. Grain de NO. La bouilloire s’est renversée.',
+      'Grand frais. Embruns par-dessus la galerie. Mis les biscuits à l’abri, côté terre.',
+      'Ça se calme. Étoiles visibles au sud, c’est-à-dire pas là où se trouve le canot.',
+      'Vent SO 3. La mer s’est calmée, elle. Pas tout le monde.',
+    ],
+    lures: [
+      { name: 'un chalutier', say: 'Oh. Celui-là a plus de lumières. Plus de lumières, c’est mieux ?', log: 'Chalutier au travail près de la côte, éclairé comme un terminal de ferry. Canot intéressé.' },
+      { name: 'le Café de la Marine', say: 'C’est un bistrot ? Les phares font à manger ?', log: 'Le Café de la Marine a ses lumières allumées. Le canot a remarqué le Café de la Marine.' },
+      { name: 'un homme et son téléphone', say: 'Un homme sur la falaise agite son téléphone. Il a l’air très sûr de lui.', log: 'Homme sur la falaise avec la lampe de son téléphone. Sûr de lui. Dans l’erreur.' },
+      { name: 'de la bioluminescence', say: 'La mer brille. La mer est un phare, maintenant ? Et moi, alors ?', log: 'Bioluminescence au large de la Grogne. Très beau. Très inutile.' },
+      { name: 'un éclair', say: 'C’était soit un signe, soit de l’électricité. Je ne peux pas gérer les deux.', log: 'Éclairs vers le large. Le canot l’a pris personnellement.' },
+    ],
+    dither: [
+      'C’est le port, ou un bistrot très sûr de lui ?', 'Attendez. Attendez. C’est par où, dedans ?', 'C’est la lumière qui bouge, ou moi ? Ne répondez pas.',
+      'Pardon, je ramais vers vous, et puis je me suis mis à ramer vers une émotion.', 'Je peux vous redire pour « port » ?',
+      'À gauche. Non. Mon autre gauche. Non, votre gauche. Attendez.', 'Je vais ramer vers elle avec détermination. Dans une minute.',
+      'Et si les rochers étaient le port, et le port les rochers ?', 'C’est un phare, ou un très grand monsieur avec une lampe ?',
+      'J’ai été décidé, une fois. En 1994. Toute une histoire.', 'Vous n’avez jamais envie d’être une bouée ?',
+      'J’ai perdu un aviron. Non, je le tiens. J’ai trouvé un aviron.', 'C’est impoli, de se faire ramer dessus ? C’est impoli, de ramer ?',
+      'Petite question : c’est quoi, un port, émotionnellement ?', 'Je suis la lumière. Sauf si la lumière est une métaphore. C’en est une ?',
+      'Pardon, la mer, c’est de quel côté ? À part tous.', 'Et si j’arrive et que c’est juste encore de la mer, avec des murs ?',
+    ],
+    wander: ['En fait, je retourne chercher mon chapeau.', 'Je reviens. J’ai laissé la bouilloire sur le feu. Je n’ai pas de bouilloire.',
+      'Je vais juste jeter un petit coup d’œil au noir.', 'En fait, laissez tomber. En fait, ne laissez pas. En fait—',
+      'Vous savez quoi, je préférais là-bas.', 'Je vérifie juste que la mer est toujours derrière moi. Oui. Bien. Salut.'],
+    unlitSay: ['Allô ? Lumière ? J’ai fait quelque chose ?', 'Il fait très noir. C’est ça, le port ? C’est très spacieux.',
+      'Je vais rester là et devenir du bois flotté, c’est ça.', 'C’est un test ? Je déteste les tests. J’ai raté celui sur les bouées.',
+      'Plus personne. Pas grave. Je vais naviguer au ressenti.'],
+    hit: ['Pardon ! C’était un rocher. Je lui ai demandé pardon.', 'Aïe. C’est le rocher qui a commencé.', 'Une planche de moins. J’en avais une préférée. C’était celle-là.'],
+    signal: ['Je vous fais des appels de phare ! C’est impoli, ici ?', 'Regardez à vos pieds ! Votre socle ! Votre… ce que les phares ont en bas !',
+      'U ! U ! Comme « tu » ! Tu cours un danger ! Pardon. Vous. Vous courez un danger !', 'Ça fait des heures que je clignote. Vous ne lisez pas la lampe ?'],
+    guide: ['Par ici ! Probablement !', 'Suivez-moi, je l’ai déjà fait une fois. Ce soir.', 'Je m’y prends bien ? Ne me dites rien. Je vais paniquer.',
+      'Attention aux Prie-Dieu. Ils sont très pratiquants, question coques.', 'Doucement ! Enfin, moi, je ne suis pas stable. Vous, soyez stable.', 'On y est presque. Je crois. Je n’y suis jamais allé.'],
+    idle: [
+      'Mouché la mèche. Il n’y a pas de mèche ; c’est une LED. Mouchée quand même.', 'Poli la lentille. 2,4 tonnes de verre, et on y voit encore des traces de doigts.',
+      'Le signal de brume veut être sonné. Lui ai dit non.', 'Écrit « canot toujours indécis » et souligné « toujours ».',
+      'Relevé au compas le clocher. Il me contredit de 4°. Clocher consigné comme défectueux.',
+      'Thé. Le canot en voudrait bien. Le canot est à 2 milles.', 'Remonté l’horloge. Ce n’était pas une horloge à remonter. Maintenant, si.',
+      'Relu le Livre des feux pour me consoler. Nous y sommes. Page 214. C’est une jolie page.',
+      'Relèvement de l’église de Penhallow : 187°. Il était de 192° au crépuscule. Les églises ne bougent pas. Noté.',
+    ],
+    idle2: ['En route à environ un nœud. La lentille apprécie.', 'Laissé les Prie-Dieu à bâbord. Ils n’ont pas levé les yeux.', 'Sonné la cloche de brume, pour le moral.', 'Le canot regarde beaucoup derrière lui. Moi aussi.', 'Position consignée : « derrière le canot ».'],
+    hesitate: ['Canot arrêté. Semble réfléchir.', 'Canot hésitant. Lui ai donné une lumière bien stable.', 'Canot immobile, pour une raison qu’il garde pour lui.'],
+    logTouched: (r, n) => `Le canot a touché ${r}. ${n === 1 ? 'Plus qu’une planche. Elle tient la place des autres.' : 'Perdu une planche. Il s’est excusé auprès du rocher.'}`,
+    logNtm: (no, bare) => `Avis aux navigateurs ${no}/26 : le feu de la pointe Skerry présente ${bare === 'Unlit' ? 'aucune lumière' : bare}. Prudence recommandée. (Le navigateur est au courant.)`,
+    logChar: bare => `Caractéristique désormais ${bare}, vue du canot. Les Phares et Balises voudront en toucher un mot.`,
+    logSignal: 'Le canot montre un feu. Caractéristique ··– répétée. Absente du Livre des feux.',
+    logAnswered: 'Répondu au canot avec le volet : ·–· (R, « reçu »). Sentiment de ridicule. Sentiment d’être compris.',
+    sayAnswered: 'Oh ! Oh, mais vous SAVEZ lire la lampe !',
+    logHandover: 'Passation faite. Le phare fait route, à la suite du canot. Cas non prévu par le manuel.',
+    logGrounded: r => `Brièvement échoué sur ${r}. Perdu une assise de maçonnerie. Le canot a refait U, plus doucement.`,
+    sayGrounded: 'C’était un rocher ! Celui-là aussi ! Presque tout, ici, c’est des rochers !',
+    logLit: 'Allumé au coucher du soleil. Fl(2) W 10s, comme imprimé. Un seul navire dans les atterrages : un canot, indécis.',
+    logWind0: 'Vent SO 3. Très petites vagues. Mer sage, par ailleurs.',
+    reveal: [
+      'Le canot répond par des éclats, lentement, comme on le ferait pour un enfant, ou pour un phare.',
+      '··–',
+      'U. Code international des signaux : « Vous courez vers un danger. » Il l’envoie depuis le début de la nuit. Vous l’avez consigné comme de la météo.',
+      'Vous vérifiez la carte. Le feu se trouve à deux tiers de mille à l’est de là où il est imprimé. Skerry aussi. Et le port, la jetée, et le linge de Mme Penhallow.',
+      'Le feu dérive depuis 1987 environ. Le canot ne s’est jamais perdu. Il était le seul à l’avoir remarqué.',
+      '« À mon tour », signale-t-il. « Restez dans ma lumière. Je ne suis pas très doué pour ça non plus. »',
+    ],
+    closed: c => `Entrée close à ${c}`,
+    endings: {
+      harbour: { title: () => 'Le canot est au port.', sub: 'Il s’amarre. Il se désamarre. Il s’amarre à nouveau, avec conviction.',
+        body: 'Sa lampe a fait ··– tout le long du chemin. U, dans le Code international des signaux, signifie « Vous courez vers un danger ». Vous l’avez consigné comme de la météo. Demain matin, le capitaine du port mesurera la jetée et deviendra très silencieux.' },
+      lost: { title: r => `Le canot est sur ${r}.`, sub: 'Pour la première fois de la nuit, il est absolument certain de sa position.',
+        body: 'La personne aux avirons a gagné le rocher à pied et va bien, un peu mouillée, très décidée. Le canot a été inscrit au Livre des feux comme danger non éclairé. Il a l’air ravi d’y figurer.' },
+      aground: { title: r => `Le phare s’est échoué sur ${r}.`, sub: 'Techniquement, un phare sur un rocher, c’est un phare qui fait son travail.',
+        body: 'Le canot tourne autour de vous en faisant ··– avec une patience infinie. Vous le comprenez, maintenant, ce qui est plus qu’on n’en peut dire du rocher.' },
+      uncharted: { kick: 'Nouvelle édition · carte 0247A', title: () => 'Quelque part hors de la carte.',
+        sub: 'Un phare et un canot arrivent au même moment, ce qui est la seule façon dont l’un ou l’autre soit jamais arrivé quelque part.',
+        body: 'Ici, la mer n’est pas hydrographiée, alors vous l’hydrographiez : 11 mètres, sable, très calme. Le canot s’amarre à vous. Personne ne décide rien pendant un moment. Avis aux navigateurs n° 1 de la nouvelle carte : un feu a été établi. Il est livré avec un canot. Nouvelle caractéristique Fl(2+1) W 10s : deux éclats de la tour, un du canot, légèrement en retard.' },
+    },
+    rows: {
+      watch: ['Quart effectué', (c, m) => `21:40 à ${c} (${m} min)`],
+      hull: ['Coque', n => n == null ? 'plus de planches, une opinion' : `${n} planche${n > 1 ? 's' : ''} sur 3`],
+      masonry: ['Maçonnerie', n => `${n} assise${n > 1 ? 's' : ''} sur 3`],
+      obs: ['Caractéristique observée'],
+      ntm: ['Avis aux navigateurs', n => `${n} émis à votre sujet`],
+      moved: ['Déplacement du feu', d => `${d} milles marins de sa position imprimée`],
+      best: ['Meilleur retour au port', m => m == null ? 'pas encore' : `${m} min`],
+      seen: ['Fins consignées', n => `${n} sur 4`],
+    },
+    unsurveyed: 'Non hydrographié', variation: 'Décl. 1°W (2026)', town: 'PENHALLOW', hbr: 'Port', church: 'Égl.',
+  },
+};
+
+// French typography: a narrow no-break space before ? ! : ; » and after «, applied once to every
+// French string (and to whatever a French string function returns) so no line starts with "?".
+(function frenchSpacing() {
+  const fix = s => s.replace(/ ([?!:;»])/g, ' $1').replace(/« /g, '« ');
+  const deep = v => typeof v === 'string' ? fix(v)
+    : typeof v === 'function' ? (...a) => fix(v(...a))
+    : Array.isArray(v) ? v.map(deep)
+    : v && typeof v === 'object' ? Object.fromEntries(Object.entries(v).map(([k, x]) => [k, deep(x)]))
+    : v;
+  I18N.fr = deep(I18N.fr);
+})();
+
+let lang = 'en';
+const t = k => I18N[lang][k] ?? I18N.en[k];
+const cap = s => s[0].toUpperCase() + s.slice(1);
+const rockName = id => t('rocks')[id];
+const num = (x, d) => { const s = x.toFixed(d); return lang === 'fr' ? s.replace('.', ',') : s; };
+// The boat's characteristic is computed as a code ('Unlit', 'Fl(2) W 10s 18M'); only 'Unlit' is a word.
+const obsText = v => v === 'Unlit' ? t('unlit') : v;
+for (const k of ['rocks', 'wxLog', 'lures', 'dither', 'wander', 'unlitSay', 'hit', 'signal', 'guide', 'idle', 'idle2', 'hesitate', 'reveal']) {
+  if (I18N.en[k].length !== I18N.fr[k].length) console.error(`i18n: ${k} differs in length`);
+}
+// A random line from a list, kept as an index so it can be re-read in the other language.
+const pickI = k => Math.floor(Math.random() * I18N.en[k].length);
+const line = k => { const i = pickI(k); return () => t(k)[i]; };
+
+// The chart: 100 × 140 units, north up. The light stands on Skerry, an islet off the harbour.
+const CHARTED = { x: 50, y: 121 };
+const START = { x: 24, y: 12 };
+// id indexes I18N.rocks (several rocks share a name)
+const ROCKS = [
+  { x: 32, y: 40, r: 6, id: 0 },
+  { x: 72, y: 48, r: 5, id: 1 },
+  { x: 40, y: 64, r: 3, id: 2 }, { x: 46, y: 67, r: 3, id: 2 }, { x: 42, y: 71, r: 2.5, id: 2 },
+  { x: 18, y: 74, r: 4, id: 3 },
+  { x: 50, y: 92, r: 2.5, id: 4 }, { x: 55, y: 95, r: 2.2, id: 4 }, { x: 46, y: 96, r: 2.2, id: 4 },
+  { x: 76, y: 90, r: 3.5, id: 5 },
+  { x: 12, y: 100, r: 3, id: 6 },
+  { x: 72, y: 110, r: 2, id: 7 },
+  { x: 48, y: 22, r: 3, id: 8 },
+  { x: 76, y: 32, r: 3, id: 9 },
+];
+const LABELS = [[32, 40, 0], [72, 48, 1], [43, 63.5, 2], [18, 74, 3],
+  [50, 91.5, 4], [76, 90, 5], [12, 100, 6], [72, 110, 7], [48, 22, 8], [76, 32, 9]];
+// the reversed passage, north to the unsurveyed corner (≥ 7 units clear of every rock edge)
+const ROUTE2 = [[56, 118], [63, 104], [65.5, 92], [63, 78], [60, 62], [58, 46], [62, 32], [72, 18], [82, 4]];
+const ROSE = { x: 87, y: 70, r: 8 };
+
+// wind is named for where it comes FROM; drift is where it goes TO (north is −y)
+const WINDTO = { SW: [.71, -.71], W: [1, 0], S: [0, -1], NW: [.71, .71], N: [0, 1], SE: [-.71, -.71] };
+// log indexes I18N.wxLog
+const WX1 = [
+  { t: 0, f: 3, dir: 'SW', fog: 0, rain: 0 },
+  { t: 40, f: 4, dir: 'SW', fog: 0, rain: 1, log: 0 },
+  { t: 80, f: 5, dir: 'W', fog: 0, rain: 1, log: 1 },
+  { t: 118, f: 2, dir: 'S', fog: 1, rain: 0, log: 2 },
+  { t: 148, f: 6, dir: 'NW', fog: 0, rain: 1, log: 3 },
+  { t: 178, f: 7, dir: 'NW', fog: 0, rain: 1, log: 4 },
+  { t: 204, f: 4, dir: 'W', fog: 0, rain: 0, log: 5 },
+  { t: 262, f: 3, dir: 'SW', fog: 0, rain: 0, log: 6 },
+];
+const WX2 = { f: 5, dir: 'W', fog: 0, rain: 0 };
+
+// i indexes I18N.lures
+const LURES = [
+  { kind: 'trawler', x: 90, y: 40, i: 0 },
+  { kind: 'pub', x: 9, y: 116, i: 1 },
+  { kind: 'torch', x: 92, y: 104, i: 2 },
+  { kind: 'glow', x: 28, y: 88, i: 3 },
+  { kind: 'lightning', i: 4 },
+];
+
+let S;
+const seenEndings = new Set();
+let bestWatch = null;   // fastest harbour arrival, in minutes of the watch
+
+function fresh() {
+  return {
+    mode: 'title', phase: 1, t: 0, clock: 0, bot: false,
+    theta: -14 * DEG, aim: null, aimX: null,
+    L: { ...CHARTED },
+    B: { x: START.x, y: START.y, vx: 0, vy: 0, head: Math.PI * .6 },
+    lit: false, unlitT: 0, resolve: .5, planks: 3, inv: 0,
+    act: 'row', actT: 0, ditherIn: rnd(7, 11), say: null, sayT: 0, unlitSaid: 0,
+    wxI: 0, wx: { ...WX1[0] }, lure: null, lureI: 0, lureT: 30, flash: 0, shutter: 0,
+    hist: [], histT: 0, observed: 'Unlit', mismatch: 0, ntm: 0, ntmNo: 13, idleT: 14, idleI: 0,
+    signalling: false, sigT: 0, answered: false, answerT: 0, d0: 0, lastObs: '',
+    // phase two: the lighthouse is the vessel and the boat carries the light
+    LH: null, masonry: 3, lamp: 0, lead: 20, wobT: 0, said2: 0,
+    ending: null, revI: 0, rockId: 0,
+  };
+}
+
+// ---- small geometry
+const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
+const beamDir = th => ({ x: Math.sin(th), y: -Math.cos(th) });
+const bearingFrom = (o, p) => Math.atan2(p.x - o.x, -(p.y - o.y));
+const angDiff = (a, b) => { let d = a - b; while (d > Math.PI) d -= 2 * Math.PI; while (d < -Math.PI) d += 2 * Math.PI; return d; };
+const fogRange = () => (S.wx.fog ? 50 : 160);
+function inBeam(p) {
+  if (S.shutter > 0) return false;
+  const d = dist(S.L, p);
+  return d < fogRange() && Math.abs(angDiff(bearingFrom(S.L, p), S.theta)) < HW1 + Math.atan2(1.2, Math.max(d, 1));
+}
+// nearest point on the reversed route, and arc length along it
+const SEG = (() => { let acc = 0; return ROUTE2.slice(1).map((p, i) => { const a = ROUTE2[i], len = Math.hypot(p[0] - a[0], p[1] - a[1]); const s = { a, b: p, s0: acc, len }; acc += len; return s; }); })();
+const ROUTE_LEN = SEG.reduce((n, s) => n + s.len, 0);
+function project(p) {
+  let best = { d: 1e9 };
+  for (const g of SEG) {
+    const dx = g.b[0] - g.a[0], dy = g.b[1] - g.a[1];
+    const u = clamp(((p.x - g.a[0]) * dx + (p.y - g.a[1]) * dy) / (g.len * g.len), 0, 1);
+    const x = g.a[0] + dx * u, y = g.a[1] + dy * u, d = Math.hypot(p.x - x, p.y - y);
+    if (d < best.d) best = { d, x, y, s: g.s0 + g.len * u, nx: -dy / g.len, ny: dx / g.len };
+  }
+  return best;
+}
+function pointAt(s) {
+  s = clamp(s, 0, ROUTE_LEN);
+  for (const g of SEG) if (s <= g.s0 + g.len) { const u = (s - g.s0) / g.len; return { x: g.a[0] + (g.b[0] - g.a[0]) * u, y: g.a[1] + (g.b[1] - g.a[1]) * u }; }
+  const e = ROUTE2[ROUTE2.length - 1]; return { x: e[0], y: e[1] };
+}
+
+// ---- the log and the boat's voice
+function clockStr(m) { const tot = 21 * 60 + 40 + Math.floor(m); return `${String(Math.floor(tot / 60) % 24).padStart(2, '0')}:${String(tot % 60).padStart(2, '0')}`; }
+// Log lines are written once, in the language of the moment, and stay that way.
+function log(text, cls) {
+  const li = document.createElement('li');
+  if (cls) li.className = cls;
+  li.innerHTML = `<time>${clockStr(S.clock)}</time><span></span>`;
+  li.lastChild.textContent = text;
+  const ol = $('#log'); ol.prepend(li);
+  while (ol.children.length > 40) ol.lastChild.remove();
+}
+// The speech bubble holds a function, so a language switch re-words the line on screen.
+function say(fn, secs = 4.2) { S.say = fn; S.sayT = secs; }
+
+// ---- the characteristic as the boat actually sees it, from the last 10 s of lit / unlit
+function observe() {
+  const h = S.hist, n = h.length;
+  if (n < 20) return 'Unlit';
+  let on = 0, rises = 0, falls = 0;
+  for (let i = 0; i < n; i++) { if (h[i]) on++; if (i && h[i] && !h[i - 1]) rises++; if (i && !h[i] && h[i - 1]) falls++; }
+  const frac = on / n, M = ` ${Math.round(fogRange() / 8.9)}M`;
+  if (frac > .97) return 'F W' + M;
+  if (frac < .02) return 'Unlit';
+  if (rises >= 10) return 'VQ W' + M;
+  if (rises >= 6) return 'Q W' + M;
+  if (frac >= .5) return (falls > 1 ? `Oc(${falls}) W 10s` : 'Oc W 10s') + M;
+  return (rises > 1 ? `Fl(${rises}) W 10s` : 'Fl W 10s') + M;
+}
+
+function setWeather(w, quiet) {
+  S.wx = { ...w };
+  if (!quiet && w.log != null) log(t('wxLog')[w.log]);
+}
+
+// ---- phase one: keep the boat lit and bring it in
+function stepBoat(dt) {
+  const B = S.B, L = S.L;
+  S.lit = inBeam(B);
+  const d = dist(B, L), off = Math.abs(angDiff(bearingFrom(L, B), S.theta));
+  const w = WINDTO[S.wx.dir], F = S.wx.f;
+  let tx = 0, ty = 0, sp = 0;
+  if (S.act !== 'row') {
+    S.actT -= dt;
+    if (S.act === 'wander') { tx = Math.sin(B.head); ty = -Math.cos(B.head); sp = .5; }
+    if (S.act === 'lure' && S.lure) { const lx = S.lure.x - B.x, ly = S.lure.y - B.y, m = Math.hypot(lx, ly) || 1; tx = lx / m; ty = ly / m; sp = .55; }
+    if (S.actT <= 0) {
+      if (S.act === 'dither' && Math.random() < .45) { S.act = 'wander'; S.actT = 1.8; B.head = bearingFrom(L, B) + rnd(-.5, .5); say(line('wander'), 3.5); }
+      else S.act = 'row';
+    }
+  }
+  if (S.act === 'row') {
+    if (S.lit) {
+      S.unlitT = 0;
+      const u = beamDir(S.theta), k = Math.max(0, d - 14);
+      const ax = L.x + u.x * k, ay = L.y + u.y * k, m = Math.hypot(ax - B.x, ay - B.y) || 1;
+      tx = (ax - B.x) / m; ty = (ay - B.y) / m; sp = .8 * (.6 + .4 * S.resolve);
+      S.ditherIn -= dt;
+      if (S.ditherIn <= 0) {
+        S.act = 'dither'; S.actT = 2.2; S.ditherIn = rnd(8, 13) * (.7 + .6 * S.resolve);
+        say(line('dither'));
+        if (Math.random() < .3) log(t('hesitate')[pickI('hesitate')]);
+      }
+    } else {
+      S.unlitT += dt;
+      if (S.unlitT > 2.5 && S.unlitSaid <= 0) { say(line('unlitSay'), 3.5); S.unlitSaid = 12; }
+      if (S.lure && S.lure.kind !== 'lightning' && S.unlitT > 1.2) { S.act = 'lure'; S.actT = 2.5; }
+      else { B.head += rnd(-1.5, 1.5) * dt; tx = Math.sin(B.head) * .3; ty = -Math.cos(B.head) * .3; sp = .35; }
+    }
+  }
+  S.unlitSaid -= dt;
+  S.resolve = clamp(S.resolve + dt * (S.lit ? (off < 4 * DEG ? .07 : .025) : -.08), 0, 1);
+  // a rowboat has momentum; the wind always has its say, and more of one when nobody is watching
+  B.vx += (tx * sp - B.vx) * Math.min(1, dt * 1.6);
+  B.vy += (ty * sp - B.vy) * Math.min(1, dt * 1.6);
+  const drift = F * (S.lit ? .07 : .16);
+  B.x += (B.vx + w[0] * drift) * dt;
+  B.y += (B.vy + w[1] * drift) * dt;
+  if (Math.hypot(B.vx, B.vy) > .15) B.head = Math.atan2(B.vx, -B.vy);
+  B.x = clamp(B.x, 3, 97); B.y = clamp(B.y, 3, 117);
+
+  S.inv -= dt;
+  for (const r of ROCKS) {
+    const rd = Math.hypot(B.x - r.x, B.y - r.y);
+    if (rd < r.r + 1.2) {
+      const nx = (B.x - r.x) / (rd || 1), ny = (B.y - r.y) / (rd || 1);
+      B.x = r.x + nx * (r.r + 1.4); B.y = r.y + ny * (r.r + 1.4);
+      if (S.inv > 0) continue;
+      S.planks--; S.inv = 1.6; S.rockId = r.id;
+      B.vx = nx * 1.4; B.vy = ny * 1.4;
+      if (S.planks <= 0) return endGame('lost');
+      say(line('hit'), 3.5);
+      log(t('logTouched')(rockName(r.id), S.planks));
+    }
+  }
+  if (dist(B, L) < 8.5) return endGame('harbour');
+}
+
+function step1(dt) {
+  S.t += dt; S.clock += dt;
+  // weather, scripted then looping gently
+  if (S.wxI + 1 < WX1.length && S.t >= WX1[S.wxI + 1].t) setWeather(WX1[++S.wxI]);
+  // the light (and Skerry, and the harbour) drift east all night; the chart symbol stays where it was printed
+  S.L.x = CHARTED.x + 6 * clamp(S.t / 240, 0, 1);
+  if (S.shutter > 0) S.shutter -= dt;
+  if (S.flash > 0) S.flash -= dt;
+
+  // lures: something else lit, somewhere worse
+  S.lureT -= dt;
+  if (S.lure) { S.lure.left -= dt; if (S.lure.left <= 0) S.lure = null; }
+  else if (S.lureT <= 0) {
+    const l = LURES[S.lureI++ % LURES.length];
+    S.lure = { ...l, left: l.kind === 'lightning' ? .25 : 10 };
+    S.lureT = rnd(20, 26);
+    log(t('lures')[l.i].log);
+    const lureSay = () => t('lures')[l.i].say;
+    if (l.kind === 'lightning') { S.flash = .35; if (S.act === 'row') { S.act = 'dither'; S.actT = 1.8; } say(lureSay, 3.5); }
+    else if (!S.lit) say(lureSay, 3.5);
+  }
+
+  stepBoat(dt);
+  if (S.mode !== 'play') return;
+
+  // what the boat sees, sampled at 20 Hz into a 10 s window
+  S.histT += dt;
+  while (S.histT >= .05) { S.histT -= .05; S.hist.push(S.lit ? 1 : 0); if (S.hist.length > 200) S.hist.shift(); }
+  S.observed = observe();
+  const bare = S.observed.replace(/ \d+M$/, '');
+  if (bare !== 'Fl(2) W 10s') S.mismatch += dt;
+  if (S.mismatch > 32) {
+    S.mismatch = 0; S.ntm++; S.ntmNo++;
+    log(t('logNtm')(S.ntmNo, bare), 'ntm');
+  }
+  if (bare !== S.lastObs && S.t > 8 && (bare === 'F W' || bare === 'Q W' || bare === 'VQ W') && Math.random() < .5) log(t('logChar')(bare));
+  S.lastObs = bare;
+
+  S.idleT -= dt;
+  if (S.idleT <= 0) { log(t('idle')[S.idleI++ % I18N.en.idle.length]); S.idleT = rnd(17, 24); }
+
+  // the boat starts answering back
+  const prog = 1 - dist(S.B, S.L) / S.d0;
+  if (!S.signalling && prog > .45 && S.t > 70) {
+    S.signalling = true; S.sigT = 0;
+    log(t('logSignal'));
+    say(line('signal'), 4);
+    $('#signal').hidden = false;
+  }
+  if (S.signalling) {
+    S.sigT += dt;
+    if (S.sayT <= 0 && Math.random() < dt / 9) say(line('signal'), 3.8);
+  }
+  if (S.answered) { S.answerT -= dt; if (S.answerT <= 0) startReveal(); }
+}
+
+// Morse U (··–) from the boat's lamp; R (·–·) from the light when you answer
+const MORSE_U = [[1, .22], [0, .22], [1, .22], [0, .22], [1, .66], [0, 1.7]];
+function lampOn(seq, tt) {
+  const per = seq.reduce((n, s) => n + s[1], 0); let u = tt % per;
+  for (const [on, d] of seq) { if (u < d) return !!on; u -= d; }
+  return false;
+}
+
+function onShutter() {
+  if (S.mode !== 'play') return;
+  if (S.phase === 1 && S.signalling && !S.answered) {
+    S.answered = true; S.answerT = 2.6; S.shutter = .3;
+    log(t('logAnswered'));
+    say(() => t('sayAnswered'), 2.6);
+    $('#signal').hidden = true;
+  } else if (S.phase === 1) {
+    S.shutter = .28;
+  }
+}
+
+// ---- the reveal
+const REVEAL_MORSE = 1;   // the one line set in Morse
+function startReveal() {
+  S.mode = 'reveal'; S.revI = 0; showRev();
+  Kit.show($('#reveal'));
+}
+function showRev() {
+  const el = $('#rev-line'); el.textContent = t('reveal')[S.revI]; el.classList.toggle('morse', S.revI === REVEAL_MORSE);
+  $('#rev-next').textContent = S.revI === I18N.en.reveal.length - 1 ? t('letSteer') : t('goOn');
+}
+$('#rev-next').onclick = () => {
+  if (S.revI < I18N.en.reveal.length - 1) { S.revI++; showRev(); $('#rev-next').focus(); return; }
+  startPhase2();
+};
+
+// ---- phase two: the lighthouse is the vessel, the boat carries the light
+function startPhase2(keepClock) {
+  const clock = keepClock ?? S.clock;
+  S.phase = 2; S.mode = 'play'; S.clock = clock; S.t = 0;
+  S.LH = { x: S.L.x, y: S.L.y, lit: false };
+  S.masonry = 3; S.inv = 0; S.lead = 20; S.wobT = 0; S.said2 = 2;
+  const p0 = project(S.LH);
+  const bp = pointAt(p0.s + 20);
+  S.B = { x: bp.x, y: bp.y, vx: 0, vy: 0, head: 0 };
+  S.lure = null; S.flash = 0; S.shutter = 0; S.signalling = false;
+  setWeather(WX2, true);
+  $('#signal').hidden = true;
+  $('#observed').textContent = t('isoBoat');
+  log(t('logHandover'));
+  Kit.show(null);
+}
+
+function step2(dt) {
+  S.t += dt; S.clock += dt; S.wobT += dt;
+  const LH = S.LH, B = S.B;
+  // the boat leads along the safe water, dithering about how far ahead to be
+  const p = project(LH);
+  S.lead = clamp(S.lead + Math.sin(S.t * .7) * dt * 3 + rnd(-1, 1) * dt * 2, 14, 24);
+  const target = pointAt(p.s + S.lead);
+  const bx = target.x - B.x, by = target.y - B.y, bm = Math.hypot(bx, by);
+  const bsp = Math.min(5, bm * 1.5);
+  if (bm > .01) { B.x += bx / bm * bsp * dt; B.y += by / bm * bsp * dt; B.head = Math.atan2(bx, -by); }
+  // its lamp aims back at the safe water beside you, wobbling the way a nervous hand does
+  const wob = 2.8 * Math.sin(S.wobT * .8) + 1.2 * Math.sin(S.wobT * 2.1 + 1);
+  const aimP = { x: p.x + p.nx * wob, y: p.y + p.ny * wob };
+  S.lamp = bearingFrom(B, aimP);
+  const dLH = dist(B, LH);
+  LH.lit = dLH < 42 && Math.abs(angDiff(bearingFrom(B, LH), S.lamp)) < HW2 + Math.atan2(2.2, Math.max(dLH, 1));
+
+  // steering the lighthouse: it goes where it is lit, sideways where you push, and east where the wind says
+  let vx = 0;
+  if (!S.bot) {
+    const k = (Kit.keys.any('ArrowRight', 'd') ? 1 : 0) - (Kit.keys.any('ArrowLeft', 'a') ? 1 : 0);
+    if (k) { vx = 11 * k; S.aimX = null; }
+  }
+  if (!vx && S.aimX != null) vx = clamp((S.aimX - LH.x) * 4, -11, 11);
+  const w = WINDTO[S.wx.dir];
+  LH.x += (vx + w[0] * (LH.lit ? .15 : .9)) * dt;
+  LH.y -= (LH.lit ? 1.7 : .5) * dt;
+  LH.x = clamp(LH.x, 3, 97);
+  S.L.x = LH.x; S.L.y = LH.y;
+
+  S.said2 -= dt;
+  if (S.said2 <= 0) { say(line('guide'), 3.6); S.said2 = rnd(8, 12); }
+  S.idleT -= dt;
+  if (S.idleT <= 0) { log(t('idle2')[pickI('idle2')]); S.idleT = rnd(14, 20); }
+
+  S.inv -= dt;
+  for (const r of ROCKS) {
+    const rd = Math.hypot(LH.x - r.x, LH.y - r.y);
+    if (rd < r.r + 2.2) {
+      const nx = (LH.x - r.x) / (rd || 1), ny = (LH.y - r.y) / (rd || 1);
+      LH.x = r.x + nx * (r.r + 2.4); LH.y = r.y + ny * (r.r + 2.4);
+      if (S.inv > 0) continue;
+      S.masonry--; S.inv = 1.6; S.rockId = r.id;
+      if (S.masonry <= 0) return endGame('aground');
+      log(t('logGrounded')(rockName(r.id)));
+      say(() => t('sayGrounded'), 3.4);
+    }
+  }
+  if (LH.y < 8) endGame('uncharted');
+}
+
+// ---- input
+function readInput(dt) {
+  if (S.bot) return;
+  const k = (Kit.keys.any('ArrowRight', 'd') ? 1 : 0) - (Kit.keys.any('ArrowLeft', 'a') ? 1 : 0);
+  if (S.phase === 1) {
+    if (k) { S.theta += k * 55 * DEG * dt; S.aim = null; }
+  }
+}
+function steerBeam(dt) {
+  if (S.aim != null) S.theta += clamp(angDiff(S.aim, S.theta), -110 * DEG * dt, 110 * DEG * dt);
+  S.theta = clamp(S.theta, -85 * DEG, 85 * DEG);
+}
+Kit.keys.onPress((k, down) => { if (down && k === ' ') onShutter(); });
+$('#answer').onclick = () => onShutter();
+
+function toWorld(e) {
+  const r = $('#chart').getBoundingClientRect(), g = geo();
+  return { x: (e.clientX - r.left - g.ox) / g.k, y: (e.clientY - r.top - g.oy) / g.k };
+}
+let dragging = false;
+function aimAt(e) {
+  if (!S || S.mode !== 'play') return;
+  const p = toWorld(e);
+  if (S.phase === 1) S.aim = bearingFrom(S.L, p);
+  else S.aimX = p.x;
+}
+$('#chart').addEventListener('pointerdown', e => { dragging = true; $('#chart').setPointerCapture?.(e.pointerId); aimAt(e); });
+$('#chart').addEventListener('pointermove', e => { if (dragging) aimAt(e); });
+addEventListener('pointerup', () => { dragging = false; });
+addEventListener('pointercancel', () => { dragging = false; });
+
+// ---- endings
+function endGame(name) {
+  if (S.mode === 'end') return;
+  S.mode = 'end'; S.ending = name; seenEndings.add(name);
+  if (name === 'harbour') bestWatch = bestWatch == null ? Math.round(S.clock) : Math.min(bestWatch, Math.round(S.clock));
+  // Frozen at the moment of the ending, so the screen can be re-worded without re-counting.
+  S.endSeen = seenEndings.size; S.endBest = bestWatch;
+  fillEnd();
+  const b = $('#end-b');
+  b.hidden = name !== 'aground';
+  b.onclick = () => { const c = S.clock; const keep = { ntm: S.ntm, planks: S.planks }; S = fresh(); S.ntm = keep.ntm; S.planks = keep.planks; S.L = { x: CHARTED.x + 6, y: CHARTED.y }; startPhase2(c); };
+  Kit.show($('#end'));
+}
+// Writes the end screen from the frozen state; applyLang() calls it again on a switch.
+function fillEnd() {
+  const name = S.ending, E = t('endings')[name], R = t('rows'), rock = rockName(S.rockId);
+  $('#end-k').textContent = E.kick ?? t('closed')(clockStr(S.clock));
+  $('#end-title').textContent = cap(E.title(rock));
+  $('#end-sub').textContent = E.sub; $('#end-body').textContent = E.body;
+  const rows = [
+    [R.watch[0], R.watch[1](clockStr(S.clock), Math.round(S.clock))],
+    [R.hull[0], R.hull[1](name === 'lost' ? null : S.planks)],
+    ...(S.phase === 2 ? [[R.masonry[0], R.masonry[1](Math.max(0, S.masonry))]] : []),
+    [R.obs[0], S.phase === 2 ? t('isoBoat') : obsText(S.observed)],
+    [R.ntm[0], R.ntm[1](S.ntm)],
+    [R.moved[0], R.moved[1](num(Math.hypot(S.L.x - CHARTED.x, S.L.y - CHARTED.y) / 8.9, 1))],
+    [R.best[0], R.best[1](S.endBest)],
+    [R.seen[0], R.seen[1](S.endSeen)],
+  ];
+  $('#end-stats').innerHTML = rows.map(([a, b]) => `<tr><td>${a}</td><td class="m">${b}</td></tr>`).join('');
+  $('#end-a').textContent = t('againBtn');
+  $('#end-b').textContent = t('retryBtn');
+}
+
+function newWatch() {
+  S = fresh();
+  S.mode = 'play';
+  S.d0 = dist(S.B, S.L);
+  $('#log').innerHTML = '';
+  $('#signal').hidden = true;
+  log(t('logLit'));
+  log(t('logWind0'));
+  Kit.show(null);
+}
+$('#start').onclick = newWatch;
+$('#end-a').onclick = newWatch;
+
+// ---- drawing
+function geo() {
+  const W = view.W, H = view.H, pad = 14;
+  const k = Math.min((W - pad * 2) / 100, (H - pad * 2) / 140);
+  return { k, ox: (W - 100 * k) / 2, oy: (H - 140 * k) / 2, W, H };
+}
+// fixed soundings, seeded so the chart is the same every night
+const SOUND = (() => {
+  let s = 11; const r = () => (s = (s * 16807) % 2147483647) / 2147483647, out = [];
+  while (out.length < 46) {
+    const x = 4 + r() * 92, y = 6 + r() * 108;
+    if (ROCKS.some(q => Math.hypot(q.x - x, q.y - y) < q.r + 6) || Math.hypot(x - ROSE.x, y - ROSE.y) < ROSE.r + 4) continue;
+    if (LABELS.some(([lx, ly]) => Math.abs(lx - x) < 13 && y < ly && y > ly - 13)) continue;
+    if ((x > 64 && y < 14) || out.some(o => Math.hypot(o.x - x, o.y - y) < 7)) continue;
+    const depth = Math.round(8 + (120 - y) * .28 + r() * 9);
+    out.push({ x, y, d: String(depth), sub: r() < .4 ? String(Math.floor(r() * 9) + 1) : '' });
+  }
+  return out;
+})();
+const BLOBS = ROCKS.map((q, i) => Array.from({ length: 9 }, (_, j) => .78 + .3 * Math.abs(Math.sin(i * 7.1 + j * 2.3))));
+
+function draw() {
+  const { cx } = view, g = geo(), { k, ox, oy, W, H } = g;
+  const X = x => ox + x * k, Y = y => oy + y * k;
+  const tt = S.t, red = Kit.reduce;
+  cx.clearRect(0, 0, W, H);
+  cx.fillStyle = C.sea; cx.fillRect(0, 0, W, H);
+
+  // shoal tint and danger lines round each rock
+  cx.fillStyle = C.shoal;
+  ROCKS.forEach(r => { cx.beginPath(); cx.arc(X(r.x), Y(r.y), (r.r + 5) * k, 0, 7); cx.fill(); });
+  cx.beginPath(); cx.rect(X(0), Y(126), 100 * k, 14 * k); cx.fill();
+  cx.beginPath(); cx.arc(X(S.L.x), Y(CHARTED.y + 1), 9 * k, 0, 7); cx.fill();
+
+  // unsurveyed corner, hatched as charts do
+  cx.save(); cx.beginPath(); cx.rect(X(70), Y(0), 30 * k, 11 * k); cx.clip();
+  cx.strokeStyle = C.muted; cx.globalAlpha = .45; cx.lineWidth = 1;
+  for (let i = -20; i < 50; i += 2) { cx.beginPath(); cx.moveTo(X(70 + i), Y(0)); cx.lineTo(X(70 + i + 11), Y(11)); cx.stroke(); }
+  cx.restore();
+  cx.fillStyle = C.muted; cx.font = `italic ${Math.max(9, 2.4 * k)}px ${FONT.body}`; cx.textAlign = 'center';
+  cx.fillText(t('unsurveyed'), X(85), Y(6.3), 29 * k);
+
+  // soundings, with the subscript decimetres charts use
+  cx.fillStyle = C.muted; cx.textAlign = 'left';
+  const fs = Math.max(8, 2.3 * k);
+  for (const s of SOUND) {
+    cx.font = `italic ${fs}px ${FONT.body}`; cx.fillText(s.d, X(s.x), Y(s.y));
+    if (s.sub) { const w = cx.measureText(s.d).width; cx.font = `italic ${fs * .7}px ${FONT.body}`; cx.fillText(s.sub, X(s.x) + w, Y(s.y) + fs * .3); }
+  }
+
+  // compass rose, magenta as on an Admiralty sheet
+  cx.strokeStyle = C.accent; cx.globalAlpha = .7; cx.lineWidth = 1;
+  cx.beginPath(); cx.arc(X(ROSE.x), Y(ROSE.y), ROSE.r * k, 0, 7); cx.stroke();
+  cx.beginPath(); cx.arc(X(ROSE.x), Y(ROSE.y), ROSE.r * .78 * k, 0, 7); cx.stroke();
+  for (let a = 0; a < 360; a += 10) {
+    const r1 = ROSE.r * (a % 90 ? .9 : .7) * k, r2 = ROSE.r * k, s = Math.sin(a * DEG), c = Math.cos(a * DEG);
+    cx.beginPath(); cx.moveTo(X(ROSE.x) + s * r1, Y(ROSE.y) - c * r1); cx.lineTo(X(ROSE.x) + s * r2, Y(ROSE.y) - c * r2); cx.stroke();
+  }
+  cx.beginPath(); cx.moveTo(X(ROSE.x), Y(ROSE.y) - ROSE.r * .78 * k); cx.lineTo(X(ROSE.x) + 1.4 * k, Y(ROSE.y)); cx.lineTo(X(ROSE.x), Y(ROSE.y) + ROSE.r * .78 * k); cx.lineTo(X(ROSE.x) - 1.4 * k, Y(ROSE.y)); cx.closePath(); cx.stroke();
+  cx.globalAlpha = 1; cx.fillStyle = C.accent; cx.font = `600 ${Math.max(9, 2.4 * k)}px ${FONT.body}`; cx.textAlign = 'center';
+  cx.fillText('N', X(ROSE.x), Y(ROSE.y - ROSE.r - 1));
+  cx.font = `italic ${Math.max(7, 1.7 * k)}px ${FONT.body}`; cx.fillText(t('variation'), X(ROSE.x), Y(ROSE.y + ROSE.r + 2.6), 22 * k);
+
+  // the coast
+  cx.fillStyle = C.land; cx.strokeStyle = C.ink; cx.lineWidth = 1.2;
+  cx.beginPath(); cx.moveTo(X(0), Y(140));
+  for (let x = 0; x <= 100; x += 4) cx.lineTo(X(x), Y(131 + Math.sin(x * .31) * 1.3 + (Math.abs(x - 50) < 12 ? 3 : 0)));
+  cx.lineTo(X(100), Y(140)); cx.closePath(); cx.fill(); cx.stroke();
+  cx.fillStyle = C.ink; cx.font = `${Math.max(9, 2.3 * k)}px ${FONT.body}`; cx.textAlign = 'center';
+  cx.fillText(t('town'), X(50), Y(138.4));
+  cx.font = `italic ${Math.max(8, 2 * k)}px ${FONT.body}`; cx.fillText(t('hbr'), X(50), Y(132.8));
+  cx.fillText(t('church'), X(64), Y(137.5)); cx.beginPath(); cx.arc(X(64), Y(135.2), 2.5, 0, 7); cx.fill();
+
+  // rocks: a blob, breaking water, a dotted danger line, an italic name
+  ROCKS.forEach((r, i) => {
+    cx.fillStyle = C.rock; cx.strokeStyle = C.ink; cx.lineWidth = 1;
+    cx.beginPath();
+    BLOBS[i].forEach((m, j) => { const a = j / 9 * Math.PI * 2, rr = r.r * m * k; j ? cx.lineTo(X(r.x) + Math.cos(a) * rr, Y(r.y) + Math.sin(a) * rr) : cx.moveTo(X(r.x) + Math.cos(a) * rr, Y(r.y) + Math.sin(a) * rr); });
+    cx.closePath(); cx.fill(); cx.stroke();
+    cx.setLineDash([2, 3]); cx.strokeStyle = C.ink; cx.globalAlpha = .55;
+    cx.beginPath(); cx.arc(X(r.x), Y(r.y), (r.r + 2.2) * k, 0, 7); cx.stroke(); cx.setLineDash([]);
+    cx.strokeStyle = C.foam; cx.globalAlpha = .55 + .2 * S.wx.f / 7; cx.lineWidth = 1.5;
+    const ph = red ? 0 : tt * (.6 + S.wx.f * .12) + i;
+    cx.beginPath(); cx.arc(X(r.x), Y(r.y), (r.r + .9 + (ph % 1) * 1.2) * k, ph, ph + 2.2); cx.stroke();
+    cx.globalAlpha = 1;
+  });
+  cx.fillStyle = C.ink; cx.font = `italic ${Math.max(9, 2.25 * k)}px ${FONT.body}`; cx.textAlign = 'center';
+  // French names run longer: a label never gets more than a third of the chart's width.
+  for (const [x, y, id] of LABELS) {
+    const r = ROCKS.find(q => q.id === id) || { r: 3 };
+    cx.fillText(cap(rockName(id)), X(clamp(x, 10, 90)), Y(y - r.r - 3.2), 34 * k);
+  }
+
+  // where the light is printed, with its magenta flare and characteristic
+  cx.fillStyle = C.accent; cx.strokeStyle = C.accent;
+  cx.save(); cx.translate(X(CHARTED.x), Y(CHARTED.y)); cx.rotate(-.55);
+  cx.beginPath(); cx.moveTo(0, 0); cx.quadraticCurveTo(-2.2 * k, -5 * k, 0, -8 * k); cx.quadraticCurveTo(2.2 * k, -5 * k, 0, 0); cx.globalAlpha = .85; cx.fill(); cx.restore();
+  cx.globalAlpha = 1;
+  cx.beginPath(); cx.arc(X(CHARTED.x), Y(CHARTED.y), 1.3, 0, 7); cx.fill();
+  cx.font = `italic 600 ${Math.max(9, 2.25 * k)}px ${FONT.body}`; cx.textAlign = 'right';
+  cx.fillText('Fl(2) W 10s 18M', X(CHARTED.x - 3), Y(CHARTED.y - 4));
+
+  // darkness: everywhere except the lit sector
+  const dark = new Path2D(); dark.rect(0, 0, W, H);
+  const beam = new Path2D();
+  if (S.phase === 1 && S.shutter <= 0 && S.mode !== 'title') {
+    const R = fogRange(), hw = HW1;
+    beam.moveTo(X(S.L.x), Y(S.L.y));
+    for (let a = -hw; a <= hw + 1e-6; a += hw / 6) { const u = beamDir(S.theta + a); beam.lineTo(X(S.L.x + u.x * R), Y(S.L.y + u.y * R)); }
+    beam.closePath();
+  } else if (S.phase === 2 && S.B) {
+    const R = 42, hw = HW2;
+    beam.moveTo(X(S.B.x), Y(S.B.y));
+    for (let a = -hw; a <= hw + 1e-6; a += hw / 6) { const u = beamDir(S.lamp + a); beam.lineTo(X(S.B.x + u.x * R), Y(S.B.y + u.y * R)); }
+    beam.closePath();
+    beam.moveTo(X(S.L.x) + 5 * k, Y(S.L.y)); beam.arc(X(S.L.x), Y(S.L.y), 5 * k, 0, 7);
+  }
+  if (S.mode === 'title') { beam.moveTo(X(S.L.x) + 9 * k, Y(S.L.y)); beam.arc(X(S.L.x), Y(S.L.y), 9 * k, 0, 7); }
+  dark.addPath(beam);
+
+  // the boat sits under the dark: you have to light it to see it properly
+  if (S.mode !== 'title') drawBoat(cx, X(S.B.x), Y(S.B.y), k, S.B.head);
+  cx.fillStyle = C.night; cx.fill(dark, 'evenodd');
+  if (S.flash > 0 && !red) { cx.fillStyle = C.beam; cx.globalAlpha = .45 * S.flash / .35; cx.fillRect(0, 0, W, H); cx.globalAlpha = 1; }
+
+  // the beam itself, fading with range
+  if (S.mode !== 'title') {
+    const o = S.phase === 1 ? S.L : S.B, R = S.phase === 1 ? fogRange() : 42;
+    const gr = cx.createRadialGradient(X(o.x), Y(o.y), 0, X(o.x), Y(o.y), R * k);
+    gr.addColorStop(0, C.beam); gr.addColorStop(1, 'transparent');
+    cx.save(); cx.clip(beam); cx.globalAlpha = S.phase === 1 ? .32 : .26; cx.fillStyle = gr; cx.fillRect(0, 0, W, H); cx.restore();
+    if (S.phase === 1 && S.shutter <= 0) {
+      cx.strokeStyle = C.accent; cx.globalAlpha = .5; cx.setLineDash([4, 5]); cx.lineWidth = 1;
+      const u = beamDir(S.theta); cx.beginPath(); cx.moveTo(X(S.L.x), Y(S.L.y)); cx.lineTo(X(S.L.x + u.x * Math.min(R, 150)), Y(S.L.y + u.y * Math.min(R, 150))); cx.stroke();
+      cx.setLineDash([]); cx.globalAlpha = 1;
+    }
+  }
+
+  // fog, rain
+  if (S.wx.fog) {
+    cx.fillStyle = C.sea; cx.globalAlpha = .38;
+    for (let i = 0; i < 7; i++) { const fx = ((i * 37 + (red ? 0 : tt * 1.5)) % 120) - 10; cx.beginPath(); cx.ellipse(X(fx), Y(20 + i * 14), 22 * k, 6 * k, 0, 0, 7); cx.fill(); }
+    cx.globalAlpha = 1;
+  }
+  if (S.wx.rain && !red && S.mode === 'play') {
+    cx.strokeStyle = C.muted; cx.globalAlpha = .35; cx.lineWidth = 1;
+    const w = WINDTO[S.wx.dir];
+    for (let i = 0; i < 60; i++) {
+      const rx = (i * 97.3 + tt * 140) % W, ry = (i * 53.7 + tt * 420) % H;
+      cx.beginPath(); cx.moveTo(rx, ry); cx.lineTo(rx + w[0] * 6 + 2, ry + 9); cx.stroke();
+    }
+    cx.globalAlpha = 1;
+  }
+
+  // other lights: lures
+  if (S.lure && S.lure.kind !== 'lightning') {
+    const lx = X(S.lure.x), ly = Y(S.lure.y), pulse = red ? 1 : .8 + .2 * Math.sin(tt * 6);
+    const gr = cx.createRadialGradient(lx, ly, 0, lx, ly, 9 * k);
+    gr.addColorStop(0, S.lure.kind === 'glow' ? C.foam : C.signal); gr.addColorStop(1, 'transparent');
+    cx.globalAlpha = .7 * pulse; cx.fillStyle = gr; cx.beginPath(); cx.arc(lx, ly, 9 * k, 0, 7); cx.fill(); cx.globalAlpha = 1;
+    cx.fillStyle = C.ink; cx.font = `italic ${Math.max(9, 2.2 * k)}px ${FONT.body}`; cx.textAlign = 'center';
+    cx.fillText(t('lures')[S.lure.i].name, clamp(lx, 60, W - 60), ly - 5 * k, W * .45);
+  }
+
+  // the light itself (and in part two, the lighthouse under way)
+  drawTower(cx, X(S.L.x), Y(S.L.y), k);
+
+  // the boat's lamp: Morse U while it signals; a steady lamp once it leads
+  if (S.mode !== 'title') {
+    const on = S.phase === 2 || (S.signalling && lampOn(MORSE_U, S.t));
+    if (on) {
+      const bx = X(S.B.x), by = Y(S.B.y);
+      const gr = cx.createRadialGradient(bx, by, 0, bx, by, 5 * k);
+      gr.addColorStop(0, C.signal); gr.addColorStop(1, 'transparent');
+      cx.fillStyle = gr; cx.beginPath(); cx.arc(bx, by, 5 * k, 0, 7); cx.fill();
+      cx.fillStyle = C.foam; cx.beginPath(); cx.arc(bx, by, 1.6, 0, 7); cx.fill();
+    }
+    if (S.phase === 2) drawBoat(cx, X(S.B.x), Y(S.B.y), k, S.B.head);
+    else if (S.lit) drawBoat(cx, X(S.B.x), Y(S.B.y), k, S.B.head);
+  }
+
+  drawNeatline(cx, g);
+  if (S.say && S.sayT > 0 && S.mode === 'play') bubble(cx, S.say(), X(S.B.x), Y(S.B.y) - 4 * k, W);
+}
+
+function drawBoat(cx, x, y, k, head) {
+  const s = Math.max(5, 1.9 * k);
+  cx.save(); cx.translate(x, y); cx.rotate(head);
+  cx.fillStyle = C.panel; cx.strokeStyle = C.ink; cx.lineWidth = 1.2;
+  cx.beginPath(); cx.moveTo(0, -s * 1.3); cx.quadraticCurveTo(s * .75, -s * .3, s * .55, s * .9); cx.lineTo(-s * .55, s * .9); cx.quadraticCurveTo(-s * .75, -s * .3, 0, -s * 1.3); cx.fill(); cx.stroke();
+  cx.beginPath(); cx.moveTo(-s * .5, 0); cx.lineTo(s * .5, 0); cx.stroke();
+  const sweep = Kit.reduce ? 0 : Math.sin(S.t * 3.2) * .5;
+  cx.lineWidth = 1.4;
+  for (const side of [-1, 1]) { cx.beginPath(); cx.moveTo(side * s * .5, 0); cx.lineTo(side * s * 1.5, s * .3 * sweep); cx.stroke(); }
+  cx.fillStyle = C.ink; cx.beginPath(); cx.arc(0, s * .35, s * .26, 0, 7); cx.fill();
+  cx.restore();
+}
+function drawTower(cx, x, y, k) {
+  const r = 2.2 * k;
+  cx.fillStyle = C.land; cx.strokeStyle = C.ink; cx.lineWidth = 1.2;
+  cx.beginPath(); cx.ellipse(x, y + r * .3, r * 2.2, r * 1.5, 0, 0, 7); cx.fill(); cx.stroke();
+  cx.fillStyle = C.panel; cx.beginPath(); cx.arc(x, y, r, 0, 7); cx.fill(); cx.stroke();
+  cx.fillStyle = C.accent; cx.beginPath(); cx.arc(x, y, r * .45, 0, 7); cx.fill();
+}
+function drawNeatline(cx, g) {
+  const { k, ox, oy } = g, w = 100 * k, h = 140 * k, b = 5;
+  cx.strokeStyle = C.ink; cx.lineWidth = 1;
+  cx.strokeRect(ox - b, oy - b, w + 2 * b, h + 2 * b); cx.strokeRect(ox, oy, w, h);
+  cx.fillStyle = C.ink;
+  for (let i = 0; i < 20; i += 2) {
+    cx.fillRect(ox + i * w / 20, oy - b, w / 20, b); cx.fillRect(ox + (i + 1) * w / 20, oy + h, w / 20, b);
+  }
+  for (let i = 0; i < 28; i += 2) {
+    cx.fillRect(ox - b, oy + i * h / 28, b, h / 28); cx.fillRect(ox + w, oy + (i + 1) * h / 28, b, h / 28);
+  }
+}
+function bubble(cx, text, x, y, W) {
+  const fs = 13;
+  cx.font = `italic ${fs}px ${FONT.body}`;
+  const words = text.split(' '), lines = []; let cur = '';
+  for (const w of words) { const n = cur ? cur + ' ' + w : w; if (cx.measureText(n).width > 190 && cur) { lines.push(cur); cur = w; } else cur = n; }
+  lines.push(cur);
+  const bw = Math.max(...lines.map(l => cx.measureText(l).width)) + 16, bh = lines.length * 17 + 10;
+  const bx = clamp(x - bw / 2, 4, W - bw - 4), by = Math.max(4, y - bh - 10);
+  cx.fillStyle = C.panel; cx.strokeStyle = C.ink; cx.lineWidth = 1;
+  cx.fillRect(bx, by, bw, bh); cx.strokeRect(bx, by, bw, bh);
+  cx.fillStyle = C.ink; cx.textAlign = 'left';
+  lines.forEach((l, i) => cx.fillText(l, bx + 8, by + 18 + i * 17, W - 16));
+}
+
+// ---- the side panel
+let hudCache = {};
+function setText(id, v) { if (hudCache[id] !== v) { hudCache[id] = v; $('#' + id).textContent = v; } }
+function hud() {
+  const [name, sea] = t('beaufort')[S.wx.f];
+  setText('wx-f', 'F' + S.wx.f); setText('wx-name', name); setText('wx-sea', sea);
+  setText('wx-dir', t('wind')(t('dir')[S.wx.dir], S.wx.f, S.wx.fog ? 'fog' : S.wx.rain ? 'rain' : ''));
+  setText('clock', clockStr(S.clock));
+  if (S.phase === 1) setText('observed', S.mode === 'title' ? '—' : obsText(S.observed));
+  const pk = S.phase === 2 ? `${t('masonry')} ${'<i></i>'.repeat(Math.max(0, S.masonry))}${'<i class="gone"></i>'.repeat(3 - Math.max(0, S.masonry))}`
+    : `${t('hull')} ${'<i></i>'.repeat(Math.max(0, S.planks))}${'<i class="gone"></i>'.repeat(3 - Math.max(0, S.planks))}`;
+  if (hudCache.pk !== pk) { hudCache.pk = pk; $('#planks').innerHTML = pk; }
+  if (S.signalling && !S.answered) setText('signal-text', t('showing')(lampOn(MORSE_U, S.t)));
+}
+
+function tick(dt) {
+  if (S.sayT > 0) S.sayT -= dt;
+  if (S.mode === 'play') {
+    readInput(dt);
+    if (S.phase === 1) { steerBeam(dt); step1(dt); } else step2(dt);
+  } else S.t += dt * (S.mode === 'title' ? 1 : 0);
+}
+const loop = Kit.loop(dt => { tick(dt); draw(); hud(); });
+
+// ---- language switch
+// Static markup carries data-t (text), data-th (trusted markup) and data-ta (aria-label). The
+// HUD cache is dropped so every panel line is rewritten; the chart redraws every frame anyway.
+// Lines already in the log stay in the language they were written in.
+function applyLang() {
+  document.documentElement.lang = lang;
+  document.title = t('docTitle');
+  for (const el of document.querySelectorAll('[data-t]')) el.textContent = t(el.dataset.t);
+  for (const el of document.querySelectorAll('[data-th]')) el.innerHTML = t(el.dataset.th);
+  for (const el of document.querySelectorAll('[data-ta]')) el.setAttribute('aria-label', t(el.dataset.ta));
+  for (const box of document.querySelectorAll('.lang')) {
+    if (!box.children.length) box.innerHTML = '<button type="button" data-lang="fr" lang="fr">FR</button><button type="button" data-lang="en" lang="en">EN</button>';
+    for (const b of box.children) b.setAttribute('aria-pressed', String(b.dataset.lang === lang));
+  }
+  hudCache = {};
+  if (!S) return;
+  if (S.phase === 2) $('#observed').textContent = t('isoBoat');
+  if (S.mode === 'reveal') showRev();
+  if (S.mode === 'end') fillEnd();
+}
+function setLang(l) {
+  if (!(l in I18N) || l === lang) return;
+  lang = l;
+  applyLang();
+}
+document.addEventListener('click', e => {
+  const b = e.target.closest('[data-lang]');
+  if (b) setLang(b.dataset.lang);
+});
+
+function start(data) {
+  S = fresh();
+  if (data.bestWatch) bestWatch = data.bestWatch;
+  (data.seen || []).forEach(n => seenEndings.add(n));
+  lang = data?.lang in I18N ? data.lang : (navigator.language || '').toLowerCase().startsWith('fr') ? 'fr' : 'en';
+  applyLang();
+  Kit.show($('#title'));
+  loop.start();
+}
+
+// ---- test hook: each jump sets up the last stretch and lets the real logic finish it
+function placeBoatOnBeam(d, theta) {
+  S.theta = theta; S.aim = null;
+  const u = beamDir(theta);
+  S.B.x = S.L.x + u.x * d; S.B.y = S.L.y + u.y * d; S.B.vx = 0; S.B.vy = 0;
+}
+Kit.expose({
+  state: () => S,
+  endings: {
+    harbour: {
+      seconds: 26,
+      jump() { newWatch(); S.t = 240; S.clock = 205; S.wxI = WX1.length - 1; setWeather({ f: 2, dir: 'S', fog: 0, rain: 0 }, true); S.lureT = 99; S.L.x = 56; S.d0 = 113; S.signalling = true; $('#signal').hidden = false; placeBoatOnBeam(15, 0); S.resolve = 1; S.ditherIn = 30; },
+      reached: () => S.ending === 'harbour' && !$('#end').hidden,
+    },
+    lost: {
+      seconds: 8,
+      jump() { newWatch(); S.planks = 1; S.lureT = 99; S.theta = 60 * DEG; S.B.x = 32; S.B.y = 32.4; S.B.vy = 1.5; S.B.head = Math.PI; S.act = 'wander'; S.actT = 3; },
+      reached: () => S.ending === 'lost' && !$('#end').hidden,
+    },
+    aground: {
+      seconds: 9,
+      jump() { newWatch(); startPhase2(150); S.masonry = 1; S.LH.x = 65.5; S.LH.y = 98; S.aimX = 76; S.wobT = 0; },
+      reached: () => S.ending === 'aground' && !$('#end').hidden,
+    },
+    uncharted: {
+      seconds: 28,
+      jump() { newWatch(); startPhase2(160); const p = pointAt(ROUTE_LEN - 14); S.LH.x = p.x; S.LH.y = p.y; S.B.x = 82; S.B.y = 4; },
+      reached: () => S.ending === 'uncharted' && !$('#end').hidden,
+    },
+  },
+});
+Kit.boot(start, () => ({ bestWatch, seen: [...seenEndings], lang }));
+</script>
+</body>
+</html>

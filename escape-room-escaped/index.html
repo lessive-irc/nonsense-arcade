@@ -1,0 +1,1671 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Escape Room (Escaped)</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Black+Ops+One&family=Red+Hat+Text:ital,wght@0,400;0,600;0,700;1,400&family=Share+Tech+Mono&display=swap">
+<style>
+/* Layout: the escaped room seen from its own doorway. The scene fills the left, the red LED countdown is the
+   wall unit top-right, the laminated reset sheet is clipped to the right-hand column, the intercom runs along the bottom. */
+:root {
+  --bg: #dde2e3;        /* venue lobby laminate, a cool grey */
+  --ink: #1b2026;
+  --muted: #59626a;
+  --accent: #c8322a;    /* LED red: the one loud thing */
+  --panel: #f3f5f2;     /* the laminated sheet */
+  --line: #1b202630;
+  --wall: #4f6b5a;      /* the professor's study green */
+  --wall-2: #597764;
+  --wood: #7a4b2c;
+  --wood-dk: #4e2f1c;
+  --brass: #c39a3e;
+  --floor: #6d4a33;
+  --paper: #ece6d3;
+  --glass: #f1efe0;
+  --exit: #1d8a4e;
+  --uv: #8c5cff;
+  --uv-ink: #efe6ff;
+  --led: #ff3b2f;
+  --led-off: #3d1a17;
+  --clockface: #f4f1e6;
+  --iron: #2b2f33;
+  --f-display: "Black Ops One", "Stencil Std", Impact, "Arial Black", sans-serif;
+  --f-body: "Red Hat Text", "Segoe UI", system-ui, sans-serif;
+  --f-mono: "Share Tech Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f1215; --ink: #e3e6e8; --muted: #949da4; --accent: #ff5143; --panel: #181d22; --line: #e3e6e826;
+    --wall: #1f2c25; --wall-2: #24332b; --wood: #4a2f1d; --wood-dk: #2a1a10; --brass: #a5803a; --floor: #2e1f15;
+    --paper: #c2bba6; --glass: #d9d5c0; --exit: #2aa363; --uv: #9d73ff; --uv-ink: #f1e9ff; --led: #ff4536;
+    --led-off: #2a0e0c; --clockface: #bdb8a8; --iron: #454b52;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f1215; --ink: #e3e6e8; --muted: #949da4; --accent: #ff5143; --panel: #181d22; --line: #e3e6e826;
+  --wall: #1f2c25; --wall-2: #24332b; --wood: #4a2f1d; --wood-dk: #2a1a10; --brass: #a5803a; --floor: #2e1f15;
+  --paper: #c2bba6; --glass: #d9d5c0; --exit: #2aa363; --uv: #9d73ff; --uv-ink: #f1e9ff; --led: #ff4536;
+  --led-off: #2a0e0c; --clockface: #bdb8a8; --iron: #454b52;
+  color-scheme: dark;
+}
+[hidden] { display: none !important; }
+/* kit:css:begin */
+/* Arcade kit: structure only, never a look. Inlined between kit:css markers by kit/inline.mjs.
+   The game's own :root must define --bg --ink --muted --accent --panel --line (light), and
+   redefine them in both dark blocks; everything here reads those tokens. */
+*, *::before, *::after { box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  -webkit-tap-highlight-color: transparent;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+button { font: inherit; color: inherit; cursor: pointer; }
+button:disabled { cursor: default; }
+:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+canvas { display: block; max-width: 100%; touch-action: none; }
+
+/* Full-stage screens (title, twist, end). Sit inside a position:relative stage. */
+.kit-overlay {
+  position: absolute; inset: 0; z-index: 5;
+  display: grid; place-items: center; padding: 24px;
+  background: color-mix(in srgb, var(--bg) 88%, transparent);
+  overflow-y: auto;
+}
+.kit-overlay[hidden] { display: none; }
+
+/* Touch pad: shown only on coarse pointers; buttons carry data-key (see Kit.keys). */
+.kit-pad { display: none; gap: 10px; justify-content: center; padding-block: 10px; user-select: none; }
+.kit-pad [data-key] { min-width: 56px; min-height: 56px; touch-action: none; border: 1px solid var(--line); background: var(--panel); }
+@media (pointer: coarse) { .kit-pad { display: flex; } }
+
+.kit-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+
+@media (prefers-reduced-motion: reduce) {
+  .kit-deco, .kit-deco * { animation: none !important; transition: none !important; }
+}
+/* kit:css:end */
+
+body { font-family: var(--f-body); padding-block: 12px; }
+.stage { position: relative; max-width: 1200px; margin: 0 auto; display: grid; gap: 10px; }
+.bar { display: flex; flex-wrap: wrap; align-items: stretch; gap: 10px; }
+.brand { flex: 1 1 260px; display: grid; align-content: center; gap: 2px; padding: 8px 12px; border-left: 6px solid var(--accent); background: var(--panel); }
+.brand strong { font-family: var(--f-display); font-weight: 400; font-size: 22px; letter-spacing: .04em; line-height: 1; text-transform: uppercase; }
+.brand span { font-family: var(--f-mono); font-size: 12px; color: var(--muted); letter-spacing: .04em; }
+.clockbox { display: flex; align-items: center; gap: 10px; padding: 6px 12px; background: #0b0c0d; border: 2px solid var(--ink); border-radius: 3px; }
+.clockbox svg { width: 132px; height: 44px; display: block; }
+.clockbox small { font-family: var(--f-mono); font-size: 10px; letter-spacing: .1em; color: #8d8a85; text-transform: uppercase; line-height: 1.2; }
+.seg { fill: var(--led-off); }
+.seg.on { fill: var(--led); }
+.clockbox.flash .seg.on { fill: #ffb2ab; }
+.hintbtn { display: grid; align-content: center; text-align: left; padding: 8px 14px; background: var(--panel); border: 2px solid var(--ink); border-radius: 3px; font-weight: 700; }
+.hintbtn small { display: block; font-family: var(--f-mono); font-weight: 400; font-size: 11px; color: var(--accent); letter-spacing: .04em; }
+.hintbtn:hover { background: var(--bg); }
+.lang { display: flex; align-items: stretch; flex: 0 0 auto; border: 2px solid var(--ink); border-radius: 3px; background: var(--panel); overflow: hidden; }
+.lang button { border: 0; background: transparent; padding: 6px 11px; font: 400 13px var(--f-mono); letter-spacing: .08em; color: var(--muted); }
+.lang button + button { border-left: 1px solid var(--line); }
+.lang button:hover { color: var(--ink); }
+.lang button[aria-pressed="true"] { background: var(--ink); color: var(--panel); }
+.cardfoot { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; }
+.cardfoot .lang { min-height: 32px; }
+
+.main { display: grid; grid-template-columns: minmax(0, 1fr) 370px; gap: 10px; align-items: start; }
+.room { position: relative; aspect-ratio: 2 / 1; border: 2px solid var(--ink); border-radius: 3px; overflow: hidden; background: var(--wall); }
+.room canvas { width: 100%; height: 100%; }
+.hot { position: absolute; background: transparent; border: 2px dashed transparent; border-radius: 4px; padding: 0; }
+.hot:hover, .hot:focus-visible { border-color: var(--led); outline: none; }
+.hot::after {
+  content: attr(data-label); position: absolute; left: 50%; bottom: calc(100% + 4px); transform: translateX(-50%);
+  white-space: nowrap; font: 600 12px var(--f-body); background: var(--ink); color: var(--bg); padding: 3px 7px; border-radius: 2px;
+  opacity: 0; pointer-events: none; transition: opacity .12s;
+}
+.hot.low::after { bottom: auto; top: calc(100% + 4px); }
+.hot:hover::after, .hot:focus-visible::after { opacity: 1; }
+.hot.ping { border-color: var(--exit); border-style: solid; }
+@media (prefers-reduced-motion: no-preference) { .hot.ping { animation: ping 1.4s ease-in-out infinite; } }
+@keyframes ping { 50% { border-color: transparent; } }
+
+.side { background: var(--panel); border: 2px solid var(--ink); border-radius: 3px; padding: 12px 14px 14px; display: grid; gap: 10px; min-width: 0; }
+.side h2 { margin: 0; font-family: var(--f-display); font-weight: 400; font-size: 19px; letter-spacing: .03em; text-transform: uppercase; line-height: 1.1; }
+.formno { font-family: var(--f-mono); font-size: 11px; color: var(--muted); letter-spacing: .05em; display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+.checks { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+.checks button {
+  width: 100%; display: grid; grid-template-columns: 22px 1fr; gap: 8px; align-items: start; text-align: left;
+  background: transparent; border: 0; border-bottom: 1px dashed var(--line); padding: 7px 2px; font-size: 14px; line-height: 1.35;
+}
+.checks button:hover { background: var(--bg); }
+.box { width: 18px; height: 18px; border: 2px solid var(--ink); border-radius: 2px; display: grid; place-items: center; font: 700 14px var(--f-mono); color: var(--exit); margin-top: 1px; }
+.checks .done { color: var(--muted); }
+.checks .done .t { text-decoration: line-through; text-decoration-color: var(--accent); text-decoration-thickness: 2px; }
+.checks .locked { opacity: .55; }
+.pockets { font-size: 13px; color: var(--muted); line-height: 1.4; }
+.pockets b { color: var(--ink); font-weight: 600; }
+.pencil { display: grid; gap: 4px; }
+.pencil label { font-family: var(--f-mono); font-size: 11px; color: var(--muted); letter-spacing: .05em; text-transform: uppercase; }
+.pencil textarea { font: 15px var(--f-mono); color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: 2px; padding: 6px 8px; resize: vertical; min-height: 44px; }
+.pz { display: grid; gap: 10px; }
+.pz p { margin: 0; font-size: 14px; line-height: 1.45; }
+.pz .note { font-size: 13px; color: var(--muted); }
+.row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.btn { font-weight: 700; font-size: 14px; padding: 8px 13px; border: 2px solid var(--ink); border-radius: 3px; background: var(--ink); color: var(--panel); }
+.btn:hover { background: var(--accent); border-color: var(--accent); }
+.btn.ghost { background: transparent; color: var(--ink); }
+.btn.ghost:hover { background: var(--bg); color: var(--ink); border-color: var(--ink); }
+.back { justify-self: start; font-size: 13px; padding: 5px 10px; }
+.uvwall { width: 100%; aspect-ratio: 2 / 1; border: 2px solid var(--ink); border-radius: 2px; cursor: crosshair; }
+.shelfwrap { display: grid; gap: 0; }
+.dust, .shelf { display: flex; align-items: flex-end; justify-content: center; gap: 4px; height: 128px; padding: 0 4px; }
+.dust { background: color-mix(in srgb, var(--wood-dk) 82%, var(--paper)); border: 2px solid var(--ink); border-bottom: 0; height: 128px; }
+.dust i { display: block; border: 1.5px dashed color-mix(in srgb, var(--paper) 55%, transparent); background: color-mix(in srgb, var(--wood) 60%, transparent); }
+.shelf { border: 2px solid var(--ink); border-top: 6px solid var(--wood); background: var(--wood-dk); }
+.book {
+  padding: 0; border: 1.5px solid var(--ink); border-radius: 2px 2px 0 0; color: var(--paper);
+  writing-mode: vertical-rl; transform: rotate(180deg); font: 600 10.5px/1.1 var(--f-body); overflow: hidden; text-align: center;
+}
+.book.sel { outline: 3px solid var(--led); outline-offset: 1px; }
+.dials { display: flex; gap: 10px; justify-content: center; }
+.dial { display: grid; gap: 4px; justify-items: center; }
+.dial b { width: 46px; height: 52px; display: grid; place-items: center; font: 400 30px var(--f-mono); background: var(--brass); color: var(--ink); border: 2px solid var(--ink); border-radius: 3px; }
+.dial.cur b { outline: 3px solid var(--led); outline-offset: 2px; }
+.dial button { width: 46px; padding: 3px 0; border: 1.5px solid var(--ink); background: transparent; border-radius: 2px; font-size: 12px; }
+.card { background: var(--paper); color: #2a241a; border: 1px solid var(--line); padding: 8px 10px; font-style: italic; font-size: 14px; transform: rotate(-1deg); }
+.jig { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2px; width: min(100%, 300px); justify-self: center; background: var(--ink); border: 2px solid var(--ink); }
+.jig.boxed { display: none; }
+.jig canvas { width: 100%; aspect-ratio: 3 / 2; cursor: pointer; }
+.jig canvas.sel { outline: 3px solid var(--led); outline-offset: -3px; }
+.boxlid { justify-self: center; width: min(100%, 300px); aspect-ratio: 3 / 2; display: grid; place-items: center; text-align: center; background: var(--wood); color: var(--paper); border: 2px solid var(--ink); font-family: var(--f-display); font-size: 18px; letter-spacing: .05em; padding: 10px; }
+.keypad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; width: min(100%, 240px); justify-self: center; }
+.keypad button { padding: 10px 0; font: 400 20px var(--f-mono); background: var(--bg); border: 2px solid var(--ink); border-radius: 3px; }
+.keypad button:hover { background: var(--panel); }
+.kpd { justify-self: center; width: min(100%, 240px); text-align: center; font: 400 30px var(--f-mono); letter-spacing: .3em; background: #0b0c0d; color: var(--led); border: 2px solid var(--ink); border-radius: 3px; padding: 4px 0; min-height: 48px; }
+.kpd.ok { color: var(--exit); }
+
+.intercom { background: var(--panel); border: 2px solid var(--ink); border-radius: 3px; display: grid; grid-template-columns: auto 1fr; }
+.intercom .tag { display: grid; place-items: center; padding: 6px 10px; background: var(--ink); color: var(--panel); font-family: var(--f-mono); font-size: 11px; letter-spacing: .1em; writing-mode: vertical-rl; transform: rotate(180deg); }
+.log { max-height: 112px; overflow-y: auto; padding: 6px 12px; display: grid; gap: 4px; align-content: start; }
+.log p { margin: 0; font-size: 14px; line-height: 1.4; }
+.log p b { font-family: var(--f-mono); font-weight: 400; font-size: 11px; letter-spacing: .08em; margin-right: 6px; color: var(--accent); }
+.log p.wall { font-style: italic; color: var(--muted); }
+.log p.wall b { color: var(--muted); }
+.log p.old { opacity: .62; }
+
+.kit-overlay { position: fixed; place-items: safe center; background: color-mix(in srgb, var(--bg) 92%, transparent); }
+.sheet-card { max-width: 560px; display: grid; gap: 14px; background: var(--panel); border: 2px solid var(--ink); border-top: 10px solid var(--accent); border-radius: 3px; padding: 22px 24px; }
+.sheet-card h1, .sheet-card h2 { margin: 0; font-family: var(--f-display); font-weight: 400; text-transform: uppercase; line-height: 1; letter-spacing: .02em; }
+.sheet-card h1 { font-size: clamp(34px, 7vw, 58px); }
+.sheet-card h2 { font-size: clamp(26px, 5vw, 40px); }
+.sheet-card p { margin: 0; font-size: 16px; line-height: 1.55; text-wrap: pretty; }
+.sheet-card .lede { font-size: 18px; font-style: italic; }
+.sheet-card .small { font-family: var(--f-mono); font-size: 12px; color: var(--muted); letter-spacing: .04em; }
+.sheet-card .btn { justify-self: start; font-size: 16px; padding: 11px 18px; }
+.rules { margin: 0; padding-left: 20px; display: grid; gap: 4px; font-size: 14px; line-height: 1.45; }
+.sheet-card.free { border-top-color: var(--muted); }
+.sheet-card.outside { border-top-color: var(--exit); }
+.speech { border-left: 4px solid var(--accent); padding-left: 12px; font-style: italic; }
+
+@media (max-width: 880px) {
+  .main { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 520px) {
+  .brand strong { font-size: 18px; }
+  .clockbox svg { width: 108px; height: 36px; }
+  .hot::after { font-size: 11px; }
+  .sheet-card { padding: 18px 16px; }
+  .log { max-height: 96px; }
+}
+</style>
+</head>
+<body>
+<div class="stage" id="stage">
+  <header class="bar">
+    <div class="brand"><strong data-t="brand">Locked In! · Room 3</strong><span id="brand-sub" data-t="brandSub">The Professor's Study · Gwen on the intercom</span></div>
+    <div class="lang" role="group" data-ta="langGroup" aria-label="Language"></div>
+    <div class="clockbox" role="timer" data-ta="clockAria" aria-label="Time remaining">
+      <svg id="led" viewBox="0 0 150 54" aria-hidden="true"></svg>
+      <small data-th="clockSmall">time<br>left</small>
+      <span class="kit-sr" id="clock-sr"></span>
+    </div>
+    <button class="hintbtn" id="hint" data-th="hintBtn">Ask Gwen for a hint<small>costs 5:00 · H</small></button>
+  </header>
+
+  <div class="main">
+    <div class="room" id="room">
+      <canvas id="scene" data-ta="sceneAria" aria-label="The Professor's Study: a bookshelf, a desk with a padlocked drawer, a globe, a jigsaw table and an open door to the corridor"></canvas>
+      <div id="hots"></div>
+    </div>
+
+    <aside class="side" id="side">
+      <section id="sheet">
+        <h2 data-t="sheetTitle">Room reset sheet</h2>
+        <div class="formno"><span data-t="formNo">FORM LI-R3-07 · REV. C</span><span data-t="formOrder">RESET IN ANY ORDER, DOOR LAST</span></div>
+        <ol class="checks" id="checks"></ol>
+        <div class="pockets" id="pockets"></div>
+        <div class="pencil">
+          <label for="notes" data-t="pencil">Pencil and paper provided</label>
+          <textarea id="notes" rows="2" data-tp="notesPh" placeholder="write codes here"></textarea>
+        </div>
+      </section>
+
+      <section class="pz" id="pz-uv" hidden>
+        <button class="btn ghost back" data-back data-t="back">← Reset sheet</button>
+        <h2 data-t="uvTitle">The UV wall</h2>
+        <p data-t="uvText">You are holding the UV torch. The reset note says it goes back where it was found. The wall knows where. Drag across it, or use the arrow keys.</p>
+        <canvas class="uvwall" id="uv" tabindex="0" data-ta="uvAria" aria-label="A dark wall. Moving the torch beam reveals writing in UV ink."></canvas>
+        <p class="note" data-t="uvReturn">Return the torch to:</p>
+        <div class="row" id="uv-spots"></div>
+      </section>
+
+      <section class="pz" id="pz-shelf" hidden>
+        <button class="btn ghost back" data-back data-t="back">← Reset sheet</button>
+        <h2 data-t="shelfTitle">The bookshelf</h2>
+        <p data-t="shelfText">You solved it by sorting the books A to Z, which opened the compartment. Now they must go back to how they stood for years. The dust remembers. Click two books to swap them.</p>
+        <div class="shelfwrap"><div class="dust" id="dust" aria-hidden="true"></div><div class="shelf" id="shelf"></div></div>
+        <p class="note" id="shelf-note"></p>
+      </section>
+
+      <section class="pz" id="pz-lock" hidden>
+        <button class="btn ghost back" data-back data-t="back">← Reset sheet</button>
+        <h2 data-t="lockTitle">The desk drawer</h2>
+        <div class="card" id="clue-card" data-t="clueCard">The clue card you dropped on the floor: “Count what burns, then what watches, then what ticks.”</div>
+        <div class="row"><button class="btn ghost" id="key-btn">Put the brass key in the drawer</button></div>
+        <div class="dials" id="dials"></div>
+        <div class="row"><button class="btn" id="lock-btn" data-t="lockBtn">Close the shackle</button></div>
+        <p class="note" data-t="lockNote">Arrows turn the dials. Enter closes the shackle.</p>
+      </section>
+
+      <section class="pz" id="pz-jig" hidden>
+        <button class="btn ghost back" data-back data-t="back">← Reset sheet</button>
+        <h2 data-t="jigTitle">The jigsaw</h2>
+        <p id="jig-text"></p>
+        <div class="jig" id="jig"></div>
+        <div class="boxlid" id="boxlid" hidden data-th="boxLid">1000 PIECES*<br><small style="font-family:var(--f-body);font-size:12px">*nine</small></div>
+        <div class="row" id="jig-row"></div>
+      </section>
+
+      <section class="pz" id="pz-door" hidden>
+        <button class="btn ghost back" data-back data-t="back">← Reset sheet</button>
+        <h2 id="door-title">Room 3 exit keypad</h2>
+        <p id="door-text"></p>
+        <div class="kpd" id="kpd" aria-live="polite"></div>
+        <div class="keypad" id="keypad"></div>
+      </section>
+    </aside>
+  </div>
+
+  <div class="intercom">
+    <div class="tag" data-t="intercom">INTERCOM</div>
+    <div class="log" id="log" aria-live="polite"></div>
+  </div>
+
+  <div class="kit-overlay" id="title">
+    <div class="sheet-card">
+      <div class="small" data-t="titleKicker">LOCKED IN! ESCAPE ROOMS · UNIT 4, BRINDLEY TRADING ESTATE</div>
+      <h1 data-t="titleH">Escape Room (Escaped)</h1>
+      <p class="lede" data-t="titleLede">You escaped Room 3 with eighteen minutes to spare. It was the best hour of your life. You would like to go back in.</p>
+      <p data-t="titleIntro">Gwen, your games master, says that is irregular but not, technically, forbidden. You are standing in the doorway, which legally counts as outside. To be inside again, the room has to be un-solved: everything re-locked, re-hidden and put back exactly as you found it. Then the exit door, with you behind it.</p>
+      <ul class="rules">
+        <li data-t="rule1">Click things in the room, or the lines on the reset sheet. Keys 1–5 open the sheet lines.</li>
+        <li data-t="rule2">The clock is a real 60:00, running twelve times faster than yours. A hint costs five minutes.</li>
+        <li data-t="rule3">Pencil and paper are provided. Nobody ever uses them. Use them.</li>
+      </ul>
+      <button class="btn" id="start" data-t="startBtn">Start the clock · 60:00</button>
+      <div class="cardfoot">
+        <div class="small" id="best-line">about 3 to 5 minutes · mouse, touch or keyboard</div>
+        <div class="lang" role="group" data-ta="langGroup" aria-label="Language"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="kit-overlay" id="reveal" hidden>
+    <div class="sheet-card">
+      <div class="small" data-t="revealKicker">INTERCOM · OFF THE RECORD</div>
+      <h2 data-t="revealTitle">A word from Gwen</h2>
+      <p class="speech" id="reveal-text"></p>
+      <button class="btn" id="reveal-go" data-t="revealGo">Back to the room</button>
+    </div>
+  </div>
+
+  <div class="kit-overlay" id="end" hidden>
+    <div class="sheet-card">
+      <div class="small" id="end-kicker"></div>
+      <h2 id="end-title"></h2>
+      <p class="lede" id="end-sub"></p>
+      <p id="end-more"></p>
+      <div class="small" id="end-stat"></div>
+      <div class="cardfoot">
+        <button class="btn" id="again" data-t="againBtn">Book Room 3 again</button>
+        <div class="lang" role="group" data-ta="langGroup" aria-label="Language"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* kit:js:begin */
+// Arcade kit: the plumbing every game re-wrote by hand. Inlined between kit:js markers by
+// kit/inline.mjs, so a game stays one standalone file. Defines exactly two globals, `Kit` and
+// (once a game calls Kit.expose) `__arcade`; nothing else, because a bare top-level name can
+// collide with a window property (sandwich-diplomacy's `top()` shadowed by window.top).
+const Kit = (() => {
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const themeWatchers = [];
+  const onTheme = () => themeWatchers.forEach(f => f());
+  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', onTheme);
+  new MutationObserver(onTheme).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+
+  // Canvas code cannot read CSS variables, so mirror the named tokens into an object and
+  // re-read it whenever the theme flips: the viewer's toggle sets data-theme, the OS sets the media query.
+  function tokens(names, onChange) {
+    const C = {};
+    const read = () => {
+      const cs = getComputedStyle(document.documentElement);
+      for (const n of names) C[n] = cs.getPropertyValue('--' + n).trim();
+      onChange?.(C);
+    };
+    read();
+    themeWatchers.push(read);
+    return C;
+  }
+
+  // Keeps a canvas sharp at the device pixel ratio (capped at 2) and sized to its CSS box.
+  function canvas(el, onResize) {
+    const view = { el, cx: el.getContext('2d'), W: 0, H: 0 };
+    const fit = () => {
+      const r = el.getBoundingClientRect(), d = Math.min(2, devicePixelRatio || 1);
+      view.W = r.width; view.H = r.height;
+      el.width = Math.round(r.width * d); el.height = Math.round(r.height * d);
+      view.cx.setTransform(d, 0, 0, d, 0, 0);
+      onResize?.(view);
+    };
+    new ResizeObserver(fit).observe(el);
+    fit();
+    return view;
+  }
+
+  // step(dt) gets seconds, capped at 50 ms so a background tab or a stalled frame cannot
+  // teleport the game; the loop stops while the tab is hidden and resumes without a jump.
+  function loop(step) {
+    let last = 0, raf = 0, on = false;
+    const frame = t => {
+      const dt = last ? Math.min(0.05, (t - last) / 1000) : 0;
+      last = t;
+      step(dt);
+      if (on) raf = requestAnimationFrame(frame);
+    };
+    const ctl = {
+      start() { if (on) return; on = true; last = 0; raf = requestAnimationFrame(frame); },
+      stop() { on = false; cancelAnimationFrame(raf); },
+      get running() { return on; },
+    };
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden && on) { ctl.stop(); ctl.paused = true; }
+      else if (!document.hidden && ctl.paused) { ctl.paused = false; ctl.start(); }
+    });
+    return ctl;
+  }
+
+  // Held keys by KeyboardEvent.key, lower-cased (' ' for Space). Touch pads feed the same set:
+  // any element with data-key="<key>" inside a .kit-pad holds that key while pressed.
+  const held = new Set();
+  const pressFns = [];
+  const norm = k => (k.length === 1 ? k.toLowerCase() : k);
+  const press = (k, down) => {
+    k = norm(k);
+    if (down === held.has(k)) return;
+    down ? held.add(k) : held.delete(k);
+    pressFns.forEach(f => f(k, down));
+  };
+  const GAME_KEYS = new Set([' ', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight']);
+  addEventListener('keydown', e => {
+    if (e.target.closest?.('input, textarea, select, [contenteditable]')) return;
+    if (GAME_KEYS.has(e.key) && !e.target.closest?.('button')) e.preventDefault();
+    if (!e.repeat) press(e.key, true);
+  });
+  addEventListener('keyup', e => press(e.key, false));
+  addEventListener('blur', () => [...held].forEach(k => press(k, false)));
+  document.addEventListener('pointerdown', e => {
+    const b = e.target.closest?.('.kit-pad [data-key]');
+    if (!b) return;
+    e.preventDefault();
+    b.setPointerCapture?.(e.pointerId);
+    press(b.dataset.key, true);
+    const up = () => { press(b.dataset.key, false); b.removeEventListener('pointerup', up); b.removeEventListener('pointercancel', up); };
+    b.addEventListener('pointerup', up);
+    b.addEventListener('pointercancel', up);
+  });
+  const keys = {
+    down: k => held.has(norm(k)),
+    any: (...ks) => ks.some(k => held.has(norm(k))),
+    onPress(fn) { pressFns.push(fn); },
+  };
+
+  // The claude.ai viewer's hot-update hook: keeps `snapshot()` across a republish. Absent when
+  // self-hosted, so start() then receives {}.
+  function boot(start, snapshot) {
+    if (snapshot) window.claude?.hot?.snapshot?.(snapshot);
+    window.claude?.hot?.ready ? window.claude.hot.ready(start) : start(window.claude?.hot?.data ?? {});
+  }
+
+  // The test hook smoke.mjs drives. endings: { name: { jump(), reached(), seconds? } } where
+  // jump() may shortcut the set-up but must leave the ending's final stretch to real game
+  // logic, and reached() is true only once that ending's screen is actually showing.
+  function expose({ state, endings }) {
+    window.__arcade = {
+      get state() { return state(); },
+      endings: Object.fromEntries(Object.entries(endings).map(([k, v]) => [k, { seconds: v.seconds ?? 8 }])),
+      jump: name => endings[name].jump(),
+      reached: name => !!endings[name].reached(),
+    };
+  }
+
+  // Show one overlay and hide the others; focus its first button so Enter/Space continue.
+  function show(el) {
+    document.querySelectorAll('.kit-overlay').forEach(o => { o.hidden = o !== el; });
+    el?.querySelector('button')?.focus({ preventScroll: true });
+  }
+
+  const rnd = (a, b) => a + Math.random() * (b - a);
+  const pick = a => a[Math.floor(Math.random() * a.length)];
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+
+  return { reduce, tokens, canvas, loop, keys, boot, expose, show, rnd, pick, clamp };
+})();
+/* kit:js:end */
+
+const $ = s => document.querySelector(s);
+const RATE = 12;            // game seconds per real second: 60:00 lasts five real minutes
+const HINT_COST = 300, CODE_COST = 30, SPOT_COST = 60;
+let S = null, best = null;
+const C = Kit.tokens(['wall', 'wall-2', 'wood', 'wood-dk', 'brass', 'floor', 'paper', 'glass', 'exit', 'ink', 'muted',
+  'uv', 'uv-ink', 'led', 'clockface', 'iron', 'accent', 'panel', 'line', 'bg'], () => { drawJigSource(); drawRoom(); });
+
+// Every player-visible string, per language. Puzzle logic never reads these: spots, books and
+// tasks are identified by index or id, so switching language mid-game cannot change an answer.
+const SPOTS = [{ id: 'globe' }, { id: 'teapot' }, { id: 'portrait' }, { id: 'scuttle' }];
+const BOOK_INK = ['var(--paper)', 'var(--paper)', 'var(--paper)', 'var(--paper)', 'var(--ink)', 'var(--paper)'];
+const BOOK_COLS = ['var(--accent)', 'var(--wall-2)', 'var(--wood)', 'var(--exit)', 'var(--brass)', 'var(--wood-dk)'];
+const CANDLE_POS = [[248, 250], [268, 250], [610, 300], [624, 300], [741, 300], [190, 62], [384, 250]];
+const OWL_POS = [[40, 70], [86, 70], [132, 70], [300, 250], [724, 300], [590, 380]];
+const CLOCK_POS = [[580, 92], [652, 62], [690, 162], [430, 212], [228, 196], [612, 196]];
+const TASKS = [{ id: 'uv' }, { id: 'shelf' }, { id: 'lock' }, { id: 'jig' }, { id: 'door' }];
+
+// English return-button text is the bare place; French uses the whole phrase, so the button
+// reads exactly what the UV wall spells out ("DANS LE GLOBE" → "dans le globe").
+const enSpot = (btn, wall) => ({ btn, back: 'in ' + btn, from: 'out of ' + btn, end: btn, wall });
+const frSpot = (btn, from) => ({ btn, back: btn, from, end: btn, wall: btn.toUpperCase() });
+
+const I18N = {
+  en: {
+    docTitle: 'Escape Room (Escaped)',
+    langGroup: 'Language',
+    brand: 'Locked In! · Room 3',
+    brandSub: "The Professor's Study · Gwen on the intercom",
+    clockAria: 'Time remaining',
+    clockSmall: 'time<br>left',
+    remaining: s => s + ' remaining',
+    hintBtn: 'Ask Gwen for a hint<small>costs 5:00 · H</small>',
+    sceneAria: "The Professor's Study: a bookshelf, a desk with a padlocked drawer, a globe, a jigsaw table and an open door to the corridor",
+    sheetTitle: 'Room reset sheet',
+    formNo: 'FORM LI-R3-07 · REV. C',
+    formOrder: 'RESET IN ANY ORDER, DOOR LAST',
+    pencil: 'Pencil and paper provided',
+    notesPh: 'write codes here',
+    back: '← Reset sheet',
+    tasks: {
+      uv: 'UV torch returned to its original hiding place',
+      shelf: 'Bookshelf returned to original order (consult dust)',
+      lock: 'Brass key in drawer · drawer padlocked on original code',
+      jig: 'Jigsaw broken up and boxed',
+      door: 'Exit keypad re-armed · guest inside',
+    },
+    pocketsHead: 'In your pockets:',
+    pocketTorch: 'a UV torch', pocketKey: 'a brass key', pocketRest: ['a pencil', 'the feeling of having won'],
+    uvTitle: 'The UV wall',
+    uvText: 'You are holding the UV torch. The reset note says it goes back where it was found. The wall knows where. Drag across it, or use the arrow keys.',
+    uvAria: 'A dark wall. Moving the torch beam reveals writing in UV ink.',
+    uvReturn: 'Return the torch to:',
+    uvWall: ['STAFF ONLY · RESET NOTE', 'THE TORCH LIVES', 'NOT LOAD-BEARING. NEITHER IS KEVIN.'],
+    spots: {
+      globe: enSpot('the globe', 'IN THE GLOBE'),
+      teapot: enSpot('the teapot', 'IN THE TEAPOT'),
+      portrait: enSpot('behind the portrait', 'BEHIND THE PORTRAIT'),
+      scuttle: enSpot('the coal scuttle', 'IN THE COAL SCUTTLE'),
+    },
+    shelfTitle: 'The bookshelf',
+    shelfText: 'You solved it by sorting the books A to Z, which opened the compartment. Now they must go back to how they stood for years. The dust remembers. Click two books to swap them.',
+    shelfDone: 'Back as it was. The compartment has shut itself, sulkily.',
+    shelfNote: 'The back panel shows clean patches where the dust never settled.',
+    shelfPick: 'Now pick the book to swap with.',
+    // Indexed by book id; the spines must stay in A–Z order, which is the solved order.
+    books: ['Brass and Its Discontents', 'Ciphers for the Nervous', 'Doors: A Reappraisal',
+      'Escapology (abridged)', 'Locks: A Brief History', 'Rugs, and What Is Under Them'],
+    spines: ['Brass', 'Ciphers', 'Doors', 'Escapology', 'Locks', 'Rugs'],
+    bookAria: (title, w, h, pos) => `${title}, ${w} wide, ${h} tall, position ${pos}`,
+    lockTitle: 'The desk drawer',
+    clueCard: 'The clue card you dropped on the floor: “Count what burns, then what watches, then what ticks.”',
+    keyIn: 'Key is in the drawer · take it out',
+    keyOut: 'Put the brass key in the drawer',
+    lockBtn: 'Close the shackle',
+    lockNote: 'Arrows turn the dials. Enter closes the shackle.',
+    dialUp: i => `dial ${i} up`, dialDown: i => `dial ${i} down`,
+    jigTitle: 'The jigsaw',
+    boxLid: '1000 PIECES*<br><small style="font-family:var(--f-body);font-size:12px">*nine</small>',
+    jigSolved: 'You finished it to get the exit code. The reset sheet wants it in pieces and in its box, so the next team can be confused too.',
+    jigBroken: 'Nine pieces, roughly where they fell. Click two pieces to swap them, if you need to see the picture again.',
+    jigBoxed: 'In its box. The lid says a thousand pieces. There have never been a thousand pieces.',
+    jigBtns: { break: 'Break it up', box: 'Put it in the box', lid: 'Give up and look at the lid', close: 'Close the lid', open: 'Open the box again' },
+    pieceAria: (t, i) => `piece ${t} in place ${i}`,
+    sampler: ['HOME SWEET', 'stitched by the Professor, 1887'],
+    exitSign: 'EXIT',
+    doorRoom: 'Room 3 exit keypad',
+    doorFront: 'Front door of the building',
+    frontOpen: 'A grey keypad by the street door. Four digits. A sticker: “Staff opinions are final.”',
+    frontShut: 'A grey keypad. A sticker: “Staff will open this door at the end of your session.” Your session has not ended. You are, if anything, going the other way.',
+    roomReady: 'Arm it from the inside with its original four digits and the door will lock behind you. 60:00 again.',
+    roomNotReady: list => `It won't arm while the room is still solved. Still to reset: ${list}.`,
+    todo: { uv: 'the UV torch', shelf: 'the bookshelf', lock: 'the drawer', jig: 'the jigsaw' },
+    kpDelete: 'delete', kpEnter: 'enter',
+    hots: {
+      shelf: 'Bookshelf', portrait: 'Portrait of the Professor', uv: 'The UV wall', lock: 'Desk drawer (padlocked?)',
+      teapot: 'Teapot', globe: 'Globe', scuttle: 'Coal scuttle', jig: 'Jigsaw table', door: 'Room 3 exit keypad',
+      front: 'Front door of the building',
+    },
+    intercom: 'INTERCOM',
+    gwen: 'GWEN', wall: 'THROUGH THE WALL',
+    quote: s => `'${s}'`,
+    titleKicker: 'LOCKED IN! ESCAPE ROOMS · UNIT 4, BRINDLEY TRADING ESTATE',
+    titleH: 'Escape Room (Escaped)',
+    titleLede: 'You escaped Room 3 with eighteen minutes to spare. It was the best hour of your life. You would like to go back in.',
+    titleIntro: 'Gwen, your games master, says that is irregular but not, technically, forbidden. You are standing in the doorway, which legally counts as outside. To be inside again, the room has to be un-solved: everything re-locked, re-hidden and put back exactly as you found it. Then the exit door, with you behind it.',
+    rule1: 'Click things in the room, or the lines on the reset sheet. Keys 1–5 open the sheet lines.',
+    rule2: 'The clock is a real 60:00, running twelve times faster than yours. A hint costs five minutes.',
+    rule3: 'Pencil and paper are provided. Nobody ever uses them. Use them.',
+    startBtn: 'Start the clock · 60:00',
+    bestLine: 'about 3 to 5 minutes · mouse, touch or keyboard',
+    bestLineWith: b => `best re-entry ${b} · about 3 to 5 minutes`,
+    revealKicker: 'INTERCOM · OFF THE RECORD',
+    revealTitle: 'A word from Gwen',
+    revealGo: 'Back to the room',
+    revealText: "Gwen here, off the record. You'll have noticed the walls have opinions. They've been rating you. They rate everyone, through the walls, all day. Thing is, love, nobody's ever gone back in, so nobody's ever asked what the walls are rating. It's the outside. The car park, the ring road, the whole lot. That's Room 4. Nobody has ever escaped it. Average completion time: a lifetime. The final puzzle is the front door of the building. Or you can arm Room 3 and come back in, where it's warm. Your choice. Clock's still running.",
+    againBtn: 'Book Room 3 again',
+    teams: ['The Escape Goats', 'Lock, Stock & Two Smoking Barrels', 'Clueless (Ironically)', "Kevin's Leaving Do", 'Sherlock Homeowners'],
+    num: ['zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine'],
+    rate: {
+      uv: 'Hid that torch like it owed them money. I give that a',
+      shelf: 'Put the books back in the wrong order. Correctly. I give that a',
+      lock: 'Locked a key in a drawer with real feeling. That is a',
+      jig: 'Broke a jigsaw back up without crying. I give that a',
+    },
+    // every rate line ends in "a", which needs to become "an" before "eight"
+    rateLine: (line, word) => `${line}${/^[aeiou]/.test(word) ? 'n' : ''} ${word}.`,
+    idle: [
+      'Gwen here. Just a reminder that the props are not load-bearing. Please stop leaning on the owl.',
+      'For insurance purposes you are currently outside. Please continue un-solving.',
+      "Nobody has ever asked to come back in. We're all very excited. Kieran's made a sign.",
+      'Six years I have done this. Hundreds of people out. You would be the first one in.',
+      "Reminder: the fire exit is a real exit. Please don't un-solve the fire exit.",
+      "The professor isn't real. The study isn't real. The deposit was very real.",
+      "You're doing great. Statistically. Compared with the hen party.",
+      "There's a team in Room 2 trying to get out. You may hear them. Please don't help. They are paying.",
+      'Just checking you have not taken anything else. We once lost a whole chess set to a stag do.',
+      "If anyone asks, you are a 'reverse booking'. Accounts don't have a code for it yet.",
+      'The clock on the wall is real. The one in your head is not. Trust the wall.',
+      'Kieran wants me to say the owls are not watching you. Kieran is wrong about a lot of things.',
+    ],
+    mutter: [
+      '…are they putting things back? Like, back back?',
+      '…write that down. No, on the form. The other form.',
+      "…mate, nobody un-solves a room. It's like un-eating a sandwich.",
+      "…has anyone checked whether the outside's reset? No. Nobody resets the outside.",
+      '…shh, they can hear us. Can they hear us? Wave if you can hear us.',
+      '…I give the hen party a four, for the record. For the glitter.',
+      "…nobody gets a ten. Ten's for the outside. Don't ask me what that means, it's on the laminate.",
+    ],
+    hints: {
+      uv: ['The torch was hidden somewhere when you started. The wall knows where. Shine the torch on the wall.',
+        'Move the beam slowly across the dark wall. The second line names the hiding place.'],
+      shelf: ['Those books stood on that shelf for years. They left marks behind them.',
+        'Each clean patch in the dust is one book: match them by width and height, left to right. Click two books to swap.'],
+      lock: ['The clue card that fell out of the portrait: what burns, what watches, what ticks.',
+        'Candles, then owls, then clocks, counted across the whole room, one digit each. And the key goes in first.'],
+      jig: ['A solved jigsaw is an answer. The next team needs a question. Have a good look before you break it.',
+        'The number on the sampler is also the exit code. Write it down, then break the jigsaw up and box it.'],
+      door: ["Room 3's exit code was on the jigsaw.",
+        'Four digits, stitched on the sampler. If you boxed it already, open the box and put it back together.'],
+      front: ['The front door wants to know what we thought of you.',
+        'Four ratings, through the wall, in the order we gave them. Check the intercom, love.'],
+    },
+    hintSay: h => `Hint, five minutes: ${h}`,
+    resetAgain: 'Reset again. The walls have already given their opinion on that one.',
+    acks: ['One down. Well, up. Whatever the opposite of down is in this situation.',
+      'Two reset. The room is starting to look confused again. Lovely.',
+      'Three. I have phoned my mum about this.',
+      'Four. That room is as unsolved as the day we built it. Just the door now.'],
+    torchBack: where => `The torch goes back ${where}. It looks as if it has never been found. Good.`,
+    torchWrong: from => `That isn't where it lived. I had to come in and take it back ${from}. That's a minute.`,
+    torchTried: "You've tried there. It still isn't there.",
+    shelfClick: 'Click. The secret compartment has closed. It is no longer a secret to you, but it will be to the next lot.',
+    lockWrong: ["That's not its code. Our padlocks only close on their own code. They're very fancy. That's thirty seconds.",
+      'The shackle refuses. It has standards. Thirty seconds.', 'No. Count again. Everything. Thirty seconds.'],
+    lockNoKey: "Locked. Lovely. And the key? The key is in your pocket. I've opened it again. Key first.",
+    lockShut: code => `The shackle clicks shut on ${code}. The key is now exactly as lost as it was at the start.`,
+    keyPutIn: 'The brass key is back in the drawer. It looks relieved.',
+    keyTakeOut: 'You take the key out again. It looks betrayed.',
+    jigChaos: 'Lovely. Chaos. Exactly as we left it.',
+    jigFirstBreak: 'You broke it. Good. Did you look at it first? I am only asking.',
+    jigNoBox: 'You cannot box a finished jigsaw. The next team would just read it. Break it first.',
+    jigInBox: 'In the box. Lid on. The box is lying about the number of pieces again.',
+    jigReopen: "Opening it again. That's allowed. Put it back when you're done, or the sheet doesn't count it.",
+    jigLid: 'The lid shows a lighthouse. It has always shown a lighthouse. This jigsaw is not a lighthouse.',
+    jigAgain: 'Solved again. Read it while you can.',
+    frontEarly: "That door's for when you leave. You are, if anything, arriving.",
+    roomEarly: "It won't arm while the room is still solved. Reset the rest first.",
+    frontWin: '…oh. Oh, you actually did it. Hang on, I need to find Kieran.',
+    frontWinWall: 'Did they just — they did. Somebody get the good biscuits.',
+    roomWin: 'Armed. Pull it to. Mind your fingers. Welcome back.',
+    frontWrong: 'The front door makes a noise like a disappointed parent. Thirty seconds.',
+    roomWrong: 'Wrong code. The keypad beeps the beep of a keypad that knows. Thirty seconds.',
+    flavour: {
+      portrait: ['The Professor, in oils. Behind the frame, a dusty patch and a lot of Blu Tack. The clue card used to be tucked in the corner.', "He looks like a man who has hidden things. He hasn't. Gwen hid them."],
+      teapot: ['A teapot. Empty. It smells faintly of a previous team.', 'Still a teapot. It has never once been a clue. It lives in hope.'],
+      globe: ['The globe opens at the equator. It is empty. The world usually is, at the equator.', 'Somebody has drawn a tiny door on Belgium.'],
+      scuttle: ['A coal scuttle. No coal. Health and safety had views.', 'There is a single wrapped mint in the bottom. Leave it. It is load-bearing.'],
+    },
+    frontHot: "That's the front door of the building. You don't need it. You're trying to get IN, remember.",
+    revealBack: "The front door is the grey keypad at the end of the corridor. Room 3's keypad is by this door. Choose.",
+    welcome: team => `Gwen here. ${team}, welcome back, I suppose. Clock's on. Reset the room, then arm the door from the inside.`,
+    pockets: 'The reset sheet is on the clipboard. Things you walked out with are in your pockets. Everyone walks out with something.',
+    fiveLeft: 'Five minutes left. After that you are outside for good, legally. I have the paperwork.',
+    ends: {
+      inside: {
+        kicker: 'ROOM 3 · RE-ENTRY COMPLETE', title: 'Back inside.',
+        sub: 'The door clicks. The lights go off. The clock on the wall says 60:00 and means it.',
+        more: spot => `Somewhere in the dark a teammate asks if anyone has seen the torch. You have. You know exactly where it is (${spot}). You will say nothing for at least eleven minutes. This is the happiest you have ever been in a room.`,
+      },
+      free: {
+        kicker: 'ROOM 3 · SESSION EXPIRED', title: 'Stuck outside. Forever free.',
+        sub: 'The clock hits 00:00. Gwen holds the front door open for you, kindly, the way you hold a door for someone you will never see again.',
+        more: () => 'Out there is the car park, the trading estate, the whole unlit world, and none of it has a hint button. Nothing in it is locked. Nothing in it is a clue. You have never been so free, or so badly briefed.',
+      },
+      outside: {
+        kicker: 'ROOM 4 (THE OUTSIDE) · ESCAPED', title: 'You escaped the outside.',
+        sub: 'The front door opens. Behind it is a small room with a padlocked drawer, a bookshelf, and a clock that says 60:00.',
+        more: (spot, time) => `A laminated sign: CONGRATULATIONS. YOU HAVE ESCAPED ROOM 4 (THE OUTSIDE). AVERAGE COMPLETION TIME: A LIFETIME. YOURS: ${time}. The walls applaud. Somebody in them, very quietly, gives you a ten.`,
+      },
+    },
+    stat: { reset: (n) => `reset ${n} of 5`, used: t => `time used ${t}`, hints: n => `hints ${n}`, ratings: r => `wall ratings ${r}`, best: b => `best ${b}` },
+  },
+
+  fr: {
+    docTitle: 'Escape Game (Évasion réussie)',
+    langGroup: 'Langue',
+    brand: 'Locked In! · Salle 3',
+    brandSub: "Le bureau du Professeur · Gwen à l'interphone",
+    clockAria: 'Temps restant',
+    clockSmall: 'temps<br>restant',
+    remaining: s => 'il reste ' + s,
+    hintBtn: 'Demander un indice<small>coûte 5:00 · H</small>',
+    sceneAria: "Le bureau du Professeur : une bibliothèque, un bureau au tiroir cadenassé, un globe, une table de puzzle et une porte ouverte sur le couloir",
+    sheetTitle: 'Fiche de remise en état',
+    formNo: 'FORMULAIRE LI-R3-07 · RÉV. C',
+    formOrder: "DANS L'ORDRE VOULU, PORTE EN DERNIER",
+    pencil: 'Papier et crayon fournis',
+    notesPh: 'notez les codes ici',
+    back: '← Retour à la fiche',
+    tasks: {
+      uv: "Lampe UV remise dans sa cachette d'origine",
+      shelf: "Livres remis dans leur ordre d'origine (voir la poussière)",
+      lock: "Clé en laiton dans le tiroir · cadenas fermé sur son code d'origine",
+      jig: 'Puzzle défait et rangé dans sa boîte',
+      door: "Digicode de sortie réarmé · vous, à l'intérieur",
+    },
+    pocketsHead: 'Dans vos poches :',
+    pocketTorch: 'une lampe UV', pocketKey: 'une clé en laiton', pocketRest: ['un crayon', "le sentiment d'avoir gagné"],
+    uvTitle: 'Le mur UV',
+    uvText: "Vous tenez la lampe UV. D'après la note de remise en état, elle retourne là où on l'a trouvée. Le mur sait où. Balayez-le du doigt ou de la souris, ou utilisez les flèches.",
+    uvAria: "Un mur sombre. En déplaçant le faisceau de la lampe, on découvre une inscription à l'encre UV.",
+    uvReturn: 'Ranger la lampe :',
+    uvWall: ['RÉSERVÉ AU PERSONNEL · NOTE DE REMISE', 'LA LAMPE SE RANGE', 'PAS PORTEUR. KEVIN NON PLUS.'],
+    spots: {
+      globe: frSpot('dans le globe', 'du globe'),
+      teapot: frSpot('dans la théière', 'de la théière'),
+      portrait: frSpot('derrière le portrait', 'de derrière le portrait'),
+      scuttle: frSpot('dans le seau à charbon', 'du seau à charbon'),
+    },
+    shelfTitle: 'La bibliothèque',
+    shelfText: "Vous l'avez résolue en rangeant les livres de A à Z, ce qui a ouvert le compartiment. Ils doivent maintenant reprendre la place qu'ils ont occupée pendant des années. La poussière s'en souvient. Cliquez sur deux livres pour les échanger.",
+    shelfDone: "Tout est comme avant. Le compartiment s'est refermé tout seul, en boudant.",
+    shelfNote: "Le fond de l'étagère montre des zones propres, là où la poussière ne s'est jamais posée.",
+    shelfPick: 'Choisissez maintenant le livre à échanger.',
+    books: ["Bronze : malaise dans l'alliage", 'Chiffres pour âmes sensibles', 'Portes : un réexamen',
+      "Ruses d'évasion (version abrégée)", 'Serrures : une brève histoire', "Tapis, et ce qu'on met dessous"],
+    spines: ['Bronze', 'Chiffres', 'Portes', 'Ruses', 'Serrures', 'Tapis'],
+    bookAria: (title, w, h, pos) => `${title}, largeur ${w}, hauteur ${h}, position ${pos}`,
+    lockTitle: 'Le tiroir du bureau',
+    clueCard: 'La carte indice que vous avez fait tomber par terre : « Comptez ce qui brûle, puis ce qui veille, puis ce qui fait tic-tac. »',
+    keyIn: 'Clé dans le tiroir · la reprendre',
+    keyOut: 'Remettre la clé en laiton dans le tiroir',
+    lockBtn: 'Fermer le cadenas',
+    lockNote: 'Les flèches tournent les molettes. Entrée ferme le cadenas.',
+    dialUp: i => `molette ${i}, monter`, dialDown: i => `molette ${i}, descendre`,
+    jigTitle: 'Le puzzle',
+    boxLid: '1000 PIÈCES*<br><small style="font-family:var(--f-body);font-size:12px">*neuf</small>',
+    jigSolved: "Vous l'avez terminé pour avoir le code de sortie. La fiche le veut en morceaux et dans sa boîte, pour que l'équipe suivante patauge aussi.",
+    jigBroken: "Neuf pièces, à peu près là où elles sont tombées. Cliquez sur deux pièces pour les échanger, si vous avez besoin de revoir l'image.",
+    jigBoxed: "Dans sa boîte. Le couvercle annonce mille pièces. Il n'y a jamais eu mille pièces.",
+    jigBtns: { break: 'Le défaire', box: 'Le ranger dans la boîte', lid: 'Tricher : voir le couvercle', close: 'Fermer le couvercle', open: 'Rouvrir la boîte' },
+    pieceAria: (t, i) => `pièce ${t} à la place ${i}`,
+    sampler: ['ON EST BIEN AU', 'brodé par le Professeur, 1887'],
+    exitSign: 'SORTIE',
+    doorRoom: 'Digicode de sortie, salle 3',
+    doorFront: "Porte d'entrée de l'immeuble",
+    frontOpen: 'Un digicode gris près de la porte sur rue. Quatre chiffres. Un autocollant : « Les avis du personnel sont sans appel. »',
+    frontShut: "Un digicode gris. Un autocollant : « Le personnel ouvrira cette porte à la fin de votre session. » Votre session n'est pas terminée. Vous allez même plutôt dans l'autre sens.",
+    roomReady: "Armez-le de l'intérieur avec ses quatre chiffres d'origine et la porte se verrouillera derrière vous. Retour à 60:00.",
+    roomNotReady: list => `Impossible de l'armer tant que la salle est résolue. Reste à remettre en état : ${list}.`,
+    todo: { uv: 'la lampe UV', shelf: 'la bibliothèque', lock: 'le tiroir', jig: 'le puzzle' },
+    kpDelete: 'effacer', kpEnter: 'valider',
+    hots: {
+      shelf: 'Bibliothèque', portrait: 'Portrait du Professeur', uv: 'Le mur UV', lock: 'Tiroir du bureau (cadenassé ?)',
+      teapot: 'Théière', globe: 'Globe', scuttle: 'Seau à charbon', jig: 'Table du puzzle', door: 'Digicode de la salle 3',
+      front: "Porte d'entrée de l'immeuble",
+    },
+    intercom: 'INTERPHONE',
+    gwen: 'GWEN', wall: 'À TRAVERS LE MUR',
+    quote: s => `« ${s} »`,
+    titleKicker: 'LOCKED IN! ESCAPE GAMES · LOCAL 4, ZONE ARTISANALE DE BRINDLEY',
+    titleH: 'Escape Game (Évasion réussie)',
+    titleLede: "Vous avez quitté la salle 3 avec dix-huit minutes d'avance. C'était la plus belle heure de votre vie. Vous aimeriez y retourner.",
+    titleIntro: "Gwen, votre game master, dit que ce n'est pas l'usage, mais que ce n'est pas, techniquement, interdit. Vous êtes sur le pas de la porte, ce qui, juridiquement, compte comme dehors. Pour être de nouveau à l'intérieur, il faut dé-résoudre la salle : tout reverrouiller, tout recacher, tout remettre exactement comme c'était. Puis la porte de sortie, avec vous derrière.",
+    rule1: 'Cliquez sur les objets de la salle, ou sur les lignes de la fiche de remise en état. Les touches 1 à 5 ouvrent les lignes de la fiche.',
+    rule2: 'Le chrono fait vraiment 60:00, mais il tourne douze fois plus vite que le vôtre. Un indice coûte cinq minutes.',
+    rule3: "Papier et crayon sont fournis. Personne ne s'en sert jamais. Servez-vous-en.",
+    startBtn: 'Lancer le chrono · 60:00',
+    bestLine: 'environ 3 à 5 minutes · souris, tactile ou clavier',
+    bestLineWith: b => `meilleur retour ${b} · environ 3 à 5 minutes`,
+    revealKicker: 'INTERPHONE · ENTRE NOUS',
+    revealTitle: 'Un mot de Gwen',
+    revealGo: 'Retour dans la salle',
+    revealText: "Ici Gwen, entre nous. Vous l'avez remarqué : les murs ont des avis. Ils vous notent. Ils notent tout le monde, à travers les murs, toute la journée. Le truc, mon chou, c'est que personne n'est jamais revenu à l'intérieur, alors personne n'a jamais demandé ce que les murs notaient. C'est l'extérieur. Le parking, la rocade, tout le bazar. C'est ça, la salle 4. Personne n'en est jamais sorti. Temps moyen : une vie entière. La dernière énigme, c'est la porte d'entrée de l'immeuble. Ou alors vous armez la salle 3 et vous rentrez au chaud. C'est vous qui voyez. Le chrono tourne toujours.",
+    againBtn: 'Réserver à nouveau la salle 3',
+    teams: ['Les Boucs Évadés', 'Arnaques, Cadenas et Botanique', 'Aucun Indice (au second degré)', 'Le Pot de Départ de Kevin', 'Sherlock HLM'],
+    num: ['zéro', 'un', 'deux', 'trois', 'quatre', 'cinq', 'six', 'sept', 'huit', 'neuf'],
+    rate: {
+      uv: 'A planqué la lampe comme si elle lui devait des sous. Je mets',
+      shelf: 'A remis les livres dans le mauvais ordre. Correctement. Je mets',
+      lock: 'A enfermé une clé dans un tiroir avec une vraie émotion. Ça vaut',
+      jig: 'A recassé un puzzle sans pleurer. Je mets',
+    },
+    rateLine: (line, word) => `${line} ${word} sur dix.`,
+    idle: [
+      "Ici Gwen. Petit rappel : les accessoires ne sont pas porteurs. Merci d'arrêter de vous appuyer sur le hibou.",
+      "Pour l'assurance, vous êtes actuellement dehors. Merci de continuer à dé-résoudre.",
+      "Personne n'a jamais demandé à revenir. Tout le monde est ravi. Kieran a fait une banderole.",
+      'Six ans que je fais ça. Des centaines de gens sortis. Vous seriez la première personne à rentrer.',
+      "Rappel : la sortie de secours est une vraie sortie. Merci de ne pas dé-résoudre la sortie de secours.",
+      "Le professeur n'existe pas. Le bureau n'existe pas. La caution, elle, existait bel et bien.",
+      "Vous vous débrouillez très bien. Statistiquement. Par rapport à l'enterrement de vie de jeune fille.",
+      "Il y a une équipe en salle 2 qui essaie de sortir. Vous les entendrez peut-être. Ne les aidez pas. Ils paient.",
+      "Je vérifie juste que vous n'avez rien pris d'autre. Un enterrement de vie de garçon nous a déjà fauché un jeu d'échecs complet.",
+      "Si on vous demande, vous êtes une « réservation inversée ». La compta n'a pas encore de code pour ça.",
+      "L'horloge au mur est vraie. Celle dans votre tête, non. Faites confiance au mur.",
+      "Kieran veut que je vous dise que les hiboux ne vous regardent pas. Kieran se trompe sur beaucoup de choses.",
+    ],
+    mutter: [
+      '…attends, la 3 remet les trucs en place ? Genre, vraiment en place ?',
+      "…note ça. Non, sur le formulaire. L'autre formulaire.",
+      "…franchement, personne ne dé-résout une salle. C'est comme dé-manger un sandwich.",
+      "…quelqu'un a vérifié si l'extérieur avait été remis en état ? Non. Personne ne remet l'extérieur en état.",
+      '…chut, on nous entend. On nous entend ? Faites coucou si vous nous entendez.',
+      "…pour info, j'ai mis quatre à l'enterrement de vie de jeune fille. Pour les paillettes.",
+      "…personne n'a dix. Dix, c'est pour l'extérieur. Me demande pas ce que ça veut dire, c'est sur la fiche plastifiée.",
+    ],
+    hints: {
+      uv: ['La lampe était cachée quelque part au début. Le mur sait où. Éclairez le mur avec la lampe.',
+        'Passez lentement le faisceau sur le mur sombre. La deuxième ligne donne la cachette.'],
+      shelf: ['Ces livres sont restés des années sur cette étagère. Ils ont laissé des traces derrière eux.',
+        'Chaque zone propre dans la poussière correspond à un livre : associez-les par largeur et par hauteur, de gauche à droite. Cliquez sur deux livres pour les échanger.'],
+      lock: ['La carte indice tombée du portrait : ce qui brûle, ce qui veille, ce qui fait tic-tac.',
+        "Les bougies, puis les hiboux, puis les horloges, comptés dans toute la salle, un chiffre chacun. Et la clé d'abord."],
+      jig: ["Un puzzle résolu, c'est une réponse. L'équipe suivante a besoin d'une question. Regardez-le bien avant de le défaire.",
+        'Le nombre brodé sur le canevas est aussi le code de sortie. Notez-le, puis défaites le puzzle et rangez-le.'],
+      door: ['Le code de sortie de la salle 3 était sur le puzzle.',
+        "Quatre chiffres, brodés sur le canevas. Si vous l'avez déjà rangé, rouvrez la boîte et reconstituez-le."],
+      front: ["La porte d'entrée veut savoir ce qu'on a pensé de vous.",
+        "Quatre notes, à travers le mur, dans l'ordre où on les a données. Regardez l'interphone, mon chou."],
+    },
+    hintSay: h => `Indice, cinq minutes : ${h}`,
+    resetAgain: 'Encore une remise en état. Les murs ont déjà donné leur avis sur celle-là.',
+    acks: ['Une de faite. Enfin, de défaite. De refaite ? Je ne sais plus dans quel sens on compte, là.',
+      "Deux de remises. La salle recommence à avoir l'air perdue. Parfait.",
+      "Trois. J'ai appelé ma mère pour lui raconter.",
+      "Quatre. Cette salle est aussi peu résolue que le jour où on l'a construite. Plus que la porte."],
+    torchBack: where => `La lampe retourne ${where}. On dirait qu'elle n'a jamais été trouvée. Parfait.`,
+    torchWrong: from => `Ce n'était pas là qu'elle vivait. J'ai dû entrer la ressortir ${from}. Ça fait une minute.`,
+    torchTried: "Vous avez déjà essayé là. Elle n'y est toujours pas.",
+    shelfClick: "Clic. Le compartiment secret s'est refermé. Ce n'est plus un secret pour vous, mais ça en sera un pour les suivants.",
+    lockWrong: ["Ce n'est pas son code. Nos cadenas ne se ferment que sur leur propre code. Ils sont très chics. Trente secondes.",
+      "L'anse refuse. Elle a des principes. Trente secondes.", 'Non. Recomptez. Tout. Trente secondes.'],
+    lockNoKey: "Verrouillé. Parfait. Et la clé ? La clé est dans votre poche. J'ai rouvert. La clé d'abord.",
+    lockShut: code => `L'anse se referme sur ${code}. La clé est désormais exactement aussi perdue qu'au début.`,
+    keyPutIn: "La clé en laiton est de retour dans le tiroir. Elle a l'air soulagée.",
+    keyTakeOut: "Vous reprenez la clé. Elle a l'air trahie.",
+    jigChaos: "Parfait. Le chaos. Exactement comme on l'avait laissé.",
+    jigFirstBreak: "Vous l'avez cassé. Bien. Vous l'aviez regardé avant ? Je demande, c'est tout.",
+    jigNoBox: "On ne range pas un puzzle terminé. L'équipe suivante n'aurait qu'à le lire. Défaites-le d'abord.",
+    jigInBox: 'Dans la boîte. Couvercle fermé. La boîte ment encore sur le nombre de pièces.',
+    jigReopen: "Vous le rouvrez. C'est permis. Rangez-le quand vous avez fini, sinon la fiche ne le compte pas.",
+    jigLid: "Le couvercle montre un phare. Il a toujours montré un phare. Ce puzzle n'est pas un phare.",
+    jigAgain: 'Résolu à nouveau. Lisez-le tant que vous pouvez.',
+    frontEarly: "Cette porte, c'est pour quand on s'en va. Vous, vous êtes plutôt en train d'arriver.",
+    roomEarly: "Impossible de l'armer tant que la salle est résolue. Remettez d'abord le reste en état.",
+    frontWin: "…oh. Oh, vous l'avez vraiment fait. Attendez, il faut que je trouve Kieran.",
+    frontWinWall: "Est-ce que… si. Si ! Quelqu'un sort les bons biscuits.",
+    roomWin: 'Armé. Tirez la porte. Attention aux doigts. Bon retour parmi nous.',
+    frontWrong: "La porte d'entrée fait le bruit d'un parent déçu. Trente secondes.",
+    roomWrong: "Mauvais code. Le digicode fait le bip d'un digicode qui sait. Trente secondes.",
+    flavour: {
+      portrait: ["Le Professeur, à l'huile. Derrière le cadre, une zone poussiéreuse et beaucoup de pâte à fixe. La carte indice était glissée dans le coin.", "Il a l'air d'un homme qui cache des choses. Il n'a rien caché. C'est Gwen qui a tout caché."],
+      teapot: ["Une théière. Vide. Elle sent vaguement l'équipe d'avant.", "Toujours une théière. Elle n'a jamais été un indice. Elle garde espoir."],
+      globe: ["Le globe s'ouvre à l'équateur. Il est vide. Le monde l'est souvent, à l'équateur.", "Quelqu'un a dessiné une toute petite porte sur la Belgique."],
+      scuttle: ["Un seau à charbon. Pas de charbon. L'hygiène et sécurité avait son mot à dire.", "Il reste un bonbon à la menthe emballé, tout au fond. N'y touchez pas. Il est porteur."],
+    },
+    frontHot: "C'est la porte d'entrée de l'immeuble. Vous n'en avez pas besoin. Vous essayez de RENTRER, rappelez-vous.",
+    revealBack: "La porte d'entrée, c'est le digicode gris au bout du couloir. Celui de la salle 3 est près de cette porte. À vous de choisir.",
+    welcome: team => `Ici Gwen. ${team}, bon retour, j'imagine. Le chrono tourne. Remettez la salle en état, puis armez la porte de l'intérieur.`,
+    pockets: "La fiche de remise en état est sur le porte-bloc. Ce que vous avez emporté en sortant est dans vos poches. Tout le monde emporte quelque chose.",
+    fiveLeft: "Plus que cinq minutes. Après, vous serez dehors pour de bon, légalement. J'ai les papiers.",
+    ends: {
+      inside: {
+        kicker: "SALLE 3 · RETOUR À L'INTÉRIEUR EFFECTUÉ", title: "De retour à l'intérieur.",
+        sub: "La porte fait clic. Les lumières s'éteignent. L'horloge au mur affiche 60:00, et elle ne plaisante pas.",
+        more: spot => `Quelque part dans le noir, quelqu'un de l'équipe demande si on a vu la lampe. Vous, oui. Vous savez exactement où elle est (${spot}). Vous ne direz rien pendant au moins onze minutes. Jamais vous n'avez connu un tel bonheur entre quatre murs.`,
+      },
+      free: {
+        kicker: 'SALLE 3 · SESSION EXPIRÉE', title: 'Dehors pour de bon. Libre à jamais.',
+        sub: "Le chrono atteint 00:00. Gwen vous tient la porte d'entrée, gentiment, comme on tient la porte à quelqu'un qu'on ne reverra jamais.",
+        more: () => "Dehors, il y a le parking, la zone artisanale, le monde entier sans éclairage, et rien de tout ça n'a de bouton indice. Rien n'y est verrouillé. Rien n'y est un indice. Jamais vous n'avez eu autant de liberté, ni aussi peu de consignes.",
+      },
+      outside: {
+        kicker: "SALLE 4 (L'EXTÉRIEUR) · ÉVASION RÉUSSIE", title: "Évasion de l'extérieur : réussie.",
+        sub: "La porte d'entrée s'ouvre. Derrière, une petite pièce avec un tiroir cadenassé, une bibliothèque et une horloge qui affiche 60:00.",
+        more: (spot, time) => `Un panneau plastifié : FÉLICITATIONS. ÉVASION RÉUSSIE DE LA SALLE 4 (L'EXTÉRIEUR). TEMPS MOYEN : UNE VIE ENTIÈRE. LE VÔTRE : ${time}. Les murs applaudissent. Quelqu'un, dedans, tout bas, vous met dix sur dix.`,
+      },
+    },
+    stat: { reset: n => `remises en état : ${n} sur 5`, used: t => `temps utilisé ${t}`, hints: n => `indices ${n}`, ratings: r => `notes des murs ${r}`, best: b => `record ${b}` },
+  },
+};
+
+// French typography: a narrow no-break space before ? ! : ; » and after «, applied once to every
+// French string (and to whatever a French string function returns) so no line starts with "?".
+(function frenchSpacing() {
+  const fix = s => s.replace(/ ([?!:;»])/g, '\u202f$1').replace(/« /g, '«\u202f');
+  const deep = v => typeof v === 'string' ? fix(v)
+    : typeof v === 'function' ? (...a) => fix(v(...a))
+    : Array.isArray(v) ? v.map(deep)
+    : v && typeof v === 'object' ? Object.fromEntries(Object.entries(v).map(([k, x]) => [k, deep(x)]))
+    : v;
+  I18N.fr = deep(I18N.fr);
+})();
+
+let lang = 'en';
+const t = k => I18N[lang][k] ?? I18N.en[k];
+const spotText = id => t('spots')[id];
+
+// Uniform-length tables index into each other across a mid-game switch (idle line counter, team).
+for (const k of ['idle', 'mutter', 'teams', 'acks', 'lockWrong', 'books', 'spines']) {
+  if (I18N.en[k].length !== I18N.fr[k].length) console.error(`i18n: ${k} differs in length`);
+}
+
+const uv = { x: 30, y: 30, view: null };
+const jigSrc = document.createElement('canvas');
+jigSrc.width = 540; jigSrc.height = 360;
+
+const fmt = s => { s = Math.max(0, Math.ceil(s)); return String(Math.floor(s / 60)).padStart(2, '0') + ':' + String(s % 60).padStart(2, '0'); };
+function shuffle(a) { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
+const d1 = () => 2 + Math.floor(Math.random() * 5);
+
+function fresh() {
+  let target;
+  do target = shuffle([0, 1, 2, 3, 4, 5]); while (target.filter((b, i) => b === i).length > 1);
+  let code;
+  do code = String(1000 + Math.floor(Math.random() * 9000)); while (code.includes('0'));
+  const counts = { candles: d1(), owls: Math.min(5, d1()), clocks: d1() };
+  return {
+    mode: 'title', clock: 3600, t: 0, hints: 0, wrong: 0, team: Math.floor(Math.random() * t('teams').length),
+    done: { uv: false, shelf: false, lock: false, jig: false },
+    order: [], ratings: [], rated: {}, revealDue: -1, revealed: false, endDue: -1, ending: null, closing: -1, front: false,
+    spot: Kit.pick(SPOTS).id, spotTried: new Set(),
+    widths: shuffle([26, 32, 38, 44, 50, 56]), heights: shuffle([74, 82, 90, 98, 106, 114]),
+    shelf: [0, 1, 2, 3, 4, 5], target, pick: -1,
+    counts, code: [counts.candles, counts.owls, counts.clocks], dials: [Math.floor(Math.random() * 10), Math.floor(Math.random() * 10), Math.floor(Math.random() * 10)], dial: 0, keyIn: false,
+    jigCode: code, jig: [0, 1, 2, 3, 4, 5, 6, 7, 8], jigState: 'solved', jigPick: -1,
+    entry: '', active: null, door: 'room',
+    idleT: 22, idleI: Math.floor(Math.random() * t('idle').length), wallT: 50, wallI: 0, pending: [],
+    candleAt: shuffle(CANDLE_POS).slice(0, counts.candles), owlAt: shuffle(OWL_POS).slice(0, counts.owls), clockAt: shuffle(CLOCK_POS).slice(0, counts.clocks),
+  };
+}
+
+// ---- intercom -------------------------------------------------------------------------------
+function say(text, who = 'GWEN') {
+  const p = document.createElement('p');
+  if (who === 'WALL') p.className = 'wall';
+  p.innerHTML = '<b></b>';
+  p.firstChild.textContent = who === 'WALL' ? t('wall') : t('gwen');
+  p.append(who === 'WALL' ? t('quote')(text) : text);
+  const log = $('#log');
+  [...log.children].forEach(c => c.classList.add('old'));
+  log.append(p);
+  while (log.children.length > 40) log.firstChild.remove();
+  log.scrollTop = log.scrollHeight;
+}
+function later(secs, fn) { S.pending.push({ at: S.t + secs, fn }); }
+
+// ---- LED clock ------------------------------------------------------------------------------
+const SEGS = { a: [5, 0, 20, 6], b: [24, 5, 6, 21], c: [24, 28, 6, 21], d: [5, 48, 20, 6], e: [0, 28, 6, 21], f: [0, 5, 6, 21], g: [5, 24, 20, 6] };
+const DIGITS = ['abcdef', 'bc', 'abged', 'abgcd', 'fgbc', 'afgcd', 'afgedc', 'abc', 'abcdefg', 'abcdfg'];
+const ledX = [2, 36, 82, 116];
+(function buildLed() {
+  let h = '';
+  ledX.forEach((x, i) => {
+    h += `<g transform="translate(${x},0) skewX(-6)">`;
+    for (const [k, [sx, sy, w, hh]] of Object.entries(SEGS)) h += `<rect class="seg" data-d="${i}" data-s="${k}" x="${sx}" y="${sy}" width="${w}" height="${hh}" rx="2"/>`;
+    h += '</g>';
+  });
+  h += '<circle class="seg on" cx="73" cy="17" r="3.4"/><circle class="seg on" cx="71" cy="37" r="3.4"/>';
+  $('#led').innerHTML = h;
+})();
+const segEls = [...document.querySelectorAll('#led rect')];
+let ledShown = '';
+function setLed(str) {
+  if (str === ledShown) return;
+  ledShown = str;
+  const ds = str.replace(':', '');
+  for (const el of segEls) el.classList.toggle('on', DIGITS[+ds[+el.dataset.d]].includes(el.dataset.s));
+  $('#clock-sr').textContent = t('remaining')(str);
+}
+function flashClock() { const b = $('.clockbox'); b.classList.add('flash'); setTimeout(() => b.classList.remove('flash'), 500); }
+function cost(secs, why) { S.clock -= secs; flashClock(); if (why) say(why); }
+
+// ---- the room -------------------------------------------------------------------------------
+const view = Kit.canvas($('#scene'), () => drawRoom());
+const HOTS = [
+  { id: 'shelf', r: [16, 120, 190, 255] },
+  { id: 'portrait', r: [226, 36, 98, 120] },
+  { id: 'uv', r: [350, 46, 154, 128] },
+  { id: 'lock', r: [300, 272, 130, 64], low: true },
+  { id: 'teapot', r: [446, 218, 50, 34] },
+  { id: 'globe', r: [516, 214, 74, 80] },
+  { id: 'scuttle', r: [496, 334, 52, 46], low: true },
+  { id: 'jig', r: [598, 270, 150, 60] },
+  { id: 'door', r: [722, 184, 46, 62] },
+  { id: 'front', r: [792, 112, 58, 186] },
+];
+(function buildHots() {
+  const box = $('#hots');
+  for (const h of HOTS) {
+    const b = document.createElement('button');
+    b.className = 'hot' + (h.low ? ' low' : '');
+    b.dataset.hot = h.id;
+    const [x, y, w, hh] = h.r;
+    Object.assign(b.style, { left: x / 9 + '%', top: y / 4.5 + '%', width: w / 9 + '%', height: hh / 4.5 + '%' });
+    box.append(b);
+  }
+})();
+function labelHots() {
+  for (const b of document.querySelectorAll('.hot')) {
+    const label = t('hots')[b.dataset.hot];
+    b.dataset.label = label; b.setAttribute('aria-label', label);
+  }
+}
+
+function drawRoom() {
+  if (!S || !view.W) return;
+  const { cx, W, H } = view, k = W / 900;
+  cx.save(); cx.scale(k, H / 450);
+  // wall, wallpaper stripe, skirting, floorboards
+  cx.fillStyle = C.wall; cx.fillRect(0, 0, 900, 380);
+  cx.fillStyle = C['wall-2'];
+  for (let x = 0; x < 900; x += 36) cx.fillRect(x, 0, 14, 380);
+  cx.fillStyle = C['wood-dk']; cx.fillRect(0, 366, 900, 14);
+  cx.fillStyle = C.floor; cx.fillRect(0, 380, 900, 70);
+  cx.strokeStyle = C['wood-dk']; cx.lineWidth = 1.5;
+  for (let y = 394; y < 450; y += 16) { cx.beginPath(); cx.moveTo(0, y); cx.lineTo(900, y); cx.stroke(); }
+
+  drawDoor(cx);
+  drawShelf(cx);
+  // portrait
+  cx.fillStyle = C.brass; cx.fillRect(230, 40, 90, 112);
+  cx.fillStyle = C.paper; cx.fillRect(240, 50, 70, 92);
+  cx.fillStyle = C.iron; cx.beginPath(); cx.arc(275, 84, 15, 0, 7); cx.fill();
+  cx.fillRect(255, 104, 40, 38);
+  cx.fillStyle = C.paper; cx.fillRect(266, 90, 18, 3);
+  // UV wall: a darker patch the curtain used to cover, with a tiny sticker
+  cx.fillStyle = C['wood-dk']; cx.fillRect(350, 46, 154, 128);
+  cx.fillStyle = C.wall; cx.fillRect(356, 52, 142, 116);
+  cx.globalAlpha = S.done.uv ? .12 : .35; cx.fillStyle = C.uv; cx.fillRect(356, 52, 142, 116); cx.globalAlpha = 1;
+  cx.fillStyle = C['wood-dk']; cx.fillRect(344, 40, 166, 8);
+  cx.fillStyle = C.accent; cx.fillRect(482, 150, 14, 10);
+  // desk
+  cx.fillStyle = C.wood; cx.fillRect(230, 250, 270, 12);
+  cx.fillStyle = C['wood-dk']; cx.fillRect(240, 262, 250, 104);
+  cx.fillStyle = C.wood; cx.fillRect(320, 282, 90, 44);
+  cx.fillStyle = C.brass; cx.fillRect(357, 300, 16, 5);
+  drawPadlock(cx, 365, 318);
+  // teapot
+  cx.fillStyle = C.paper; cx.beginPath(); cx.ellipse(470, 238, 18, 13, 0, 0, 7); cx.fill();
+  cx.fillRect(486, 230, 10, 4); cx.fillRect(462, 222, 16, 4);
+  cx.strokeStyle = C.paper; cx.lineWidth = 3; cx.beginPath(); cx.arc(452, 238, 6, 1.2, 5.1); cx.stroke();
+  // globe on its stand
+  cx.strokeStyle = C['wood-dk']; cx.lineWidth = 5; cx.beginPath(); cx.moveTo(553, 290); cx.lineTo(553, 366); cx.moveTo(532, 366); cx.lineTo(574, 366); cx.stroke();
+  cx.fillStyle = C.exit; cx.beginPath(); cx.arc(553, 252, 32, 0, 7); cx.fill();
+  cx.fillStyle = C.brass; cx.globalAlpha = .7; cx.beginPath(); cx.ellipse(548, 244, 12, 8, .4, 0, 7); cx.fill(); cx.beginPath(); cx.ellipse(565, 266, 7, 10, -.3, 0, 7); cx.fill(); cx.globalAlpha = 1;
+  cx.strokeStyle = C.brass; cx.lineWidth = 3; cx.beginPath(); cx.arc(553, 252, 38, -1.9, 1.9); cx.stroke();
+  // coal scuttle
+  cx.fillStyle = C.iron; cx.beginPath(); cx.moveTo(500, 342); cx.lineTo(544, 342); cx.lineTo(538, 380); cx.lineTo(506, 380); cx.fill();
+  cx.strokeStyle = C.brass; cx.lineWidth = 2; cx.beginPath(); cx.arc(522, 342, 14, Math.PI, 0); cx.stroke();
+  // jigsaw table
+  cx.fillStyle = C.wood; cx.fillRect(600, 300, 146, 10);
+  cx.fillStyle = C['wood-dk']; cx.fillRect(610, 310, 10, 56); cx.fillRect(726, 310, 10, 56);
+  drawJigMini(cx);
+  // countables
+  for (const [x, y] of S.candleAt) drawCandle(cx, x, y);
+  for (const [x, y] of S.owlAt) drawOwl(cx, x, y);
+  for (const [x, y] of S.clockAt) drawClock(cx, x, y);
+  // the Room 3 keypad by the door frame
+  cx.fillStyle = C.ink; cx.fillRect(734, 196, 22, 38);
+  cx.fillStyle = S.ending === 'inside' || S.closing >= 0 ? C.led : C.exit; cx.fillRect(740, 202, 10, 5);
+  cx.fillStyle = C.muted; for (let i = 0; i < 9; i++) cx.fillRect(738 + (i % 3) * 5, 212 + Math.floor(i / 3) * 6, 3, 3);
+  cx.restore();
+}
+
+function drawDoor(cx) {
+  // open doorway onto the corridor; the building's front door at the far end
+  const shut = S.closing >= 0 ? Kit.clamp((S.t - S.closing) / 1.4, 0, 1) : (S.ending === 'inside' ? 1 : 0);
+  cx.fillStyle = C['wood-dk']; cx.fillRect(764, 56, 122, 314);
+  cx.fillStyle = C.glass; cx.fillRect(774, 66, 102, 304);
+  cx.strokeStyle = C.muted; cx.lineWidth = 1;
+  cx.beginPath(); cx.moveTo(774, 66); cx.lineTo(800, 112); cx.moveTo(876, 66); cx.lineTo(850, 112);
+  cx.moveTo(774, 370); cx.lineTo(800, 298); cx.moveTo(876, 370); cx.lineTo(850, 298); cx.stroke();
+  cx.fillStyle = C.wood; cx.fillRect(800, 130, 50, 168);
+  cx.fillStyle = C.brass; cx.fillRect(840, 214, 5, 5);
+  cx.fillStyle = C.exit; cx.fillRect(808, 114, 34, 12);
+  cx.fillStyle = C.glass; cx.font = '8px "Share Tech Mono", monospace'; cx.textAlign = 'center'; cx.fillText(t('exitSign'), 825, 123, 32);
+  cx.fillStyle = C.ink; cx.fillRect(803, 206, 7, 12);
+  if (S.revealed && S.ending !== 'inside') { cx.strokeStyle = C.exit; cx.lineWidth = 2; cx.strokeRect(797, 110, 56, 190); }
+  // the door leaf itself: swung open against the frame, or closing
+  const w = 102 * (0.16 + 0.84 * shut);
+  cx.fillStyle = C.wood; cx.fillRect(876 - w, 66, w, 304);
+  cx.strokeStyle = C['wood-dk']; cx.lineWidth = 2; cx.strokeRect(876 - w + 6, 80, Math.max(0, w - 12), 120); cx.strokeRect(876 - w + 6, 220, Math.max(0, w - 12), 136);
+}
+function drawShelf(cx) {
+  cx.fillStyle = C['wood-dk']; cx.fillRect(18, 70, 184, 300);
+  cx.fillStyle = C.wood;
+  for (const y of [70, 140, 214, 290, 362]) cx.fillRect(18, y, 184, 8);
+  // decorative books top and bottom
+  const deco = [C.accent, C.brass, C.exit, C['wall-2'], C.paper, C.wood];
+  let x = 28;
+  for (let i = 0; i < 9; i++) { cx.fillStyle = deco[i % 6]; const w = 12 + (i * 7) % 9; cx.fillRect(x, 92 + (i % 3) * 5, w, 48 - (i % 3) * 5); x += w + 3; }
+  x = 30;
+  for (let i = 0; i < 8; i++) { cx.fillStyle = deco[(i + 3) % 6]; const w = 14 + (i * 5) % 10; cx.fillRect(x, 314 + (i % 2) * 6, w, 48 - (i % 2) * 6); x += w + 4; }
+  // the puzzle shelf, drawn in its current order
+  x = 28;
+  for (const b of S.shelf) {
+    const w = S.widths[b] * .52, h = S.heights[b] * .58;
+    cx.fillStyle = [C.accent, C['wall-2'], C.wood, C.exit, C.brass, C.paper][b];
+    cx.fillRect(x, 290 - h, w, h);
+    cx.strokeStyle = C.ink; cx.lineWidth = 1; cx.strokeRect(x, 290 - h, w, h);
+    x += w + 2;
+  }
+}
+function drawPadlock(cx, x, y) {
+  const locked = S.done.lock;
+  cx.strokeStyle = C.brass; cx.lineWidth = 3;
+  cx.beginPath(); cx.arc(x, y - (locked ? 0 : 6), 7, Math.PI, 0); cx.lineTo(x + 7, y - (locked ? 0 : 6) + 4); cx.stroke();
+  cx.fillStyle = C.brass; cx.fillRect(x - 10, y, 20, 16);
+  cx.fillStyle = C.ink; cx.fillRect(x - 6, y + 5, 12, 6);
+}
+function drawCandle(cx, x, y) {
+  cx.fillStyle = C.brass; cx.fillRect(x - 6, y - 3, 12, 3);
+  cx.fillStyle = C.paper; cx.fillRect(x - 3, y - 22, 6, 19);
+  cx.fillStyle = C.led; cx.beginPath(); cx.ellipse(x, y - 27, 2.6, 5, 0, 0, 7); cx.fill();
+}
+function drawOwl(cx, x, y) {
+  cx.fillStyle = C.brass; cx.beginPath(); cx.ellipse(x, y - 13, 10, 13, 0, 0, 7); cx.fill();
+  cx.beginPath(); cx.moveTo(x - 9, y - 22); cx.lineTo(x - 7, y - 30); cx.lineTo(x - 3, y - 24); cx.moveTo(x + 9, y - 22); cx.lineTo(x + 7, y - 30); cx.lineTo(x + 3, y - 24); cx.fill();
+  cx.fillStyle = C.paper; cx.beginPath(); cx.arc(x - 4, y - 17, 3.6, 0, 7); cx.arc(x + 4, y - 17, 3.6, 0, 7); cx.fill();
+  cx.fillStyle = C.ink; cx.beginPath(); cx.arc(x - 4, y - 17, 1.6, 0, 7); cx.arc(x + 4, y - 17, 1.6, 0, 7); cx.fill();
+}
+function drawClock(cx, x, y) {
+  cx.fillStyle = C['wood-dk']; cx.beginPath(); cx.arc(x, y, 15, 0, 7); cx.fill();
+  cx.fillStyle = C.clockface; cx.beginPath(); cx.arc(x, y, 12, 0, 7); cx.fill();
+  cx.strokeStyle = C.ink; cx.lineWidth = 1.6; cx.beginPath();
+  const a = (x * 7 + y) % 12 / 12 * Math.PI * 2;
+  cx.moveTo(x, y); cx.lineTo(x + Math.sin(a) * 6, y - Math.cos(a) * 6); cx.moveTo(x, y); cx.lineTo(x + Math.sin(a * 5) * 9, y - Math.cos(a * 5) * 9); cx.stroke();
+}
+function drawJigMini(cx) {
+  if (S.jigState === 'boxed') {
+    cx.fillStyle = C.wood; cx.fillRect(642, 280, 60, 20); cx.strokeStyle = C.ink; cx.lineWidth = 1; cx.strokeRect(642, 280, 60, 20);
+    return;
+  }
+  // a foreshortened version of the real tiles in their current places
+  for (let i = 0; i < 9; i++) {
+    const t = S.jig[i], sx = (t % 3) * 180, sy = Math.floor(t / 3) * 120;
+    const dx = 636 + (i % 3) * 24, dy = 282 + Math.floor(i / 3) * 6;
+    cx.drawImage(jigSrc, sx, sy, 180, 120, dx, dy, 24, 6);
+  }
+}
+
+// ---- jigsaw picture -------------------------------------------------------------------------
+function drawJigSource() {
+  if (!S) return;
+  const g = jigSrc.getContext('2d');
+  g.fillStyle = C.paper; g.fillRect(0, 0, 540, 360);
+  g.strokeStyle = C.accent; g.lineWidth = 3;
+  for (let x = 14; x < 540; x += 22) { cross(g, x, 14); cross(g, x, 346); }
+  for (let y = 36; y < 340; y += 22) { cross(g, 14, y); cross(g, 526, y); }
+  g.fillStyle = '#2a241a';
+  g.textAlign = 'center';
+  g.font = '34px "Black Ops One", Impact, sans-serif'; g.fillText(t('sampler')[0], 270, 92, 480);
+  g.fillStyle = C.exit; g.font = '120px "Share Tech Mono", monospace'; g.fillText(S.jigCode.split('').join(' '), 270, 222);
+  g.fillStyle = '#2a241a'; g.font = 'italic 24px "Red Hat Text", sans-serif'; g.fillText(t('sampler')[1], 270, 290, 480);
+  g.strokeStyle = C.wood; g.lineWidth = 2;
+  for (let i = 1; i < 3; i++) { g.beginPath(); g.moveTo(i * 180, 30); g.lineTo(i * 180, 330); g.moveTo(30, i * 120); g.lineTo(510, i * 120); g.globalAlpha = .18; g.stroke(); g.globalAlpha = 1; }
+  renderJig();
+}
+function cross(g, x, y) { g.beginPath(); g.moveTo(x - 5, y - 5); g.lineTo(x + 5, y + 5); g.moveTo(x + 5, y - 5); g.lineTo(x - 5, y + 5); g.stroke(); }
+
+// ---- sheet + panels -------------------------------------------------------------------------
+function allFour() { return S.done.uv && S.done.shelf && S.done.lock && S.done.jig; }
+function renderSheet() {
+  const ol = $('#checks'); ol.innerHTML = '';
+  TASKS.forEach((task, i) => {
+    const li = document.createElement('li'), b = document.createElement('button');
+    const done = task.id === 'door' ? S.ending === 'inside' : S.done[task.id];
+    b.dataset.task = task.id;
+    if (done) b.className = 'done'; else if (task.id === 'door' && !allFour()) b.className = 'locked';
+    b.innerHTML = `<span class="box">${done ? '✓' : ''}</span><span class="t"></span>`;
+    b.querySelector('.t').textContent = `${i + 1}. ${t('tasks')[task.id]}`;
+    li.append(b); ol.append(li);
+  });
+  const items = [];
+  if (!S.done.uv) items.push(t('pocketTorch'));
+  if (!S.keyIn) items.push(t('pocketKey'));
+  items.push(...t('pocketRest'));
+  $('#pockets').innerHTML = '<b></b> ';
+  $('#pockets b').textContent = t('pocketsHead');
+  $('#pockets').append(items.join(', ') + '.');
+}
+const PANELS = ['uv', 'shelf', 'lock', 'jig', 'door'];
+function openPuzzle(id) {
+  if (S.mode !== 'play') return;
+  if (id === 'front') { S.door = 'front'; id = 'door'; }
+  else if (id === 'door') S.door = 'room';
+  S.active = id;
+  $('#sheet').hidden = true;
+  for (const p of PANELS) $('#pz-' + p).hidden = p !== id;
+  if (id === 'shelf') renderShelf();
+  if (id === 'lock') renderLock();
+  if (id === 'jig') renderJig();
+  if (id === 'door') { S.entry = ''; renderDoor(); }
+  if (id === 'uv') renderUvSpots();
+  const panel = $('#pz-' + id);
+  if (matchMedia('(max-width: 880px)').matches) panel.scrollIntoView({ block: 'nearest', behavior: Kit.reduce ? 'auto' : 'smooth' });
+}
+function closePuzzle() {
+  S.active = null;
+  for (const p of PANELS) $('#pz-' + p).hidden = true;
+  $('#sheet').hidden = false;
+  renderSheet();
+}
+
+function complete(id) {
+  S.done[id] = true;
+  if (S.rated[id]) { say(t('resetAgain')); closePuzzle(); drawRoom(); return; }
+  S.rated[id] = true;
+  S.order.push(id);
+  const r = 3 + Math.floor(Math.random() * 7);   // 3..9; nobody gets a ten
+  S.ratings.push(r);
+  later(2.2, () => say(t('rateLine')(t('rate')[id], t('num')[r]), 'WALL'));
+  const n = S.order.length;
+  later(0.6, () => say(t('acks')[n - 1]));
+  if (n === 4 && !S.revealed) S.revealDue = S.t + 5.5;
+  closePuzzle();
+  drawRoom();
+}
+
+// UV
+function renderUvSpots() {
+  const row = $('#uv-spots'); row.innerHTML = '';
+  for (const sp of SPOTS) {
+    const b = document.createElement('button');
+    b.className = 'btn ghost'; b.textContent = spotText(sp.id).btn; b.dataset.spot = sp.id;
+    row.append(b);
+  }
+}
+uv.view = Kit.canvas($('#uv'), () => drawUv());
+function drawUv() {
+  if (!uv.view || !S) return;
+  const { cx, W, H } = uv.view;
+  if (!W) return;
+  const k = W / 360;
+  cx.save(); cx.scale(k, H / 180);
+  cx.fillStyle = '#0a0812'; cx.fillRect(0, 0, 360, 180);
+  cx.save();
+  cx.beginPath(); cx.arc(uv.x, uv.y, 44, 0, 7); cx.clip();
+  const g = cx.createRadialGradient(uv.x, uv.y, 4, uv.x, uv.y, 44);
+  g.addColorStop(0, C.uv); g.addColorStop(1, '#0a0812');
+  cx.fillStyle = g; cx.fillRect(0, 0, 360, 180);
+  cx.fillStyle = C['uv-ink']; cx.textAlign = 'center';
+  // maxWidth squeezes a long French line rather than letting it run off the wall
+  const [head, lives, tail] = t('uvWall');
+  cx.font = '14px "Share Tech Mono", monospace'; cx.fillText(head, 180, 36, 344);
+  cx.font = '22px "Black Ops One", Impact, sans-serif';
+  cx.fillText(lives, 180, 78, 344);
+  cx.fillText(spotText(S.spot).wall, 180, 108, 344);
+  cx.font = '12px "Share Tech Mono", monospace';
+  cx.fillText(tail, 180, 152, 344);
+  cx.restore();
+  cx.restore();
+}
+function moveUv(e) {
+  const r = $('#uv').getBoundingClientRect();
+  uv.x = (e.clientX - r.left) / r.width * 360; uv.y = (e.clientY - r.top) / r.height * 180;
+  drawUv();
+}
+$('#uv').addEventListener('pointermove', moveUv);
+$('#uv').addEventListener('pointerdown', e => { $('#uv').setPointerCapture?.(e.pointerId); moveUv(e); });
+function returnTorch(id) {
+  if (S.done.uv) return;
+  if (id === S.spot) {
+    say(t('torchBack')(spotText(id).back));
+    complete('uv');
+  } else if (!S.spotTried.has(id)) {
+    S.spotTried.add(id);
+    cost(SPOT_COST, t('torchWrong')(spotText(id).from));
+  } else say(t('torchTried'));
+}
+
+// shelf
+function renderShelf() {
+  const dust = $('#dust'), shelf = $('#shelf');
+  dust.innerHTML = ''; shelf.innerHTML = '';
+  for (const b of S.target) {
+    const i = document.createElement('i');
+    i.style.width = S.widths[b] + 'px'; i.style.height = S.heights[b] + 'px';
+    dust.append(i);
+  }
+  S.shelf.forEach((b, pos) => {
+    const el = document.createElement('button');
+    el.className = 'book' + (S.pick === pos ? ' sel' : '');
+    el.dataset.pos = pos;
+    el.style.width = S.widths[b] + 'px'; el.style.height = S.heights[b] + 'px';
+    el.style.background = BOOK_COLS[b]; el.style.color = BOOK_INK[b];
+    el.textContent = t('spines')[b];
+    el.setAttribute('aria-label', t('bookAria')(t('books')[b], S.widths[b], S.heights[b], pos + 1));
+    shelf.append(el);
+  });
+  const right = S.shelf.filter((b, i) => b === S.target[i]).length;
+  $('#shelf-note').textContent = S.done.shelf ? t('shelfDone')
+    : t('shelfNote') + (S.pick >= 0 ? ' ' + t('shelfPick') : '');
+  return right;
+}
+function pickBook(pos) {
+  if (S.done.shelf) return;
+  if (S.pick < 0) { S.pick = pos; renderShelf(); return; }
+  if (S.pick !== pos) [S.shelf[S.pick], S.shelf[pos]] = [S.shelf[pos], S.shelf[S.pick]];
+  S.pick = -1;
+  renderShelf(); drawRoom();
+  if (S.shelf.every((b, i) => b === S.target[i])) {
+    say(t('shelfClick'));
+    complete('shelf');
+  }
+}
+
+// padlock
+function renderLock() {
+  const d = $('#dials'); d.innerHTML = '';
+  S.dials.forEach((v, i) => {
+    const w = document.createElement('div');
+    w.className = 'dial' + (S.dial === i ? ' cur' : '');
+    w.innerHTML = `<button data-dial="${i}" data-dir="1">▲</button><b>${v}</b><button data-dial="${i}" data-dir="-1">▼</button>`;
+    w.firstChild.setAttribute('aria-label', t('dialUp')(i + 1));
+    w.lastChild.setAttribute('aria-label', t('dialDown')(i + 1));
+    d.append(w);
+  });
+  const kb = $('#key-btn');
+  kb.textContent = S.keyIn ? t('keyIn') : t('keyOut');
+}
+function turnDial(i, dir) { S.dial = i; S.dials[i] = (S.dials[i] + dir + 10) % 10; renderLock(); }
+function tryLock() {
+  if (S.done.lock) return;
+  const right = S.dials.every((v, i) => v === S.code[i]);
+  if (!right) { S.wrong++; cost(CODE_COST, Kit.pick(t('lockWrong'))); return; }
+  if (!S.keyIn) { say(t('lockNoKey')); return; }
+  say(t('lockShut')(S.code.join('-')));
+  S.dials = S.dials.map(() => Math.floor(Math.random() * 10));
+  complete('lock');
+}
+
+// jigsaw
+function renderJig() {
+  const box = $('#jig');
+  if (!box.children.length) {
+    for (let i = 0; i < 9; i++) { const c = document.createElement('canvas'); c.width = 180; c.height = 120; c.dataset.tile = i; box.append(c); }
+  }
+  [...box.children].forEach((c, i) => {
+    const tile = S.jig[i], g = c.getContext('2d');
+    g.drawImage(jigSrc, (tile % 3) * 180, Math.floor(tile / 3) * 120, 180, 120, 0, 0, 180, 120);
+    c.classList.toggle('sel', S.jigPick === i);
+    c.setAttribute('aria-label', t('pieceAria')(tile + 1, i + 1));
+  });
+  const boxed = S.jigState === 'boxed';
+  box.classList.toggle('boxed', boxed);
+  $('#boxlid').hidden = !boxed;
+  const row = $('#jig-row'); row.innerHTML = '';
+  const label = t('jigBtns');
+  const add = (txt, act, ghost) => { const b = document.createElement('button'); b.className = 'btn' + (ghost ? ' ghost' : ''); b.textContent = txt; b.dataset.jig = act; row.append(b); };
+  if (S.jigState === 'solved') {
+    $('#jig-text').textContent = t('jigSolved');
+    add(label.break, 'break');
+  } else if (S.jigState === 'broken') {
+    $('#jig-text').textContent = t('jigBroken');
+    add(label.box, 'box'); add(label.lid, 'lid', true);
+  } else {
+    $('#jig-text').textContent = t('jigBoxed');
+    if (!S.done.jig) add(label.close, 'box');
+    add(label.open, 'open', true);
+  }
+}
+function jigAct(act) {
+  if (act === 'break') {
+    let p; do p = shuffle([0, 1, 2, 3, 4, 5, 6, 7, 8]); while (p.filter((t, i) => t === i).length > 2);
+    S.jig = p; S.jigState = 'broken';
+    say(S.order.length ? t('jigChaos') : t('jigFirstBreak'));
+  } else if (act === 'box') {
+    S.jigState = 'boxed'; S.jigPick = -1;
+    if (S.jig.every((tile, i) => tile === i)) { S.jigState = 'solved'; say(t('jigNoBox')); }
+    else if (!S.done.jig) { say(t('jigInBox')); complete('jig'); return; }
+  } else if (act === 'open') {
+    S.jigState = 'broken'; S.done.jig = false;
+    S.order = S.order.filter(o => o !== 'jig');
+    say(t('jigReopen'));
+  } else if (act === 'lid') {
+    say(t('jigLid'));
+  }
+  renderJig(); drawRoom(); renderSheet();
+}
+function swapTile(i) {
+  if (S.jigState !== 'broken') return;
+  if (S.jigPick < 0) { S.jigPick = i; renderJig(); return; }
+  [S.jig[S.jigPick], S.jig[i]] = [S.jig[i], S.jig[S.jigPick]];
+  S.jigPick = -1; renderJig(); drawRoom();
+  if (S.jig.every((tile, k) => tile === k)) say(t('jigAgain'));
+}
+
+// keypads
+function renderDoor() {
+  const front = S.door === 'front';
+  $('#door-title').textContent = front ? t('doorFront') : t('doorRoom');
+  let text;
+  if (front) text = S.revealed ? t('frontOpen') : t('frontShut');
+  else text = allFour() ? t('roomReady')
+    : t('roomNotReady')(TASKS.slice(0, 4).filter(task => !S.done[task.id]).map(task => t('todo')[task.id]).join(', '));
+  $('#door-text').textContent = text;
+  $('#kpd').textContent = S.entry.padEnd(4, '·');
+  $('#kpd').classList.toggle('ok', S.closing >= 0);   // a language switch mid-close keeps the green
+  const kp = $('#keypad');
+  if (!kp.children.length) for (const k of ['1', '2', '3', '4', '5', '6', '7', '8', '9', '⌫', '0', '↵']) {
+    const b = document.createElement('button'); b.textContent = k; b.dataset.kp = k;
+    kp.append(b);
+  }
+  for (const b of kp.children) {
+    const k = b.dataset.kp;
+    b.setAttribute('aria-label', k === '⌫' ? t('kpDelete') : k === '↵' ? t('kpEnter') : k);
+  }
+}
+function keypadPress(k) {
+  if (S.mode !== 'play' || S.active !== 'door' || S.closing >= 0) return;
+  const front = S.door === 'front';
+  if (front && !S.revealed) { say(t('frontEarly')); return; }
+  if (!front && !allFour()) { say(t('roomEarly')); return; }
+  if (k === '⌫') S.entry = S.entry.slice(0, -1);
+  else if (k === '↵') {
+    if (S.entry.length < 4) return;
+    const want = front ? S.ratings.join('') : S.jigCode;
+    if (S.entry === want) {
+      $('#kpd').classList.add('ok');
+      S.closing = S.t;
+      if (front) { S.front = true; say(t('frontWin')); later(1.0, () => say(t('frontWinWall'), 'WALL')); }
+      else { say(t('roomWin')); }
+      S.endDue = S.t + 2.4;
+      drawRoom();
+      return;
+    }
+    S.wrong++; S.entry = '';
+    cost(CODE_COST, front ? t('frontWrong') : t('roomWrong'));
+  } else if (/^\d$/.test(k) && S.entry.length < 4) S.entry += k;
+  $('#kpd').textContent = S.entry.padEnd(4, '·');
+}
+
+// hotspots that are not puzzles
+function hot(id) {
+  if (S.mode !== 'play') return;
+  if (id in I18N.en.flavour) {
+    if (!S.done.uv && id === S.spot && S.active === 'uv') { returnTorch(id); return; }
+    say(t('flavour')[id][(S.flav = (S.flav || 0) + 1) % 2]);
+    return;
+  }
+  if (id === 'front') {
+    if (!S.revealed) say(t('frontHot'));
+    openPuzzle('front'); return;
+  }
+  openPuzzle(id);
+}
+
+function hint() {
+  if (S.mode !== 'play') return;
+  let id = S.active;
+  if (id === 'door' && S.door === 'front') id = 'front';
+  if (!id || (id !== 'door' && id !== 'front' && S.done[id])) id = TASKS.slice(0, 4).find(task => !S.done[task.id])?.id ?? (S.revealed ? 'front' : 'door');
+  S.hints++;
+  S.hintN = S.hintN || {};
+  const n = S.hintN[id] = (S.hintN[id] || 0) + 1;
+  cost(HINT_COST, null);
+  say(t('hintSay')(t('hints')[id][Math.min(1, n - 1)]));
+}
+
+function revealTwist() {
+  S.revealed = true;
+  $('#reveal-text').textContent = t('revealText');
+  Kit.show($('#reveal'));
+  S.mode = 'paused';
+}
+
+// ---- endings --------------------------------------------------------------------------------
+function endGame(kind) {
+  S.mode = 'end'; S.ending = kind;
+  const used = 3600 - S.clock;
+  if (kind !== 'free' && (best == null || used < best)) best = used;
+  fillEnd();
+  if (kind === 'inside') setLed('60:00');
+  drawRoom();
+  Kit.show($('#end'));
+}
+// Separate from endGame so a language switch on the end screen can redraw it without re-scoring.
+function fillEnd() {
+  const kind = S.ending, E = t('ends')[kind], st = t('stat'), used = 3600 - S.clock;
+  $('#end .sheet-card').className = 'sheet-card ' + kind;
+  $('#end-kicker').textContent = E.kicker;
+  $('#end-title').textContent = E.title;
+  $('#end-sub').textContent = E.sub;
+  $('#end-more').textContent = E.more(spotText(S.spot).end, fmt(used));
+  $('#end-stat').textContent = [
+    t('teams')[S.team].toUpperCase(),
+    kind === 'free' ? st.reset(S.order.length) : st.used(fmt(used)),
+    st.hints(S.hints),
+    ...(S.ratings.length ? [st.ratings(S.ratings.join(', '))] : []),
+    ...(best != null ? [st.best(fmt(best))] : []),
+  ].join(' · ');
+}
+
+// ---- loop -----------------------------------------------------------------------------------
+const loop = Kit.loop(dt => {
+  if (!S || S.mode !== 'play') return;
+  S.t += dt;
+  if (S.closing < 0) S.clock -= dt * RATE;
+  for (const p of S.pending.filter(p => p.at <= S.t)) { S.pending.splice(S.pending.indexOf(p), 1); p.fn(); }
+  if (S.revealDue >= 0 && S.t >= S.revealDue) { S.revealDue = -1; revealTwist(); return; }
+  if (S.endDue >= 0 && S.t >= S.endDue) { S.endDue = -1; endGame(S.front ? 'outside' : 'inside'); return; }
+  if (S.clock <= 0 && S.closing < 0) { S.clock = 0; setLed('00:00'); endGame('free'); return; }
+  if ((S.idleT -= dt) <= 0) { S.idleT = 26 + Math.random() * 10; const a = t('idle'); say(a[S.idleI++ % a.length]); }
+  if ((S.wallT -= dt) <= 0) { S.wallT = 40 + Math.random() * 16; const a = t('mutter'); say(a[S.wallI++ % a.length], 'WALL'); }
+  if (S.clock < 300 && !S.warned5) { S.warned5 = true; say(t('fiveLeft')); }
+  setLed(fmt(S.clock));
+  if (S.closing >= 0) drawRoom();
+});
+
+// ---- input ----------------------------------------------------------------------------------
+document.addEventListener('click', e => {
+  const t = e.target.closest('button, canvas[data-tile]');
+  if (!t || !S) return;
+  if (t.dataset.hot) hot(t.dataset.hot);
+  else if (t.dataset.task) openPuzzle(t.dataset.task);
+  else if ('back' in t.dataset) closePuzzle();
+  else if (t.dataset.spot) returnTorch(t.dataset.spot);
+  else if (t.dataset.pos) pickBook(+t.dataset.pos);
+  else if (t.dataset.dial) turnDial(+t.dataset.dial, +t.dataset.dir);
+  else if (t.dataset.jig) jigAct(t.dataset.jig);
+  else if (t.dataset.tile) swapTile(+t.dataset.tile);
+  else if (t.dataset.kp) keypadPress(t.dataset.kp);
+});
+$('#key-btn').addEventListener('click', () => {
+  if (S.done.lock) return;
+  S.keyIn = !S.keyIn;
+  say(S.keyIn ? t('keyPutIn') : t('keyTakeOut'));
+  renderLock(); renderSheet();
+});
+$('#lock-btn').addEventListener('click', tryLock);
+$('#hint').addEventListener('click', hint);
+$('#start').addEventListener('click', begin);
+$('#again').addEventListener('click', begin);
+$('#reveal-go').addEventListener('click', () => { Kit.show(null); S.mode = 'play'; say(t('revealBack')); $('.hot[data-hot="front"]').classList.add('ping'); });
+
+// Enter on a focused keypad or dial button would also click it; the key handler below owns Enter there.
+document.addEventListener('keydown', e => { if (e.key === 'Enter' && e.target.closest?.('[data-kp], [data-dial]')) e.preventDefault(); }, true);
+Kit.keys.onPress((k, down) => {
+  if (!down || !S || S.mode !== 'play') return;
+  if (S.active === 'door') {
+    if (/^\d$/.test(k)) return keypadPress(k);
+    if (k === 'Backspace') return keypadPress('⌫');
+    if (k === 'Enter') return keypadPress('↵');
+  }
+  if (S.active === 'lock') {
+    if (k === 'ArrowLeft') { S.dial = (S.dial + 2) % 3; renderLock(); return; }
+    if (k === 'ArrowRight') { S.dial = (S.dial + 1) % 3; renderLock(); return; }
+    if (k === 'ArrowUp') return turnDial(S.dial, 1);
+    if (k === 'ArrowDown') return turnDial(S.dial, -1);
+    if (k === 'Enter' && !document.activeElement?.closest('button')) return tryLock();
+  }
+  if (S.active === 'uv' && k.startsWith('Arrow')) {
+    uv.x = Kit.clamp(uv.x + (k === 'ArrowLeft' ? -16 : k === 'ArrowRight' ? 16 : 0), 0, 360);
+    uv.y = Kit.clamp(uv.y + (k === 'ArrowUp' ? -14 : k === 'ArrowDown' ? 14 : 0), 0, 180);
+    drawUv(); return;
+  }
+  if (k === 'Escape' && S.active) return closePuzzle();
+  if (k === 'h') return hint();
+  if (/^[1-5]$/.test(k) && S.active !== 'door') openPuzzle(TASKS[+k - 1].id);
+});
+
+function begin() {
+  S = fresh();
+  S.mode = 'play';
+  $('#log').innerHTML = '';
+  $('#jig').innerHTML = ''; $('#keypad').innerHTML = '';
+  $('.hot[data-hot="front"]').classList.remove('ping');
+  $('#notes').value = '';
+  uv.x = 30; uv.y = 30;
+  drawJigSource();
+  closePuzzle();
+  Kit.show(null);
+  setLed('60:00');
+  drawRoom(); drawUv();
+  say(t('welcome')(t('teams')[S.team]));
+  later(5, () => say(t('pockets')));
+  loop.start();
+}
+
+// ---- language -------------------------------------------------------------------------------
+// Static markup carries data-t (text), data-th (trusted markup from I18N), data-ta (aria-label)
+// and data-tp (placeholder). Everything drawn or built in script is re-rendered here; lines
+// already in the intercom log stay in the language they were said in.
+function applyLang() {
+  document.documentElement.lang = lang;
+  document.title = t('docTitle');
+  for (const el of document.querySelectorAll('[data-t]')) el.textContent = t(el.dataset.t);
+  for (const el of document.querySelectorAll('[data-th]')) el.innerHTML = t(el.dataset.th);
+  for (const el of document.querySelectorAll('[data-ta]')) el.setAttribute('aria-label', t(el.dataset.ta));
+  for (const el of document.querySelectorAll('[data-tp]')) el.placeholder = t(el.dataset.tp);
+  for (const box of document.querySelectorAll('.lang')) {
+    if (!box.children.length) box.innerHTML = '<button data-lang="fr" lang="fr">FR</button><button data-lang="en" lang="en">EN</button>';
+    for (const b of box.children) b.setAttribute('aria-pressed', String(b.dataset.lang === lang));
+  }
+  $('#best-line').textContent = best != null ? t('bestLineWith')(fmt(best)) : t('bestLine');
+  labelHots();
+  if (!S) return;
+  ledShown = ''; setLed(fmt(S.ending === 'inside' ? 3600 : S.clock));
+  renderSheet();
+  if (S.active === 'shelf') renderShelf();
+  if (S.active === 'lock') renderLock();
+  if (S.active === 'door') renderDoor();
+  if (S.active === 'uv') renderUvSpots();
+  if (S.revealed && !$('#reveal').hidden) $('#reveal-text').textContent = t('revealText');
+  if (S.mode === 'end') fillEnd();
+  drawJigSource();   // also re-renders the jigsaw panel
+  drawRoom(); drawUv();
+}
+function setLang(l) {
+  if (!(l in I18N) || l === lang) return;
+  lang = l;
+  applyLang();
+}
+document.addEventListener('click', e => {
+  const b = e.target.closest('[data-lang]');
+  if (b) setLang(b.dataset.lang);
+});
+
+function start(data) {
+  if (data?.best != null) best = data.best;
+  lang = data?.lang in I18N ? data.lang : (navigator.language || '').toLowerCase().startsWith('fr') ? 'fr' : 'en';
+  S = fresh();
+  setLed('60:00');
+  applyLang();
+  document.fonts?.ready.then(() => { drawJigSource(); drawRoom(); });
+  Kit.show($('#title'));
+}
+Kit.boot(start, () => ({ best, lang }));
+
+// Test hook. Each jump resets the four puzzles by their own outcomes and leaves the door, the
+// countdown and the closing animation to the real loop.
+function jumpReset() {
+  for (const id of ['uv', 'shelf', 'lock', 'jig']) { S.done[id] = true; S.order.push(id); S.ratings.push(3 + Math.floor(Math.random() * 7)); }
+  S.keyIn = true; S.shelf = S.target.slice(); S.jigState = 'boxed';
+  S.revealDue = -1; renderSheet(); drawRoom();
+}
+Kit.expose({
+  state: () => S,
+  endings: {
+    inside: { seconds: 9, jump() { jumpReset(); openPuzzle('door'); for (const d of S.jigCode) keypadPress(d); keypadPress('↵'); }, reached: () => S.ending === 'inside' && !$('#end').hidden },
+    free: { seconds: 9, jump() { S.clock = 30; }, reached: () => S.ending === 'free' && !$('#end').hidden },
+    outside: { seconds: 9, jump() { jumpReset(); S.revealed = true; openPuzzle('front'); for (const d of S.ratings.join('')) keypadPress(d); keypadPress('↵'); }, reached: () => S.ending === 'outside' && !$('#end').hidden },
+  },
+});
+</script>
+</body>
+</html>

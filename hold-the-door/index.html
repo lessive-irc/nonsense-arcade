@@ -1,0 +1,1030 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Hold the Door</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;900&family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=Overpass+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: a side-on council-building corridor. The fire door holds the right edge, signage HUD across the top, PA announcements along the bottom. */
+:root {
+  --paper: #e9eee2;
+  --wall: #cfd8c4;
+  --wall-low: #b4bfa7;
+  --floor: #8c8270;
+  --floor-line: #7a705f;
+  --door: #b4462f;
+  --door-edge: #7c2e1f;
+  --exit: #1f8a52;
+  --on-sign: #ffffff;
+  --ink: #23261f;
+  --muted: #5b6553;
+  --tube: #fffbe0;
+  --shell: #a8733a;
+  --body: #c8b796;
+  --sleeve: #35506e;
+  --hand: #e0b89a;
+  --slime: #f4fbff;
+  --beyond: #fdf7d9;
+  --panel: #f6f8f1;
+  --line: #23261f2e;
+  --f-sign: "Big Shoulders Display", "Arial Narrow", Impact, sans-serif;
+  --f-body: "Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif;
+  --f-mono: "Overpass Mono", ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #0f1512; --wall: #1d2823; --wall-low: #16201b; --floor: #2b2722; --floor-line: #3a342c;
+    --door: #8f3a27; --door-edge: #5a2418; --exit: #2f9e62; --ink: #e3eadc; --muted: #94a28c;
+    --tube: #cfe8d4; --shell: #b9813f; --body: #9c8d72; --sleeve: #4a6a8e; --hand: #c79f84;
+    --slime: #9fd3c0; --beyond: #e8f3d8; --panel: #16201b; --line: #e3eadc26;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #0f1512; --wall: #1d2823; --wall-low: #16201b; --floor: #2b2722; --floor-line: #3a342c;
+  --door: #8f3a27; --door-edge: #5a2418; --exit: #2f9e62; --ink: #e3eadc; --muted: #94a28c;
+  --tube: #cfe8d4; --shell: #b9813f; --body: #9c8d72; --sleeve: #4a6a8e; --hand: #c79f84;
+  --slime: #9fd3c0; --beyond: #e8f3d8; --panel: #16201b; --line: #e3eadc26;
+  color-scheme: dark;
+}
+[hidden] { display: none !important; }
+html, body { height: 100%; }
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--f-body);
+  padding-block: 16px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  box-sizing: border-box;
+  overflow: hidden;
+}
+.frame {
+  position: relative; height: 100%; overflow: hidden;
+  border: 2px solid var(--ink); border-radius: 4px;
+  background: var(--wall);
+  user-select: none; -webkit-user-select: none; touch-action: none;
+}
+canvas { display: block; width: 100%; height: 100%; cursor: pointer; }
+.hud { position: absolute; inset: 0; pointer-events: none; display: grid; grid-template-rows: auto 1fr auto; gap: 12px; padding: 14px 16px; }
+.top { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; flex-wrap: wrap; }
+.plate { background: var(--exit); color: var(--on-sign); border-radius: 3px; padding: 8px 12px 9px; display: grid; gap: 2px; box-shadow: 0 2px 0 var(--ink); }
+.plate strong { font-family: var(--f-sign); font-weight: 900; font-size: 24px; letter-spacing: .05em; text-transform: uppercase; line-height: 1; }
+.readout { font-family: var(--f-mono); font-size: 12px; letter-spacing: .06em; text-transform: uppercase; font-variant-numeric: tabular-nums; }
+.gauges { display: grid; gap: 7px; background: var(--panel); border: 1.5px solid var(--ink); border-radius: 3px; padding: 9px 12px; min-width: 210px; }
+.gauge { display: grid; grid-template-columns: 9.5ch 1fr; align-items: center; gap: 8px; }
+.gauge span, .conv { font-family: var(--f-mono); font-size: 10.5px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.bar { height: 9px; background: var(--line); border-radius: 2px; overflow: hidden; }
+.bar i { display: block; height: 100%; width: 0; background: var(--exit); }
+.bar i.warn { background: var(--door); }
+.court { font-family: var(--f-sign); font-weight: 700; font-size: 22px; line-height: 1; font-variant-numeric: tabular-nums; }
+.court small { font-family: var(--f-mono); font-size: 11px; font-weight: 400; letter-spacing: .06em; color: var(--muted); }
+.pa { justify-self: center; display: flex; gap: 10px; align-items: baseline; max-width: min(640px, 100%); background: var(--panel); border: 1.5px solid var(--ink); border-radius: 3px; padding: 8px 12px; transition: opacity .4s; }
+.pa b { font-family: var(--f-mono); font-size: 10.5px; letter-spacing: .1em; color: var(--on-sign); background: var(--door); padding: 2px 5px; border-radius: 2px; flex: none; }
+.pa span { font-size: 15px; line-height: 1.4; text-wrap: balance; }
+.pa.dim { opacity: .55; }
+.bubble {
+  position: absolute; left: 0; top: 0; transform: translate(-50%, -100%);
+  max-width: 200px; background: var(--panel); color: var(--ink);
+  border: 1.5px solid var(--ink); border-radius: 14px; padding: 7px 11px;
+  font-size: 14px; font-style: italic; line-height: 1.35; pointer-events: none; text-wrap: balance;
+}
+.bubble::after { content: ""; position: absolute; left: 50%; bottom: -8px; width: 12px; height: 12px; background: var(--panel); border-right: 1.5px solid var(--ink); border-bottom: 1.5px solid var(--ink); transform: translateX(-50%) rotate(45deg); }
+.popup {
+  position: absolute; left: 50%; top: 26%; transform: translateX(-50%);
+  width: min(360px, calc(100% - 32px)); box-sizing: border-box;
+  background: var(--panel); border: 2px solid var(--ink); border-radius: 4px; padding: 14px 16px;
+  display: grid; gap: 10px; box-shadow: 4px 4px 0 var(--ink);
+}
+.popup h3 { margin: 0; font-family: var(--f-sign); font-weight: 900; font-size: 22px; letter-spacing: .03em; text-transform: uppercase; text-wrap: balance; }
+.popup p { margin: 0; font-size: 14px; line-height: 1.45; color: var(--muted); }
+.popup .tick { height: 4px; background: var(--line); }
+.popup .tick i { display: block; height: 100%; background: var(--door); width: 100%; }
+.row { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+.popup .row { justify-content: flex-start; }
+button {
+  font: 700 14px var(--f-body); letter-spacing: .02em;
+  color: var(--on-sign); background: var(--door);
+  border: 2px solid var(--ink); border-radius: 3px; padding: 10px 16px; cursor: pointer;
+  box-shadow: 2px 2px 0 var(--ink); transition: transform .1s, box-shadow .1s;
+}
+button:hover { transform: translate(-1px, -1px); box-shadow: 3px 3px 0 var(--ink); }
+button:active { transform: translate(2px, 2px); box-shadow: 0 0 0 var(--ink); }
+button:focus-visible { outline: 3px solid var(--exit); outline-offset: 3px; }
+button.ghost { background: var(--panel); color: var(--ink); }
+button kbd { font-family: var(--f-mono); font-size: 11px; opacity: .75; margin-left: 6px; }
+.overlay { position: absolute; inset: 0; display: grid; place-items: center; padding: 20px; background: color-mix(in srgb, var(--paper) 88%, transparent); overflow: auto; }
+.card { display: grid; gap: 14px; max-width: 540px; justify-items: center; text-align: center; }
+.sign { background: var(--exit); color: var(--on-sign); padding: 10px 20px 12px; border-radius: 4px; box-shadow: 0 4px 0 var(--ink); }
+.card h1 { margin: 0; font-family: var(--f-sign); font-weight: 900; font-size: clamp(48px, 11vw, 96px); line-height: .9; letter-spacing: .03em; text-transform: uppercase; }
+.card h2 { margin: 0; font-family: var(--f-sign); font-weight: 900; font-size: clamp(30px, 6vw, 46px); line-height: 1; text-transform: uppercase; text-wrap: balance; }
+.card p { margin: 0; font-size: 16px; line-height: 1.55; max-width: 48ch; text-wrap: pretty; }
+.card p.lede { font-size: 19px; font-style: italic; }
+.card .small { font-family: var(--f-mono); font-size: 11px; letter-spacing: .06em; color: var(--muted); text-transform: uppercase; }
+.reveal-line { font-size: clamp(20px, 3.4vw, 28px) !important; line-height: 1.4 !important; font-style: italic; min-height: 3em; }
+.roll { width: min(440px, 100%); max-height: 42vh; overflow: auto; border-block: 1.5px solid var(--ink); }
+.roll-inner { display: grid; gap: 7px; padding: 14px 4px; }
+.credit { display: flex; align-items: baseline; gap: 8px; font-family: var(--f-mono); font-size: 12.5px; text-align: left; }
+.credit .role { text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+.credit .lead { flex: 1; border-bottom: 1.5px dotted var(--line); transform: translateY(-3px); min-width: 12px; }
+.credit .name { text-align: right; }
+.credit.note { justify-content: center; text-align: center; font-family: var(--f-body); font-style: italic; font-size: 14px; padding-top: 6px; }
+.lang { display: inline-flex; pointer-events: auto; border: 2px solid var(--ink); border-radius: 3px; overflow: hidden; background: var(--panel); box-shadow: 2px 2px 0 var(--ink); }
+.lang button { border: 0; border-radius: 0; box-shadow: none; padding: 5px 10px 4px; background: transparent; color: var(--muted); font: 600 12px var(--f-mono); letter-spacing: .08em; }
+.lang button + button { border-left: 1.5px solid var(--ink); }
+.lang button:hover, .lang button:active { transform: none; box-shadow: none; color: var(--ink); }
+.lang button[aria-pressed="true"] { background: var(--ink); color: var(--panel); }
+.top .lang { margin-top: 8px; }
+@media (prefers-reduced-motion: no-preference) {
+  .roll.rolling .roll-inner { animation: roll 26s linear 1 both; }
+  @keyframes roll { from { transform: translateY(40%); } to { transform: translateY(0); } }
+}
+@media (max-width: 560px) {
+  .plate strong { font-size: 19px; }
+  .gauges { min-width: 0; width: 100%; box-sizing: border-box; }
+  .top > div:first-child { width: 100%; }
+  .pa span { font-size: 13.5px; }
+}
+</style>
+</head>
+<body>
+
+<div class="frame" id="frame">
+  <canvas id="scene" data-ta="sceneLabel" aria-label="A snail crawls down a long corridor toward a fire door you are holding open"></canvas>
+
+  <div class="hud">
+    <div class="top">
+      <div><div class="plate"><strong data-t="plate">Hold the door</strong><span class="readout" id="dist-read">Snail distance 18.00 m</span></div>
+        <div class="lang" role="group" data-ta="langLabel" aria-label="Language"></div></div>
+      <div class="gauges">
+        <div class="gauge"><span id="g1-label">Your arm</span><div class="bar"><i id="g1"></i></div></div>
+        <div class="gauge"><span id="g2-label">Snail morale</span><div class="bar"><i id="g2"></i></div></div>
+        <div class="court"><span id="score">0</span> <small data-t="courtesy">courtesy</small></div>
+        <div class="conv" id="conv">= 0 small nods</div>
+      </div>
+    </div>
+    <div></div>
+    <div class="pa" id="pa" aria-live="polite"><b data-t="pa">PA</b><span id="pa-text">Hold anywhere to hold the door.</span></div>
+  </div>
+
+  <div class="bubble" id="bubble" hidden></div>
+
+  <div class="popup" id="popup" hidden>
+    <h3 id="pop-title"></h3>
+    <p id="pop-body"></p>
+    <div class="row"><button id="pop-a"></button><button id="pop-b" class="ghost"></button></div>
+    <div class="tick"><i id="pop-tick"></i></div>
+  </div>
+
+  <div class="overlay" id="title">
+    <div class="card">
+      <div class="sign"><h1 data-t="plate">Hold the door</h1></div>
+      <p class="lede" data-t="titleLede">A snail is coming. It is 18 metres away. It is very sorry.</p>
+      <p data-t="titleP">Hold anywhere (mouse, finger or space bar) to keep the door open. Your arm tires while you hold. Let go to rest, but the door swings shut and the snail loses heart. If it stays shut for 7 seconds, the snail goes home.</p>
+      <button id="start" data-t="startBtn">Hold the door</button>
+      <div class="small" data-t="titleSmall">about 3 to 5 minutes · 1 and 2 answer questions</div>
+      <div class="lang" role="group" data-ta="langLabel" aria-label="Language"></div>
+    </div>
+  </div>
+
+  <div class="overlay" id="reveal" hidden>
+    <div class="card">
+      <p class="reveal-line" id="rev-line"></p>
+      <button id="rev-next">Go on</button>
+    </div>
+  </div>
+
+  <div class="overlay" id="over" hidden>
+    <div class="card">
+      <h2 id="over-title">The snail went home.</h2>
+      <p class="lede" id="over-sub"></p>
+      <div class="small" id="over-stat"></div>
+      <button id="over-btn">Hold the door again</button>
+      <div class="lang" role="group" data-ta="langLabel" aria-label="Language"></div>
+    </div>
+  </div>
+
+  <div class="overlay" id="credits" hidden>
+    <div class="card">
+      <div class="sign"><h2 data-t="thanks">Thank you</h2></div>
+      <div class="roll" id="roll"><div class="roll-inner" id="roll-inner"></div></div>
+      <button id="again" data-t="againBtn">Hold another door</button>
+      <div class="lang" role="group" data-ta="langLabel" aria-label="Language"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const $ = s => document.querySelector(s);
+const frameEl = $('#frame'), cv = $('#scene'), cx = cv.getContext('2d');
+const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+let W = 0, H = 0;
+function resize() {
+  const r = cv.getBoundingClientRect(), d = Math.min(2, devicePixelRatio || 1);
+  W = r.width; H = r.height;
+  cv.width = W * d; cv.height = H * d;
+  cx.setTransform(d, 0, 0, d, 0, 0);
+}
+addEventListener('resize', resize);
+
+// canvas colours come from the same tokens as the HUD, re-read whenever the theme flips
+const C = {};
+function readTokens() {
+  const cs = getComputedStyle(document.documentElement);
+  for (const k of ['wall', 'wall-low', 'floor', 'floor-line', 'door', 'door-edge', 'exit', 'on-sign', 'ink', 'muted',
+    'tube', 'shell', 'body', 'sleeve', 'hand', 'slime', 'beyond', 'panel', 'line']) C[k] = cs.getPropertyValue('--' + k).trim();
+}
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', readTokens);
+new MutationObserver(readTokens).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+
+// Every player-visible string, read through t(). The PA line, the speech bubble, an open popup,
+// the over card and the credits are held as ids/getters, so a language switch re-words them;
+// the rhythm (BEAT, tap windows) never reads a string.
+const I18N = {
+  en: {
+    docTitle: 'Hold the Door',
+    langLabel: 'Language',
+    sceneLabel: 'A snail crawls down a long corridor toward a fire door you are holding open',
+    plate: 'Hold the door',
+    courtesy: 'courtesy', pa: 'PA',
+    titleLede: 'A snail is coming. It is 18 metres away. It is very sorry.',
+    titleP: 'Hold anywhere (mouse, finger or space bar) to keep the door open. Your arm tires while you hold. Let go to rest, but the door swings shut and the snail loses heart. If it stays shut for 7 seconds, the snail goes home.',
+    startBtn: 'Hold the door',
+    titleSmall: 'about 3 to 5 minutes · 1 and 2 answer questions',
+    thanks: 'Thank you', againBtn: 'Hold another door',
+    gHold: ['Your arm', 'Snail morale'], gCrawl: ['Tiny arm', 'Slime beat'],
+    snailDist: d => `Snail distance ${d} m`, myDist: d => `Your distance ${d} m`,
+    conv: [['small nods', 12], ['polite coughs', 5], ['Canadians', 400], ['thank-you notes', 60], ['doors held by grandmothers', 90], ['curtsies (minor)', 7]],
+    sign: ['PLEASE DO NOT', 'HOLD DOORS', 'FOR SNAILS'], exit: 'EXIT',
+    feed: { once: 'one push per beat', perfect: 'perfect slime', decent: 'decent slime', slid: 'you slid sideways' },
+    snail: [
+      'sorry! coming!',
+      "don't wait for me! (please wait for me)",
+      'sorry, i stopped to look at a crumb. it was a good crumb.',
+      "you're so kind. my father never held a door. he was a door.",
+      "i'm late for my own birthday. it was in 1997.",
+      'my shell is a rental. the deposit is enormous.',
+      'have you ever been a liquid? i was, briefly, in the eighties.',
+      'nearly there! (i say this to calm myself.)',
+      "i can see your arm shaking. it's beautiful. like a leaf with a job.",
+      'i brought you a gift but i ate it. it was lettuce. it was for you.',
+      'every step i take, the corridor takes one too. we are dancing.',
+      "i have a confession about the door. i'll tell you when i get there.",
+      'when i arrive i am going to say thank you so loudly.',
+    ],
+    sad: ["oh. oh no. that's fine. that's fine.", "the door is closing. that's a metaphor, isn't it.",
+      "i'll just wait here. in the hallway. forever.", 'was it something i oozed?'],
+    tiny: ['hurry. my eyestalk is not rated for this.', 'i held it for you. you held it for me. we are a loop.',
+      "you're so big. you're so slow. is this what i was like?", "i'm sorry. i'm so sorry. now i understand.", "almost. i think. i can't feel my stalk."],
+    creatures: {
+      pigeon: { name: 'pigeon', thanks: 'The pigeon thanks you in a language made entirely of crumbs.' },
+      ghost: { name: 'ghost', thanks: 'The ghost says thank you. It could have walked through the door. It chose you.' },
+      cabinet: { name: 'filing cabinet', thanks: 'The filing cabinet files a formal thank-you. In triplicate.' },
+      duck: { name: 'duck in a tie', thanks: 'The duck in a tie nods. He has a meeting. He has always had a meeting.' },
+      ladder: { name: 'man with a ladder', thanks: 'A man carrying a ladder thanks you. He is also carrying a smaller man, who thanks you too.' },
+    },
+    crComing: c => `A ${c.name} is coming down the corridor. It walks faster than the snail. Most things do.`,
+    crThanked: c => c.thanks + ' +40 courtesy.',
+    crBump: c => `The ${c.name} walks into the closed door. It will remember this. So will the snail.`,
+    wind: 'A draught has entered the corridor. It has opinions about doors.',
+    popups: {
+      salesman: { title: 'A man is selling smaller doors', body: '"Lighter. Easier to hold. Snail-sized, frankly." 30 courtesy.', a: 'Buy a smaller door', b: 'No thank you' },
+      hands: { title: 'Switch hands?', body: 'Your arm resets. The door swings shut for a moment and the snail flinches backwards.', a: 'Switch hands', b: 'Keep this hand' },
+    },
+    boughtPa: 'You install a smaller door. Your arm thanks you. The snail feels patronised.',
+    boughtSay: 'is that... a door for me? i am a grown snail.',
+    declinedPa: 'The door salesman leaves through your door. You hold it for him. +10 courtesy.',
+    switchedPa: 'You switch hands. The snail flinches backwards 70 cm. It apologises for flinching.',
+    switchedSay: 'sorry! sorry. i thought the door was a bird.',
+    keptPa: 'You keep this hand. Your other hand is relieved and a little jealous.',
+    extendPa: 'Facilities have extended the corridor by 2.5 metres for your convenience.',
+    extendSay: "did the corridor just get longer? i'm not angry. i'm just slower.",
+    paIdle: 'Hold anywhere to hold the door.',
+    holdPa: 'Hold anywhere to hold the door. The snail is on its way.',
+    holdSay: 'oh! you\'re holding it! for me? coming!',
+    crampPa: 'Your arm has filed a formal complaint. Three seconds of mandatory rest.',
+    warnPa: 'The snail is considering going home.',
+    crawlPa: 'You are the snail. Tap when the ring meets your shell. A tiny snail is holding the door.',
+    reveal: [
+      'The snail arrives. It looks at the door. It looks at you. It does not go through.',
+      '“I have to tell you something. I was never coming to the door.”',
+      '“The door was coming to me. Very slowly. For years. You have been holding it back.”',
+      '“It’s fine. It’s my turn now. Become small. Become damp. Crawl in rhythm.”',
+    ],
+    revGo: 'Go on', revLast: 'Become the snail',
+    home: {
+      title: 'The snail went home.',
+      sub: d => `It lives ${d} metres away. It will get there by Thursday. It says it isn't upset. It is upset.`,
+      stat: (score, left, best) => `${score} courtesy · ${left} m to go · best ${best}`,
+      btn: 'Hold the door again',
+    },
+    crawlfail: {
+      title: 'The tiny snail let go.',
+      sub: () => "It's fine. It is not fine. It is already holding the door again, out of guilt.",
+      stat: (short, n) => `${short} m short · attempt ${n}`,
+      btn: 'Crawl again',
+    },
+    credits: (S, dec) => [
+      ['The snail', 'a snail'], ['The door', 'a door, method-trained'], ['You', 'you, then a snail'],
+      ['Tiny snail', 'the snail, but tired'], ['Door salesman', 'himself'], ['Smaller door', S.small ? 'itself (bought)' : 'did not appear'],
+      ['The corridor', `${START_DIST} m, later ${dec(S.corridor, 1)} m`], ['The draught', 'a draught with opinions'],
+      ['Pigeon dialect coach', 'crumbs'], ['Catering', 'one leaf of lettuce'], ['Creatures thanked', String(S.thanked)],
+      ['Courtesy earned', `${Math.floor(S.score)}`], ['Best courtesy', `${Math.floor(S.best)}`],
+    ],
+    creditHeld: time => `No doors were harmed. One was held for ${time}.`,
+    creditEnd: 'The door has since arrived at the snail. They are very happy.',
+  },
+  fr: {
+    docTitle: 'Retenez la porte',
+    langLabel: 'Langue',
+    sceneLabel: 'Un escargot avance dans un long couloir vers une porte coupe-feu que vous tenez ouverte',
+    plate: 'Retenez la porte',
+    courtesy: 'politesse', pa: 'ANNONCE',
+    titleLede: 'Un escargot arrive. Il est à 18 mètres. Il est vraiment désolé.',
+    titleP: 'Maintenez n’importe où (souris, doigt ou barre d’espace) pour garder la porte ouverte. Votre bras se fatigue pendant que vous tenez. Lâchez pour souffler, mais la porte se referme et l’escargot perd courage. Si elle reste fermée 7 secondes, l’escargot rentre chez lui.',
+    startBtn: 'Retenir la porte',
+    titleSmall: 'environ 3 à 5 minutes · 1 et 2 répondent aux questions',
+    thanks: 'Merci', againBtn: 'Retenir une autre porte',
+    gHold: ['Votre bras', 'Moral escargot'], gCrawl: ['Petit bras', 'Tempo bave'],
+    snailDist: d => `Escargot à ${d} m`, myDist: d => `Vous êtes à ${d} m`,
+    conv: [['petits hochements de tête', 12], ['toussotements polis', 5], ['Canadiens', 400], ['mots de remerciement', 60], ['portes tenues par des mamies', 90], ['révérences (petites)', 7]],
+    sign: ['PRIÈRE DE NE PAS', 'TENIR LES PORTES', 'AUX ESCARGOTS'], exit: 'SORTIE',
+    feed: { once: 'une poussée par temps', perfect: 'bave parfaite', decent: 'bave correcte', slid: 'dérapage latéral' },
+    snail: [
+      'pardon ! j’arrive !',
+      'ne m’attendez pas ! (attendez-moi, s’il vous plaît)',
+      'pardon, je me suis arrêté pour regarder une miette. c’était une bonne miette.',
+      'c’est si gentil. mon père n’a jamais tenu une porte. c’était une porte.',
+      'je suis en retard à mon propre anniversaire. c’était en 1997.',
+      'ma coquille est en location. la caution est énorme.',
+      'vous avez déjà été liquide ? moi oui, brièvement, dans les années quatre-vingt.',
+      'presque arrivé ! (je dis ça pour me calmer.)',
+      'je vois votre bras trembler. c’est beau. comme une feuille qui a un emploi.',
+      'je vous ai apporté un cadeau mais je l’ai mangé. c’était de la laitue. c’était pour vous.',
+      'à chaque pas que je fais, le couloir en fait un aussi. on danse.',
+      'j’ai un aveu à vous faire au sujet de la porte. je vous le dirai en arrivant.',
+      'quand j’arriverai, je dirai merci très, très fort.',
+    ],
+    sad: ['oh. oh non. c’est rien. c’est rien.', 'la porte se ferme. c’est une métaphore, non ?',
+      'je vais attendre ici. dans le couloir. pour toujours.', 'c’est quelque chose que j’ai bavé ?'],
+    tiny: ['vite. mon œil pédonculé n’est pas homologué pour ça.', 'je l’ai tenue pour vous. vous l’avez tenue pour moi. on fait une boucle.',
+      'quelle taille. quelle lenteur. j’étais comme ça, moi ?', 'pardon. tellement pardon. maintenant je comprends.', 'presque. je crois. je ne sens plus mon pédoncule.'],
+    creatures: {
+      pigeon: { name: 'pigeon', a: 'Un pigeon', the: 'Le pigeon', thanks: 'Le pigeon vous remercie dans une langue faite uniquement de miettes.' },
+      ghost: { name: 'fantôme', a: 'Un fantôme', the: 'Le fantôme', thanks: 'Le fantôme vous dit merci. Il aurait pu passer à travers la porte. Il a préféré la vôtre.' },
+      cabinet: { name: 'classeur', a: 'Un classeur', the: 'Le classeur', thanks: 'Le classeur classe un remerciement officiel. En trois exemplaires.' },
+      duck: { name: 'canard en cravate', a: 'Un canard en cravate', the: 'Le canard en cravate', thanks: 'Le canard en cravate hoche la tête. Il a une réunion. Il a toujours eu une réunion.' },
+      ladder: { name: 'homme à l’échelle', a: 'Un homme à l’échelle', the: 'L’homme à l’échelle', thanks: 'Un homme qui porte une échelle vous remercie. Il porte aussi un homme plus petit, qui vous remercie aussi.' },
+    },
+    crComing: c => `${c.a} arrive dans le couloir. Il marche plus vite que l’escargot. Comme presque tout.`,
+    crThanked: c => c.thanks + ' +40 de politesse.',
+    crBump: c => `${c.the} se cogne dans la porte fermée. Il s’en souviendra. L’escargot aussi.`,
+    wind: 'Un courant d’air est entré dans le couloir. Il a des opinions sur les portes.',
+    popups: {
+      salesman: { title: 'Un homme vend des portes plus petites', body: '« Plus légères. Plus faciles à tenir. Taille escargot, franchement. » 30 de politesse.', a: 'Acheter une porte plus petite', b: 'Non merci' },
+      hands: { title: 'Changer de main ?', body: 'Votre bras repart à zéro. La porte se referme un instant et l’escargot recule d’effroi.', a: 'Changer de main', b: 'Garder cette main' },
+    },
+    boughtPa: 'Vous installez une porte plus petite. Votre bras vous remercie. L’escargot se sent infantilisé.',
+    boughtSay: 'c’est… une porte pour moi ? je suis un escargot adulte.',
+    declinedPa: 'Le vendeur de portes sort par votre porte. Vous la lui tenez. +10 de politesse.',
+    switchedPa: 'Vous changez de main. L’escargot recule de 70 cm. Il s’excuse d’avoir reculé.',
+    switchedSay: 'pardon ! pardon. j’ai cru que la porte était un oiseau.',
+    keptPa: 'Vous gardez cette main. L’autre est soulagée, et un peu jalouse.',
+    extendPa: 'Les Services généraux ont prolongé le couloir de 2,5 mètres pour votre confort.',
+    extendSay: 'le couloir vient de s’allonger ? je ne suis pas fâché. juste plus lent.',
+    paIdle: 'Maintenez n’importe où pour retenir la porte.',
+    holdPa: 'Maintenez n’importe où pour retenir la porte. L’escargot est en route.',
+    holdSay: 'oh ! vous la tenez ! pour moi ? j’arrive !',
+    crampPa: 'Votre bras a déposé une plainte officielle. Trois secondes de repos obligatoire.',
+    warnPa: 'L’escargot envisage de rentrer chez lui.',
+    crawlPa: 'Vous êtes l’escargot. Tapez quand l’anneau touche votre coquille. Un tout petit escargot retient la porte.',
+    reveal: [
+      'L’escargot arrive. Il regarde la porte. Il vous regarde. Il ne passe pas.',
+      '« Je dois vous avouer quelque chose. Je n’ai jamais été en route vers la porte. »',
+      '« C’est la porte qui venait vers moi. Très lentement. Depuis des années. Et vous, vous la reteniez. »',
+      '« Ce n’est rien. C’est mon tour. Rapetissez. Humidifiez-vous. Rampez en rythme. »',
+    ],
+    revGo: 'Continuer', revLast: 'Devenir l’escargot',
+    home: {
+      title: 'L’escargot est rentré chez lui.',
+      sub: d => `Il habite à ${d} mètres. Il y sera jeudi. Il dit qu’il n’est pas vexé. Il est vexé.`,
+      stat: (score, left, best) => `${score} de politesse · encore ${left} m · record ${best}`,
+      btn: 'Retenir encore la porte',
+    },
+    crawlfail: {
+      title: 'Le tout petit escargot a lâché.',
+      sub: () => 'Ce n’est rien. Ce n’est pas rien. Il retient déjà la porte à nouveau, par culpabilité.',
+      stat: (short, n) => `à ${short} m près · essai ${n}`,
+      btn: 'Ramper encore',
+    },
+    credits: (S, dec) => [
+      ['L’escargot', 'un escargot'], ['La porte', 'une porte, formée à l’Actors Studio'], ['Vous', 'vous, puis un escargot'],
+      ['Petit escargot', 'l’escargot, mais fatigué'], ['Vendeur de portes', 'lui-même'], ['Porte plus petite', S.small ? 'elle-même (achetée)' : 'n’est pas venue'],
+      ['Le couloir', `${START_DIST} m, puis ${dec(S.corridor, 1)} m`], ['Le courant d’air', 'un courant d’air qui a des opinions'],
+      ['Coach en dialecte pigeon', 'des miettes'], ['Traiteur', 'une feuille de laitue'], ['Créatures remerciées', String(S.thanked)],
+      ['Politesse gagnée', `${Math.floor(S.score)}`], ['Record de politesse', `${Math.floor(S.best)}`],
+    ],
+    creditHeld: time => `Aucune porte n’a été maltraitée. Une a été tenue pendant ${time}.`,
+    creditEnd: 'La porte est depuis arrivée chez l’escargot. Ils sont très heureux.',
+  },
+};
+
+// French typography: a narrow no-break space before ? ! : ; » and after «, applied once to every
+// French string (and to whatever a French string function returns) so no line starts with "?".
+(function frenchSpacing() {
+  const fix = s => s.replace(/ ([?!:;»])/g, '\u202f$1').replace(/« /g, '«\u202f');
+  const deep = v => typeof v === 'string' ? fix(v)
+    : typeof v === 'function' ? (...a) => deep(v(...a))
+    : Array.isArray(v) ? v.map(deep)
+    : v && typeof v === 'object' ? Object.fromEntries(Object.entries(v).map(([k, x]) => [k, deep(x)]))
+    : v;
+  I18N.fr = deep(I18N.fr);
+})();
+
+let lang = 'en';
+const t = k => I18N[lang][k] ?? I18N.en[k];
+// a getter for a line, so the PA and the bubble can re-say it after a language switch
+const line = (k, i) => () => (i === undefined ? t(k) : t(k)[i]);
+const dec = (n, k) => { const s = n.toFixed(k); return lang === 'fr' ? s.replace('.', ',') : s; };
+const CREATURES = ['pigeon', 'ghost', 'cabinet', 'duck', 'ladder'].map(kind => ({ kind }));
+const creature = kind => t('creatures')[kind];
+const SNAIL_N = I18N.en.snail.length, SAD_N = I18N.en.sad.length, TINY_N = I18N.en.tiny.length;
+// kept for the smoke jumps, which only read its length
+const REVEAL = I18N.en.reveal;
+const EVENTS = ['creature', 'hands', 'wind', 'salesman', 'creature', 'extend', 'creature', 'hands', 'wind', 'creature', 'extend', 'salesman'];
+const BEAT = .62, START_DIST = 18;
+
+let S;
+function fresh(best = 0) {
+  return { mode: 'title', t: 0, dist: START_DIST, corridor: START_DIST + 2, open: 0, fatigue: 0, cramp: 0, mood: 1,
+    closedT: 0, warned: false, score: 0, best, held: 0, eventT: 9, evI: 0, speechT: 2.5, speechI: 0, sadT: 0,
+    creature: null, crI: 0, thanked: 0, wind: 0, small: false, extends: 0, popup: null, bubble: '', bubbleT: 0,
+    me: 5, meShow: 5, tiny: 0, lastTap: -1, beat0: 0, feed: '', feedT: 0, tinyT: 3, tinyI: 0, revI: 0, crawlTries: 0 };
+}
+const held = { ptr: false, key: false };
+const scene = { headX: 0, headY: 0 };
+
+// announce/speak take a getter (see line()), so the current line can be re-said in a new language
+let paLine = () => t('paIdle');
+function announce(get) { paLine = get; $('#pa-text').textContent = get(); $('#pa').classList.remove('dim'); S.paT = 6; }
+function speak(get, secs = 4.5) { S.bubble = get; S.bubbleT = secs; }
+
+const POPUPS = {
+  salesman: {
+    a: () => {
+      S.small = true; S.score = Math.max(0, S.score - 30); S.mood = Math.max(.15, S.mood - .25);
+      announce(line('boughtPa'));
+      speak(line('boughtSay'));
+    },
+    b: () => { S.score += 10; announce(line('declinedPa')); },
+  },
+  hands: {
+    a: () => {
+      S.fatigue = 0; S.open = 0; S.dist += .7; S.mood = Math.max(.15, S.mood - .1);
+      announce(line('switchedPa'));
+      speak(line('switchedSay'));
+    },
+    b: () => announce(line('keptPa')),
+  },
+};
+function showPopup(id) {
+  S.popup = { id, left: 7 };
+  fillPopup();
+  $('#popup').hidden = false;
+}
+function fillPopup() {
+  const p = t('popups')[S.popup.id];
+  $('#pop-title').textContent = p.title;
+  $('#pop-body').textContent = p.body;
+  $('#pop-a').innerHTML = p.a + '<kbd>1</kbd>';
+  $('#pop-b').innerHTML = p.b + '<kbd>2</kbd>';
+}
+function choose(which) {
+  const p = S.popup; if (!p) return;
+  S.popup = null; $('#popup').hidden = true;
+  POPUPS[p.id][which]();
+}
+$('#pop-a').onclick = () => choose('a');
+$('#pop-b').onclick = () => choose('b');
+
+function fireEvent() {
+  let ev = EVENTS[S.evI++ % EVENTS.length];
+  if (ev === 'extend' && (S.extends >= 2 || S.dist > 12)) ev = 'creature';
+  if (ev === 'salesman' && S.small) ev = 'creature';
+  if (ev === 'creature') {
+    const c = CREATURES[S.crI++ % CREATURES.length];
+    S.creature = { ...c, m: S.dist + 2.5 };
+    announce(() => t('crComing')(creature(c.kind)));
+  } else if (ev === 'wind') {
+    S.wind = 6;
+    announce(line('wind'));
+  } else if (ev === 'salesman') {
+    showPopup('salesman');
+  } else if (ev === 'hands') {
+    showPopup('hands');
+  } else if (ev === 'extend') {
+    S.extends++; S.dist += 2.5; S.corridor += 2.5;
+    announce(line('extendPa'));
+    speak(line('extendSay'));
+  }
+}
+
+function startHold() {
+  const best = S ? Math.max(S.best, S.score) : 0;
+  S = fresh(best);
+  S.mode = 'hold';
+  for (const id of ['title', 'over', 'credits', 'reveal']) $('#' + id).hidden = true;
+  gaugeLabels();
+  announce(line('holdPa'));
+  speak(line('holdSay'));
+}
+
+function gaugeLabels() {
+  const g = t(S.crawlTries > 0 ? 'gCrawl' : 'gHold');
+  $('#g1-label').textContent = g[0];
+  $('#g2-label').textContent = g[1];
+}
+
+function startReveal() {
+  S.mode = 'reveal'; held.ptr = held.key = false;
+  S.popup = null; $('#popup').hidden = true; $('#bubble').hidden = true;
+  S.revI = 0; showRevealLine();
+  $('#reveal').hidden = false; $('#rev-next').focus();
+}
+function showRevealLine() {
+  $('#rev-line').textContent = t('reveal')[S.revI];
+  $('#rev-next').textContent = S.revI === REVEAL.length - 1 ? t('revLast') : t('revGo');
+}
+$('#rev-next').onclick = () => {
+  if (S.revI < REVEAL.length - 1) { S.revI++; showRevealLine(); return; }
+  $('#reveal').hidden = true; startCrawl();
+};
+
+function startCrawl() {
+  S.mode = 'crawl'; S.me = 5; S.meShow = 5; S.tiny = 0; S.beat0 = S.t; S.tapBeat = -1; S.tinyT = 1.5; S.tinyI = 0; S.crawlTries++;
+  for (const id of ['over']) $('#' + id).hidden = true;
+  gaugeLabels();
+  announce(line('crawlPa'));
+}
+
+function tap() {
+  if (S.t - S.lastTap < .18) return;
+  S.lastTap = S.t;
+  const ph = (S.t - S.beat0) % BEAT, e = Math.min(ph, BEAT - ph), n = Math.round((S.t - S.beat0) / BEAT);
+  let d, txt;
+  // one push per beat, and a miss costs ground: otherwise mashing out-crawls perfect rhythm
+  if (n === S.tapBeat) { d = -.2; txt = 'once'; }
+  else if (e < .08) { d = .34; txt = 'perfect'; S.score += 6; }
+  else if (e < .16) { d = .17; txt = 'decent'; S.score += 2; }
+  else { d = -.2; txt = 'slid'; }
+  if (d > 0) S.tapBeat = n;
+  S.me = Math.min(5, Math.max(0, S.me - d)); S.feed = txt; S.feedT = .8;
+}
+
+function endHome() {
+  S.mode = 'over'; held.ptr = held.key = false;
+  S.popup = null; $('#popup').hidden = true;
+  S.overKind = 'home';
+  fillOver();
+  $('#over-btn').onclick = startHold;
+  $('#over').hidden = false; $('#over-btn').focus();
+}
+function endCrawlFail() {
+  S.mode = 'over'; held.ptr = held.key = false;
+  S.overKind = 'crawlfail';
+  fillOver();
+  $('#over-btn').onclick = startCrawl;
+  $('#over').hidden = false; $('#over-btn').focus();
+}
+function fillOver() {
+  const o = t(S.overKind);
+  $('#over-title').textContent = o.title;
+  $('#over-sub').textContent = o.sub(START_DIST);
+  $('#over-stat').textContent = S.overKind === 'home'
+    ? o.stat(Math.floor(S.score), dec(S.dist, 2), Math.floor(Math.max(S.best, S.score)))
+    : o.stat(dec(S.me, 2), S.crawlTries);
+  $('#over-btn').textContent = o.btn;
+}
+
+function fmtTime(s) { const m = Math.floor(s / 60), r = Math.floor(s % 60); return `${m}:${String(r).padStart(2, '0')}`; }
+function showCredits() {
+  S.mode = 'credits'; held.ptr = held.key = false;
+  S.best = Math.max(S.best, S.score);
+  fillCredits();
+  $('#roll').classList.remove('rolling'); void $('#roll').offsetWidth; $('#roll').classList.add('rolling');
+  $('#credits').hidden = false; $('#again').focus();
+}
+
+function fillCredits() {
+  const rows = t('credits')(S, dec);
+  $('#roll-inner').innerHTML = rows.map(([r, n]) => `<div class="credit"><span class="role">${r}</span><span class="lead"></span><span class="name">${n}</span></div>`).join('')
+    + `<div class="credit note">${t('creditHeld')(fmtTime(S.held))}</div>`
+    + `<div class="credit note">${t('creditEnd')}</div>`;
+}
+
+function update(dt) {
+  S.t += dt;
+  if (S.bubbleT > 0) S.bubbleT -= dt;
+  if (S.feedT > 0) S.feedT -= dt;
+  if (S.paT > 0) { S.paT -= dt; if (S.paT <= 0) $('#pa').classList.add('dim'); }
+  if (S.mode === 'hold') updateHold(dt);
+  else if (S.mode === 'crawl') updateCrawl(dt);
+}
+
+function updateHold(dt) {
+  const holding = (held.ptr || held.key) && S.cramp <= 0;
+  const fRate = (S.small ? 2.3 : 4.3) * (S.wind > 0 ? 1.9 : 1);
+  const wasOpen = S.open;
+  if (holding) {
+    S.open = Math.min(1, S.open + dt * 2.6);
+    S.fatigue += dt * fRate; S.held += dt;
+    S.score += dt * 6 * S.open;
+  } else {
+    S.open = Math.max(0, S.open - dt * (S.wind > 0 ? 1.2 : .38));
+    S.fatigue = Math.max(0, S.fatigue - dt * 11);
+  }
+  if (S.fatigue >= 100) {
+    S.fatigue = 100; S.cramp = 3;
+    announce(line('crampPa'));
+  }
+  if (S.cramp > 0) S.cramp -= dt;
+  if (S.wind > 0) S.wind -= dt;
+
+  if (S.open < .4) S.mood = Math.max(.15, S.mood - dt * .12);
+  else if (S.open > .8) S.mood = Math.min(1, S.mood + dt * .06);
+
+  S.sadT -= dt;
+  if (wasOpen >= .3 && S.open < .3 && S.sadT <= 0) { speak(line('sad', Math.floor(Math.random() * SAD_N)), 3.5); S.sadT = 8; }
+
+  if (S.open < .02) S.closedT += dt; else { S.closedT = 0; S.warned = false; }
+  if (S.closedT > 3.5 && !S.warned) { S.warned = true; announce(line('warnPa')); }
+  if (S.closedT > 7) return endHome();
+
+  const v = .15 * (.35 + .65 * S.mood) * S.open;
+  S.dist = Math.max(0, S.dist - v * dt);
+
+  S.speechT -= dt;
+  if (S.speechT <= 0 && S.bubbleT <= 0) { speak(line('snail', S.speechI++ % SNAIL_N)); S.speechT = 7 + Math.random() * 3; }
+
+  if (S.creature) {
+    const c = S.creature;
+    c.m -= 1.7 * dt;
+    if (c.m <= .2) {
+      if (S.open > .5) { S.score += 40; S.thanked++; announce(() => t('crThanked')(creature(c.kind))); }
+      else { S.mood = Math.max(.15, S.mood - .1); announce(() => t('crBump')(creature(c.kind))); }
+      S.creature = null;
+    }
+  }
+
+  if (S.popup) {
+    S.popup.left -= dt;
+    $('#pop-tick').style.width = Math.max(0, S.popup.left / 7 * 100) + '%';
+    if (S.popup.left <= 0) choose('b');
+  } else {
+    S.eventT -= dt;
+    if (S.eventT <= 0 && !S.creature) { fireEvent(); S.eventT = 12 + Math.random() * 6; }
+  }
+
+  if (S.dist <= 0) startReveal();
+}
+
+function updateCrawl(dt) {
+  S.tiny += dt * 100 / 26;
+  S.meShow += (S.me - S.meShow) * Math.min(1, dt * 7);
+  S.tinyT -= dt;
+  if (S.tinyT <= 0) { speak(line('tiny', S.tinyI++ % TINY_N), 3.5); S.tinyT = 5; }
+  if (S.me <= 0 && S.meShow < .05) return showCredits();
+  if (S.tiny >= 100) { S.tiny = 100; endCrawlFail(); }
+}
+
+function geo() {
+  const floorY = H * .8, doorX = W * .74, dw = Math.min(H * .2, W * .16);
+  return { floorY, doorX, dw };
+}
+
+function drawCorridor(scale, doorX, floorY, len) {
+  cx.fillStyle = C.wall; cx.fillRect(0, 0, W, floorY);
+  cx.fillStyle = C['wall-low']; cx.fillRect(0, 0, W, H * .07);
+  cx.fillRect(0, floorY - H * .16, W, H * .16);
+  cx.fillStyle = C.ink; cx.globalAlpha = .35; cx.fillRect(0, floorY - H * .16, W, 2); cx.globalAlpha = 1;
+
+  const f = Math.max(.3, Math.min(1.5, scale / 60));
+  for (let m = 1, i = 0; ; m += 2.5, i++) {
+    const x = doorX - m * scale;
+    if (x < -150) break;
+    const tw = Math.max(6, Math.min(130, 1.1 * scale));
+    const flick = (C.wall === '#1d2823' && i % 5 === 3 && !reduce) ? (Math.sin(S.t * 23) > .6 ? .25 : 1) : 1;
+    cx.globalAlpha = flick; cx.fillStyle = C.tube; cx.fillRect(x - tw / 2, H * .07, tw, 5);
+    cx.globalAlpha = .12 * flick; cx.beginPath(); cx.moveTo(x - tw / 2, H * .07 + 5); cx.lineTo(x + tw / 2, H * .07 + 5);
+    cx.lineTo(x + tw * 1.2, H * .38); cx.lineTo(x - tw * 1.2, H * .38); cx.fill(); cx.globalAlpha = 1;
+  }
+
+  for (let m = 2, i = 0; m < len; m += 3, i++) {
+    const x = doorX - m * scale;
+    if (x < -120) break;
+    if (x > doorX - 20) continue;
+    const k = i % 4;
+    if (k === 0) {
+      const w = 64 * f, h = 46 * f, y = floorY - H * .5;
+      cx.fillStyle = C.panel; cx.fillRect(x - w / 2, y, w, h);
+      cx.strokeStyle = C.ink; cx.lineWidth = 1.5; cx.strokeRect(x - w / 2, y, w, h);
+      if (f > .7) {
+        cx.fillStyle = C.ink; cx.font = `600 ${Math.round(6.5 * f)}px ${getComputedStyle(document.body).getPropertyValue('--f-mono')}`;
+        cx.textAlign = 'center';
+        const sign = t('sign');
+        cx.fillText(sign[0], x, y + h * .4, w * .9); cx.fillText(sign[1], x, y + h * .6, w * .9); cx.fillText(sign[2], x, y + h * .8, w * .9);
+      }
+    } else if (k === 1) {
+      const h = 34 * f, w = 12 * f;
+      cx.fillStyle = C.door; cx.beginPath(); cx.roundRect(x - w / 2, floorY - H * .16 - h - 6, w, h, 3 * f); cx.fill();
+      cx.fillStyle = C.ink; cx.fillRect(x - w * .3, floorY - H * .16 - h - 10, w * .6, 5 * f);
+    } else if (k === 2) {
+      const w = 48 * f, h = 26 * f;
+      cx.strokeStyle = C.muted; cx.lineWidth = Math.max(1, 2.5 * f);
+      for (let j = 0; j < 6; j++) { const rx = x - w / 2 + j * w / 5; cx.beginPath(); cx.moveTo(rx, floorY - 6); cx.lineTo(rx, floorY - 6 - h); cx.stroke(); }
+    } else {
+      const s = 16 * f;
+      cx.fillStyle = C.door; cx.fillRect(x - s * .5, floorY - s, s, s);
+      cx.strokeStyle = C.exit; cx.lineWidth = Math.max(1.5, 3 * f); cx.lineCap = 'round';
+      for (const a of [-.7, -.3, .1, .5, .85]) { cx.beginPath(); cx.moveTo(x, floorY - s); cx.lineTo(x + Math.sin(a) * s * 1.6, floorY - s - Math.cos(a) * s * 2); cx.stroke(); }
+    }
+  }
+
+  const endX = doorX - len * scale;
+  if (endX > 0) { cx.fillStyle = C['wall-low']; cx.fillRect(0, 0, endX, floorY); cx.fillStyle = C.ink; cx.fillRect(endX - 2, 0, 2, floorY); }
+
+  cx.fillStyle = C.floor; cx.fillRect(0, floorY, W, H - floorY);
+  cx.strokeStyle = C['floor-line']; cx.lineWidth = 1;
+  for (let m = 0; ; m += .5) {
+    const x = doorX - m * scale;
+    if (x < 0) break;
+    cx.beginPath(); cx.moveTo(x, floorY); cx.lineTo(x - (doorX - x) * .05 - 10, H); cx.stroke();
+  }
+}
+
+function drawDoor(g, open, small, armAlive) {
+  const { doorX, floorY, dw } = g;
+  const dh = H * .54 * (small ? .5 : 1);
+  const y0 = floorY - dh;
+  cx.fillStyle = C.beyond; cx.fillRect(doorX, y0, dw, dh);
+  cx.globalAlpha = .25 * open; cx.fillStyle = C.beyond;
+  cx.beginPath(); cx.moveTo(doorX, floorY); cx.lineTo(doorX + dw, floorY); cx.lineTo(doorX + dw * .4, H); cx.lineTo(doorX - dw * .9, H); cx.fill();
+  cx.globalAlpha = 1;
+  cx.strokeStyle = C.ink; cx.lineWidth = 4; cx.strokeRect(doorX, y0, dw, dh);
+
+  const hinge = doorX + dw, pw = dw * (1 - .84 * open), ext = dh * .07 * open;
+  const fx = hinge - pw;
+  cx.fillStyle = C.door; cx.strokeStyle = C['door-edge']; cx.lineWidth = 2;
+  cx.beginPath(); cx.moveTo(hinge, y0); cx.lineTo(fx, y0 - ext); cx.lineTo(fx, floorY + ext); cx.lineTo(hinge, floorY); cx.closePath(); cx.fill(); cx.stroke();
+  if (pw > 18) {
+    cx.fillStyle = C.beyond; cx.globalAlpha = .6;
+    cx.fillRect(fx + pw * .3, y0 + dh * .12, pw * .4, dh * .25); cx.globalAlpha = 1;
+    cx.strokeStyle = C.ink; cx.lineWidth = 3;
+    cx.beginPath(); cx.moveTo(fx + pw * .12, y0 + dh * .55); cx.lineTo(fx + pw * .88, y0 + dh * .55); cx.stroke();
+  }
+  cx.fillStyle = C.ink; cx.fillRect(hinge - dw * .45, y0 - 6, dw * .4, 4);
+
+  const sw = Math.max(54, dw * .7), sh = sw * .36, sx = doorX + dw / 2 - sw / 2, sy = y0 - sh - 14;
+  cx.fillStyle = C.exit; cx.fillRect(sx, sy, sw, sh);
+  cx.fillStyle = C['on-sign']; cx.font = `900 ${Math.round(sh * .72)}px "Big Shoulders Display", Impact, sans-serif`;
+  cx.textAlign = 'center'; cx.textBaseline = 'middle'; cx.fillText(t('exit'), sx + sw / 2, sy + sh / 2 + 1, sw * .9); cx.textBaseline = 'alphabetic';
+
+  if (armAlive !== undefined) {
+    const hy = y0 + dh * .5, sxA = W + 12, syA = hy - H * .05;
+    const tremble = S.fatigue > 55 && !reduce ? Math.sin(S.t * 45) * (S.fatigue - 55) * .05 : 0;
+    cx.lineCap = 'round';
+    cx.strokeStyle = C.sleeve; cx.lineWidth = Math.max(10, H * .035);
+    cx.beginPath(); cx.moveTo(sxA, syA);
+    if (armAlive) { cx.lineTo(fx + 6, hy + tremble); cx.stroke(); cx.fillStyle = C.hand; cx.beginPath(); cx.arc(fx + 4, hy + tremble, H * .022, 0, 6.28); cx.fill(); }
+    else { cx.lineTo(W - 24, syA + H * .14); cx.stroke(); cx.fillStyle = C.hand; cx.beginPath(); cx.arc(W - 24, syA + H * .15, H * .022, 0, 6.28); cx.fill(); }
+  }
+  return { fx, hy: y0 + dh * .5, y0, dh };
+}
+
+function drawSnail(x, floorY, s, mood, t, moving) {
+  const bob = moving && !reduce ? Math.sin(t * 5) * s * .03 : 0;
+  cx.fillStyle = C.body;
+  cx.beginPath(); cx.ellipse(x + s * .85, floorY - s * .16 + bob, s * .95, s * .18, 0, 0, 6.28); cx.fill();
+  const hx = x + s * 1.65, hy = floorY - s * .32 + bob;
+  cx.beginPath(); cx.ellipse(hx, hy, s * .2, s * .22, -.3, 0, 6.28); cx.fill();
+  const droop = (1 - mood) * 1.1;
+  cx.strokeStyle = C.body; cx.lineWidth = Math.max(1.5, s * .06); cx.lineCap = 'round';
+  const eyes = [];
+  for (const o of [-.25, .2]) {
+    const a = -Math.PI / 2 + o + droop * (o < 0 ? -1 : 1) * .6 + droop * .8;
+    const ex = hx + Math.cos(a) * s * .45, ey = hy - s * .12 + Math.sin(a) * s * .45;
+    cx.beginPath(); cx.moveTo(hx, hy - s * .12); cx.lineTo(ex, ey); cx.stroke(); eyes.push([ex, ey]);
+  }
+  cx.fillStyle = C.ink; for (const [ex, ey] of eyes) { cx.beginPath(); cx.arc(ex, ey, Math.max(1.4, s * .06), 0, 6.28); cx.fill(); }
+  const shx = x + s * .7, shy = floorY - s * .62 + bob, r = s * .5;
+  cx.fillStyle = C.shell; cx.beginPath(); cx.arc(shx, shy, r, 0, 6.28); cx.fill();
+  cx.strokeStyle = C.ink; cx.globalAlpha = .45; cx.lineWidth = Math.max(1, s * .04);
+  cx.beginPath();
+  for (let a = 0; a < 14; a += .2) { const rr = r * .9 * (1 - a / 15); const px = shx + Math.cos(a) * rr, py = shy + Math.sin(a) * rr; a === 0 ? cx.moveTo(px, py) : cx.lineTo(px, py); }
+  cx.stroke(); cx.globalAlpha = 1;
+  return { headX: hx, headY: Math.min(...eyes.map(e => e[1])) };
+}
+
+function drawCreature(c, x, floorY, f) {
+  const s = 30 * f;
+  cx.save();
+  if (c.kind === 'pigeon') {
+    cx.fillStyle = C.muted; cx.beginPath(); cx.ellipse(x, floorY - s * .5, s * .5, s * .32, 0, 0, 6.28); cx.fill();
+    cx.beginPath(); cx.arc(x + s * .45, floorY - s * .85, s * .18, 0, 6.28); cx.fill();
+    cx.fillStyle = C.door; cx.beginPath(); cx.moveTo(x + s * .6, floorY - s * .87); cx.lineTo(x + s * .78, floorY - s * .82); cx.lineTo(x + s * .6, floorY - s * .78); cx.fill();
+    cx.strokeStyle = C.door; cx.lineWidth = 2; cx.beginPath(); cx.moveTo(x, floorY - s * .2); cx.lineTo(x, floorY); cx.stroke();
+  } else if (c.kind === 'ghost') {
+    cx.fillStyle = C.beyond; cx.globalAlpha = .85;
+    cx.beginPath(); cx.moveTo(x - s * .5, floorY - s * .1); cx.lineTo(x - s * .5, floorY - s * 1.6);
+    cx.arc(x, floorY - s * 1.6, s * .5, Math.PI, 0); cx.lineTo(x + s * .5, floorY - s * .1);
+    for (let i = 0; i < 4; i++) cx.lineTo(x + s * .5 - (i + .5) * s * .25, floorY - (i % 2 ? s * .1 : s * .3));
+    cx.fill(); cx.globalAlpha = 1; cx.fillStyle = C.ink;
+    cx.beginPath(); cx.arc(x - s * .15, floorY - s * 1.6, s * .06, 0, 6.28); cx.arc(x + s * .15, floorY - s * 1.6, s * .06, 0, 6.28); cx.fill();
+  } else if (c.kind === 'cabinet') {
+    const bob = reduce ? 0 : Math.abs(Math.sin(S.t * 8)) * s * .1;
+    cx.fillStyle = C.muted; cx.fillRect(x - s * .4, floorY - s * 1.8 - bob, s * .8, s * 1.8);
+    cx.strokeStyle = C.panel; cx.lineWidth = 1.5;
+    for (let i = 1; i < 4; i++) cx.strokeRect(x - s * .32, floorY - s * 1.8 - bob + i * s * .42 - s * .34, s * .64, s * .34);
+  } else if (c.kind === 'duck') {
+    cx.fillStyle = C.tube === '#cfe8d4' ? '#d8b84a' : '#e7c442';
+    cx.beginPath(); cx.ellipse(x, floorY - s * .45, s * .5, s * .35, 0, 0, 6.28); cx.fill();
+    cx.beginPath(); cx.arc(x + s * .35, floorY - s * .95, s * .22, 0, 6.28); cx.fill();
+    cx.fillStyle = C.door; cx.beginPath(); cx.moveTo(x + s * .32, floorY - s * .75); cx.lineTo(x + s * .42, floorY - s * .4); cx.lineTo(x + s * .22, floorY - s * .4); cx.fill();
+    cx.fillStyle = C.sleeve; cx.fillRect(x + s * .53, floorY - s * .98, s * .2, s * .07);
+  } else {
+    cx.strokeStyle = C.ink; cx.lineWidth = Math.max(2, 3 * f); cx.lineCap = 'round';
+    cx.beginPath(); cx.arc(x, floorY - s * 2.1, s * .2, 0, 6.28); cx.stroke();
+    cx.beginPath(); cx.moveTo(x, floorY - s * 1.9); cx.lineTo(x, floorY - s * .9); cx.lineTo(x - s * .3, floorY); cx.moveTo(x, floorY - s * .9); cx.lineTo(x + s * .3, floorY); cx.stroke();
+    cx.strokeStyle = C.shell; cx.lineWidth = Math.max(3, 5 * f);
+    cx.beginPath(); cx.moveTo(x - s * 1.6, floorY - s * 1.5); cx.lineTo(x + s * 1.2, floorY - s * 1.7); cx.stroke();
+    cx.strokeStyle = C.ink; cx.lineWidth = Math.max(1.5, 2 * f);
+    cx.beginPath(); cx.arc(x + s * .9, floorY - s * 2.05, s * .1, 0, 6.28); cx.moveTo(x + s * .9, floorY - s * 1.95); cx.lineTo(x + s * .9, floorY - s * 1.7); cx.stroke();
+  }
+  cx.restore();
+  cx.fillStyle = C.muted; cx.textAlign = 'center';
+  cx.font = `600 10px "Overpass Mono", ui-monospace, monospace`;
+  cx.fillText(creature(c.kind).name.toUpperCase(), x, floorY - s * 2.4 - 6, Math.max(90, s * 5));
+}
+
+function draw() {
+  const g = geo();
+  const { floorY, doorX, dw } = g;
+  let headX = -999, headY = 0;
+  if (S.mode === 'crawl' || (S.mode === 'over' && S.crawlTries > 0 && S.tiny > 0) || S.mode === 'credits') {
+    const scale = (doorX - 60) / 6.5;
+    drawCorridor(scale, doorX, floorY, 30);
+    const open = S.mode === 'over' ? 0 : 1 - Math.max(0, S.tiny - 80) / 100;
+    const d = drawDoor(g, open, false);
+    // the tiny snail sits in the doorway, holding the door with one eyestalk
+    const ts = 18, tx = doorX + dw * .55;
+    const tsH = drawSnail(tx - ts * 1.6, floorY, ts, Math.max(.1, 1 - S.tiny / 100), S.t, false);
+    if (S.mode !== 'over') {
+      const tremble = S.tiny > 60 && !reduce ? Math.sin(S.t * 50) * (S.tiny - 60) * .05 : 0;
+      cx.strokeStyle = C.body; cx.lineWidth = 2.5; cx.beginPath(); cx.moveTo(tsH.headX, tsH.headY);
+      cx.quadraticCurveTo(tsH.headX, d.hy + tremble, d.fx + 2, d.hy + tremble); cx.stroke();
+    }
+    const s = Math.min(H * .14, W * .12);
+    const sx = doorX - S.meShow * scale - s * 1.9;
+    cx.strokeStyle = C.slime; cx.globalAlpha = .7; cx.lineWidth = 4;
+    cx.beginPath(); cx.moveTo(0, floorY - 1); cx.lineTo(sx + s * .4, floorY - 1); cx.stroke(); cx.globalAlpha = 1;
+    const me = drawSnail(sx, floorY, s, 1, S.t, true);
+    if (S.mode === 'crawl') {
+      const u = ((S.t - S.beat0) % BEAT) / BEAT;
+      const shx = sx + s * .7, shy = floorY - s * .62;
+      cx.strokeStyle = C.exit; cx.lineWidth = 3; cx.globalAlpha = .35 + .65 * u;
+      cx.beginPath(); cx.arc(shx, shy, s * .55 + s * 1.3 * (1 - u), 0, 6.28); cx.stroke(); cx.globalAlpha = 1;
+      if (S.feedT > 0) {
+        cx.fillStyle = C.ink; cx.globalAlpha = Math.min(1, S.feedT * 2); cx.textAlign = 'center';
+        cx.font = `600 13px "Overpass Mono", ui-monospace, monospace`;
+        cx.fillText(t('feed')[S.feed].toUpperCase(), shx, shy - s * 1.1 - (0.8 - S.feedT) * 30, W * .5); cx.globalAlpha = 1;
+      }
+    }
+    headX = tsH.headX; headY = tsH.headY - 4;
+  } else {
+    const scale = (doorX - 40) / Math.max(S.dist + .8, 3);
+    drawCorridor(scale, doorX, floorY, S.corridor);
+    const s = Math.max(15, Math.min(H * .13, .32 * scale));
+    const sx = doorX - S.dist * scale - s * 1.9;
+    cx.strokeStyle = C.slime; cx.globalAlpha = .6; cx.lineWidth = 3;
+    const trailStart = Math.max(0, doorX - S.corridor * scale);
+    cx.beginPath(); cx.moveTo(trailStart, floorY - 1); cx.lineTo(sx + s * .4, floorY - 1); cx.stroke(); cx.globalAlpha = 1;
+    if (S.creature) {
+      const f = Math.max(.45, Math.min(1.4, scale / 60));
+      drawCreature(S.creature, doorX - S.creature.m * scale, floorY, f);
+    }
+    const h = drawSnail(sx, floorY, s, S.mood, S.t, S.open > .3 && S.mode === 'hold');
+    headX = h.headX; headY = h.headY - 4;
+    if (S.wind > 0 && !reduce) {
+      cx.strokeStyle = C.muted; cx.globalAlpha = .5; cx.lineWidth = 1.5;
+      for (let i = 0; i < 7; i++) {
+        const wy = H * (.2 + i * .08), wx = ((S.t * 600 + i * 173) % (W + 200)) - 100;
+        cx.beginPath(); cx.moveTo(wx, wy); cx.quadraticCurveTo(wx + 40, wy - 10, wx + 90, wy); cx.stroke();
+      }
+      cx.globalAlpha = 1;
+    }
+    drawDoor(g, S.open, S.small, S.mode === 'title' ? true : S.cramp <= 0 && (held.ptr || held.key));
+  }
+  scene.headX = headX; scene.headY = headY;
+}
+
+function hud() {
+  const crawl = S.mode === 'crawl';
+  if (crawl) {
+    $('#dist-read').textContent = t('myDist')(dec(S.me, 2));
+    const a = $('#g1'); a.style.width = S.tiny + '%'; a.classList.toggle('warn', S.tiny > 70);
+    const u = ((S.t - S.beat0) % BEAT) / BEAT; const b = $('#g2'); b.style.width = (u * 100) + '%'; b.classList.remove('warn');
+  } else if (S.mode === 'hold' || S.mode === 'title') {
+    $('#dist-read').textContent = t('snailDist')(dec(S.dist, 2));
+    const a = $('#g1'); a.style.width = S.fatigue + '%'; a.classList.toggle('warn', S.fatigue > 70 || S.cramp > 0);
+    const b = $('#g2'); b.style.width = (S.mood * 100) + '%'; b.classList.toggle('warn', S.mood < .4);
+  }
+  $('#score').textContent = Math.floor(S.score).toLocaleString(lang);
+  const conv = t('conv'), [unit, per] = conv[Math.floor(S.t / 8) % conv.length];
+  $('#conv').textContent = `= ${dec(S.score / per, per > 50 ? 2 : 1)} ${unit}`;
+
+  const bub = $('#bubble');
+  const showBubble = S.bubbleT > 0 && (S.mode === 'hold' || S.mode === 'crawl') && scene.headX > -900 && S.bubble;
+  bub.hidden = !showBubble;
+  if (showBubble) {
+    const said = S.bubble();
+    if (bub.textContent !== said) bub.textContent = said;
+    bub.style.left = Math.max(110, Math.min(W - 110, scene.headX)) + 'px';
+    bub.style.top = Math.max(150, scene.headY - 10) + 'px';
+  }
+}
+
+let last = 0;
+function frame(now) {
+  const dt = Math.min(.05, (now - last) / 1000 || 0); last = now;
+  if (S.mode === 'hold' || S.mode === 'crawl') update(dt);
+  else S.t += dt;
+  draw(); hud();
+  requestAnimationFrame(frame);
+}
+
+function onDown() {
+  held.ptr = true;
+  if (S.mode === 'crawl') tap();
+}
+cv.addEventListener('pointerdown', e => { e.preventDefault(); onDown(); });
+addEventListener('pointerup', () => { held.ptr = false; });
+addEventListener('pointercancel', () => { held.ptr = false; });
+addEventListener('blur', () => { held.ptr = held.key = false; });
+addEventListener('keydown', e => {
+  if (e.key === ' ') {
+    if (S.mode === 'hold' || S.mode === 'crawl') e.preventDefault();
+    if (!e.repeat) { held.key = true; if (S.mode === 'crawl') tap(); }
+  }
+  if (S.popup && (e.key === '1' || e.key === '2')) choose(e.key === '1' ? 'a' : 'b');
+});
+addEventListener('keyup', e => { if (e.key === ' ') held.key = false; });
+$('#start').onclick = startHold;
+$('#again').onclick = startHold;
+
+// ---- language -------------------------------------------------------------------------------
+// Static markup carries data-t (text) and data-ta (aria-label). The PA line, the bubble, an open
+// popup, the reveal, the over card and the credits are re-worded from their ids; the canvas
+// redraws every frame through t().
+function applyLang() {
+  document.documentElement.lang = lang;
+  document.title = t('docTitle');
+  for (const el of document.querySelectorAll('[data-t]')) el.textContent = t(el.dataset.t);
+  for (const el of document.querySelectorAll('[data-ta]')) el.setAttribute('aria-label', t(el.dataset.ta));
+  for (const box of document.querySelectorAll('.lang')) {
+    if (!box.children.length) box.innerHTML = '<button data-lang="fr" lang="fr">FR</button><button data-lang="en" lang="en">EN</button>';
+    for (const b of box.children) b.setAttribute('aria-pressed', String(b.dataset.lang === lang));
+  }
+  // the opening PA line is not an announcement yet, so re-saying it must not un-dim anything
+  $('#pa-text').textContent = paLine();
+  gaugeLabels();
+  if (S.popup) fillPopup();
+  if (S.mode === 'reveal') showRevealLine();
+  if (S.mode === 'over') fillOver();
+  if (S.mode === 'credits') fillCredits();
+  hud();
+}
+function setLang(l) {
+  if (!(l in I18N) || l === lang) return;
+  lang = l;
+  applyLang();
+}
+document.addEventListener('click', e => {
+  const b = e.target.closest('[data-lang]');
+  if (b) setLang(b.dataset.lang);
+});
+
+function start(data) {
+  S = fresh(data.best || 0);
+  lang = data?.lang in I18N ? data.lang : (navigator.language || '').toLowerCase().startsWith('fr') ? 'fr' : 'en';
+  readTokens(); resize();
+  applyLang();
+  requestAnimationFrame(frame);
+}
+window.claude?.hot?.snapshot?.(() => ({ best: Math.max(S?.best || 0, S?.score || 0), lang }));
+window.claude?.hot?.ready ? window.claude.hot.ready(start) : start(window.claude?.hot?.data ?? {});
+</script>
+</body>
+</html>

@@ -1,0 +1,994 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Night Shift at the Gallery</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,opsz,wght@0,6..96,500;1,6..96,500;1,6..96,700&family=Hanken+Grotesk:wght@400;600&family=Courier+Prime:wght@400;700&display=swap">
+<style>
+/* Layout: one torchlit gallery wall. Night log on top, framed works in a grid, a sticky duty bar at the bottom. Single-world (night) by choice. */
+:root {
+  --wall: #1e2a24;
+  --wall-deep: #111915;
+  --gilt: #c49a45;
+  --label: #ece4d0;
+  --ink: #1d1b16;
+  --alarm: #c8503f;
+  --ok: #6f9e6a;
+  --text: #e9e1cc;
+  --dim: #a1a996;
+  --day: #d6c9ad;
+  --beam: #ffe6b0;
+  --f-display: "Bodoni Moda", "Didot", "Bodoni 72", Georgia, serif;
+  --f-body: "Hanken Grotesk", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-type: "Courier Prime", "Courier New", ui-monospace, monospace;
+  color-scheme: dark;
+}
+[hidden] { display: none !important; }
+* { box-sizing: border-box; }
+html, body { min-height: 100%; }
+body {
+  margin: 0;
+  background: var(--wall-deep);
+  color: var(--text);
+  font: 15px/1.55 var(--f-body);
+  padding-block: 16px 0;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.app { max-width: 1100px; margin: 0 auto; display: grid; gap: 14px; }
+
+header.bar { display: flex; justify-content: space-between; align-items: flex-end; gap: 14px 28px; flex-wrap: wrap; border-bottom: 1px solid #ffffff1a; padding-bottom: 12px; }
+.eyebrow { font: 600 11px var(--f-body); letter-spacing: .14em; text-transform: uppercase; color: var(--gilt); }
+h1 { margin: 2px 0 0; font: italic 500 clamp(28px, 5vw, 46px)/1 var(--f-display); text-wrap: balance; }
+.stats { display: flex; gap: 12px 24px; flex-wrap: wrap; margin: 0; }
+.stats div { display: grid; gap: 2px; }
+dt { font-size: 10px; letter-spacing: .12em; text-transform: uppercase; color: var(--dim); }
+dd { margin: 0; font: 700 16px var(--f-type); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.cred { display: inline-block; width: 70px; height: 8px; background: #ffffff1a; vertical-align: middle; overflow: hidden; }
+.cred i { display: block; height: 100%; width: 100%; background: var(--gilt); transition: width .4s; }
+
+.radio { margin: 0; font: 400 14px/1.5 var(--f-type); color: var(--label); max-width: 78ch; min-height: 3em; }
+.radio b { color: var(--gilt); font-weight: 700; }
+
+.room {
+  position: relative; overflow: hidden; border-radius: 3px;
+  padding: 30px 22px 34px;
+  background-color: var(--wall);
+  background-image:
+    radial-gradient(circle at 50% 50%, #ffffff07 0 14px, transparent 15px),
+    radial-gradient(circle at 0 0, #00000022 0 10px, transparent 11px);
+  background-size: 56px 56px, 56px 56px;
+  --tx: 50%; --ty: 40%;
+  transition: background-color .6s, border-color .6s;
+}
+.room.inside { background-color: var(--day); border: 18px solid var(--gilt); box-shadow: inset 0 0 0 4px #6e5320, inset 0 0 50px #00000055; }
+.wall { position: relative; z-index: 1; display: grid; gap: 30px 22px; margin: 0 auto; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.wall[data-n="4"] { max-width: 980px; }
+.wall[data-n="6"] { max-width: 700px; }
+@media (min-width: 760px) {
+  .wall[data-n="4"] { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .wall[data-n="6"] { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+
+.torch {
+  position: absolute; inset: 0; z-index: 2; pointer-events: none;
+  background: radial-gradient(circle at var(--tx) var(--ty), #ffe6b014 0, #ffe6b008 150px, #060907a6 290px);
+  transition: opacity .5s;
+}
+.room.lit .torch, .room.inside .torch { opacity: 0; }
+.blackout { position: absolute; inset: 0; z-index: 3; background: #040605; opacity: 0; pointer-events: none; transition: opacity .3s; }
+.room.off .blackout { opacity: .97; }
+.room.flicker .blackout { animation: flick .8s steps(1, end); }
+@keyframes flick { 0% { opacity: .97; } 18% { opacity: .35; } 26% { opacity: .97; } 52% { opacity: .6; } 58% { opacity: .97; } }
+
+.tile {
+  all: unset; box-sizing: border-box; position: relative; cursor: pointer;
+  display: grid; gap: 10px; justify-items: center; align-content: start; text-align: center;
+}
+.tile canvas.main { display: block; width: 100%; height: auto; aspect-ratio: 4 / 5; box-shadow: 0 16px 26px -12px #000000d0; transition: opacity .3s, outline-color .2s; }
+.tile:focus-visible canvas.main { outline: 3px solid var(--beam); outline-offset: 4px; }
+.tile[aria-pressed="true"] canvas.main { outline: 3px solid var(--alarm); outline-offset: 4px; }
+.label { background: var(--label); color: var(--ink); padding: 6px 9px 7px; font-size: 11px; line-height: 1.35; display: grid; gap: 1px; max-width: 100%; box-shadow: 0 2px 6px #00000066; }
+.label b { font: italic 600 13px/1.2 var(--f-display); text-wrap: balance; }
+.label .num { font: 700 10px var(--f-type); color: #7a6a44; letter-spacing: .1em; }
+.label .acc { font: 10px var(--f-type); color: #6b6557; }
+.what { font: 700 12px/1.35 var(--f-type); color: var(--beam); max-width: 26ch; }
+.room.inside .what { color: #6e3a20; }
+.tag {
+  position: absolute; top: 10px; left: 50%; transform: translateX(-50%) rotate(-4deg); z-index: 1;
+  font: 700 11px var(--f-type); letter-spacing: .12em; text-transform: uppercase; color: #fff;
+  background: var(--alarm); padding: 3px 8px; display: none; box-shadow: 0 2px 6px #0008; white-space: nowrap;
+}
+.tile[aria-pressed="true"] .tag, .tile.hit .tag, .tile.false .tag, .tile.miss .tag { display: block; }
+.tile.hit .tag { background: var(--ok); }
+.tile.miss .tag { background: var(--gilt); color: var(--ink); }
+.tile.hit canvas.main { outline: 3px solid var(--ok); outline-offset: 4px; }
+.tile.miss canvas.main { outline: 3px dashed var(--gilt); outline-offset: 4px; }
+.tile.quiet canvas.main { opacity: .45; }
+.note {
+  position: absolute; left: -8px; top: 52%; z-index: 1; max-width: 80%;
+  background: #f4efd9; color: #2a2620; font: italic 500 13px/1.25 var(--f-display);
+  padding: 5px 9px; transform: rotate(-6deg); box-shadow: 0 4px 10px #0009;
+}
+.reveal {
+  position: absolute; top: -12px; right: -10px; z-index: 1; width: 44%;
+  display: grid; gap: 3px; background: var(--label); padding: 5px; transform: rotate(3deg); box-shadow: 0 8px 16px #000000aa;
+}
+.reveal::before { content: attr(data-before); font: 700 9px var(--f-type); letter-spacing: .12em; text-transform: uppercase; color: #6b6557; }
+.reveal canvas { display: block; width: 100%; height: auto; }
+
+.actions {
+  position: sticky; bottom: 0; z-index: 5; display: grid; gap: 10px;
+  background: var(--wall-deep); padding: 12px 0 calc(14px + env(safe-area-inset-bottom, 0px));
+  border-top: 1px solid #ffffff1a;
+}
+.timer { height: 4px; background: #ffffff14; overflow: hidden; }
+.timer i { display: block; height: 100%; width: 0; background: var(--beam); }
+.actrow { display: flex; justify-content: space-between; align-items: center; gap: 12px 20px; flex-wrap: wrap; }
+.hint { font-size: 14px; color: var(--dim); max-width: 60ch; }
+button.act, .card button {
+  font: 600 14px var(--f-body); letter-spacing: .04em; color: var(--ink); background: var(--gilt);
+  border: 0; border-radius: 2px; padding: 12px 20px; cursor: pointer; transition: background .15s, transform .15s;
+}
+button.act:hover:not(:disabled), .card button:hover { background: var(--beam); }
+button.act:disabled { opacity: .45; cursor: default; }
+button.act:focus-visible, .card button:focus-visible { outline: 3px solid var(--beam); outline-offset: 3px; }
+
+.overlay { position: fixed; inset: 0; z-index: 20; display: grid; place-items: center; padding: 24px max(16px, env(safe-area-inset-right, 0px)) 24px max(16px, env(safe-area-inset-left, 0px)); background: #080c0ae0; overflow-y: auto; }
+.card { max-width: 560px; display: grid; gap: 16px; }
+.card h2 { margin: 0; font: italic 500 clamp(32px, 7vw, 56px)/1.02 var(--f-display); text-wrap: balance; }
+.card p { margin: 0; color: var(--text); max-width: 60ch; }
+.card .type { font: 400 14px/1.55 var(--f-type); color: var(--label); }
+.card .keys { font-size: 12px; color: var(--dim); letter-spacing: .03em; }
+.card .stat { font: 700 14px var(--f-type); color: var(--gilt); font-variant-numeric: tabular-nums; }
+.card button { justify-self: start; }
+.lang { display: inline-flex; flex: none; align-self: center; border: 1px solid #c49a4588; border-radius: 2px; overflow: hidden; }
+.lang button { all: unset; cursor: pointer; padding: 5px 10px; font: 700 12px var(--f-type); letter-spacing: .1em; color: var(--dim); }
+.lang button + button { border-left: 1px solid #c49a4588; }
+.lang button[aria-pressed="true"] { background: var(--gilt); color: var(--ink); }
+.lang button:focus-visible { outline: 3px solid var(--beam); outline-offset: -3px; }
+.card .lang { justify-self: start; }
+
+@media (max-width: 520px) {
+  .room { padding: 22px 12px 26px; }
+  .room.inside { border-width: 10px; }
+  .wall { gap: 26px 14px; }
+  .label b { font-size: 12px; }
+  .note { font-size: 12px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .room.flicker .blackout { animation: none; }
+  .torch, .blackout, .tile canvas.main, .cred i { transition: none; }
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="bar">
+    <div>
+      <div class="eyebrow" data-t="eyebrow">Gallery of Unattributed Art · Night log</div>
+      <h1 data-t="h1">Night Shift at the Gallery</h1>
+    </div>
+    <dl class="stats">
+      <div><dt data-t="timeLbl">Time</dt><dd id="clock">11:40 p.m.</dd></div>
+      <div><dt data-t="roundLbl">Round</dt><dd id="round">1 / 9</dd></div>
+      <div><dt data-t="scoreLbl">Incidents logged</dt><dd id="score">0</dd></div>
+      <div><dt data-t="credLbl">Credibility</dt><dd><span class="cred"><i id="credfill"></i></span> <span id="cred">100</span></dd></div>
+    </dl>
+    <div class="lang" role="group" data-ta="langGroup" aria-label="Language"></div>
+  </header>
+
+  <p class="radio" id="radio" aria-live="polite"></p>
+
+  <main class="room" id="room">
+    <div class="wall" id="wall"></div>
+    <div class="torch" aria-hidden="true"></div>
+    <div class="blackout" aria-hidden="true"></div>
+  </main>
+
+  <footer class="actions">
+    <div class="timer"><i id="timerfill"></i></div>
+    <div class="actrow">
+      <span class="hint" id="hint" aria-live="polite">Your shift starts at 11:40 p.m.</span>
+      <button class="act" id="act" type="button" disabled>Sweep the torch away</button>
+    </div>
+  </footer>
+</div>
+
+<div class="overlay" id="title">
+  <div class="card">
+    <div class="lang" role="group" data-ta="langGroup" aria-label="Language"></div>
+    <div class="eyebrow" data-t="induction">Staff only · Night guard induction</div>
+    <h2 data-t="h1">Night Shift at the Gallery</h2>
+    <p data-t="introP">You guard a wall of oil paint until dawn. Study the wall by torchlight. When the torch sweeps away, something on the wall changes. Flag every work that changed, then file the report.</p>
+    <p class="type" data-t="introType">A false report costs 20 credibility. A missed incident costs 12. At zero you are reassigned to the gift shop. Nine rounds until the doors open.</p>
+    <div class="keys" data-t="introKeys">Click or tap a work to flag it · 1–6 flag by number · S sweeps · Enter files the report</div>
+    <button id="begin" type="button" data-t="begin">Begin shift</button>
+  </div>
+</div>
+
+<div class="overlay" id="end" hidden>
+  <div class="card">
+    <div class="lang" role="group" data-ta="langGroup" aria-label="Language"></div>
+    <div class="eyebrow" id="end-eyebrow">End of shift</div>
+    <h2 id="end-title">Your shift has ended.</h2>
+    <p class="type" id="end-body"></p>
+    <div class="stat" id="end-stat"></div>
+    <button id="again" type="button" data-t="again">Work another night</button>
+  </div>
+</div>
+
+<script>
+const $ = s => document.querySelector(s);
+const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const room = $('#room'), wallEl = $('#wall');
+
+function mulberry32(a) {
+  return function () {
+    a |= 0; a = a + 0x6D2B79F5 | 0;
+    let t = Math.imul(a ^ a >>> 15, 1 | a);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  };
+}
+let rng = mulberry32(1);
+const pick = a => a[Math.floor(rng() * a.length)];
+const pickOther = (a, v) => pick(a.filter(x => x !== v));
+const ri = (a, b) => a + Math.floor(rng() * (b - a + 1));
+const clone = o => JSON.parse(JSON.stringify(o));
+function shuffle(a) { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(rng() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
+function shade(hex, amt) {
+  const n = parseInt(hex.slice(1), 16);
+  const f = v => Math.round(Math.min(255, Math.max(0, amt < 0 ? v * (1 + amt) : v + (255 - v) * amt)));
+  return `rgb(${f(n >> 16)},${f(n >> 8 & 255)},${f(n & 255)})`;
+}
+
+const BG = ['#6d7b5a', '#8a5a44', '#3f5566', '#7a6a3a', '#5b4660', '#93744a'];
+const SKIN = ['#e2bf9b', '#c89770', '#8d5f43', '#f0d2b6'];
+const HAIR = ['#2b1d14', '#7a4a24', '#c9a36a', '#5a5a5a', '#8b2f2a'];
+const GARB = ['#2f3b4a', '#5b2a2a', '#3a4a32', '#1f1f24', '#6a5532'];
+const CLOTH = ['#d9d2bd', '#7b2f2f', '#2f4f6b', '#56613a'];
+const SKY = ['#9fb7c9', '#d9a77a', '#7f8fb0', '#c9c19a', '#5d6f8f'];
+const GROUND = ['#5f6e3c', '#7d6a3a', '#3e5a45', '#8a7a4a'];
+const FRAMES = {
+  gilt: ['#b8913f', '#e2c47a', '#6e5320'],
+  walnut: ['#5a3b24', '#8a6243', '#2e1e12'],
+  ebony: ['#22201c', '#4a463e', '#0c0b09'],
+  silver: ['#9ea3a6', '#d5d9db', '#5c6164'],
+};
+const FRAME_KEYS = Object.keys(FRAMES);
+const ITEM_TYPES = ['pear', 'apple', 'bottle', 'egg', 'lemon'];
+const ITEM_COL = { pear: ['#b9b33f', '#7f9035'], apple: ['#b33a2e', '#6f9a3a'], bottle: ['#2f5b47', '#5a2f4a'], egg: ['#efe7d2', '#d9b98a'], lemon: ['#e3c43a', '#b9cf55'] };
+const SLOTS = [.18, .39, .61, .82];
+const HOLDING = ['none', 'catalogue', 'umbrella'];
+
+// Every player-visible string, per language. A work keeps indexes (title, artist, medium) and its
+// numbers; a change keeps a key and arguments; labels, notes and verdicts are read when shown, so a
+// switch mid-round cannot change what changed or what was flagged.
+const cap = w => w[0].toUpperCase() + w.slice(1);
+const I18N = {
+  en: {
+    docTitle: 'Night Shift at the Gallery', langGroup: 'Language',
+    eyebrow: 'Gallery of Unattributed Art · Night log', h1: 'Night Shift at the Gallery',
+    timeLbl: 'Time', roundLbl: 'Round', scoreLbl: 'Incidents logged', credLbl: 'Credibility',
+    induction: 'Staff only · Night guard induction',
+    introP: 'You guard a wall of oil paint until dawn. Study the wall by torchlight. When the torch sweeps away, something on the wall changes. Flag every work that changed, then file the report.',
+    introType: 'A false report costs 20 credibility. A missed incident costs 12. At zero you are reassigned to the gift shop. Nine rounds until the doors open.',
+    introKeys: 'Click or tap a work to flag it · 1–6 flag by number · S sweeps · Enter files the report',
+    begin: 'Begin shift', again: 'Work another night',
+    shiftStarts: 'Your shift starts at 11:40 p.m.',
+    titles: {
+      portrait: ['Portrait of a Woman Who Knows', 'Portrait of a Man, Slightly Aware', 'The Merchant’s Second Wife', 'Young Man With Opinions', 'Portrait of an Unnamed Aunt', 'The Notary at Rest', 'A Gentleman, Listening'],
+      still: [a => `Still Life With ${a} and Doubt`, a => `${cap(a)} on a Table, Waiting`, () => 'Breakfast, Abandoned', a => `Vanitas With ${a}`, () => 'Arrangement for Nobody', () => 'Kitchen Table, Before the Guests'],
+      land: ['Landscape, Second Opinion', 'The Valley Before It Happened', 'Evening Near a Town', 'View of a Hill (Unverified)', 'Pastoral With Witnesses', 'A Field, Probably Dutch'],
+    },
+    item: { pear: 'pear', apple: 'apple', bottle: 'bottle', egg: 'egg', lemon: 'lemon' },
+    artists: ['Anon., Flemish', 'Follower of Someone', 'School of Unattributed', 'Circle of the Master of Pears', 'Workshop of a Man Named Piet', 'Attributed, Briefly'],
+    circa: (a, y) => `${a}, c. ${y}`,
+    media: ['canvas', 'panel', 'board'], medium: (m, w, h) => `oil on ${m}, ${w} × ${h} cm`, acc: n => `Acc. ${n}`,
+    visitor: n => `Visitor No. ${n}`, arrived: n => `arrived 9:0${n} a.m.`, visMedium: 'wool coat, opinions', ticket: n => `Ticket ${n}`,
+    mirror: ['Mirror', 'not on the inventory', 'silvered glass, origin unknown', 'Acc. —'], theGuard: 'The Guard',
+    notes: ['please stop staring', 'we can see your torch', 'the pear is innocent', 'we were here first', 'lights out at six. for you.', 'you look tired. sit in a frame.'],
+    num: n => `No. ${n}`, before: 'before',
+    tag: { incident: 'Incident', hit: 'Logged', false: 'Nothing changed', miss: 'Missed' },
+    clocks: ['11:40 p.m.', '12:25 a.m.', '1:10 a.m.', '1:55 a.m.', '2:40 a.m.', '3:30 a.m.', '4:20 a.m.', '5:15 a.m.', '9:02 a.m.'],
+    radios: [
+      'Watch the wall. When your torch sweeps away, something on it will change. It always does. Report it.',
+      'Same again. Report only what changed. Credibility is all a guard has.',
+      'Sometimes two things change. Sometimes it is small. Earrings count. Trees count.',
+      'They have hung two more. Nobody told me either. One change. Probably.',
+      'Ignore the notes. Paintings cannot write. Report the paintings, not the notes.',
+      'Up to three now. I have stopped asking why.',
+      'Nearly dawn. If a mirror appears, do not look at it for long.',
+      'There is a mirror on the wall. There was never a mirror on the wall. Watch it.',
+      'The doors are open. You are on the wall now. Four visitors are looking at you. When you blink, two of them will change.',
+    ],
+    hollisFirst: '<b>Hollis, head of security:</b> First night? Take the torch. Try not to report anything that did not happen.',
+    whoRadio: 'Hollis, radio', whoWall: 'You, on the wall',
+    ch: {
+      frame: (o, n) => `The ${o} frame is now ${n}.`, frames: { gilt: 'gilt', walnut: 'walnut', ebony: 'ebony', silver: 'silver' },
+      eyesAt: 'The eyes are now looking at you.', hair: 'The hair changed colour.', hairStyle: 'The hairstyle changed.',
+      earOn: 'An earring appeared.', earOff: 'The earring disappeared.', mouth: 'The mouth changed its mind.',
+      eyesAway: 'The eyes looked away again.', garb: 'The clothes changed colour.',
+      gone: it => `The ${it} is gone.`, appeared: it => `A ${it} appeared.`, moved: it => `The ${it} moved.`,
+      itemCol: it => `The ${it} changed colour.`, cloth: 'The tablecloth changed.',
+      sun2: 'There is a second sun.', moon: 'A moon rose. In daylight.', treeUp: 'One more tree.', treeDown: 'A tree is missing.',
+      sky: 'The sky changed colour.', sunSet: 'The second sun has set.',
+      painted: 'The guard in the mirror is now a painting. The guard is you.',
+      glassesOn: 'They put on glasses.', glassesOff: 'Their glasses are gone.', hat: 'Their hat changed.',
+      coat: 'Their coat changed colour.', scarfOn: 'They are wearing a scarf now.', scarfOff: 'The scarf is gone.',
+      holding: 'They are holding something different.',
+    },
+    blink: 'Blink', sweepBtn: 'Sweep the torch away',
+    hintVisitors: 'Study the visitors. When you blink, something about them changes.',
+    hintWall: 'Study the wall. When the bar runs out, the torch sweeps away.',
+    fileBtn: n => `File report (${n} flagged)`,
+    hintFlagVisitors: 'Flag every visitor who changed, then file the report.',
+    hintFlagWall: 'Flag every work that changed, then file the report. Notes are not incidents.',
+    handIn: 'Hand in your torch', endShift: 'End shift', nextRound: 'Next round',
+    tally: (h, f, m) => `${h} logged · ${f} false ${f === 1 ? 'report' : 'reports'} · ${m} missed. Lights are on: each changed work shows its "before".`,
+    rMirror: '<b>Hollis, radio:</b> The change is in you. Go and stand somewhere quiet. Somewhere with a frame.',
+    rInside: '<b>Visitor No. 3, to a friend:</b> Did that painting of a guard just blink?',
+    rFalse: '<b>Hollis, radio:</b> That one never changed. I am writing your name down in pencil.',
+    rMiss: '<b>Hollis, radio:</b> You missed one. They will be pleased with themselves.',
+    rClean: '<b>Hollis, radio:</b> Clean report. The paintings are annoyed.',
+    stare: (n, title) => `<b>No. ${n}, ${title}:</b> please stop staring. it is rude, and i am mostly oil.`,
+    winEyebrow: 'End of shift · 9:14 a.m.', loseEyebrow: c => `Dismissed · ${c}`,
+    winTitle: 'Your shift has ended.', loseTitle: 'You have been reassigned to the gift shop.',
+    winBody: 'At 9:14 a.m. a visitor filed an incident report: “The painting of the night guard changed while I wasn’t looking.” Nobody on the day shift could say what had changed. You could. You blinked.',
+    loseBody: 'Hollis: “A guard has one thing, and it is credibility. You reported paint that never moved.” The paintings have been informed. They are being gracious about it.',
+    endStat: (s, f, m, c, b) => `${s} incidents logged · ${f} false reports · ${m} missed · credibility ${c} · best ${b}`,
+  },
+  fr: {
+    docTitle: 'Service de nuit au musée', langGroup: 'Langue',
+    eyebrow: 'Galerie d’art non attribué · Journal de nuit', h1: 'Service de nuit au musée',
+    timeLbl: 'Heure', roundLbl: 'Manche', scoreLbl: 'Incidents consignés', credLbl: 'Crédibilité',
+    induction: 'Réservé au personnel · Formation de nuit',
+    introP: 'Vous gardez un mur de peinture à l’huile jusqu’à l’aube. Étudiez le mur à la lampe. Quand la lampe se détourne, quelque chose change sur le mur. Signalez chaque œuvre qui a changé, puis remettez le rapport.',
+    introType: 'Une fausse alerte coûte 20 de crédibilité. Un incident raté en coûte 12. À zéro, direction la boutique de souvenirs. Neuf manches avant l’ouverture des portes.',
+    introKeys: 'Cliquez ou touchez une œuvre pour la signaler · 1–6 signale par numéro · S détourne la lampe · Entrée remet le rapport',
+    begin: 'Prendre son service', again: 'Encore une nuit',
+    shiftStarts: 'Votre service commence à 23 h 40.',
+    titles: {
+      portrait: ['Portrait d’une femme qui sait', 'Portrait d’un homme, vaguement au courant', 'La Seconde Épouse du marchand', 'Jeune homme ayant des avis', 'Portrait d’une tante anonyme', 'Le Notaire au repos', 'Un gentilhomme, à l’écoute'],
+      still: [(a, A) => `Nature morte avec ${A.un} et du doute`, (a, A) => `${cap(A.un)} sur une table, en attente`, () => 'Petit-déjeuner, abandonné', (a, A) => `Vanité ${A.au}`, () => 'Composition pour personne', () => 'Table de cuisine, avant les invités'],
+      land: ['Paysage, deuxième avis', 'La Vallée, avant les faits', 'Soir près d’une ville', 'Vue d’une colline (non vérifiée)', 'Pastorale avec témoins', 'Un champ, sans doute hollandais'],
+    },
+    // Each item carries its articles and its gender, so « Une poire est apparue » and « Un œuf est apparu » agree.
+    item: {
+      pear: { le: 'la poire', un: 'une poire', au: 'à la poire', f: true },
+      apple: { le: 'la pomme', un: 'une pomme', au: 'à la pomme', f: true },
+      bottle: { le: 'la bouteille', un: 'une bouteille', au: 'à la bouteille', f: true },
+      egg: { le: 'l’œuf', un: 'un œuf', au: 'à l’œuf', f: false },
+      lemon: { le: 'le citron', un: 'un citron', au: 'au citron', f: false },
+    },
+    artists: ['Anonyme flamand', 'Suiveur de quelqu’un', 'École de l’Inattribué', 'Entourage du Maître aux poires', 'Atelier d’un certain Piet', 'Attribué, brièvement'],
+    circa: (a, y) => `${a}, v. ${y}`,
+    media: ['toile', 'bois', 'carton'], medium: (m, w, h) => `huile sur ${m}, ${w} × ${h} cm`, acc: n => `Inv. ${n}`,
+    visitor: n => `Visiteur n° ${n}`, arrived: n => `entrée à 9 h 0${n}`, visMedium: 'manteau de laine, avis', ticket: n => `Billet ${n}`,
+    mirror: ['Miroir', 'absent de l’inventaire', 'verre argenté, origine inconnue', 'Inv. —'], theGuard: 'Service de nuit',
+    notes: ['arrêtez de nous fixer', 'on voit votre lampe', 'la poire est innocente', 'on était là avant', 'extinction des feux à six heures. pour vous.', 'vous avez une mine fatiguée. asseyez-vous dans un cadre.'],
+    num: n => `N° ${n}`, before: 'avant',
+    tag: { incident: 'Incident', hit: 'Consigné', false: 'Rien n’a changé', miss: 'Raté' },
+    clocks: ['23 h 40', '0 h 25', '1 h 10', '1 h 55', '2 h 40', '3 h 30', '4 h 20', '5 h 15', '9 h 02'],
+    radios: [
+      'Surveillez le mur. Quand votre lampe se détourne, quelque chose dessus change. Ça ne rate jamais. Signalez-le.',
+      'Pareil. Ne signalez que ce qui a changé. Dans la surveillance, la crédibilité, c’est tout ce qu’on a.',
+      'Parfois, deux choses changent. Parfois, c’est minuscule. Les boucles d’oreilles comptent. Les arbres comptent.',
+      'Ils en ont accroché deux de plus. On ne m’a rien dit non plus. Un changement. Sans doute.',
+      'Ignorez les mots. Les tableaux ne savent pas écrire. Signalez les tableaux, pas les mots.',
+      'Jusqu’à trois, maintenant. J’ai arrêté de demander pourquoi.',
+      'L’aube approche. Si un miroir apparaît, ne le regardez pas trop longtemps.',
+      'Il y a un miroir au mur. Il n’y a jamais eu de miroir au mur. Surveillez-le.',
+      'Les portes sont ouvertes. C’est vous qui êtes au mur, maintenant. Quatre visiteurs vous regardent. Quand vous clignerez des yeux, deux d’entre eux changeront.',
+    ],
+    hollisFirst: '<b>Hollis, chef de la sécurité :</b> Première nuit ? Prenez la lampe. Essayez de ne rien signaler qui ne s’est pas produit.',
+    whoRadio: 'Hollis, radio', whoWall: 'Vous, au mur',
+    ch: {
+      frame: (o, n) => `Le cadre était ${o}. Il est maintenant ${n}.`, frames: { gilt: 'doré', walnut: 'en noyer', ebony: 'en ébène', silver: 'argenté' },
+      eyesAt: 'Les yeux vous regardent, maintenant.', hair: 'Les cheveux ont changé de couleur.', hairStyle: 'La coiffure a changé.',
+      earOn: 'Une boucle d’oreille est apparue.', earOff: 'La boucle d’oreille a disparu.', mouth: 'La bouche a changé d’avis.',
+      eyesAway: 'Les yeux regardent ailleurs, de nouveau.', garb: 'Les vêtements ont changé de couleur.',
+      gone: it => `${cap(it.le)} a disparu.`, appeared: it => `${cap(it.un)} est apparu${it.f ? 'e' : ''}.`, moved: it => `${cap(it.le)} a bougé.`,
+      itemCol: it => `${cap(it.le)} a changé de couleur.`, cloth: 'La nappe a changé.',
+      sun2: 'Il y a un deuxième soleil.', moon: 'Une lune s’est levée. En plein jour.', treeUp: 'Un arbre de plus.', treeDown: 'Il manque un arbre.',
+      sky: 'Le ciel a changé de couleur.', sunSet: 'Le deuxième soleil s’est couché.',
+      painted: 'Le reflet dans le miroir est devenu un tableau. Ce reflet, c’est vous.',
+      glassesOn: 'Des lunettes sont apparues.', glassesOff: 'Les lunettes ont disparu.', hat: 'Le chapeau a changé.',
+      coat: 'Le manteau a changé de couleur.', scarfOn: 'Une écharpe est apparue.', scarfOff: 'L’écharpe a disparu.',
+      holding: 'L’objet tenu en main a changé.',
+    },
+    blink: 'Cligner des yeux', sweepBtn: 'Détourner la lampe',
+    hintVisitors: 'Observez les visiteurs. Quand vous clignez des yeux, quelque chose change chez eux.',
+    hintWall: 'Observez le mur. Quand la barre est vide, la lampe se détourne.',
+    fileBtn: n => `Remettre le rapport (${n} signalé${n > 1 ? 's' : ''})`,
+    hintFlagVisitors: 'Signalez chaque visiteur qui a changé, puis remettez le rapport.',
+    hintFlagWall: 'Signalez chaque œuvre qui a changé, puis remettez le rapport. Les mots ne sont pas des incidents.',
+    handIn: 'Rendre la lampe', endShift: 'Finir le service', nextRound: 'Manche suivante',
+    tally: (h, f, m) => `${h} consigné${h > 1 ? 's' : ''} · ${f} fausse${f > 1 ? 's' : ''} alerte${f > 1 ? 's' : ''} · ${m} raté${m > 1 ? 's' : ''}. Lumière : chaque œuvre modifiée montre son « avant ».`,
+    rMirror: '<b>Hollis, radio :</b> Le changement, c’est vous. Allez vous mettre dans un coin tranquille. Un coin avec un cadre.',
+    rInside: '<b>Visiteur n° 3, à une amie :</b> Le tableau, là, il vient de cligner des yeux ?',
+    rFalse: '<b>Hollis, radio :</b> Celui-là n’a jamais changé. J’écris votre nom au crayon.',
+    rMiss: '<b>Hollis, radio :</b> Vous en avez raté un. Ils vont être contents d’eux.',
+    rClean: '<b>Hollis, radio :</b> Rapport impeccable. Les tableaux sont vexés.',
+    stare: (n, title) => `<b>N° ${n}, ${title} :</b> arrêtez de me fixer, s’il vous plaît. c’est impoli, et je suis surtout de l’huile.`,
+    winEyebrow: 'Fin du service · 9 h 14', loseEyebrow: c => `Renvoi · ${c}`,
+    winTitle: 'Votre service est terminé.', loseTitle: 'Nouvelle affectation : la boutique de souvenirs.',
+    winBody: 'À 9 h 14, une visiteuse a déposé un rapport d’incident : « Le tableau avec l’uniforme de nuit a changé quand j’avais le dos tourné. » Personne de l’équipe de jour n’a su dire ce qui avait changé. Vous, si. Vous aviez cligné des yeux.',
+    loseBody: 'Hollis : « Dans la surveillance, on n’a qu’une chose : la crédibilité. Vous avez signalé de la peinture qui n’a jamais bougé. » Les tableaux ont été prévenus. Ils le prennent avec élégance.',
+    endStat: (s, f, m, c, b) => `${s} incident${s > 1 ? 's' : ''} consigné${s > 1 ? 's' : ''} · ${f} fausse${f > 1 ? 's' : ''} alerte${f > 1 ? 's' : ''} · ${m} raté${m > 1 ? 's' : ''} · crédibilité ${c} · record ${b}`,
+  },
+};
+
+// French typography: a narrow no-break space before ? ! : ; » and after «, applied once to every
+// French string (and to whatever a French string function returns).
+(function frenchSpacing() {
+  const fix = s => s.replace(/ ([?!:;»])/g, '\u202f$1').replace(/« /g, '«\u202f');
+  const deep = v => typeof v === 'string' ? fix(v)
+    : typeof v === 'function' ? (...a) => fix(v(...a))
+    : Array.isArray(v) ? v.map(deep)
+    : v && typeof v === 'object' ? Object.fromEntries(Object.entries(v).map(([k, x]) => [k, deep(x)]))
+    : v;
+  I18N.fr = deep(I18N.fr);
+})();
+
+let lang = 'en';
+const t = k => I18N[lang][k] ?? I18N.en[k];
+
+const NOTE_N = 6;
+const ROUNDS = [
+  { n: 4, changes: 1, max: 0, observe: 10 },
+  { n: 4, changes: 1, max: 0, observe: 9 },
+  { n: 4, changes: [1, 2], max: 1, observe: 9 },
+  { n: 6, changes: 1, max: 1, observe: 10 },
+  { n: 6, changes: 2, max: 1, observe: 9, notes: true },
+  { n: 6, changes: [1, 3], max: 1, observe: 9, notes: true },
+  { n: 6, changes: [2, 3], max: 1, observe: 8, notes: true },
+  { n: 6, changes: 1, max: 1, observe: 9, mirror: true },
+  { n: 4, changes: 2, max: 1, observe: 9, visitors: true, inside: true },
+];
+const clockOf = i => t('clocks')[i];
+
+// A work's label, read in the current language from the indexes it was made with.
+function workText(p) {
+  if (p.kind === 'visitor') return { title: t('visitor')(p.no), artist: t('arrived')(p.no), medium: t('visMedium'), acc: t('ticket')(p.ticket) };
+  if (p.kind === 'mirror') { const [title, artist, medium, acc] = t('mirror'); return { title, artist, medium, acc }; }
+  const T = t('titles')[p.kind][p.titleI];
+  const title = p.kind === 'still' ? T(t('item')[p.titleItem], t('item')[p.titleItem]) : T;
+  return { title, artist: t('circa')(t('artists')[p.artistI], p.year), medium: t('medium')(t('media')[p.mediumI], p.w, p.h), acc: t('acc')(p.accN) };
+}
+const frameName = k => t('ch').frames[k];
+const descText = ([k, ...a]) => {
+  const f = t('ch')[k];
+  if (typeof f !== 'function') return f;
+  return k === 'frame' ? f(frameName(a[0]), frameName(a[1])) : f(t('item')[a[0]]);
+};
+
+function makePortrait() {
+  return { kind: 'portrait', bg: pick(BG), skin: pick(SKIN), hair: pick(HAIR), hairStyle: ri(0, 2), garb: pick(GARB), eyeDir: pick([-1, 1]), mouth: ri(0, 2), earring: rng() < .4, frame: pick(FRAME_KEYS) };
+}
+function makeStill() {
+  const n = ri(2, 3), types = shuffle(ITEM_TYPES).slice(0, n), xs = shuffle(SLOTS).slice(0, n);
+  return { kind: 'still', bg: pick(BG), cloth: pick(CLOTH), items: types.map((t, i) => ({ type: t, x: xs[i], col: 0 })), frame: pick(FRAME_KEYS) };
+}
+function makeLand() {
+  return { kind: 'land', sky: pick(SKY), ground: pick(GROUND), suns: 1, sunX: .2 + rng() * .6, moon: false, trees: ri(1, 3), hill: ri(0, 2), frame: pick(FRAME_KEYS) };
+}
+function makeVisitor() {
+  return { kind: 'visitor', coat: pick(GARB), skin: pick(SKIN), hat: ri(0, 2), hatCol: pick(['#2a2a2e', '#7b2f2f', '#3a4a32', '#9a7a3a']), glasses: rng() < .5, scarf: rng() < .5, scarfCol: pick(['#c2473b', '#d9b14a', '#3f5566']), holding: pick(HOLDING), frame: null };
+}
+const idx = n => Math.floor(rng() * n);
+function makeKind(k) {
+  const p = k === 'portrait' ? makePortrait() : k === 'still' ? makeStill() : makeLand();
+  p.titleI = idx(I18N.en.titles[k].length);
+  if (k === 'still') p.titleItem = p.items[0].type;
+  p.artistI = idx(I18N.en.artists.length); p.year = ri(1610, 1790);
+  p.mediumI = idx(3); p.w = ri(30, 90); p.h = ri(25, 70);
+  p.accN = `${ri(1871, 1962)}.${ri(1, 99)}.${ri(1, 9)}`;
+  return p;
+}
+
+// Every change is applied to a recorded copy, so the reveal can show the exact "before" state.
+const frameChange = { level: 0, ok: p => !!p.frame, run: p => { const o = p.frame; p.frame = pickOther(FRAME_KEYS, o); return ['frame', o, p.frame]; } };
+const CH = {
+  portrait: [
+    { level: 0, ok: p => p.eyeDir !== 0, run: p => { p.eyeDir = 0; return ['eyesAt']; } },
+    { level: 0, ok: () => true, run: p => { p.hair = pickOther(HAIR, p.hair); return ['hair']; } },
+    { level: 0, ok: () => true, run: p => { p.hairStyle = (p.hairStyle + 1) % 3; return ['hairStyle']; } },
+    frameChange,
+    { level: 1, ok: () => true, run: p => { p.earring = !p.earring; return [p.earring ? 'earOn' : 'earOff']; } },
+    { level: 1, ok: () => true, run: p => { p.mouth = (p.mouth + 1) % 3; return ['mouth']; } },
+    { level: 1, ok: p => p.eyeDir === 0, run: p => { p.eyeDir = pick([-1, 1]); return ['eyesAway']; } },
+    { level: 1, ok: () => true, run: p => { p.garb = pickOther(GARB, p.garb); return ['garb']; } },
+  ],
+  still: [
+    { level: 0, ok: p => p.items.length > 1, run: p => { const it = p.items.splice(ri(0, p.items.length - 1), 1)[0]; return ['gone', it.type]; } },
+    { level: 0, ok: p => p.items.length < 4, run: p => {
+      const t = pick(ITEM_TYPES.filter(x => !p.items.some(i => i.type === x)));
+      const x = pick(SLOTS.filter(s => !p.items.some(i => i.x === s)));
+      p.items.push({ type: t, x, col: 0 }); return ['appeared', t];
+    } },
+    frameChange,
+    { level: 1, ok: p => p.items.length < 4, run: p => {
+      const it = pick(p.items); it.x = pick(SLOTS.filter(s => !p.items.some(i => i.x === s))); return ['moved', it.type];
+    } },
+    { level: 1, ok: () => true, run: p => { const it = pick(p.items); it.col = 1 - it.col; return ['itemCol', it.type]; } },
+    { level: 1, ok: () => true, run: p => { p.cloth = pickOther(CLOTH, p.cloth); return ['cloth']; } },
+  ],
+  land: [
+    { level: 0, ok: p => p.suns === 1, run: p => { p.suns = 2; return ['sun2']; } },
+    { level: 0, ok: p => !p.moon, run: p => { p.moon = true; return ['moon']; } },
+    frameChange,
+    { level: 1, ok: p => p.trees < 4, run: p => { p.trees++; return ['treeUp']; } },
+    { level: 1, ok: p => p.trees > 1, run: p => { p.trees--; return ['treeDown']; } },
+    { level: 1, ok: () => true, run: p => { p.sky = pickOther(SKY, p.sky); return ['sky']; } },
+    { level: 1, ok: p => p.suns === 2, run: p => { p.suns = 1; return ['sunSet']; } },
+  ],
+  mirror: [
+    { level: 0, ok: p => !p.painted, run: p => { p.painted = true; return ['painted']; } },
+  ],
+  visitor: [
+    { level: 0, ok: () => true, run: p => { p.glasses = !p.glasses; return [p.glasses ? 'glassesOn' : 'glassesOff']; } },
+    { level: 0, ok: () => true, run: p => { p.hat = (p.hat + 1) % 3; return ['hat']; } },
+    { level: 0, ok: () => true, run: p => { p.coat = pickOther(GARB, p.coat); return ['coat']; } },
+    { level: 1, ok: () => true, run: p => { p.scarf = !p.scarf; return [p.scarf ? 'scarfOn' : 'scarfOff']; } },
+    { level: 1, ok: () => true, run: p => { p.holding = pickOther(HOLDING, p.holding); return ['holding']; } },
+  ],
+};
+
+const DRAW = {
+  portrait(c, p) {
+    c.fillStyle = p.bg; c.fillRect(0, 0, 480, 600);
+    c.fillStyle = p.garb; c.beginPath(); c.ellipse(240, 640, 210, 190, 0, Math.PI, 2 * Math.PI); c.fill();
+    c.fillStyle = shade(p.skin, -.12); c.fillRect(205, 330, 70, 110);
+    c.fillStyle = p.hair;
+    if (p.hairStyle === 1) { c.beginPath(); c.ellipse(240, 270, 122, 175, 0, 0, 2 * Math.PI); c.fill(); }
+    if (p.hairStyle === 2) { c.beginPath(); c.arc(240, 108, 50, 0, 2 * Math.PI); c.fill(); }
+    c.fillStyle = p.skin; c.beginPath(); c.ellipse(240, 255, 92, 118, 0, 0, 2 * Math.PI); c.fill();
+    c.fillStyle = p.hair; c.beginPath(); c.ellipse(240, 182, 99, 66, 0, Math.PI, 2 * Math.PI); c.fill();
+    c.fillRect(141, 176, 198, 14);
+    for (const s of [-1, 1]) {
+      const ex = 240 + s * 38, ey = 248;
+      c.fillStyle = '#f3ecdf'; c.beginPath(); c.ellipse(ex, ey, 19, 10, 0, 0, 2 * Math.PI); c.fill();
+      c.fillStyle = '#2a1d14'; c.beginPath(); c.arc(ex + p.eyeDir * 9, ey, p.eyeDir === 0 ? 7.5 : 6, 0, 2 * Math.PI); c.fill();
+      if (p.eyeDir === 0) { c.fillStyle = '#fff'; c.beginPath(); c.arc(ex + 2, ey - 3, 2, 0, 2 * Math.PI); c.fill(); }
+      c.strokeStyle = shade(p.hair, -.2); c.lineWidth = 5; c.lineCap = 'round';
+      c.beginPath(); c.moveTo(ex - 20, ey - 22); c.lineTo(ex + 18, ey - 24); c.stroke();
+    }
+    c.strokeStyle = shade(p.skin, -.32); c.lineWidth = 4;
+    c.beginPath(); c.moveTo(240, 255); c.lineTo(231, 293); c.lineTo(245, 296); c.stroke();
+    c.strokeStyle = '#7a3a32'; c.lineWidth = 6;
+    c.beginPath();
+    if (p.mouth === 0) c.arc(240, 305, 26, .18 * Math.PI, .82 * Math.PI);
+    else if (p.mouth === 1) { c.moveTo(218, 326); c.lineTo(262, 326); }
+    c.stroke();
+    if (p.mouth === 2) { c.fillStyle = '#5a2a24'; c.beginPath(); c.ellipse(240, 325, 10, 13, 0, 0, 2 * Math.PI); c.fill(); }
+    if (p.earring) { c.fillStyle = '#e2c47a'; c.beginPath(); c.arc(150, 302, 10, 0, 2 * Math.PI); c.fill(); c.strokeStyle = '#8a6a2a'; c.lineWidth = 2; c.stroke(); }
+  },
+  still(c, p) {
+    c.fillStyle = p.bg; c.fillRect(0, 0, 480, 600);
+    c.fillStyle = shade(p.bg, -.25); c.fillRect(0, 0, 480, 60);
+    c.fillStyle = p.cloth; c.fillRect(0, 400, 480, 200);
+    c.fillStyle = shade(p.cloth, -.22); c.fillRect(0, 400, 480, 10);
+    c.strokeStyle = shade(p.cloth, -.12); c.lineWidth = 3;
+    for (const x of [70, 200, 330, 440]) { c.beginPath(); c.moveTo(x, 410); c.quadraticCurveTo(x + 18, 500, x - 6, 600); c.stroke(); }
+    for (const it of [...p.items].sort((a, b) => a.x - b.x)) drawItem(c, it.type, it.x * 480, 440, ITEM_COL[it.type][it.col]);
+  },
+  land(c, p) {
+    const g = c.createLinearGradient(0, 0, 0, 400);
+    g.addColorStop(0, shade(p.sky, -.15)); g.addColorStop(1, shade(p.sky, .3));
+    c.fillStyle = g; c.fillRect(0, 0, 480, 600);
+    const suns = [p.sunX];
+    if (p.suns === 2) suns.push(p.sunX > .5 ? p.sunX - .4 : p.sunX + .4);
+    for (const sx of suns) {
+      c.fillStyle = '#f6dc8a55'; c.beginPath(); c.arc(sx * 480, 130, 54, 0, 2 * Math.PI); c.fill();
+      c.fillStyle = '#f3d27a'; c.beginPath(); c.arc(sx * 480, 130, 34, 0, 2 * Math.PI); c.fill();
+    }
+    if (p.moon) {
+      const mx = p.sunX < .5 ? 400 : 80;
+      c.fillStyle = '#efe8d6'; c.beginPath(); c.arc(mx, 80, 26, 0, 2 * Math.PI); c.fill();
+      c.fillStyle = shade(p.sky, -.1); c.beginPath(); c.arc(mx + 11, 74, 22, 0, 2 * Math.PI); c.fill();
+    }
+    const base = 390 - p.hill * 30;
+    c.fillStyle = shade(p.ground, .18);
+    c.beginPath(); c.moveTo(0, base); c.quadraticCurveTo(140, base - 120, 290, base - 10); c.quadraticCurveTo(400, base - 70, 480, base - 20); c.lineTo(480, 600); c.lineTo(0, 600); c.fill();
+    c.fillStyle = p.ground;
+    c.beginPath(); c.moveTo(0, 470); c.quadraticCurveTo(240, 420, 480, 460); c.lineTo(480, 600); c.lineTo(0, 600); c.fill();
+    const tx = [90, 190, 300, 395];
+    for (let i = 0; i < p.trees; i++) {
+      const x = tx[i], y = 455 + (i % 2) * 14;
+      c.fillStyle = '#3a2a1c'; c.fillRect(x - 6, y - 60, 12, 62);
+      c.fillStyle = '#2f4a2f'; c.beginPath(); c.arc(x, y - 82, 36, 0, 2 * Math.PI); c.fill();
+      c.fillStyle = '#3d5c39'; c.beginPath(); c.arc(x - 10, y - 92, 18, 0, 2 * Math.PI); c.fill();
+    }
+  },
+  mirror(c, p) {
+    const g = c.createLinearGradient(0, 0, 480, 600);
+    g.addColorStop(0, '#cfd6d8'); g.addColorStop(1, '#8a9498');
+    c.fillStyle = g; c.fillRect(0, 0, 480, 600);
+    c.fillStyle = '#26324a'; c.beginPath(); c.ellipse(240, 640, 200, 210, 0, Math.PI, 2 * Math.PI); c.fill();
+    c.fillStyle = '#c49a45'; c.beginPath(); c.arc(190, 500, 10, 0, 2 * Math.PI); c.fill();
+    c.fillStyle = '#d9b08c'; c.fillRect(210, 340, 60, 90);
+    c.beginPath(); c.ellipse(240, 280, 72, 90, 0, 0, 2 * Math.PI); c.fill();
+    c.fillStyle = '#1e2638'; c.fillRect(160, 190, 160, 44);
+    c.beginPath(); c.ellipse(240, 236, 104, 16, 0, 0, 2 * Math.PI); c.fill();
+    c.fillStyle = '#c49a45'; c.beginPath(); c.arc(240, 210, 9, 0, 2 * Math.PI); c.fill();
+    c.fillStyle = '#2a1d14';
+    for (const s of [-1, 1]) { c.beginPath(); c.arc(240 + s * 26, 280, 6, 0, 2 * Math.PI); c.fill(); }
+    c.strokeStyle = '#7a4a3a'; c.lineWidth = 5; c.lineCap = 'round'; c.beginPath(); c.moveTo(222, 322); c.lineTo(258, 322); c.stroke();
+    c.fillStyle = '#fff2c855'; c.beginPath(); c.moveTo(350, 470); c.lineTo(480, 380); c.lineTo(480, 560); c.fill();
+    c.fillStyle = '#2b2b30'; c.fillRect(330, 455, 40, 30);
+    c.strokeStyle = '#ffffff33'; c.lineWidth = 14;
+    for (const x of [60, 120]) { c.beginPath(); c.moveTo(x, 0); c.lineTo(x - 80, 160); c.stroke(); }
+    if (p.painted) {
+      c.strokeStyle = '#2a1d1422'; c.lineWidth = 3;
+      for (let k = 0; k < 170; k++) {
+        const x = (k * 97) % 480, y = (k * 53 + (k % 7) * 31) % 600;
+        c.beginPath(); c.moveTo(x, y); c.lineTo(x + 16, y - 10); c.stroke();
+      }
+      c.strokeStyle = '#2a1d14'; c.lineWidth = 8;
+      c.beginPath(); c.ellipse(240, 280, 72, 90, 0, 0, 2 * Math.PI); c.stroke();
+      c.strokeStyle = '#b8913f'; c.lineWidth = 20; c.strokeRect(46, 46, 388, 508);
+      c.strokeStyle = '#6e5320'; c.lineWidth = 3; c.strokeRect(36, 36, 408, 528);
+      c.fillStyle = '#ece4d0'; c.fillRect(170, 520, 140, 28);
+      c.fillStyle = '#1d1b16'; c.font = 'italic 600 16px "Bodoni Moda", Georgia, serif'; c.textAlign = 'center';
+      c.fillText(t('theGuard'), 240, 540, 130);
+    }
+  },
+  visitor(c, p) {
+    c.fillStyle = '#e3d6bb'; c.fillRect(0, 0, 480, 600);
+    c.fillStyle = '#8a6a4a'; c.fillRect(0, 480, 480, 120);
+    c.fillStyle = '#c9bb9c'; c.fillRect(0, 470, 480, 10);
+    c.fillStyle = p.coat; c.beginPath(); c.ellipse(240, 650, 170, 250, 0, Math.PI, 2 * Math.PI); c.fill();
+    if (p.holding === 'umbrella') {
+      c.strokeStyle = '#222'; c.lineWidth = 7; c.beginPath(); c.moveTo(105, 330); c.lineTo(105, 600); c.stroke();
+      c.beginPath(); c.arc(90, 330, 15, Math.PI, 2 * Math.PI); c.stroke();
+    }
+    c.fillStyle = shade(p.skin, -.12); c.fillRect(212, 320, 56, 80);
+    if (p.scarf) {
+      c.fillStyle = p.scarfCol; c.fillRect(190, 380, 100, 34);
+      c.fillRect(250, 400, 30, 110);
+    }
+    c.fillStyle = p.skin; c.beginPath(); c.ellipse(240, 250, 70, 86, 0, 0, 2 * Math.PI); c.fill();
+    c.fillStyle = '#2a1d14';
+    for (const s of [-1, 1]) { c.beginPath(); c.arc(240 + s * 25, 245, 6, 0, 2 * Math.PI); c.fill(); }
+    if (p.glasses) {
+      c.strokeStyle = '#1d1b16'; c.lineWidth = 5;
+      for (const s of [-1, 1]) { c.beginPath(); c.arc(240 + s * 25, 245, 17, 0, 2 * Math.PI); c.stroke(); }
+      c.beginPath(); c.moveTo(232, 245); c.lineTo(248, 245); c.stroke();
+    }
+    c.strokeStyle = '#7a3a32'; c.lineWidth = 5; c.lineCap = 'round'; c.beginPath(); c.moveTo(226, 292); c.lineTo(254, 292); c.stroke();
+    c.fillStyle = p.hatCol;
+    if (p.hat === 1) {
+      c.beginPath(); c.ellipse(240, 186, 74, 56, 0, Math.PI, 2 * Math.PI); c.fill();
+      c.beginPath(); c.ellipse(240, 186, 108, 14, 0, 0, 2 * Math.PI); c.fill();
+    } else if (p.hat === 2) {
+      c.beginPath(); c.ellipse(228, 182, 92, 32, -.16, 0, 2 * Math.PI); c.fill();
+      c.beginPath(); c.arc(232, 150, 8, 0, 2 * Math.PI); c.fill();
+    }
+    if (p.holding === 'catalogue') {
+      c.fillStyle = '#efe7d2'; c.fillRect(300, 430, 90, 110);
+      c.fillStyle = '#9a8a6a'; for (let i = 0; i < 5; i++) c.fillRect(312, 448 + i * 16, 64, 5);
+    }
+  },
+};
+
+function drawItem(c, type, x, y, col) {
+  c.fillStyle = 'rgba(0,0,0,.25)'; c.beginPath(); c.ellipse(x + 10, y + 4, 48, 10, 0, 0, 2 * Math.PI); c.fill();
+  c.fillStyle = col;
+  if (type === 'pear') {
+    c.beginPath(); c.arc(x, y - 40, 40, 0, 2 * Math.PI); c.fill();
+    c.beginPath(); c.arc(x - 4, y - 92, 25, 0, 2 * Math.PI); c.fill();
+    c.strokeStyle = '#4a3220'; c.lineWidth = 5; c.beginPath(); c.moveTo(x - 4, y - 116); c.lineTo(x + 4, y - 134); c.stroke();
+  } else if (type === 'apple') {
+    c.beginPath(); c.arc(x, y - 42, 42, 0, 2 * Math.PI); c.fill();
+    c.fillStyle = '#4f7a34'; c.beginPath(); c.ellipse(x + 14, y - 92, 14, 6, -.6, 0, 2 * Math.PI); c.fill();
+  } else if (type === 'bottle') {
+    c.fillRect(x - 26, y - 180, 52, 180);
+    c.fillRect(x - 10, y - 240, 20, 64);
+    c.fillStyle = '#8a6a44'; c.fillRect(x - 11, y - 254, 22, 16);
+  } else if (type === 'egg') {
+    c.beginPath(); c.ellipse(x, y - 40, 30, 40, 0, 0, 2 * Math.PI); c.fill();
+  } else if (type === 'lemon') {
+    c.beginPath(); c.ellipse(x, y - 30, 46, 30, 0, 0, 2 * Math.PI); c.fill();
+    c.beginPath(); c.arc(x + 46, y - 30, 7, 0, 2 * Math.PI); c.fill();
+  }
+  c.fillStyle = 'rgba(255,255,255,.28)'; c.beginPath(); c.arc(x - 14, y - (type === 'bottle' ? 140 : 56), 8, 0, 2 * Math.PI); c.fill();
+}
+
+function drawPainting(cv, p) {
+  const c = cv.getContext('2d'), W = 480, H = 600;
+  c.clearRect(0, 0, W, H);
+  const f = p.frame ? FRAMES[p.frame] : null, t = f ? 36 : 0;
+  if (f) {
+    c.fillStyle = f[0]; c.fillRect(0, 0, W, H);
+    c.fillStyle = f[1]; c.fillRect(0, 0, W, 6); c.fillRect(0, 0, 6, H);
+    c.fillStyle = f[2]; c.fillRect(0, H - 6, W, 6); c.fillRect(W - 6, 0, 6, H);
+    c.strokeStyle = f[1]; c.lineWidth = 2; c.strokeRect(14, 14, W - 28, H - 28);
+    c.strokeStyle = f[2]; c.lineWidth = 4; c.strokeRect(t - 3, t - 3, W - 2 * t + 6, H - 2 * t + 6);
+  }
+  c.save();
+  c.beginPath(); c.rect(t, t, W - 2 * t, H - 2 * t); c.clip();
+  c.translate(t, t); c.scale((W - 2 * t) / W, (H - 2 * t) / H);
+  c.lineCap = 'butt';
+  DRAW[p.kind](c, p);
+  const g = c.createRadialGradient(W / 2, H / 2, H * .2, W / 2, H / 2, H * .75);
+  g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(1, 'rgba(20,12,4,.35)');
+  c.fillStyle = g; c.fillRect(0, 0, W, H);
+  c.restore();
+}
+
+let S = null, best = 0;
+const tile = i => wallEl.children[i];
+
+function boot() {
+  rng = mulberry32((Date.now() ^ Math.floor(Math.random() * 1e9)) >>> 0);
+  S = { round: 0, score: 0, cred: 100, falseTotal: 0, missTotal: 0, wall: [], flags: new Set(), changed: [], notes: {}, phase: 'idle', stareI: null, stared: false };
+  room.classList.remove('inside', 'lit', 'off', 'flicker');
+  S.wall = shuffle(['portrait', 'still', 'land', 'portrait']).map(makeKind);
+  renderWall(); hud();
+  setRadio(() => t('hollisFirst'));
+  hint(() => t('shiftStarts'));
+  $('#act').disabled = true;
+  $('#timerfill').style.width = '0%';
+}
+
+function setupRound() {
+  const R = ROUNDS[S.round];
+  if (R.visitors) {
+    S.wall = [0, 1, 2, 3].map(i => Object.assign(makeVisitor(), { no: i + 1, ticket: ri(1000, 9999) }));
+    room.classList.add('inside');
+  } else {
+    while (S.wall.length < R.n) S.wall.push(makeKind(S.wall.length % 2 ? 'land' : 'still'));
+    if (R.mirror) S.wall[S.wall.length - 1] = { kind: 'mirror', painted: false, frame: 'silver' };
+  }
+  S.notes = {};
+  if (R.notes) S.notes[ri(0, S.wall.length - 1)] = idx(NOTE_N);
+  S.flags = new Set(); S.changed = []; S.stared = false; S.stareI = null;
+  room.classList.remove('lit');
+  renderWall(); hud();
+  const k = S.round;
+  setRadio(() => `<b>${t(R.inside ? 'whoWall' : 'whoRadio')}${lang === 'fr' ? '\u202f' : ''}:</b> ${t('radios')[k]}`);
+  setPhase('observe');
+}
+
+function renderWall() {
+  wallEl.innerHTML = '';
+  wallEl.dataset.n = S.wall.length;
+  S.wall.forEach((p, i) => {
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'tile'; b.id = `work-${i + 1}`;
+    b.setAttribute('aria-pressed', 'false');
+    b.innerHTML =
+      `<canvas class="main" width="480" height="600"></canvas>` +
+      `<span class="tag"></span>` +
+      (S.notes[i] != null ? `<span class="note"></span>` : '') +
+      `<span class="label"><span class="num"></span><b></b><span></span><span></span><span class="acc"></span></span>` +
+      `<span class="what" hidden></span>` +
+      `<span class="reveal" hidden><canvas width="480" height="600"></canvas></span>`;
+    b.addEventListener('click', () => toggle(i));
+    b.addEventListener('pointerenter', () => { S.stareI = i; S.stareT = performance.now(); });
+    b.addEventListener('pointerleave', () => { if (S.stareI === i) S.stareI = null; });
+    b.addEventListener('focus', () => torchTo(b));
+    wallEl.append(b);
+    fillTile(i);
+    drawPainting(b.querySelector('canvas.main'), p);
+  });
+}
+function fillTile(i) {
+  const b = tile(i), p = S.wall[i], w = workText(p), T = t('tag');
+  b.setAttribute('aria-label', `${i + 1}. ${w.title}`);
+  const [num, title, artist, medium, acc] = b.querySelector('.label').children;
+  num.textContent = t('num')(i + 1); title.textContent = w.title;
+  artist.textContent = w.artist; medium.textContent = w.medium; acc.textContent = w.acc;
+  if (S.notes[i] != null) b.querySelector('.note').textContent = t('notes')[S.notes[i]];
+  b.querySelector('.tag').textContent = T[['hit', 'false', 'miss'].find(c => b.classList.contains(c)) || 'incident'];
+  b.querySelector('.reveal').dataset.before = t('before');
+  const c = S.changed.find(c => c.i === i), what = b.querySelector('.what');
+  if (c && !what.hidden) what.textContent = descText(c.desc);
+}
+
+function hud() {
+  const R = ROUNDS[S.round];
+  $('#clock').textContent = clockOf(S.round);
+  $('#round').textContent = `${S.round + 1} / ${ROUNDS.length}`;
+  $('#score').textContent = S.score;
+  $('#cred').textContent = S.cred;
+  const fill = $('#credfill');
+  fill.style.width = S.cred + '%';
+  fill.style.background = S.cred < 40 ? 'var(--alarm)' : 'var(--gilt)';
+}
+// Radio, hint and the action button keep their thunk, so a language switch re-reads them.
+let radioArg = '', hintArg = '', actArg = '';
+const val = x => typeof x === 'function' ? x() : x;
+const setRadio = x => { radioArg = x; $('#radio').innerHTML = val(x); };
+const hint = x => { hintArg = x; $('#hint').textContent = val(x); };
+const actLabel = x => { actArg = x; $('#act').textContent = val(x); };
+
+function setPhase(ph) {
+  S.phase = ph;
+  const act = $('#act'), R = ROUNDS[S.round];
+  act.disabled = ph === 'sweep' || ph === 'idle';
+  if (ph === 'observe') {
+    S.t0 = performance.now(); S.dur = R.observe * 1000;
+    actLabel(() => t(R.visitors ? 'blink' : 'sweepBtn'));
+    hint(() => t(R.visitors ? 'hintVisitors' : 'hintWall'));
+  } else if (ph === 'inspect') {
+    actLabel(() => t('fileBtn')(S.flags.size));
+    hint(() => t(R.visitors ? 'hintFlagVisitors' : 'hintFlagWall'));
+  } else if (ph === 'reveal') {
+    const last = S.round === ROUNDS.length - 1, k = S.cred <= 0 ? 'handIn' : last ? 'endShift' : 'nextRound';
+    actLabel(() => t(k));
+  }
+}
+
+function act() {
+  if (!S) return;
+  if (S.phase === 'observe') sweep();
+  else if (S.phase === 'inspect') fileReport();
+  else if (S.phase === 'reveal') {
+    if (S.cred <= 0) end(false);
+    else if (S.round === ROUNDS.length - 1) end(true);
+    else { S.round++; setupRound(); window.scrollTo({ top: 0, behavior: reduce ? 'auto' : 'smooth' }); }
+  }
+}
+
+function sweep() {
+  if (S.phase !== 'observe') return;
+  setPhase('sweep');
+  $('#timerfill').style.width = '0%';
+  room.classList.add('off');
+  if (!reduce) room.classList.add('flicker');
+  const half = reduce ? 350 : 800;
+  setTimeout(() => {
+    applyChanges();
+    S.wall.forEach((p, i) => drawPainting(tile(i).querySelector('canvas.main'), p));
+  }, half);
+  setTimeout(() => { room.classList.remove('off', 'flicker'); setPhase('inspect'); }, half + 500);
+}
+
+function applyChanges() {
+  const R = ROUNDS[S.round];
+  const n = Array.isArray(R.changes) ? ri(R.changes[0], R.changes[1]) : R.changes;
+  const picked = [];
+  if (R.mirror) picked.push(S.wall.findIndex(p => p.kind === 'mirror'));
+  for (const i of shuffle(S.wall.map((_, i) => i))) if (picked.length < n && !picked.includes(i)) picked.push(i);
+  S.changed = picked.map(i => {
+    const p = S.wall[i], before = clone(p);
+    const pool = CH[p.kind].filter(c => c.level <= R.max && c.ok(p));
+    return { i, before, desc: pick(pool).run(p) };
+  });
+}
+
+function toggle(i) {
+  if (!S || S.phase !== 'inspect' || i >= S.wall.length) return;
+  if (S.flags.has(i)) S.flags.delete(i); else S.flags.add(i);
+  tile(i).setAttribute('aria-pressed', String(S.flags.has(i)));
+  actLabel(() => t('fileBtn')(S.flags.size));
+}
+
+function fileReport() {
+  const changed = new Set(S.changed.map(c => c.i));
+  let hit = 0, fals = 0, miss = 0;
+  S.wall.forEach((p, i) => {
+    const el = tile(i), f = S.flags.has(i), c = changed.has(i);
+    el.setAttribute('aria-pressed', 'false');
+    if (f && c) { hit++; el.classList.add('hit'); }
+    else if (f) { fals++; el.classList.add('false'); }
+    else if (c) { miss++; el.classList.add('miss'); }
+    else el.classList.add('quiet');
+  });
+  for (const c of S.changed) {
+    const el = tile(c.i), r = el.querySelector('.reveal');
+    r.hidden = false; drawPainting(r.querySelector('canvas'), c.before);
+    el.querySelector('.what').hidden = false;
+  }
+  S.wall.forEach((_, i) => fillTile(i));
+  S.score += hit; S.falseTotal += fals; S.missTotal += miss;
+  S.cred = Math.max(0, S.cred - 20 * fals - 12 * miss);
+  hud();
+  room.classList.add('lit');
+  const R = ROUNDS[S.round];
+  hint(() => t('tally')(hit, fals, miss));
+  const rk = R.mirror ? 'rMirror' : R.inside ? 'rInside' : fals ? 'rFalse' : miss ? 'rMiss' : 'rClean';
+  setRadio(() => t(rk));
+  setPhase('reveal');
+}
+
+function end(win) {
+  best = Math.max(best, S.score);
+  S.phase = 'idle';
+  S.win = win;
+  fillEnd();
+  $('#end').hidden = false;
+  $('#again').focus();
+}
+
+function fillEnd() {
+  const win = S.win;
+  $('#end-eyebrow').textContent = win ? t('winEyebrow') : t('loseEyebrow')(clockOf(S.round));
+  $('#end-title').textContent = t(win ? 'winTitle' : 'loseTitle');
+  $('#end-body').textContent = t(win ? 'winBody' : 'loseBody');
+  $('#end-stat').textContent = t('endStat')(S.score, S.falseTotal, S.missTotal, S.cred, best);
+}
+
+function torchTo(el) {
+  const r = room.getBoundingClientRect(), e = el.getBoundingClientRect();
+  room.style.setProperty('--tx', (e.left + e.width / 2 - r.left) + 'px');
+  room.style.setProperty('--ty', (e.top + e.height / 2 - r.top) + 'px');
+}
+function torchAt(e) {
+  const r = room.getBoundingClientRect();
+  room.style.setProperty('--tx', (e.clientX - r.left) + 'px');
+  room.style.setProperty('--ty', (e.clientY - r.top) + 'px');
+}
+room.addEventListener('pointermove', torchAt);
+room.addEventListener('pointerdown', torchAt);
+
+function loop(now) {
+  if (S && S.phase === 'observe') {
+    const left = 1 - (now - S.t0) / S.dur;
+    $('#timerfill').style.width = Math.max(0, left * 100) + '%';
+    if (S.stareI != null && !S.stared && now - S.stareT > 2500 && S.wall[S.stareI].kind === 'portrait') {
+      S.stared = true;
+      const i = S.stareI;
+      setRadio(() => t('stare')(i + 1, workText(S.wall[i]).title));
+    }
+    if (left <= 0) sweep();
+  }
+  requestAnimationFrame(loop);
+}
+
+$('#act').addEventListener('click', act);
+$('#begin').addEventListener('click', () => { $('#title').hidden = true; setupRound(); });
+$('#again').addEventListener('click', () => { $('#end').hidden = true; boot(); setupRound(); });
+addEventListener('keydown', e => {
+  if (!S || !$('#title').hidden || !$('#end').hidden) return;
+  if (/^[1-6]$/.test(e.key)) toggle(Number(e.key) - 1);
+  else if ((e.key === 's' || e.key === 'S') && S.phase === 'observe') sweep();
+  else if (e.key === 'Enter' && !(e.target instanceof HTMLButtonElement)) { e.preventDefault(); act(); }
+});
+
+// ---- language ------------------------------------------------------------------------------
+// Static markup carries data-t / data-ta; tiles, the radio line, hint, action button, HUD clock
+// and an open end card are re-rendered; the mirror's painted label is redrawn on its canvas.
+function applyLang() {
+  document.documentElement.lang = lang;
+  document.title = t('docTitle');
+  for (const el of document.querySelectorAll('[data-t]')) el.textContent = t(el.dataset.t);
+  for (const el of document.querySelectorAll('[data-ta]')) el.setAttribute('aria-label', t(el.dataset.ta));
+  for (const box of document.querySelectorAll('.lang')) {
+    if (!box.children.length) box.innerHTML = '<button type="button" data-lang="fr" lang="fr">FR</button><button type="button" data-lang="en" lang="en">EN</button>';
+    for (const b of box.children) b.setAttribute('aria-pressed', String(b.dataset.lang === lang));
+  }
+  if (!S) return;
+  S.wall.forEach((p, i) => { fillTile(i); drawPainting(tile(i).querySelector('canvas.main'), p); });
+  hud();
+  setRadio(radioArg); hint(hintArg); actLabel(actArg);
+  if (!$('#end').hidden) fillEnd();
+}
+function setLang(l) {
+  if (!(l in I18N) || l === lang) return;
+  lang = l;
+  applyLang();
+}
+document.addEventListener('click', e => {
+  const b = e.target.closest('[data-lang]');
+  if (b) setLang(b.dataset.lang);
+});
+
+function start(data) {
+  lang = data?.lang in I18N ? data.lang : (navigator.language || '').toLowerCase().startsWith('fr') ? 'fr' : 'en';
+  best = data.best || 0;
+  applyLang();
+  boot();
+  actLabel(() => t('sweepBtn'));
+  requestAnimationFrame(loop);
+}
+window.claude?.hot?.snapshot?.(() => ({ best: Math.max(best, S?.score || 0), lang }));
+window.claude?.hot?.ready ? window.claude.hot.ready(start) : start(window.claude?.hot?.data ?? {});
+</script>
+</body>
+</html>

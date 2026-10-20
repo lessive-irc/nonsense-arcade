@@ -1,0 +1,1456 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Slow Cooker Grand Opera</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Abril+Fatface&family=EB+Garamond:ital,wght@0,400;0,600;1,400;1,600&family=Spline+Sans+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: an opera house seen from the stalls. Surtitle box over the proscenium, the stage
+   (score flowing into a slow cooker under red velvet) in the middle, the orchestra pit with
+   the heat dial at the bottom. The velvet is the one loud thing; everything else is programme paper. */
+:root {
+  --bg: #ebe5e7;          /* programme paper, a little mauve */
+  --ink: #261a1f;
+  --muted: #6e5d64;
+  --accent: #8e1d31;      /* velvet */
+  --panel: #f6f2f3;
+  --line: #261a1f29;
+  --brass: #a07a22;
+  --band: #c99a2e;
+  --backdrop: #d9cdd0;
+  --boards: #8a6a52;
+  --crock: #efe7dc;
+  --stew: #7c3f1c;
+  --hot: #c4401a;
+  --cold: #3f6c8c;
+  --guest: #2f7a6c;
+  --sur-bg: #1c1317;
+  --sur-ink: #f4e2b4;
+  --f-show: "Abril Fatface", "Didot", "Bodoni 72", Georgia, serif;
+  --f-body: "EB Garamond", Garamond, "Times New Roman", serif;
+  --f-mono: "Spline Sans Mono", ui-monospace, Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #130d10; --ink: #efe3e7; --muted: #a8959d; --accent: #c23a50; --panel: #1e1519;
+    --line: #efe3e724; --brass: #d4ab4c; --band: #e0b54a; --backdrop: #22171c; --boards: #4a3427;
+    --crock: #d8cfc4; --stew: #a35c2c; --hot: #f06d3c; --cold: #74a8cb; --guest: #5cc0aa;
+    --sur-bg: #000000; --sur-ink: #f7dc97;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #130d10; --ink: #efe3e7; --muted: #a8959d; --accent: #c23a50; --panel: #1e1519;
+  --line: #efe3e724; --brass: #d4ab4c; --band: #e0b54a; --backdrop: #22171c; --boards: #4a3427;
+  --crock: #d8cfc4; --stew: #a35c2c; --hot: #f06d3c; --cold: #74a8cb; --guest: #5cc0aa;
+  --sur-bg: #000000; --sur-ink: #f7dc97;
+  color-scheme: dark;
+}
+/* kit:css:begin */
+/* Arcade kit: structure only, never a look. Inlined between kit:css markers by kit/inline.mjs.
+   The game's own :root must define --bg --ink --muted --accent --panel --line (light), and
+   redefine them in both dark blocks; everything here reads those tokens. */
+*, *::before, *::after { box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  -webkit-tap-highlight-color: transparent;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+button { font: inherit; color: inherit; cursor: pointer; }
+button:disabled { cursor: default; }
+:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+canvas { display: block; max-width: 100%; touch-action: none; }
+
+/* Full-stage screens (title, twist, end). Sit inside a position:relative stage. */
+.kit-overlay {
+  position: absolute; inset: 0; z-index: 5;
+  display: grid; place-items: center; padding: 24px;
+  background: color-mix(in srgb, var(--bg) 88%, transparent);
+  overflow-y: auto;
+}
+.kit-overlay[hidden] { display: none; }
+
+/* Touch pad: shown only on coarse pointers; buttons carry data-key (see Kit.keys). */
+.kit-pad { display: none; gap: 10px; justify-content: center; padding-block: 10px; user-select: none; }
+.kit-pad [data-key] { min-width: 56px; min-height: 56px; touch-action: none; border: 1px solid var(--line); background: var(--panel); }
+@media (pointer: coarse) { .kit-pad { display: flex; } }
+
+.kit-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+
+@media (prefers-reduced-motion: reduce) {
+  .kit-deco, .kit-deco * { animation: none !important; transition: none !important; }
+}
+/* kit:css:end */
+[hidden] { display: none !important; }
+body {
+  font-family: var(--f-body); font-size: 17px;
+  height: 100dvh; padding-block: 10px; overflow: hidden;
+}
+.house {
+  position: relative; height: 100%; max-width: 1080px; margin: 0 auto;
+  display: grid; grid-template-rows: auto auto minmax(0, 1fr) auto; gap: 8px;
+}
+.strip {
+  display: flex; justify-content: space-between; align-items: baseline; gap: 6px 14px; flex-wrap: wrap;
+  border-bottom: 1px solid var(--line); padding-bottom: 6px;
+  font-family: var(--f-mono); font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--muted);
+}
+.strip b { font-family: var(--f-show); font-weight: 400; font-size: 19px; letter-spacing: .01em; text-transform: none; color: var(--accent); margin-right: 8px; }
+.strip .act { color: var(--ink); font-variant-numeric: tabular-nums; }
+.sur {
+  background: var(--sur-bg); color: var(--sur-ink);
+  min-height: 74px; padding: 9px 16px; display: grid; align-content: center; gap: 2px; text-align: center;
+  border-radius: 2px;
+}
+.sur .who { font-family: var(--f-mono); font-size: 10px; letter-spacing: .2em; text-transform: uppercase; opacity: .7; }
+.sur .it { font-style: italic; font-size: 14px; opacity: .78; }
+.sur .en { font-size: 19px; line-height: 1.25; text-wrap: balance; }
+.sur.dir .en { font-style: italic; font-size: 17px; opacity: .92; }
+.sur.hot .who { color: var(--hot); opacity: 1; }
+.stage { position: relative; min-height: 0; border-radius: 2px; overflow: hidden; background: var(--backdrop); }
+.stage canvas { width: 100%; height: 100%; }
+.pit {
+  display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 10px 16px; align-items: center;
+  border-top: 1px solid var(--line); padding-top: 8px;
+}
+.dialbox { display: grid; justify-items: center; gap: 6px; }
+.knob {
+  --a: -135deg;
+  position: relative; width: 92px; height: 92px; border-radius: 50%;
+  background:
+    radial-gradient(circle, transparent 54%, var(--ink) 55% 56%, transparent 57%),
+    repeating-conic-gradient(from -135deg, var(--muted) 0 1deg, transparent 1deg 27deg);
+  -webkit-mask: radial-gradient(circle, #000 70%, transparent 71%);
+  touch-action: none; cursor: grab;
+}
+.knob:active { cursor: grabbing; }
+.knob .cap {
+  position: absolute; inset: 15px; border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, var(--panel), var(--crock) 60%, var(--muted));
+  border: 2px solid var(--ink);
+  transform: rotate(var(--a));
+}
+.knob .cap i { position: absolute; left: 50%; top: 4px; width: 4px; height: 22px; margin-left: -2px; background: var(--accent); border-radius: 2px; }
+.dialrow { display: flex; align-items: center; gap: 6px; }
+.dialrow .lab { font-family: var(--f-mono); font-size: 10px; letter-spacing: .1em; color: var(--muted); text-transform: uppercase; }
+.kit-pad.always { display: flex; padding: 0; gap: 6px; }
+.kit-pad.always [data-key] { min-width: 44px; min-height: 40px; font-family: var(--f-mono); font-size: 20px; line-height: 1; border: 1px solid var(--ink); background: var(--panel); border-radius: 2px; }
+.kit-pad.always [data-key]:active { background: var(--line); }
+.gauges { display: grid; gap: 5px; min-width: 0; }
+.temp { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.temp b { font-family: var(--f-mono); font-weight: 600; font-size: 30px; font-variant-numeric: tabular-nums; line-height: 1; }
+.temp span { font-family: var(--f-mono); font-size: 13px; color: var(--muted); }
+.temp em { font-style: italic; font-size: 16px; color: var(--muted); }
+.temp em.hot { color: var(--hot); }
+.temp em.cold { color: var(--cold); }
+.temp em.in { color: var(--brass); }
+.meter { display: grid; grid-template-columns: 8.5ch minmax(0, 1fr) 4.5ch; align-items: center; gap: 8px; font-family: var(--f-mono); font-size: 10.5px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.meter i { display: block; height: 7px; background: var(--line); }
+.meter i b { display: block; height: 100%; width: 0; background: var(--brass); }
+.meter.broth i b { background: var(--stew); }
+.meter.fat i b { background: var(--cold); }
+.meter.warn i b { background: var(--hot); }
+.meter output { text-align: right; font-variant-numeric: tabular-nums; color: var(--ink); }
+.kit-pad.addpad [data-key] {
+  min-width: 112px; min-height: 92px; padding: 8px 10px; display: grid; gap: 2px; align-content: center;
+  background: var(--accent); color: #fff; border: 0; border-radius: 2px;
+  font-family: var(--f-body); font-size: 15px; line-height: 1.1;
+}
+.kit-pad.addpad [data-key] b { font-family: var(--f-show); font-weight: 400; font-size: 19px; }
+.kit-pad.addpad [data-key] small { font-family: var(--f-mono); font-size: 9.5px; letter-spacing: .12em; text-transform: uppercase; opacity: .8; }
+.kit-pad.addpad [data-key].due { outline: 3px solid var(--band); outline-offset: 2px; }
+.kit-pad.addpad [data-key]:active { filter: brightness(.9); }
+
+/* Overlays are programme pages */
+.bill {
+  width: min(560px, 100%); background: var(--panel); color: var(--ink);
+  border: 1px solid var(--ink); outline: 1px solid var(--brass); outline-offset: -7px;
+  padding: 26px 26px 22px; display: grid; gap: 12px;
+}
+.bill .house-name { margin: 0; font-family: var(--f-mono); font-size: 10.5px; letter-spacing: .22em; text-transform: uppercase; color: var(--muted); text-align: center; }
+.bill h1, .bill h2 { margin: 0; font-family: var(--f-show); font-weight: 400; color: var(--accent); text-align: center; line-height: .95; }
+.bill h1 { font-size: clamp(44px, 12vw, 68px); }
+.bill h2 { font-size: clamp(34px, 9vw, 52px); }
+.bill .genre { margin: 0; text-align: center; font-size: 18px; font-style: italic; text-wrap: balance; }
+.bill .credits { margin: 0; text-align: center; font-family: var(--f-mono); font-size: 10.5px; letter-spacing: .08em; color: var(--muted); text-transform: uppercase; }
+.cast { margin: 0; display: grid; gap: 3px; border-block: 1px solid var(--line); padding-block: 10px; }
+.cast div { display: flex; align-items: baseline; gap: 6px; font-size: 16px; }
+.cast dt { flex: none; }
+.cast dt::after { content: ""; }
+.cast .dots { flex: 1; border-bottom: 1px dotted var(--muted); min-width: 12px; transform: translateY(-4px); }
+.cast dd { margin: 0; font-style: italic; color: var(--muted); text-align: right; }
+.bill h3 { margin: 0; font-family: var(--f-mono); font-weight: 600; font-size: 11px; letter-spacing: .18em; text-transform: uppercase; color: var(--muted); }
+.bill ul { margin: 0; padding-left: 1.1em; display: grid; gap: 4px; font-size: 16px; line-height: 1.35; }
+.bill p { margin: 0; font-size: 17px; line-height: 1.4; }
+.bill .libretto p { margin: 0 0 6px; }
+.bill .dirn { font-style: italic; color: var(--muted); }
+.bill .sung { padding-left: 14px; border-left: 2px solid var(--accent); }
+.bill .sung i { display: block; color: var(--muted); font-size: 15px; }
+.bill .who { font-family: var(--f-mono); font-size: 10px; letter-spacing: .16em; text-transform: uppercase; color: var(--accent); }
+.bill .row { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+.bill button {
+  font-family: var(--f-body); font-size: 18px; font-weight: 600; padding: 11px 20px;
+  background: var(--accent); color: #fff; border: 0; border-radius: 2px;
+}
+.bill button.quiet { background: transparent; color: var(--ink); border: 1px solid var(--ink); }
+.bill .small { text-align: center; font-family: var(--f-mono); font-size: 10.5px; letter-spacing: .08em; color: var(--muted); }
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 8px; border-block: 1px solid var(--line); padding-block: 10px; }
+.stats div { display: grid; gap: 1px; text-align: center; }
+.stats b { font-family: var(--f-mono); font-size: 22px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.stats span { font-family: var(--f-mono); font-size: 9.5px; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+.review { font-style: italic; text-align: center; color: var(--muted); }
+
+/* Language toggle: two keys in programme mono, the chosen one in velvet. */
+.lang { display: inline-flex; flex: none; align-self: center; border: 1px solid var(--ink); border-radius: 2px; background: var(--panel); overflow: hidden; }
+.lang button { border: 0; background: transparent; padding: 3px 8px; font: 600 11px var(--f-mono); letter-spacing: .1em; color: var(--muted); }
+.lang button + button { border-left: 1px solid var(--line); }
+.lang button:hover { color: var(--ink); }
+.lang button[aria-pressed="true"] { background: var(--accent); color: #fff; }
+.bill .row .lang button { font-size: 12px; padding: 7px 11px; }
+.bill .row .lang button[aria-pressed="true"] { background: var(--accent); }
+
+@media (max-width: 560px) {
+  body { font-size: 16px; }
+  .sur { min-height: 82px; padding: 8px 10px; }
+  .sur .en { font-size: 16.5px; }
+  .sur .it { font-size: 13px; }
+  .pit { grid-template-columns: auto minmax(0, 1fr); }
+  .gauges { grid-column: 1 / -1; grid-row: 2; }
+  .addpad { justify-self: end; }
+  .kit-pad.addpad [data-key] { min-width: 150px; }
+  .knob { width: 80px; height: 80px; }
+  .knob .cap { inset: 13px; }
+  .bill { padding: 20px 16px 18px; }
+  .strip b { font-size: 17px; }
+}
+@media (max-height: 640px) { .sur { min-height: 60px; } .knob { width: 74px; height: 74px; } .kit-pad.addpad [data-key] { min-height: 74px; } }
+</style>
+</head>
+<body>
+<div class="house" id="house">
+  <header class="strip">
+    <span><b>Lo Stufato</b>Teatro della Pentola</span>
+    <span class="act" id="actlab">Overtura · 0:00</span>
+    <div class="lang" role="group" data-ta="langGroup" aria-label="Language"></div>
+  </header>
+
+  <div class="sur" id="sur" aria-live="polite">
+    <span class="who" id="sur-who">Surtitles</span>
+    <span class="it" id="sur-it"></span>
+    <span class="en" id="sur-en">The house is dark. Somewhere, a slow cooker is plugged in.</span>
+  </div>
+
+  <div class="stage" id="stage">
+    <canvas id="scene" data-ta="sceneAria" aria-label="The stage: a slow cooker sings while the score flows toward it. The gold band is the heat the music wants."></canvas>
+  </div>
+
+  <div class="pit">
+    <div class="dialbox">
+      <div class="knob" id="knob" role="slider" tabindex="0" data-ta="dialAria" aria-label="Heat dial" aria-valuemin="0" aria-valuemax="10" aria-valuenow="0"><div class="cap"><i></i></div></div>
+      <div class="dialrow">
+        <div class="kit-pad always">
+          <button data-key="ArrowDown" data-ta="lowerAria" aria-label="Lower the heat">−</button>
+          <button data-key="ArrowUp" data-ta="raiseAria" aria-label="Raise the heat">+</button>
+        </div>
+        <span class="lab" id="diallab">Dial 0.0</span>
+      </div>
+    </div>
+    <div class="gauges">
+      <div class="temp"><b id="tempv">22.0</b><span>°C</span><em id="verdict">room temperature</em></div>
+      <div class="meter"><span data-t="mApp">Applause</span><i><b id="m-app"></b></i><output id="o-app">–</output></div>
+      <div class="meter broth" id="g-broth"><span data-t="mBroth">Broth</span><i><b id="m-broth"></b></i><output id="o-broth">100%</output></div>
+      <div class="meter fat" id="g-fat"><span data-t="mFat">Fat set</span><i><b id="m-fat"></b></i><output id="o-fat">0%</output></div>
+    </div>
+    <div class="kit-pad always addpad">
+      <button data-key=" " id="add" data-ta="addAria" aria-label="Add the ingredient"><span data-t="add">Add</span><b id="addname">nothing yet</b><small data-t="space">Space</small></button>
+    </div>
+  </div>
+
+  <div class="kit-overlay" id="title">
+    <article class="bill">
+      <p class="house-name">Teatro della Pentola · Stagione 2026</p>
+      <h1>Lo Stufato</h1>
+      <p class="genre" data-th="genre">Slow Cooker Grand Opera: a <i>dramma per pentola</i> in three acts, with overture</p>
+      <div class="row"><button id="go" data-t="goBtn">Begin the overture</button><div class="lang" role="group" data-ta="langGroup" aria-label="Language"></div></div>
+      <p class="credits" data-t="credits">Music by G. Pentola · Libretto by A. Mestolo · about four minutes, no interval</p>
+      <dl class="cast">
+        <div><dt data-cast="0">Lo Stufato, a beef stew</dt><span class="dots"></span><dd data-cast="1">soprano drammatico</dd></div>
+        <div><dt data-cast="2">Il Coperchio, its lid</dt><span class="dots"></span><dd data-cast="3">silent role</dd></div>
+        <div><dt data-cast="4">Un Ospite, row F, seat 14</dt><span class="dots"></span><dd data-cast="5">baritone, hungry</dd></div>
+        <div><dt data-cast="6">Chorus of Carrots</dt><span class="dots"></span><dd data-cast="7">offstage, then onstage</dd></div>
+        <div><dt data-cast="8">Il Maestro, at the dial</dt><span class="dots"></span><dd data-cast="9">you</dd></div>
+      </dl>
+      <h3 data-t="noteH">A note for the maestro</h3>
+      <ul>
+        <li data-th="note1">Turn the dial with <b>↑ ↓</b>, the <b>− +</b> buttons, or by dragging the knob. The stew takes about two seconds to answer, like every great soprano.</li>
+        <li data-th="note2">The score flows in from the right. Keep the stew's voice inside the <b>gold band</b>. A simmer is 85 to 95 °C.</li>
+        <li data-th="note3">At 100 °C it shrieks and the broth boils away. Below 55 °C the fat sets and it mumbles into aspic.</li>
+        <li data-th="note4">When an ingredient reaches the stew, press <b>Space</b> or tap <b>Add</b>. Cold ingredients take a few degrees with them.</li>
+      </ul>
+    </article>
+  </div>
+
+  <div class="kit-overlay" id="twist" hidden>
+    <article class="bill libretto">
+      <p class="house-name">Atto secondo · fine</p>
+      <p class="dirn" data-t="tw1">[The stew stops in the middle of a phrase. The orchestra stops a bar later. The stew addresses the podium.]</p>
+      <p class="sung" data-th="tw2"><span class="who">Lo Stufato</span> Maestro. I am cooked. I have been ready for three hours. Serve me.<i>«Maestro. Sono cotto. Sono pronto da tre ore. Servitemi.»</i></p>
+      <p class="dirn" data-t="tw3">[Row F, seat 14. A dinner guest rises, napkin already tucked in, and sings back.]</p>
+      <p class="sung" data-th="tw4"><span class="who">Un Ospite</span> I! I am hungry! I booked for eight!<i>«Io! Io ho fame! Ho prenotato per le otto!»</i></p>
+      <div class="row">
+        <button id="serve" data-t="serveBtn">Serve it and conduct the duet</button>
+        <button id="keep" class="quiet" data-t="keepBtn">Keep simmering: the programme says three acts</button>
+        <div class="lang" role="group" data-ta="langGroup" aria-label="Language"></div>
+      </div>
+      <p class="small" id="twist-timer">The guest reaches the stage steps in 15 s.</p>
+    </article>
+  </div>
+
+  <div class="kit-overlay" id="end" hidden>
+    <article class="bill">
+      <p class="house-name" id="end-kicker">Curtain</p>
+      <h2 id="end-title">Bravo</h2>
+      <p class="genre" id="end-sub"></p>
+      <div class="stats" id="end-stats"></div>
+      <p id="end-body"></p>
+      <p class="review" id="end-review"></p>
+      <div class="row"><button id="again" data-t="againBtn">Play it again, from the overture</button><div class="lang" role="group" data-ta="langGroup" aria-label="Language"></div></div>
+      <p class="small" id="end-best"></p>
+    </article>
+  </div>
+</div>
+
+<script>
+/* kit:js:begin */
+// Arcade kit: the plumbing every game re-wrote by hand. Inlined between kit:js markers by
+// kit/inline.mjs, so a game stays one standalone file. Defines exactly two globals, `Kit` and
+// (once a game calls Kit.expose) `__arcade`; nothing else, because a bare top-level name can
+// collide with a window property (sandwich-diplomacy's `top()` shadowed by window.top).
+const Kit = (() => {
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const themeWatchers = [];
+  const onTheme = () => themeWatchers.forEach(f => f());
+  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', onTheme);
+  new MutationObserver(onTheme).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+
+  // Canvas code cannot read CSS variables, so mirror the named tokens into an object and
+  // re-read it whenever the theme flips: the viewer's toggle sets data-theme, the OS sets the media query.
+  function tokens(names, onChange) {
+    const C = {};
+    const read = () => {
+      const cs = getComputedStyle(document.documentElement);
+      for (const n of names) C[n] = cs.getPropertyValue('--' + n).trim();
+      onChange?.(C);
+    };
+    read();
+    themeWatchers.push(read);
+    return C;
+  }
+
+  // Keeps a canvas sharp at the device pixel ratio (capped at 2) and sized to its CSS box.
+  function canvas(el, onResize) {
+    const view = { el, cx: el.getContext('2d'), W: 0, H: 0 };
+    const fit = () => {
+      const r = el.getBoundingClientRect(), d = Math.min(2, devicePixelRatio || 1);
+      view.W = r.width; view.H = r.height;
+      el.width = Math.round(r.width * d); el.height = Math.round(r.height * d);
+      view.cx.setTransform(d, 0, 0, d, 0, 0);
+      onResize?.(view);
+    };
+    new ResizeObserver(fit).observe(el);
+    fit();
+    return view;
+  }
+
+  // step(dt) gets seconds, capped at 50 ms so a background tab or a stalled frame cannot
+  // teleport the game; the loop stops while the tab is hidden and resumes without a jump.
+  function loop(step) {
+    let last = 0, raf = 0, on = false;
+    const frame = t => {
+      const dt = last ? Math.min(0.05, (t - last) / 1000) : 0;
+      last = t;
+      step(dt);
+      if (on) raf = requestAnimationFrame(frame);
+    };
+    const ctl = {
+      start() { if (on) return; on = true; last = 0; raf = requestAnimationFrame(frame); },
+      stop() { on = false; cancelAnimationFrame(raf); },
+      get running() { return on; },
+    };
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden && on) { ctl.stop(); ctl.paused = true; }
+      else if (!document.hidden && ctl.paused) { ctl.paused = false; ctl.start(); }
+    });
+    return ctl;
+  }
+
+  // Held keys by KeyboardEvent.key, lower-cased (' ' for Space). Touch pads feed the same set:
+  // any element with data-key="<key>" inside a .kit-pad holds that key while pressed.
+  const held = new Set();
+  const pressFns = [];
+  const norm = k => (k.length === 1 ? k.toLowerCase() : k);
+  const press = (k, down) => {
+    k = norm(k);
+    if (down === held.has(k)) return;
+    down ? held.add(k) : held.delete(k);
+    pressFns.forEach(f => f(k, down));
+  };
+  const GAME_KEYS = new Set([' ', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight']);
+  addEventListener('keydown', e => {
+    if (e.target.closest?.('input, textarea, select, [contenteditable]')) return;
+    if (GAME_KEYS.has(e.key) && !e.target.closest?.('button')) e.preventDefault();
+    if (!e.repeat) press(e.key, true);
+  });
+  addEventListener('keyup', e => press(e.key, false));
+  addEventListener('blur', () => [...held].forEach(k => press(k, false)));
+  document.addEventListener('pointerdown', e => {
+    const b = e.target.closest?.('.kit-pad [data-key]');
+    if (!b) return;
+    e.preventDefault();
+    b.setPointerCapture?.(e.pointerId);
+    press(b.dataset.key, true);
+    const up = () => { press(b.dataset.key, false); b.removeEventListener('pointerup', up); b.removeEventListener('pointercancel', up); };
+    b.addEventListener('pointerup', up);
+    b.addEventListener('pointercancel', up);
+  });
+  const keys = {
+    down: k => held.has(norm(k)),
+    any: (...ks) => ks.some(k => held.has(norm(k))),
+    onPress(fn) { pressFns.push(fn); },
+  };
+
+  // The claude.ai viewer's hot-update hook: keeps `snapshot()` across a republish. Absent when
+  // self-hosted, so start() then receives {}.
+  function boot(start, snapshot) {
+    if (snapshot) window.claude?.hot?.snapshot?.(snapshot);
+    window.claude?.hot?.ready ? window.claude.hot.ready(start) : start(window.claude?.hot?.data ?? {});
+  }
+
+  // The test hook smoke.mjs drives. endings: { name: { jump(), reached(), seconds? } } where
+  // jump() may shortcut the set-up but must leave the ending's final stretch to real game
+  // logic, and reached() is true only once that ending's screen is actually showing.
+  function expose({ state, endings }) {
+    window.__arcade = {
+      get state() { return state(); },
+      endings: Object.fromEntries(Object.entries(endings).map(([k, v]) => [k, { seconds: v.seconds ?? 8 }])),
+      jump: name => endings[name].jump(),
+      reached: name => !!endings[name].reached(),
+    };
+  }
+
+  // Show one overlay and hide the others; focus its first button so Enter/Space continue.
+  function show(el) {
+    document.querySelectorAll('.kit-overlay').forEach(o => { o.hidden = o !== el; });
+    el?.querySelector('button')?.focus({ preventScroll: true });
+  }
+
+  const rnd = (a, b) => a + Math.random() * (b - a);
+  const pick = a => a[Math.floor(Math.random() * a.length)];
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+
+  return { reduce, tokens, canvas, loop, keys, boot, expose, show, rnd, pick, clamp };
+})();
+/* kit:js:end */
+
+// Every player-visible string, per language. The opera is sung in Italian in both: the Italian
+// stays in ACTS / ING / the line pools, and only the surtitles, stage directions and the house's
+// own paperwork translate, the way a French house surtitles an Italian opera.
+const I18N = {
+  en: {
+    docTitle: 'Slow Cooker Grand Opera',
+    langGroup: 'Language',
+    num: x => x.toFixed(1),
+    pct: n => `${n}%`,
+    surtitles: 'Surtitles', surIdle: 'The house is dark. Somewhere, a slow cooker is plugged in.',
+    stageDir: 'Stage direction', shrieking: 'Lo Stufato, shrieking', mumbling: 'Lo Stufato, mumbling',
+    sceneAria: 'The stage: a slow cooker sings while the score flows toward it. The gold band is the heat the music wants.',
+    dialAria: 'Heat dial', lowerAria: 'Lower the heat', raiseAria: 'Raise the heat', addAria: 'Add the ingredient',
+    dial: v => `Dial ${v}`,
+    roomTemp: 'room temperature',
+    mApp: 'Applause', mBroth: 'Broth', mFat: 'Fat set',
+    add: 'Add', space: 'Space', nothingYet: 'nothing yet',
+    genre: 'Slow Cooker Grand Opera: a <i>dramma per pentola</i> in three acts, with overture',
+    goBtn: 'Begin the overture',
+    credits: 'Music by G. Pentola · Libretto by A. Mestolo · about four minutes, no interval',
+    cast: ['Lo Stufato, a beef stew', 'soprano drammatico', 'Il Coperchio, its lid', 'silent role', 'Un Ospite, row F, seat 14', 'baritone, hungry', 'Chorus of Carrots', 'offstage, then onstage', 'Il Maestro, at the dial', 'you'],
+    noteH: 'A note for the maestro',
+    note1: 'Turn the dial with <b>↑ ↓</b>, the <b>− +</b> buttons, or by dragging the knob. The stew takes about two seconds to answer, like every great soprano.',
+    note2: 'The score flows in from the right. Keep the stew\'s voice inside the <b>gold band</b>. A simmer is 85 to 95 °C.',
+    note3: 'At 100 °C it shrieks and the broth boils away. Below 55 °C the fat sets and it mumbles into aspic.',
+    note4: 'When an ingredient reaches the stew, press <b>Space</b> or tap <b>Add</b>. Cold ingredients take a few degrees with them.',
+    tw1: '[The stew stops in the middle of a phrase. The orchestra stops a bar later. The stew addresses the podium.]',
+    tw2: '<span class="who">Lo Stufato</span> Maestro. I am cooked. I have been ready for three hours. Serve me.<i>«Maestro. Sono cotto. Sono pronto da tre ore. Servitemi.»</i>',
+    tw3: '[Row F, seat 14. A dinner guest rises, napkin already tucked in, and sings back.]',
+    tw4: '<span class="who">Un Ospite</span> I! I am hungry! I booked for eight!<i>«Io! Io ho fame! Ho prenotato per le otto!»</i>',
+    serveBtn: 'Serve it and conduct the duet', keepBtn: 'Keep simmering: the programme says three acts',
+    twistTimer: n => `The guest reaches the stage steps in ${n} s.`,
+    twistTimerRun: n => `The guest reaches the stage steps in ${n}\u00a0s. If nobody stops him, he will be served.`,
+    curtainKick: 'Curtain', againBtn: 'Play it again, from the overture',
+    serveMe: 'Serve me.',
+    curtainLine: '[Curtain. The house holds its breath. So does the stew.]',
+    ladleMiss: '[The ladle goes back to the drawer. Row F looks at it go.]',
+    flash: { nothing: 'nothing to add', served: 'served', onCue: it => `${it.toLowerCase()}, on cue`, missed: 'missed', lid: 'lid lifted: −7 °C' },
+    verdict: { boil: 'boiling: shrieking', fat: 'fat setting: mumbling', hot: 'sharp, and too fast', cold: 'flat, and dragging', guest: 'sotto voce, listening', in: 'simmering in tune' },
+    canvas: { fat: '55° fat sets', boil: '100° boil', low: 'LOW', high: 'HIGH' },
+    ing: {
+      cipolla: { name: 'the onion', hit: 'An onion! I weep, but with joy.' },
+      alloro: { name: 'the bay leaf', hit: 'Bay laurel! I have been crowned!' },
+      vino: { name: 'the red wine', hit: 'Wine! The betrayal is delicious.' },
+      aglio: { name: 'the garlic', hit: 'Garlic! Now no one will ever kiss me.' },
+      prezzemolo: { name: 'the parsley', hit: 'Parsley. For the photograph.' },
+      carote: { name: 'the carrots', hit: 'The chorus! At last, the chorus!' },
+      mestolo: { name: 'a ladle to row F' },
+    },
+    ladle: ['Exquisite!', 'Perhaps a little salt?', 'My mother made it like this.', 'More! Down to the bottom!'],
+    hot: ['Too much! Too hot!', 'The bottom! The bottom is catching!', 'I am a stew, not a volcano!', 'The potatoes! The potatoes are bursting!', 'Who turned the dial?!', 'I boil like some common egg!', 'My broth is ascending to heaven!', 'I am not a tea!', 'This high note is not in the score!'],
+    cold: ['…mm. lukewarm…', '(under its breath) there is a skin forming on me', '…the carrots have stopped speaking to me…', '…I am a buffet…', '…it is cold in the crock…', '…mmh… gelatine…', '…who left the fridge open…', '…I am singing for the bacteria…'],
+    miss: ['[The ingredient enters late, to scattered coughing.]', '[A stagehand drops it in during the wrong bar.]', '[The cue passes. The ingredient waits in the wings, unused and in full costume.]', '[The prompter hisses the cue. Nothing goes in.]'],
+    lines: {
+      overture: ['[The house lights dim. A slow cooker, alone, centre stage. It is plugged in.]', '[OVERTURA. Allegro ma non troppo caldo. Bring it up gently: follow the gold.]', '[The orchestra tunes to the A of a kettle.]', '[The stew must stay inside the gold. The music decides where the gold goes.]', 'La… la… la… (a vocal warm-up. It is, literally, warming up.)'],
+      act1: ['[ATTO PRIMO. The kitchen of the Duke of Parma. Noon, and then a long time after noon.]', 'Who has switched me on?', '[An onion is carried on. It is not yet in the stew. It looks at the stew.]', 'I am meat, I am broth, I have been here since noon.', '[CAVATINA. The melody rises and falls. So must the heat.]', 'O my crock, my ceramic home!', 'The onions weep for me.', 'But I do not weep. I simmer.', '[The high note approaches. A bay leaf waits in the wings, in costume.]', '…and so be it, for six hours, on LOW.', '[Curtain. Nobody turns the stew off.]'],
+      act2: ['[ATTO SECONDO. A storm in the crock. A thunder sheet. Somewhere, a dishwasher.]', 'What is this heat in my breast?', 'Is it love? Is it the thermostat?', '[The Duke\'s red wine is revealed. Gasps. It is a Barolo, 2009, and it is going in.]', '[A stagehand lifts the lid to look. Every lift of the lid adds twenty minutes.]', 'Who lifted the lid?!', 'I burn! But with dignity.', '[Garlic, from the prompter\'s box.]', 'Ninety-five… no higher, I beg you.', 'I am ready. I am… ready?'],
+      duet: ['[The guest walks onstage holding a spoon. He has brought his own spoon. Hold the stew down while he sings.]', 'I booked for eight.', 'The bread is already on the table.', 'I am the dish of the day!', 'But you are too hot for me.', 'I will blow on you. I will blow gently.', 'Blow, my beloved, blow!', 'Do you have a bone in you?', 'It was a culinary question.', 'I have three bones and a heart of celery!', 'Eat me! / I eat you!', 'Together, al dente! / I am not pasta.', 'Forever, or at least until dessert!', '[The final note. Hold it. Hold it.]'],
+      solo: ['[The guest sits down, and does not unfasten his napkin. The stew approaches the footlights alone.]', 'You shall not eat me!', 'One more hour! Two more!', 'The lid is my crown.', '[A spoon is lowered from the flies. The stew does not look at it.]', 'More tender, more tender than this…', 'The meat leaves the bone like a lover leaving the pier!', 'Ninety-eight! My high C, from the chest!', '[Hold the simmer. Do not boil. Do not.]', 'I am… stewed!'],
+    },
+    stats: ['in the gold', 'ingredients on cue', 'broth left', 'peak'],
+    bestDone: (score, best) => `Score ${score} · best this evening ${best}`,
+    bestOnly: best => `Best this evening ${best}`,
+    reset: 'The house will be reset for the next performance.',
+    abandoned: where => `${where} · abandoned`,
+    ends: {
+      ovation: {
+        kick: 'Curtain call · eleven bows', title: 'Standing ovation', sub: 'Bravo! Bravissimo! Brava la pentola!',
+        body: ['The house rises before the last note has finished. The stew takes eleven curtain calls; the lid takes one, and is booed, because it lifted itself in Act II. Nobody eats anything. The stew is switched to WARM, where it will remain, as all great divas do, for the rest of its career.',
+          'The house rises, some of it at the second attempt. The stew takes seven curtain calls and the lid takes one. Nobody eats anything. The stew is switched to WARM, which it accepts as a residency.',
+          'The house rises, mostly to leave, but a rise is a rise and the programme says ovation. The stew bows twice. It is switched to WARM out of pity.'],
+        review: '«Tender. Falling apart in exactly the right places.» Il Mestolo, four ladles out of five',
+      },
+      duet: {
+        kick: 'Atto terzo · fine', title: 'Duetto', sub: 'Two voices and one spoon',
+        body: ['The final note is held by two voices. On the last beat the guest eats the stew in three-four time, every spoonful on the downbeat. There is no curtain call: the soprano is inside the baritone. He bows for both of them, and is excused from dessert.',
+          'The final note is held by two voices, not always the same note. The guest eats the stew anyway, between phrases, the way you eat at a wedding. There is no curtain call: the soprano is inside the baritone, and he bows carefully.'],
+        review: '«Seasoned.» Il Mestolo, the entire review',
+      },
+      burnt: {
+        title: 'Bruciato', sub: peak => `The stew boiled dry at ${peak} °C`,
+        body: 'The last note is a crackle, then a smell. The fire curtain descends, which is what fire curtains are for. The orchestra plays on for eleven bars out of professionalism. The crock will soak until Thursday.',
+        review: '«Caramelised, in the sense that a house fire is caramelised.» Il Mestolo',
+      },
+      aspic: {
+        title: 'Aspic', sub: 'Below 55 °C, the fat has set',
+        body: 'The stew finishes the act as a terrine, mouthing the words through a firm layer of beef dripping. The audience is offered a refund or a slice. Most take the slice. It is, in fairness, quite good cold.',
+        review: '«Set. Like the stage.» Il Mestolo',
+      },
+    },
+  },
+  fr: {
+    docTitle: 'Grand Opéra pour mijoteuse',
+    langGroup: 'Langue',
+    num: x => x.toFixed(1).replace('.', ','),
+    pct: n => `${n} %`,
+    surtitles: 'Surtitres', surIdle: 'La salle est plongée dans le noir. Quelque part, une mijoteuse est branchée.',
+    stageDir: 'Didascalie', shrieking: 'Lo Stufato, en hurlant', mumbling: 'Lo Stufato, en marmonnant',
+    sceneAria: "La scène : une mijoteuse chante pendant que la partition s'écoule vers elle. La bande dorée est la chaleur que veut la musique.",
+    dialAria: 'Thermostat', lowerAria: 'Baisser le feu', raiseAria: 'Monter le feu', addAria: "Ajouter l'ingrédient",
+    dial: v => `Thermostat ${v}`,
+    roomTemp: 'température ambiante',
+    mApp: 'Bravos', mBroth: 'Bouillon', mFat: 'Figé',
+    add: 'Ajouter', space: 'Espace', nothingYet: "rien pour l'instant",
+    genre: 'Grand opéra pour mijoteuse : un <i>dramma per pentola</i> en trois actes, avec ouverture',
+    goBtn: "Commencer l'ouverture",
+    credits: "Musique de G. Pentola · Livret d'A. Mestolo · environ quatre minutes, sans entracte",
+    cast: ['Lo Stufato, un bœuf mijoté', 'soprano drammatico', 'Il Coperchio, son couvercle', 'rôle muet', 'Un Ospite, rang F, place 14', 'baryton, affamé', 'Chœur des carottes', 'en coulisse, puis en scène', 'Il Maestro, au thermostat', 'vous'],
+    noteH: "Note à l'attention du maestro",
+    note1: 'Tournez le thermostat avec <b>↑ ↓</b>, les boutons <b>− +</b>, ou en faisant glisser le bouton. Le ragoût met environ deux secondes à répondre, comme toutes les grandes sopranos.',
+    note2: "La partition arrive par la droite. Gardez la voix du ragoût dans la <b>bande dorée</b>. Un frémissement, c'est 85 à 95 °C.",
+    note3: "À 100 °C, il hurle et le bouillon s'évapore. Sous 55 °C, la graisse fige et il finit en aspic, à marmonner.",
+    note4: 'Quand un ingrédient atteint le ragoût, appuyez sur <b>Espace</b> ou touchez <b>Ajouter</b>. Les ingrédients froids emportent quelques degrés avec eux.',
+    tw1: "[Le ragoût s'interrompt au milieu d'une phrase. L'orchestre s'arrête une mesure plus tard. Le ragoût s'adresse au pupitre.]",
+    tw2: '<span class="who">Lo Stufato</span> Maestro. Je suis cuit. Je suis prêt depuis trois heures. Servez-moi.<i>«Maestro. Sono cotto. Sono pronto da tre ore. Servitemi.»</i>',
+    tw3: '[Rang F, place 14. Un convive se lève, la serviette déjà nouée, et lui répond en chantant.]',
+    tw4: "<span class=\"who\">Un Ospite</span> Moi ! Moi, j'ai faim ! J'ai réservé pour vingt heures !<i>«Io! Io ho fame! Ho prenotato per le otto!»</i>",
+    serveBtn: 'Le servir et diriger le duo', keepBtn: 'Laisser mijoter : le programme annonce trois actes',
+    twistTimer: n => `Le convive atteint les marches de la scène dans ${n} s.`,
+    twistTimerRun: n => `Le convive atteint les marches de la scène dans ${n}\u00a0s. Si personne ne l'arrête, il sera servi.`,
+    curtainKick: 'Rideau', againBtn: "Rejouer, depuis l'ouverture",
+    serveMe: 'Servez-moi.',
+    curtainLine: '[Rideau. La salle retient son souffle. Le ragoût aussi.]',
+    ladleMiss: '[La louche retourne au tiroir. Le rang F la regarde partir.]',
+    flash: { nothing: 'rien à ajouter', served: 'servi', onCue: it => `${it.toLowerCase()}, à temps`, missed: 'raté', lid: 'couvercle soulevé : −7 °C' },
+    verdict: { boil: 'ébullition : il hurle', fat: 'la graisse fige : il marmonne', hot: 'trop haut, et trop vite', cold: 'trop bas, et ça traîne', guest: "sotto voce, à l'écoute", in: 'mijote, et juste' },
+    canvas: { fat: '55° la graisse fige', boil: '100° ébullition', low: 'BAS', high: 'HAUT' },
+    ing: {
+      cipolla: { name: "l'oignon", hit: 'Un oignon ! Je pleure, mais de joie.' },
+      alloro: { name: 'le laurier', hit: "Du laurier ! On m'a couronné !" },
+      vino: { name: 'le vin rouge', hit: 'Du vin ! La trahison est délicieuse.' },
+      aglio: { name: "l'ail", hit: "De l'ail ! Plus personne ne m'embrassera." },
+      prezzemolo: { name: 'le persil', hit: 'Du persil. Pour la photo.' },
+      carote: { name: 'les carottes', hit: 'Le chœur ! Enfin, le chœur !' },
+      mestolo: { name: 'une louche au rang F' },
+    },
+    ladle: ['Exquis !', 'Peut-être un peu de sel ?', 'Ma mère le faisait comme ça.', "Encore ! Jusqu'au fond !"],
+    hot: ['Trop ! Trop chaud !', 'Le fond ! Le fond attache !', 'Je suis un ragoût, pas un volcan !', 'Les pommes de terre ! Elles éclatent !', 'Qui a tourné le bouton ?!', 'Je bous comme un vulgaire œuf !', 'Mon bouillon monte au ciel !', 'Je ne suis pas une tisane !', "Cet aigu n'est pas dans la partition !"],
+    cold: ['…mm, tiède…', '(à mi-voix) une peau se forme sur moi', '…les carottes ne me parlent plus…', '…je suis un buffet froid…', '…il fait froid dans la cocotte…', '…mmh… gelée…', '…qui a laissé le frigo ouvert…', '…je chante pour les bactéries…'],
+    miss: ["[L'ingrédient entre en retard, sous quelques toux éparses.]", '[Un machiniste le lâche dans la mauvaise mesure.]', "[Le signal passe. L'ingrédient attend en coulisse, inutilisé et en costume.]", '[Le souffleur siffle le signal. Rien ne rentre.]'],
+    lines: {
+      overture: ['[Les lumières de la salle baissent. Une mijoteuse, seule, au centre de la scène. Elle est branchée.]', "[OVERTURA. Allegro ma non troppo caldo. Faites monter doucement : suivez l'or.]", "[L'orchestre s'accorde sur le la d'une bouilloire.]", "[Le ragoût doit rester dans l'or. C'est la musique qui décide où va l'or.]", "La… la… la… (des vocalises pour s'échauffer. Il s'échauffe, au sens propre.)"],
+      act1: ['[ATTO PRIMO. La cuisine du duc de Parme. Midi, puis longtemps après midi.]', "Qui m'a allumé ?", "[On apporte un oignon. Il n'est pas encore dans le ragoût. Il regarde le ragoût.]", 'Je suis viande, je suis bouillon, je suis là depuis midi.', '[CAVATINA. La mélodie monte et descend. Le feu aussi.]', 'Ô ma cocotte, ma demeure de céramique !', 'Les oignons pleurent pour moi.', 'Mais moi, je ne pleure pas. Je mijote.', '[La note aiguë approche. Une feuille de laurier attend en coulisse, en costume.]', "…et qu'il en soit ainsi, six heures, à feu DOUX.", "[Rideau. Personne n'éteint le ragoût.]"],
+      act2: ['[ATTO SECONDO. Une tempête dans une cocotte. Une plaque à tonnerre. Quelque part, un lave-vaisselle.]', 'Quelle est cette chaleur dans mon sein ?', "Est-ce l'amour ? Est-ce le thermostat ?", "[On dévoile le vin rouge du duc. Stupeur. C'est un barolo 2009, et il va y passer.]", "[Un machiniste soulève le couvercle pour voir. Chaque fois qu'on le soulève, c'est vingt minutes de plus.]", 'Qui a soulevé le couvercle ?!', 'Je brûle ! Mais avec dignité.', "[De l'ail, depuis le trou du souffleur.]", "Quatre-vingt-quinze… pas plus, je t'en supplie.", 'Je suis prêt. Je suis… prêt ?'],
+      duet: ["[Le convive entre en scène, une cuillère à la main. Il a apporté sa propre cuillère. Maintenez le ragoût bas pendant qu'il chante.]", "J'ai réservé pour vingt heures.", 'Le pain est déjà sur la table.', 'Je suis le plat du jour !', 'Mais tu es trop chaud pour moi.', 'Je soufflerai sur toi. Je soufflerai doucement.', 'Souffle, mon bien-aimé, souffle !', 'Il y a un os ?', "C'était une question culinaire.", "J'ai trois os et un cœur de céleri !", 'Mange-moi ! / Je te mange !', 'Ensemble, al dente ! / Je ne suis pas des pâtes.', "Pour toujours, ou du moins jusqu'au dessert !", '[La note finale. Tenez-la. Tenez-la.]'],
+      solo: ["[Le convive se rassoit, sans dénouer sa serviette. Le ragoût s'avance seul vers la rampe.]", 'Vous ne me mangerez pas !', 'Encore une heure ! Encore deux !', 'Le couvercle est ma couronne.', '[Une cuillère descend des cintres. Le ragoût ne la regarde pas.]', 'Plus tendre, plus tendre encore…', "La viande quitte l'os comme un amant quitte le quai !", 'Quatre-vingt-dix-huit ! Mon contre-ut de poitrine !', "[Gardez le frémissement. Pas d'ébullition. Surtout pas.]", "J'en ai… ras la marmite !"],
+    },
+    stats: ["dans l'or", 'ingrédients à temps', 'bouillon restant', 'pic'],
+    bestDone: (score, best) => `Score ${score} · meilleur de la soirée ${best}`,
+    bestOnly: best => `Meilleur de la soirée ${best}`,
+    reset: 'La salle sera remise en place pour la prochaine représentation.',
+    abandoned: where => `${where} · abandon`,
+    ends: {
+      ovation: {
+        kick: 'Rappels · onze saluts', title: 'Ovation', sub: 'Bravo! Bravissimo! Brava la pentola!',
+        body: ["La salle se lève avant la fin de la dernière note. Le ragoût revient saluer onze fois ; le couvercle, une fois, et se fait huer, parce qu'il s'est soulevé tout seul à l'acte II. Personne ne mange rien. Le ragoût passe en MAINTIEN AU CHAUD, où il restera, comme toutes les grandes divas, jusqu'à la fin de sa carrière.",
+          "La salle se lève, en partie au deuxième essai. Le ragoût salue sept fois et le couvercle une. Personne ne mange rien. Le ragoût passe en MAINTIEN AU CHAUD, qu'il accepte comme une résidence.",
+          "La salle se lève, surtout pour partir, mais se lever, c'est se lever, et le programme dit ovation. Le ragoût salue deux fois. On le passe en MAINTIEN AU CHAUD, par pitié."],
+        review: '« Tendre. Il se défait exactement aux bons endroits. » Il Mestolo, quatre louches sur cinq',
+      },
+      duet: {
+        kick: 'Atto terzo · fine', title: 'Duetto', sub: 'Deux voix et une cuillère',
+        body: ["La note finale est tenue à deux voix. Sur le dernier temps, le convive mange le ragoût à trois temps, chaque cuillerée sur le temps fort. Pas de rappel : la soprano est dans le baryton. Il salue pour deux, et on le dispense de dessert.",
+          "La note finale est tenue à deux voix, pas toujours sur la même. Le convive mange le ragoût quand même, entre deux phrases, comme on mange à un mariage. Pas de rappel : la soprano est dans le baryton, et il salue avec précaution."],
+        review: '« Relevé. » Il Mestolo, critique intégrale',
+      },
+      burnt: {
+        title: 'Bruciato', sub: peak => `Le ragoût a réduit à sec à ${peak} °C`,
+        body: "La dernière note est un crépitement, puis une odeur. Le rideau de fer descend : c'est à ça que servent les rideaux de fer. L'orchestre joue encore onze mesures, par conscience professionnelle. La cocotte trempera jusqu'à jeudi.",
+        review: '« Caramélisé, au sens où un incendie est caramélisé. » Il Mestolo',
+      },
+      aspic: {
+        title: 'Aspic', sub: 'Sous 55 °C, la graisse a figé',
+        body: "Le ragoût finit l'acte en terrine, articulant les paroles à travers une couche ferme de graisse de bœuf. On propose au public un remboursement ou une tranche. La plupart prennent la tranche. C'est, à vrai dire, assez bon froid.",
+        review: '« Il a pris. Comme une mayonnaise. » Il Mestolo',
+      },
+    },
+  },
+};
+
+// French typography: a narrow no-break space before ? ! : ; % » and after «, applied once to
+// every French string and to whatever a French string function returns. It fires only after a
+// space, so the Italian «Servitemi.» and «Io! Io ho fame!» keep their Italian, unspaced form.
+(function frenchSpacing() {
+  const fix = s => s.replace(/ ([?!:;%»])/g, '\u202f$1').replace(/« /g, '«\u202f');
+  const deep = v => typeof v === 'string' ? fix(v)
+    : typeof v === 'function' ? (...a) => deep(v(...a))
+    : Array.isArray(v) ? v.map(deep)
+    : v && typeof v === 'object' ? Object.fromEntries(Object.entries(v).map(([k, x]) => [k, deep(x)]))
+    : v;
+  I18N.fr = deep(I18N.fr);
+})();
+
+let lang = 'en';
+const t = k => I18N[lang][k] ?? I18N.en[k];
+const num = x => t('num')(x);
+
+// Index-matched tables must stay the same length in both languages.
+for (const [k, en] of [['ladle', I18N.en.ladle], ['hot', I18N.en.hot], ['cold', I18N.en.cold], ['miss', I18N.en.miss], ['cast', I18N.en.cast],
+  ...Object.entries(I18N.en.lines).map(([a, l]) => [`lines.${a}`, l])]) {
+  const fr = k.startsWith('lines.') ? I18N.fr.lines[k.slice(6)] : I18N.fr[k];
+  if (en.length !== fr.length) console.error(`i18n: ${k} differs in length`);
+}
+
+const $ = s => document.querySelector(s);
+const TAU = 2.2;           // seconds for the stew to close 63% of the gap to the dial's heat
+const LOOK = 6, PAST = 3;  // seconds of score shown ahead of and behind the stew
+const CUE_WIN = 0.3;       // seconds either side of an ingredient cue that still count
+const HW_SCALE = .9;      // every band is drawn and judged at 90% of its written width (tuned by the measure script)
+const teqOf = d => 20 + 9.5 * d;   // dial 0 is room temperature, dial 10 is 115 °C
+
+// The Italian is sung in every language; names and surtitles are I18N ing[id].
+const ING = {
+  cipolla: { it: 'Cipolla', chill: 4, hit: 'Cipolla! Piango, ma di gioia.' },
+  alloro: { it: 'Alloro', chill: 1, hit: 'Alloro! Mi hanno incoronato!' },
+  vino: { it: 'Vino rosso', chill: 5, hit: 'Vino! Il tradimento è delizioso.' },
+  aglio: { it: 'Aglio', chill: 2, hit: 'Aglio! Ora nessuno mi bacerà.' },
+  prezzemolo: { it: 'Prezzemolo', chill: 1, hit: 'Prezzemolo. Per la fotografia.' },
+  carote: { it: 'Carote', chill: 4, hit: 'Il coro! Finalmente il coro!' },
+  mestolo: { it: 'Mestolo', chill: 0, serve: true },
+};
+const LADLE_IT = ['Squisito!', 'Un po\' di sale?', 'Mia madre lo faceva così.', 'Ancora! Fino al fondo!'];
+
+// Each act: band keyframes [t, centre °C, half-width °C], wobbles [from, to, amplitude, period],
+// ingredient cues [t, id], and the libretto [t, who, italian] where who '' is a stage direction;
+// line i's surtitle is I18N lines[act][i].
+const ACTS = {
+  overture: {
+    name: 'Overtura', sub: 'Allegro ma non troppo caldo', dur: 24, scored: false,
+    keys: [[0, 46, 10], [6, 52, 10], [14, 68, 9], [20, 80, 7], [24, 86, 6]], wob: [], cues: [],
+    lines: [
+      [0, '', ''],
+      [5, '', ''],
+      [11, '', ''],
+      [16, '', ''],
+      [20, 'Lo Stufato', 'La… la… la… mi… mi…'],
+    ],
+  },
+  act1: {
+    name: 'Atto primo', sub: 'Recitativo e cavatina', dur: 56, scored: true,
+    keys: [[0, 86, 6], [14, 87, 6], [17, 88, 5.5], [41, 89, 5.5], [44.5, 94, 5], [49, 94, 5], [52, 88, 5.5], [56, 87, 6]],
+    wob: [[17, 41, 4, 8]], cues: [[10, 'cipolla'], [47, 'alloro']],
+    lines: [
+      [0, '', ''],
+      [4, 'Lo Stufato', 'Chi mi ha acceso?'],
+      [7, '', ''],
+      [13, 'Lo Stufato', 'Sono carne, sono brodo, sono qui da mezzogiorno.'],
+      [18, '', ''],
+      [21, 'Lo Stufato', 'O pentola mia, mia casa di ceramica!'],
+      [27, 'Lo Stufato', 'Le cipolle piangono per me.'],
+      [33, 'Lo Stufato', 'Ma io non piango. Io sobbollisco.'],
+      [39, '', ''],
+      [49, 'Lo Stufato', '…e così sia, per sei ore, a fuoco basso.'],
+      [53, '', ''],
+    ],
+  },
+  act2: {
+    name: 'Atto secondo', sub: 'La tempesta nella pentola', dur: 56, scored: true, lid: 28,
+    keys: [[0, 87, 5.5], [10, 90, 5], [18, 90, 5], [40, 94, 4.5], [48, 96, 4.5], [53, 91, 5], [56, 90, 5]],
+    wob: [[18, 40, 6, 6]], cues: [[22, 'vino'], [44, 'aglio']],
+    lines: [
+      [0, '', ''],
+      [4, 'Lo Stufato', 'Che cos\'è questo calore nel mio petto?'],
+      [9, 'Lo Stufato', 'È amore? È il termostato?'],
+      [14, '', ''],
+      [25, '', ''],
+      [30, 'Lo Stufato', 'Chi ha alzato il coperchio?!'],
+      [36, 'Lo Stufato', 'Brucio! Ma con dignità.'],
+      [41, '', ''],
+      [47, 'Lo Stufato', 'Novantacinque… non di più, ti prego.'],
+      [52, 'Lo Stufato', 'Sono pronto. Sono… pronto?'],
+    ],
+  },
+  duet: {
+    name: 'Atto terzo', sub: 'Duetto: «Cucchiaio e pentola»', dur: 60, scored: true,
+    keys: [[0, 76, 5], [7, 76, 5], [8.5, 92, 5], [15, 92, 5], [16.5, 76, 5], [22, 76, 5], [23.5, 93, 5], [29, 93, 5],
+      [30.5, 76, 5], [35, 76, 5], [36.5, 94, 5], [42, 92, 5], [54, 93, 4.5], [55.5, 97, 4], [60, 97, 4]],
+    wob: [[42, 54, 3.5, 6]], who: [[0, 'guest'], [8, 'stew'], [16, 'guest'], [23, 'stew'], [30, 'guest'], [36, 'stew'], [42, 'both']],
+    cues: [[12, 'mestolo'], [27, 'mestolo'], [40, 'mestolo'], [50, 'mestolo']],
+    lines: [
+      [0, '', ''],
+      [2, 'Un Ospite', 'Ho prenotato per le otto.'],
+      [5, 'Un Ospite', 'Il pane è già sul tavolo.'],
+      [8.5, 'Lo Stufato', 'Sono io il piatto del giorno!'],
+      [16, 'Un Ospite', 'Ma sei troppo caldo per me.'],
+      [19, 'Un Ospite', 'Soffierò. Soffierò piano.'],
+      [23.5, 'Lo Stufato', 'Soffia, mio amato, soffia!'],
+      [30, 'Un Ospite', 'Hai un osso?'],
+      [33, 'Un Ospite', 'Era una domanda culinaria.'],
+      [36.5, 'Lo Stufato', 'Ho tre ossa e un cuore di sedano!'],
+      [42, 'Insieme', 'Mangiami! / Ti mangio!'],
+      [47, 'Insieme', 'Insieme, al dente! / Io non sono pasta.'],
+      [52, 'Insieme', 'Per sempre, o almeno fino al dessert!'],
+      [55.5, '', ''],
+    ],
+  },
+  solo: {
+    name: 'Atto terzo', sub: 'Gran scena: «Non mi mangerete»', dur: 56, scored: true,
+    keys: [[0, 90, 5], [10, 94, 4.5], [40, 96, 4], [50, 97, 3.5], [54, 97, 3.5], [56, 93, 5]],
+    wob: [[10, 40, 4, 5]], cues: [[18, 'prezzemolo'], [33, 'carote'], [48, 'alloro']],
+    lines: [
+      [0, '', ''],
+      [3, 'Lo Stufato', 'Non mi mangerete!'],
+      [8, 'Lo Stufato', 'Ancora un\'ora! Ancora due!'],
+      [13, 'Lo Stufato', 'Il coperchio è la mia corona.'],
+      [21, '', ''],
+      [27, 'Lo Stufato', 'Più tenero, più tenero di così…'],
+      [36, 'Lo Stufato', 'La carne si stacca dall\'osso come un amante dal molo!'],
+      [43, 'Lo Stufato', 'Novantotto! Il mio do di petto!'],
+      [50, '', ''],
+      [54, 'Lo Stufato', 'Sono… stufato!'],
+    ],
+  },
+};
+const HOT_IT = ['Troppo! Troppo caldo!', 'Il fondo! Il fondo si attacca!', 'Sono uno stufato, non un vulcano!', 'Le patate! Le patate esplodono!',
+  'Chi ha girato la manopola?!', 'Bollo come un uovo qualunque!', 'Il mio brodo sale al cielo!', 'Non sono un tè!', 'Questo è un acuto non scritto!'];
+const COLD_IT = ['…mm, tiepido…', '(sottovoce) c\'è una pellicola su di me', '…le carote non mi parlano più…', '…sono un buffet…',
+  '…fa freddo nella pentola…', '…mmh… gelatina…', '…chi ha lasciato aperto il frigo…', '…canto per i microbi…'];
+
+const ORDER = { serve: ['overture', 'act1', 'act2', 'duet'], solo: ['overture', 'act1', 'act2', 'solo'] };
+const S = { mode: 'title', best: 0, T: 22, dial: 0, liquid: 100, fat: 0, inband: 0, total: 0, clock: 0 };
+
+function smooth(u) { return u * u * (3 - 2 * u); }
+function bandOf(A, t) {
+  const k = A.keys;
+  let c = k[k.length - 1][1], hw = k[k.length - 1][2];
+  if (t <= k[0][0]) { c = k[0][1]; hw = k[0][2]; }
+  else for (let i = 0; i < k.length - 1; i++) {
+    if (t >= k[i][0] && t < k[i + 1][0]) {
+      const s = smooth((t - k[i][0]) / (k[i + 1][0] - k[i][0]));
+      c = k[i][1] + (k[i + 1][1] - k[i][1]) * s; hw = k[i][2] + (k[i + 1][2] - k[i][2]) * s;
+      break;
+    }
+  }
+  for (const [a, b, amp, per] of A.wob) {
+    if (t > a && t < b) c += amp * Math.min(1, (t - a) / 1.5, (b - t) / 1.5) * Math.sin(2 * Math.PI * (t - a) / per);
+  }
+  let who = 'stew';
+  if (A.who) for (const [wt, w] of A.who) if (t >= wt) who = w;
+  return { c, hw: hw * HW_SCALE, who };
+}
+const actId = () => ORDER[S.path][S.act];
+const actObj = () => ACTS[actId()];
+
+// A shuffled bag of indexes per line pool, so no line comes back until the rest have been sung.
+const bags = new Map();
+function drawIdx(pool, n) {
+  let b = bags.get(pool);
+  if (!b || !b.length) { b = Array.from({ length: n }, (_, i) => i).sort(() => Math.random() - .5); bags.set(pool, b); }
+  return b.pop();
+}
+
+function newGame() {
+  Object.assign(S, {
+    mode: 'play', path: 'serve', act: 0, t: 0, abs: 0, clock: S.clock || 0,
+    T: 22, dial: 0, liquid: 100, fat: 0, peak: 22,
+    inband: 0, total: 0, actIn: {}, actTot: {},
+    cueHit: 0, cueMiss: 0, cueCount: 0, cueState: {},
+    hist: [], notes: [], noteClock: 0, offT: 0, offKind: 'in', overUntil: 0,
+    lineIdx: -1, banner: null, lift: 0, flash: null, ladles: 0, ending: null, curtainT: 0,
+    twistLeft: 0, steam: [], drips: [],
+  });
+  enterAct(0);
+  Kit.show(null);
+  $('#knob').focus({ preventScroll: true });
+}
+
+function enterAct(i) {
+  S.act = i; S.t = 0; S.lineIdx = -1; S.cueState = {};
+  const A = actObj();
+  S.banner = { name: A.name, sub: A.sub, until: S.abs + 3.2 };
+  S.cueCount += A.cues.length;
+  S.lidDone = false;
+  setSur('', '', '[' + A.name + '. ' + A.sub + '.]', true);
+}
+
+// who and en may be functions, resolved now and again on every language switch.
+let sur = null;
+function setSur(who, it, en, dir, hot) { sur = { who, it, en, dir, hot }; drawSur(); }
+function drawSur() {
+  const box = $('#sur'), v = x => (typeof x === 'function' ? x() : x);
+  if (!sur) { $('#sur-who').textContent = t('surtitles'); $('#sur-en').textContent = t('surIdle'); return; }
+  box.classList.toggle('dir', !!sur.dir);
+  box.classList.toggle('hot', !!sur.hot);
+  $('#sur-who').textContent = v(sur.who) || (sur.dir ? t('stageDir') : '');
+  $('#sur-it').textContent = sur.it ? '«' + sur.it + '»' : '';
+  $('#sur-en').textContent = v(sur.en);
+}
+const flashText = f => (f.key === 'onCue' ? t('flash').onCue(f.it) : t('flash')[f.key]);
+
+function nextCue() {
+  const A = actObj();
+  for (let i = 0; i < A.cues.length; i++) if (!S.cueState[i]) return { i, t: A.cues[i][0], id: A.cues[i][1] };
+  return null;
+}
+
+function addIngredient() {
+  if (S.mode !== 'play') return;
+  const A = actObj();
+  let best = null;
+  A.cues.forEach(([ct, id], i) => {
+    if (S.cueState[i]) return;
+    const d = Math.abs(S.t - ct);
+    if (d <= CUE_WIN && (!best || d < best.d)) best = { i, id, d };
+  });
+  if (!best) { S.flash = { key: 'nothing', kind: 'miss', until: S.abs + .8 }; return; }
+  S.cueState[best.i] = 'hit'; S.cueHit++;
+  const ing = ING[best.id];
+  S.T -= ing.chill;
+  if (ing.serve) {
+    S.liquid = Math.max(1, S.liquid - 6); S.ladles++;
+    const li = (S.ladles - 1) % LADLE_IT.length;
+    setSur('Un Ospite', LADLE_IT[li], () => t('ladle')[li]); S.overUntil = S.abs + 2.6;
+    S.flash = { key: 'served', kind: 'hit', until: S.abs + 1.2 };
+  } else {
+    const id = best.id;
+    setSur('Lo Stufato', ing.hit, () => t('ing')[id].hit); S.overUntil = S.abs + 2.6;
+    S.flash = { key: 'onCue', it: ing.it, kind: 'hit', until: S.abs + 1.2 };
+  }
+}
+
+function playTick(dt) {
+  const A = actObj();
+  S.t += dt; S.abs += dt;
+  const up = Kit.keys.any('ArrowUp', 'ArrowRight', '+', '='), dn = Kit.keys.any('ArrowDown', 'ArrowLeft', '-');
+  if (up && !dn) S.dial += 2.6 * dt;
+  if (dn && !up) S.dial -= 2.6 * dt;
+  S.dial = Kit.clamp(S.dial, 0, 10);
+  S.T += (teqOf(S.dial) - S.T) * (1 - Math.exp(-dt / TAU));
+  if (A.lid && !S.lidDone && S.t >= A.lid) { S.lidDone = true; S.T -= 7; S.lift = 1; S.flash = { key: 'lid', kind: 'miss', until: S.abs + 1.6 }; }
+  S.peak = Math.max(S.peak, S.T);
+
+  const b = bandOf(A, S.t);
+  const kind = S.T > b.c + b.hw ? 'hot' : S.T < b.c - b.hw ? 'cold' : 'in';
+  if (A.scored) {
+    S.total += dt; S.actTot[actId()] = (S.actTot[actId()] || 0) + dt;
+    if (kind === 'in') { S.inband += dt; S.actIn[actId()] = (S.actIn[actId()] || 0) + dt; }
+  }
+  // Boiling takes broth; a rolling simmer just under it takes a little.
+  if (S.T > 100) S.liquid -= (4 + (S.T - 100) * 1.5) * dt;
+  else if (S.T > 97) S.liquid -= 0.5 * dt;
+  // The fat sets below 55 °C once the overture is over, and melts back above 65 °C.
+  if (actId() !== 'overture') {
+    if (S.T < 55) S.fat += (4 + (55 - S.T) * 0.6) * dt;
+    else if (S.T > 65) S.fat -= 12 * dt;
+    S.fat = Kit.clamp(S.fat, 0, 100);
+  }
+
+  // History and sung notes: tempo follows the heat, shrieks when boiling, mumbles when cold.
+  if ((S.hist.at(-1)?.t ?? -1) < S.abs - .05) S.hist.push({ t: S.abs, T: S.T, k: kind });
+  while (S.hist.length && S.hist[0].t < S.abs - PAST - .5) S.hist.shift();
+  const bpm = Kit.clamp(40 + (S.T - 50) * 1.9 + Math.max(0, S.T - 100) * 9, 24, 240);
+  S.noteClock += dt * bpm / 60;
+  if (S.noteClock >= 1) {
+    S.noteClock -= 1;
+    S.notes.push({ t: S.abs, T: S.T, k: kind, who: 'stew' });
+    S.lift = Math.max(S.lift, kind === 'cold' ? .25 : kind === 'hot' ? 1 : .6);
+  }
+  if (b.who !== 'stew' && Math.floor(S.abs * 2.2) !== Math.floor((S.abs - dt) * 2.2)) {
+    S.notes.push({ t: S.abs, T: b.who === 'both' ? b.c + 3 : b.c + 10 + 3 * Math.sin(S.abs * 3), k: 'in', who: 'guest' });
+  }
+  while (S.notes.length && S.notes[0].t < S.abs - PAST - .5) S.notes.shift();
+  S.lift = Math.max(0, S.lift - dt * 3.5);
+
+  // Cues that slipped past the window.
+  A.cues.forEach(([ct, id], i) => {
+    if (!S.cueState[i] && S.t > ct + CUE_WIN) {
+      S.cueState[i] = 'miss'; S.cueMiss++;
+      const mi = ING[id].serve ? -1 : drawIdx('miss', I18N.en.miss.length);
+      setSur('', '', () => (mi < 0 ? t('ladleMiss') : t('miss')[mi]), true);
+      S.overUntil = S.abs + 2.6;
+      S.flash = { key: 'missed', kind: 'miss', until: S.abs + 1 };
+    }
+  });
+
+  // Surtitles: the libretto, unless the stew has been out of its band long enough to complain.
+  if (kind !== 'in' && kind === S.offKind) S.offT += dt; else { S.offT = 0; S.offKind = kind; }
+  if (S.offT > 1.2 && S.abs > S.overUntil && actId() !== 'overture') {
+    const pool = kind === 'hot' ? HOT_IT : COLD_IT, li = drawIdx(kind, pool.length), k = kind;
+    setSur(() => t(k === 'hot' ? 'shrieking' : 'mumbling'), pool[li], () => t(k)[li], false, k === 'hot');
+    S.overUntil = S.abs + 3.4;
+  } else {
+    let idx = S.lineIdx;
+    while (idx + 1 < A.lines.length && A.lines[idx + 1][0] <= S.t) idx++;
+    if (idx !== S.lineIdx && S.abs > S.overUntil) {
+      S.lineIdx = idx;
+      const [, who, it] = A.lines[idx], id = actId();
+      setSur(who, it, () => t('lines')[id][idx], !who);
+    } else if (idx !== S.lineIdx) S.lineIdx = idx;
+  }
+
+  if (S.liquid <= 0) { S.liquid = 0; return finish('burnt'); }
+  if (S.fat >= 100) return finish('aspic');
+  if (S.t >= A.dur) {
+    if (actId() === 'act2') return beginTwist();
+    if (S.act === ORDER[S.path].length - 1) { S.mode = 'curtain'; S.curtainT = 0; setSur('', '', () => t('curtainLine'), true); return; }
+    enterAct(S.act + 1);
+  }
+}
+
+function beginTwist() {
+  S.mode = 'twist'; S.twistLeft = 15;
+  setSur('Lo Stufato', 'Servitemi.', () => t('serveMe'));
+  $('#twist-timer').textContent = t('twistTimer')(15);
+  Kit.show($('#twist'));
+}
+function choose(p) {
+  if (S.mode !== 'twist') return;
+  S.path = p === 'serve' ? 'serve' : 'solo';
+  S.mode = 'play';
+  Kit.show(null);
+  enterAct(3);
+  $('#knob').focus({ preventScroll: true });
+}
+
+function tick(dt) {
+  S.clock = (S.clock || 0) + dt;
+  if (S.mode === 'play') playTick(dt);
+  else if (S.mode === 'twist') {
+    S.twistLeft -= dt;
+    $('#twist-timer').textContent = t('twistTimerRun')(Math.max(0, Math.ceil(S.twistLeft)));
+    if (S.twistLeft <= 0) choose('serve');
+  } else if (S.mode === 'curtain') {
+    S.curtainT += dt;
+    S.abs += dt;
+    if (S.curtainT > 3) finish(S.path === 'solo' ? 'ovation' : 'duet');
+  }
+}
+
+function pct(a, b) { return b > 0 ? Math.round(100 * a / b) : 0; }
+function finish(kind) {
+  if (S.mode === 'end') return;
+  S.mode = 'end'; S.ending = kind;
+  const app = pct(S.inband, S.total);
+  const score = Math.round(app * .8 + (S.cueCount ? 20 * S.cueHit / S.cueCount : 0));
+  const done = kind === 'ovation' || kind === 'duet';
+  if (done) S.best = Math.max(S.best, score);
+  S.endInfo = { app, score, done, where: actObj().name.toLowerCase() };
+  fillEnd();
+  $('#end').dataset.ending = kind;
+  Kit.show($('#end'));
+  hud();
+}
+function fillEnd() {
+  const kind = S.ending, { app, score, done, where } = S.endInfo, E = t('ends')[kind];
+  const body = kind === 'ovation' ? E.body[app >= 75 ? 0 : app >= 45 ? 1 : 2] : kind === 'duet' ? E.body[app >= 65 ? 0 : 1] : E.body;
+  $('#end-kicker').textContent = E.kick ?? t('abandoned')(where);
+  $('#end-title').textContent = E.title;
+  $('#end-sub').textContent = typeof E.sub === 'function' ? E.sub(num(S.peak)) : E.sub;
+  $('#end-body').textContent = body;
+  $('#end-review').textContent = E.review;
+  const cues = `${S.cueHit}/${S.cueCount}`, lab = t('stats');
+  $('#end-stats').innerHTML = [
+    [t('pct')(app), lab[0]], [cues, lab[1]], [t('pct')(Math.round(S.liquid)), lab[2]], [num(S.peak) + '°', lab[3]],
+  ].map(([v, l]) => `<div><b>${v}</b><span>${l}</span></div>`).join('');
+  $('#end-best').textContent = done ? t('bestDone')(score, S.best) : (S.best ? t('bestOnly')(S.best) : t('reset'));
+}
+
+// ---------- HUD ----------
+let hudT = 0;
+function hud() {
+  const k = $('#knob');
+  k.style.setProperty('--a', (-135 + S.dial * 27) + 'deg');
+  k.setAttribute('aria-valuenow', S.dial.toFixed(1));
+  $('#diallab').textContent = t('dial')(num(S.dial));
+  $('#tempv').textContent = num(S.T);
+  const A = S.path ? actObj() : null;
+  if (A && S.mode !== 'title') {
+    const b = bandOf(A, S.t);
+    const v = $('#verdict');
+    const kind = S.T > 100 ? 'hot' : S.T > b.c + b.hw ? 'hot' : S.T < b.c - b.hw ? 'cold' : 'in';
+    v.className = kind;
+    const vd = t('verdict');
+    v.textContent = S.T > 100 ? vd.boil : S.T < 55 && actId() !== 'overture' ? vd.fat : kind === 'hot' ? vd.hot : kind === 'cold' ? vd.cold : b.who === 'guest' ? vd.guest : vd.in;
+    const m = Math.floor(S.t / 60), s = Math.floor(S.t % 60);
+    $('#actlab').textContent = `${A.name} · ${m}:${String(s).padStart(2, '0')}`;
+    const nc = nextCue();
+    const add = $('#add');
+    $('#addname').textContent = nc ? t('ing')[nc.id].name : t('nothingYet');
+    add.classList.toggle('due', !!nc && Math.abs(S.t - nc.t) <= CUE_WIN);
+  }
+  const app = S.total > 0 ? pct(S.inband, S.total) : 0;
+  $('#m-app').style.width = app + '%';
+  $('#o-app').textContent = S.total > 0 ? t('pct')(app) : '–';
+  $('#m-broth').style.width = Math.max(0, S.liquid) + '%';
+  $('#o-broth').textContent = t('pct')(Math.max(0, Math.round(S.liquid)));
+  $('#g-broth').classList.toggle('warn', S.liquid < 40);
+  $('#m-fat').style.width = S.fat + '%';
+  $('#o-fat').textContent = t('pct')(Math.round(S.fat));
+  $('#g-fat').classList.toggle('warn', S.fat > 50);
+}
+
+// ---------- drawing ----------
+const C = Kit.tokens(['bg', 'ink', 'muted', 'accent', 'panel', 'line', 'brass', 'band', 'backdrop', 'boards', 'crock', 'stew', 'hot', 'cold', 'guest', 'sur-bg', 'sur-ink']);
+const view = Kit.canvas($('#scene'));
+const FM = '"Spline Sans Mono", ui-monospace, Menlo, monospace';
+const FS = '"Abril Fatface", Didot, Georgia, serif';
+const FB = '"EB Garamond", Garamond, "Times New Roman", serif';
+
+function geom() {
+  const { W, H } = view;
+  const cw = Kit.clamp(W * .055, 16, 54), vh = Kit.clamp(H * .075, 18, 40);
+  const floorY = H - Kit.clamp(H * .07, 16, 34);
+  const pot = Kit.clamp(W * .17, 84, 160);
+  const potH = pot * .6;
+  const x0 = cw + 10, x1 = W - cw - 8;
+  const px = x0 + (x1 - x0) * .27;
+  const y0 = vh + 14, y1 = floorY - potH - pot * .2 - 34;
+  return { W, H, cw, vh, floorY, pot, potH, x0, x1, px, y0, y1, pps: (x1 - px) / LOOK };
+}
+const T_LO = 50, T_HI = 110;
+
+function render() {
+  const g = geom(), cx = view.cx;
+  const { W, H } = g;
+  if (!W || !H) return;
+  const yOf = T => g.y1 - (Kit.clamp(T, T_LO - 4, T_HI + 4) - T_LO) / (T_HI - T_LO) * (g.y1 - g.y0);
+  cx.clearRect(0, 0, W, H);
+  cx.fillStyle = C.backdrop; cx.fillRect(0, 0, W, H);
+
+  // Painted flat: a piazza of arches, very faint.
+  cx.save(); cx.globalAlpha = .5; cx.strokeStyle = C.line; cx.lineWidth = 1.5;
+  const archW = Math.max(70, W / 7);
+  for (let x = g.cw + archW * .3; x < W - g.cw; x += archW) {
+    cx.beginPath(); cx.moveTo(x, g.floorY); cx.lineTo(x, g.y1 * .55 + g.y0); cx.arc(x + archW * .35, g.y1 * .55 + g.y0, archW * .35, Math.PI, 0); cx.lineTo(x + archW * .7, g.floorY); cx.stroke();
+  }
+  cx.restore();
+
+  // Boards and footlights.
+  cx.fillStyle = C.boards; cx.fillRect(0, g.floorY, W, H - g.floorY);
+  cx.strokeStyle = C.line; cx.lineWidth = 1;
+  for (let y = g.floorY + 6; y < H; y += 7) { cx.beginPath(); cx.moveTo(0, y); cx.lineTo(W, y); cx.stroke(); }
+  for (let x = g.cw + 20; x < W - g.cw; x += 46) {
+    cx.fillStyle = C['sur-ink']; cx.globalAlpha = .9;
+    cx.beginPath(); cx.arc(x, H - 3, 4, Math.PI, 0); cx.fill();
+    cx.globalAlpha = .1; cx.beginPath(); cx.arc(x, H, 14, Math.PI, 0); cx.fill(); cx.globalAlpha = 1;
+  }
+
+  drawStaff(g, yOf);
+  drawPot(g);
+  if (S.path === 'serve' && S.mode !== 'title' && (S.act === 3 || S.ending === 'duet')) drawGuest(g);
+  drawCurtains(g);
+
+  if (S.banner && S.abs < S.banner.until && S.mode === 'play') {
+    const a = Kit.reduce ? 1 : Math.min(1, (S.banner.until - S.abs) / .6);
+    cx.save(); cx.globalAlpha = a; cx.textAlign = 'center';
+    const midY = (g.y0 + g.y1) / 2;
+    cx.fillStyle = C.backdrop; cx.globalAlpha = a * .85; cx.fillRect(g.x0, midY - 46, g.x1 - g.x0, 78); cx.globalAlpha = a;
+    cx.fillStyle = C.accent; cx.font = `${Kit.clamp(W * .06, 26, 44)}px ${FS}`; cx.fillText(S.banner.name, W / 2, midY);
+    cx.fillStyle = C.ink; cx.font = `italic ${Kit.clamp(W * .03, 15, 21)}px ${FB}`; cx.fillText(S.banner.sub, W / 2, midY + 24);
+    cx.restore();
+  }
+  if (S.mode === 'curtain') {
+    const u = Kit.reduce ? 1 : Math.min(1, S.curtainT / 1.6);
+    cx.fillStyle = C.accent;
+    cx.fillRect(0, 0, W / 2 * u, H); cx.fillRect(W - W / 2 * u, 0, W / 2 * u, H);
+  }
+}
+
+function drawStaff(g, yOf) {
+  const cx = view.cx;
+  // Temperature lines, labelled like a staff with a clef made of degrees.
+  cx.font = `10px ${FM}`; cx.textBaseline = 'middle';
+  for (let T = 60; T <= 100; T += 10) {
+    const y = yOf(T);
+    cx.strokeStyle = T === 100 ? C.hot : C.line; cx.lineWidth = T === 100 ? 1.5 : 1;
+    cx.setLineDash(T === 100 ? [5, 4] : []);
+    cx.beginPath(); cx.moveTo(g.x0, y); cx.lineTo(g.x1, y); cx.stroke();
+    cx.fillStyle = T === 100 ? C.hot : C.muted;
+    cx.fillText(T + '°', g.x0 + 2, y - 7);
+  }
+  cx.setLineDash([3, 4]); cx.strokeStyle = C.cold; cx.lineWidth = 1;
+  const yf = yOf(55); cx.beginPath(); cx.moveTo(g.x0, yf); cx.lineTo(g.x1, yf); cx.stroke(); cx.setLineDash([]);
+  const cw = t('canvas'), room = (g.x1 - g.x0) * .45;
+  cx.fillStyle = C.cold; cx.textAlign = 'right'; cx.fillText(cw.fat, g.x1 - 2, yf - 7, room);
+  cx.fillStyle = C.hot; cx.fillText(cw.boil, g.x1 - 2, yOf(100) - 7, room); cx.textAlign = 'left';
+
+  if (S.mode === 'title' || !S.path) return;
+  const A = actObj();
+  // The band: past is faded, future is full. Guest phrases are drawn in the guest's colour.
+  const step = .08;
+  const xs = (tt) => g.px + (tt - S.t) * g.pps;
+  const segs = [];
+  let cur = null;
+  // Past the end of the act the score carries on into the next one, except into the twist,
+  // where nobody (least of all the stew) knows what comes next.
+  const nextId = actId() === 'act2' ? null : ORDER[S.path][S.act + 1];
+  const tEnd = nextId ? S.t + LOOK : Math.min(S.t + LOOK, A.dur);
+  const bandAt = u => u <= A.dur || !nextId ? bandOf(A, u) : bandOf(ACTS[nextId], u - A.dur);
+  for (let tt = Math.max(S.t - PAST, 0); tt <= tEnd + step; tt += step) {
+    const u = Math.min(tt, tEnd), b = bandAt(u);
+    const key = (b.who === 'guest' ? 'guest' : 'band') + (u < S.t ? 'past' : '');
+    const p = { x: xs(u), hi: yOf(b.c + b.hw), lo: yOf(b.c - b.hw) };
+    if (!cur || cur.key !== key) { cur?.pts.push(p); cur = { key, pts: [] }; segs.push(cur); }
+    cur.pts.push(p);
+    if (u >= tEnd) break;
+  }
+  for (const s of segs) {
+    if (s.pts.length < 2) continue;
+    cx.fillStyle = cx.strokeStyle = s.key.startsWith('guest') ? C.guest : C.band;
+    const past = s.key.endsWith('past');
+    cx.globalAlpha = past ? .14 : .3;
+    cx.beginPath();
+    s.pts.forEach((p, i) => i ? cx.lineTo(p.x, p.hi) : cx.moveTo(p.x, p.hi));
+    for (let i = s.pts.length - 1; i >= 0; i--) cx.lineTo(s.pts[i].x, s.pts[i].lo);
+    cx.closePath(); cx.fill();
+    cx.globalAlpha = past ? .3 : .9; cx.lineWidth = 1.5;
+    cx.beginPath();
+    s.pts.forEach((p, i) => i ? cx.lineTo(p.x, p.hi) : cx.moveTo(p.x, p.hi));
+    s.pts.forEach((p, i) => i ? cx.lineTo(p.x, p.lo) : cx.moveTo(p.x, p.lo));
+    cx.stroke();
+  }
+  cx.globalAlpha = 1;
+
+  // The stew's line, then its notes, scrolling left from the playhead.
+  cx.lineWidth = 2; cx.strokeStyle = C.ink; cx.globalAlpha = .35;
+  cx.beginPath();
+  S.hist.forEach((h, i) => { const x = g.px - (S.abs - h.t) * g.pps; const y = yOf(h.T); i ? cx.lineTo(x, y) : cx.moveTo(x, y); });
+  cx.stroke(); cx.globalAlpha = 1;
+  for (const n of S.notes) {
+    const x = g.px - (S.abs - n.t) * g.pps;
+    if (x < g.x0 + 24) continue;
+    drawNote(x, yOf(n.T), n.who === 'guest' ? 'guest' : n.k, Math.min(1, (x - g.x0 - 24) / 40));
+  }
+
+  // Cues ride the top edge of the band.
+  A.cues.forEach(([ct, id], i) => {
+    if (ct < S.t - 1.2 || ct > S.t + LOOK) return;
+    const b = bandOf(A, ct), x = xs(ct), y = yOf(b.c + b.hw) - 16;
+    const st = S.cueState[i];
+    cx.globalAlpha = st ? .35 : 1;
+    cx.strokeStyle = C.accent; cx.lineWidth = 1; cx.setLineDash([2, 3]);
+    cx.beginPath(); cx.moveTo(x, y + 8); cx.lineTo(x, yOf(b.c - b.hw)); cx.stroke(); cx.setLineDash([]);
+    drawIngredient(x, y, id);
+    cx.font = `600 10px ${FM}`; cx.textAlign = 'center'; cx.fillStyle = st === 'miss' ? C.muted : C.accent;
+    cx.fillText((st === 'hit' ? '✓ ' : st === 'miss' ? '✗ ' : '') + ING[id].it.toUpperCase(), x, y - 16);
+    cx.textAlign = 'left'; cx.globalAlpha = 1;
+  });
+
+  // Playhead and the note being sung now.
+  cx.strokeStyle = C.ink; cx.globalAlpha = .5; cx.lineWidth = 1;
+  cx.beginPath(); cx.moveTo(g.px, g.y0 - 4); cx.lineTo(g.px, g.y1 + 18); cx.stroke(); cx.globalAlpha = 1;
+  const b = bandOf(A, S.t);
+  const kind = S.T > b.c + b.hw ? 'hot' : S.T < b.c - b.hw ? 'cold' : 'in';
+  const y = yOf(S.T);
+  cx.fillStyle = kind === 'hot' ? C.hot : kind === 'cold' ? C.cold : C.ink;
+  cx.beginPath(); cx.ellipse(g.px, y, 9, 6.5, -.35, 0, Math.PI * 2); cx.fill();
+  cx.strokeStyle = C.backdrop; cx.lineWidth = 2; cx.stroke();
+  if (S.flash && S.abs < S.flash.until) {
+    cx.font = `italic 600 16px ${FB}`; cx.fillStyle = S.flash.kind === 'hit' ? C.accent : C.muted;
+    cx.fillText(flashText(S.flash), g.px + 14, y - 14, g.x1 - g.px - 18);
+  }
+  cx.fillStyle = kind === 'hot' ? C.hot : kind === 'cold' ? C.cold : C.ink;
+  const lab = num(S.T) + ' °C', lw = cx.measureText(lab).width;
+  const tint = cx.fillStyle;
+  cx.fillStyle = C.backdrop; cx.globalAlpha = .85; cx.fillRect(g.px - 16 - lw, y - 8, lw + 4, 16); cx.globalAlpha = 1;
+  cx.fillStyle = tint; cx.textAlign = 'right'; cx.fillText(lab, g.px - 14, y + 1); cx.textAlign = 'left';
+}
+
+function drawNote(x, y, k, a) {
+  const cx = view.cx;
+  cx.globalAlpha = a;
+  const col = k === 'hot' ? C.hot : k === 'cold' ? C.cold : k === 'guest' ? C.guest : C.ink;
+  const r = k === 'cold' ? 3.6 : 5;
+  cx.fillStyle = col; cx.strokeStyle = col; cx.lineWidth = 1.4;
+  cx.beginPath(); cx.ellipse(x, y, r, r * .72, -.35, 0, Math.PI * 2);
+  k === 'cold' ? cx.stroke() : cx.fill();
+  cx.beginPath();
+  if (k === 'hot') { cx.moveTo(x + r - .5, y); cx.lineTo(x + r + 3, y - 6); cx.lineTo(x + r - 1, y - 11); cx.lineTo(x + r + 3, y - 18); }
+  else { cx.moveTo(x + r - .5, y); cx.lineTo(x + r - .5, y - (k === 'cold' ? 11 : 17)); }
+  cx.stroke();
+  cx.globalAlpha = 1;
+}
+
+function drawIngredient(x, y, id) {
+  const cx = view.cx;
+  cx.save(); cx.translate(x, y);
+  cx.lineWidth = 1.4; cx.strokeStyle = C.ink;
+  if (id === 'cipolla') { cx.fillStyle = C.crock; cx.beginPath(); cx.ellipse(0, 1, 7, 7.5, 0, 0, Math.PI * 2); cx.fill(); cx.stroke(); cx.beginPath(); cx.moveTo(0, -6.5); cx.lineTo(0, -10); cx.stroke(); }
+  else if (id === 'alloro' || id === 'prezzemolo') { cx.fillStyle = C.guest; cx.beginPath(); cx.ellipse(0, 0, 10, 4.2, -.5, 0, Math.PI * 2); cx.fill(); cx.beginPath(); cx.moveTo(-8, 5); cx.lineTo(8, -5); cx.stroke(); }
+  else if (id === 'vino') { cx.fillStyle = C.accent; cx.beginPath(); cx.moveTo(-6, -8); cx.lineTo(6, -8); cx.quadraticCurveTo(6, 2, 0, 2); cx.quadraticCurveTo(-6, 2, -6, -8); cx.fill(); cx.stroke(); cx.beginPath(); cx.moveTo(0, 2); cx.lineTo(0, 8); cx.moveTo(-4, 8); cx.lineTo(4, 8); cx.stroke(); }
+  else if (id === 'aglio') { cx.fillStyle = C.panel; cx.beginPath(); cx.moveTo(0, -9); cx.quadraticCurveTo(9, 0, 5, 6); cx.lineTo(-5, 6); cx.quadraticCurveTo(-9, 0, 0, -9); cx.fill(); cx.stroke(); }
+  else if (id === 'carote') { cx.fillStyle = C.hot; cx.beginPath(); cx.moveTo(-9, -3); cx.lineTo(9, 0); cx.lineTo(-9, 3); cx.closePath(); cx.fill(); cx.stroke(); }
+  else if (id === 'mestolo') { cx.strokeStyle = C.guest; cx.lineWidth = 2.4; cx.beginPath(); cx.moveTo(-10, -8); cx.lineTo(2, 2); cx.stroke(); cx.fillStyle = C.guest; cx.beginPath(); cx.arc(5, 4, 5, 0, Math.PI * 2); cx.fill(); }
+  cx.restore();
+}
+
+function drawPot(g) {
+  const cx = view.cx;
+  const kind = S.mode === 'title' ? 'in' : (() => { const b = bandOf(actObj(), S.t); return S.T > b.c + b.hw ? 'hot' : S.T < b.c - b.hw ? 'cold' : 'in'; })();
+  const shake = !Kit.reduce && S.T > 100 && S.mode === 'play' ? (Math.random() - .5) * 2.4 : 0;
+  const x = g.px + shake, w = g.pot, h = g.potH, base = g.floorY - 2;
+  const top = base - h;
+  cx.save();
+  // Plinth.
+  cx.fillStyle = C.ink; cx.globalAlpha = .18; cx.beginPath(); cx.ellipse(x, base + 2, w * .62, 5, 0, 0, Math.PI * 2); cx.fill(); cx.globalAlpha = 1;
+  // Body: ceramic crock in a metal sleeve, black heating base.
+  cx.fillStyle = C.crock; cx.strokeStyle = C.ink; cx.lineWidth = 2;
+  cx.beginPath(); cx.moveTo(x - w / 2, top); cx.lineTo(x + w / 2, top); cx.quadraticCurveTo(x + w / 2 + 4, base - 4, x + w / 2 - 8, base); cx.lineTo(x - w / 2 + 8, base); cx.quadraticCurveTo(x - w / 2 - 4, base - 4, x - w / 2, top); cx.closePath(); cx.fill(); cx.stroke();
+  cx.fillStyle = C['sur-bg']; cx.fillRect(x - w / 2 + 6, base - h * .2, w - 12, h * .2 - 1);
+  // Handles.
+  cx.lineWidth = 3; cx.beginPath(); cx.moveTo(x - w / 2 - 2, top + 8); cx.quadraticCurveTo(x - w / 2 - 12, top + 14, x - w / 2 - 1, top + 22); cx.stroke();
+  cx.beginPath(); cx.moveTo(x + w / 2 + 2, top + 8); cx.quadraticCurveTo(x + w / 2 + 12, top + 14, x + w / 2 + 1, top + 22); cx.stroke();
+  // Its own little dial, which agrees with yours.
+  const dx = x, dy = base - h * .48, dr = Math.max(7, w * .07);
+  cx.fillStyle = C.crock; cx.strokeStyle = C['sur-bg']; cx.lineWidth = 1.5; cx.beginPath(); cx.arc(dx, dy, dr, 0, Math.PI * 2); cx.fill(); cx.stroke();
+  const ang = (-135 + S.dial * 27 - 90) * Math.PI / 180;
+  cx.strokeStyle = C.accent; cx.lineWidth = 2; cx.beginPath(); cx.moveTo(dx, dy); cx.lineTo(dx + Math.cos(ang) * dr * .8, dy + Math.sin(ang) * dr * .8); cx.stroke();
+  cx.fillStyle = C['sur-bg']; cx.font = `8px ${FM}`; cx.textAlign = 'center';
+  cx.fillText(t('canvas').low, dx - dr - 12, dy + 3); cx.fillText(t('canvas').high, dx + dr + 14, dy + 3);
+  // Stew surface, with bubbles that speed up with the heat and a skin when the fat sets.
+  const rx = w * .46, ry = Math.max(6, w * .09);
+  const level = top + (1 - Kit.clamp(S.liquid ?? 100, 0, 100) / 100) * h * .35;
+  cx.fillStyle = C.stew; cx.beginPath(); cx.ellipse(x, level + 2, rx * .96, ry * .9, 0, 0, Math.PI * 2); cx.fill();
+  if ((S.fat ?? 0) > 2) { cx.fillStyle = C.cold; cx.globalAlpha = Math.min(.7, S.fat / 120); cx.beginPath(); cx.ellipse(x, level + 2, rx * .96, ry * .9, 0, 0, Math.PI * 2); cx.fill(); cx.globalAlpha = 1; }
+  const T = S.T ?? 22;
+  if (T > 75 && !Kit.reduce) {
+    const n = Math.floor((T - 75) / 4);
+    cx.fillStyle = C.crock;
+    for (let i = 0; i < n; i++) {
+      const ph = (S.clock * (0.6 + i * .17) + i * .37) % 1;
+      cx.globalAlpha = .7 * (1 - ph);
+      cx.beginPath(); cx.arc(x + Math.sin(i * 2.3) * rx * .7, level + 2 + Math.cos(i * 1.7) * ry * .5, 1.5 + ph * 3, 0, Math.PI * 2); cx.fill();
+    }
+    cx.globalAlpha = 1;
+  }
+  // Boil-over foam.
+  if (T > 100) {
+    cx.fillStyle = C.crock; cx.strokeStyle = C.ink; cx.lineWidth = 1;
+    for (let i = 0; i < 6; i++) {
+      const s = i % 2 ? 1 : -1, wob = Kit.reduce ? 0 : Math.sin(S.clock * 6 + i) * 2;
+      cx.beginPath(); cx.arc(x + s * (rx - 4 + (i >> 1) * 3), top + 6 + (i >> 1) * 9 + wob, 5 - (i >> 1), 0, Math.PI * 2); cx.fill(); cx.stroke();
+    }
+  }
+  // Glass lid, which lifts on every note: this is the mouth.
+  const lift = (Kit.reduce ? 0 : S.lift || 0) * (kind === 'hot' ? 9 : 5);
+  const ly = top - lift;
+  cx.fillStyle = C.panel; cx.globalAlpha = .45; cx.strokeStyle = C.ink; cx.lineWidth = 2;
+  cx.beginPath(); cx.ellipse(x, ly, rx + 4, ry * 2.2, 0, Math.PI, 0); cx.closePath(); cx.fill(); cx.globalAlpha = 1; cx.stroke();
+  cx.fillStyle = C.ink; cx.beginPath(); cx.ellipse(x, ly - ry * 2.2 - 3, 9, 5, 0, 0, Math.PI * 2); cx.fill();
+  // Steam.
+  if (T > 70 && !Kit.reduce && S.mode !== 'title') {
+    cx.strokeStyle = C.muted; cx.lineWidth = 2; cx.lineCap = 'round';
+    const n = T > 100 ? 5 : T > 90 ? 3 : 2;
+    for (let i = 0; i < n; i++) {
+      const ph = (S.clock * .5 + i / n) % 1, sx = x + (i - (n - 1) / 2) * 14;
+      cx.globalAlpha = .55 * (1 - ph);
+      cx.beginPath();
+      for (let k = 0; k < 10; k++) { const yy = ly - ry * 2.2 - 8 - ph * 40 - k * 3; const xx = sx + Math.sin(k * .7 + S.clock * 3 + i) * 3; k ? cx.lineTo(xx, yy) : cx.moveTo(xx, yy); }
+      cx.stroke();
+    }
+    cx.globalAlpha = 1; cx.lineCap = 'butt';
+  }
+  cx.restore();
+}
+
+function drawGuest(g) {
+  const cx = view.cx;
+  const x = Math.min(g.x1 - 30, g.px + g.pot * .55 + 60), base = g.floorY - 2;
+  const h = Kit.clamp(g.H * .26, 70, 130);
+  const A = actObj(), b = bandOf(A, S.t);
+  const singing = b.who !== 'stew';
+  const bob = Kit.reduce ? 0 : (singing ? Math.sin(S.clock * 9) * 2 : 0);
+  cx.save();
+  cx.fillStyle = C.ink; cx.strokeStyle = C.ink; cx.lineWidth = 2;
+  // Tailcoat.
+  cx.beginPath(); cx.moveTo(x - h * .17, base); cx.lineTo(x - h * .14, base - h * .62); cx.lineTo(x + h * .14, base - h * .62); cx.lineTo(x + h * .17, base); cx.closePath(); cx.fill();
+  // Napkin, tucked in.
+  cx.fillStyle = C.panel; cx.beginPath(); cx.moveTo(x - h * .09, base - h * .6); cx.lineTo(x + h * .09, base - h * .6); cx.lineTo(x, base - h * .38); cx.closePath(); cx.fill();
+  // Head.
+  cx.fillStyle = C.crock; cx.beginPath(); cx.arc(x, base - h * .74 + bob, h * .11, 0, Math.PI * 2); cx.fill(); cx.stroke();
+  // Mouth: open when he sings.
+  cx.fillStyle = C.ink; cx.beginPath(); cx.ellipse(x - h * .03, base - h * .71 + bob, h * .025, singing ? h * .03 : h * .006, 0, 0, Math.PI * 2); cx.fill();
+  // Arm and his own spoon, raised toward the pot.
+  const raise = S.flash && S.abs < S.flash.until && S.flash.key === 'served' ? 1 : 0;
+  cx.strokeStyle = C.ink; cx.lineWidth = 4; cx.lineCap = 'round';
+  cx.beginPath(); cx.moveTo(x - h * .12, base - h * .55); cx.lineTo(x - h * .3, base - h * (.45 + raise * .2)); cx.stroke();
+  cx.strokeStyle = C.brass; cx.lineWidth = 2.5; cx.beginPath(); cx.moveTo(x - h * .3, base - h * (.45 + raise * .2)); cx.lineTo(x - h * .44, base - h * (.55 + raise * .2)); cx.stroke();
+  cx.fillStyle = C.brass; cx.beginPath(); cx.ellipse(x - h * .47, base - h * (.58 + raise * .2), 5, 3.4, -.6, 0, Math.PI * 2); cx.fill();
+  cx.lineCap = 'butt';
+  cx.restore();
+}
+
+function drawCurtains(g) {
+  const cx = view.cx, { W, H, cw, vh } = g;
+  const sway = Kit.reduce ? 0 : Math.sin(S.clock * .7) * 1.5;
+  for (const side of [0, 1]) {
+    const x0 = side ? W - cw : 0;
+    cx.fillStyle = C.accent; cx.fillRect(x0, 0, cw, H);
+    cx.fillStyle = '#000'; cx.globalAlpha = .18;
+    for (let i = 0; i < 3; i++) cx.fillRect(x0 + (i + .3) * cw / 3 + sway, 0, cw / 9, H);
+    cx.globalAlpha = 1;
+  }
+  cx.fillStyle = C.accent; cx.fillRect(0, 0, W, vh);
+  cx.fillStyle = C.brass;
+  cx.fillRect(0, vh - 3, W, 3);
+  for (let x = 0; x < W; x += 14) { cx.beginPath(); cx.arc(x + 7, vh, 5, 0, Math.PI); cx.fill(); }
+}
+
+// ---------- input ----------
+Kit.keys.onPress((k, down) => {
+  if (!down) return;
+  if (S.mode === 'play' && (k === ' ' || k === 'Enter')) addIngredient();
+  if (S.mode === 'play' && /^[0-9]$/.test(k)) S.dial = Number(k);
+  if (S.mode === 'twist' && k === '1') choose('serve');
+  if (S.mode === 'twist' && k === '2') choose('keep');
+});
+(() => {
+  const knob = $('#knob');
+  const fromPointer = e => {
+    const r = knob.getBoundingClientRect();
+    const a = Math.atan2(e.clientX - (r.left + r.width / 2), -(e.clientY - (r.top + r.height / 2))) * 180 / Math.PI;
+    if (Math.abs(a) <= 150) S.dial = Kit.clamp((a + 135) / 27, 0, 10);
+  };
+  knob.addEventListener('pointerdown', e => { e.preventDefault(); knob.setPointerCapture(e.pointerId); fromPointer(e); knob.focus({ preventScroll: true }); });
+  knob.addEventListener('pointermove', e => { if (knob.hasPointerCapture(e.pointerId)) fromPointer(e); });
+  knob.addEventListener('wheel', e => { e.preventDefault(); S.dial = Kit.clamp(S.dial - Math.sign(e.deltaY) * .25, 0, 10); }, { passive: false });
+})();
+$('#go').addEventListener('click', newGame);
+$('#again').addEventListener('click', newGame);
+$('#serve').addEventListener('click', () => choose('serve'));
+$('#keep').addEventListener('click', () => choose('keep'));
+
+const loop = Kit.loop(dt => {
+  tick(dt);
+  render();
+  hudT += dt;
+  if (hudT > .05) { hudT = 0; hud(); }
+});
+
+// Endings for the smoke harness: each jump skips the long middle and leaves the last stretch to the game.
+function jumpTo(path, actIndex, t, setup) {
+  newGame();
+  S.path = path; S.cueCount = 0;
+  for (let i = 1; i <= actIndex; i++) enterAct(i);
+  S.t = t; S.abs = 160 + t;
+  S.inband = 150; S.total = 170;
+  S.cueHit = 4; S.cueCount = 5;
+  const b = bandOf(actObj(), t);
+  S.T = b.c; S.dial = (b.c - 20) / 9.5;
+  setup?.();
+}
+Kit.expose({
+  state: () => S,
+  endings: {
+    ovation: { seconds: 16, jump() { jumpTo('solo', 3, 50); }, reached: () => S.ending === 'ovation' && !$('#end').hidden && $('#end').dataset.ending === 'ovation' },
+    duet: { seconds: 16, jump() { jumpTo('serve', 3, 54); }, reached: () => S.ending === 'duet' && !$('#end').hidden && $('#end').dataset.ending === 'duet' },
+    burnt: { seconds: 12, jump() { jumpTo('serve', 2, 20, () => { S.liquid = 12; S.dial = 10; S.T = 103; }); }, reached: () => S.ending === 'burnt' && !$('#end').hidden && $('#end').dataset.ending === 'burnt' },
+    aspic: { seconds: 12, jump() { jumpTo('serve', 1, 20, () => { S.fat = 60; S.dial = 0; S.T = 52; }); }, reached: () => S.ending === 'aspic' && !$('#end').hidden && $('#end').dataset.ending === 'aspic' },
+  },
+});
+
+// ---------- language ----------
+// Static markup carries data-t (text), data-th (trusted markup) and data-ta (aria-label); the
+// cast list reads I18N cast by index. The surtitle box, HUD, twist timer and end page re-word
+// from the state; the canvas re-reads t() every frame.
+function applyLang() {
+  document.documentElement.lang = lang;
+  document.title = t('docTitle');
+  for (const el of document.querySelectorAll('[data-t]')) el.textContent = t(el.dataset.t);
+  for (const el of document.querySelectorAll('[data-th]')) el.innerHTML = t(el.dataset.th);
+  for (const el of document.querySelectorAll('[data-ta]')) el.setAttribute('aria-label', t(el.dataset.ta));
+  for (const el of document.querySelectorAll('[data-cast]')) el.textContent = t('cast')[+el.dataset.cast];
+  for (const box of document.querySelectorAll('.lang')) {
+    if (!box.children.length) box.innerHTML = '<button type="button" data-lang="fr" lang="fr">FR</button><button type="button" data-lang="en" lang="en">EN</button>';
+    for (const b of box.children) b.setAttribute('aria-pressed', String(b.dataset.lang === lang));
+  }
+  drawSur();
+  if (S.mode === 'title' || !S.path) $('#verdict').textContent = t('roomTemp');
+  if (!S.path) $('#addname').textContent = t('nothingYet');
+  if (S.mode === 'twist') $('#twist-timer').textContent = t('twistTimerRun')(Math.max(0, Math.ceil(S.twistLeft)));
+  else $('#twist-timer').textContent = t('twistTimer')(15);
+  if (S.mode === 'end' && S.endInfo) fillEnd();
+  hud();
+}
+function setLang(l) {
+  if (!(l in I18N) || l === lang) return;
+  lang = l;
+  applyLang();
+}
+document.addEventListener('click', e => {
+  const b = e.target.closest('[data-lang]');
+  if (b) setLang(b.dataset.lang);
+});
+
+Kit.boot(data => {
+  S.best = data.best ?? 0;
+  S.clock = 0;
+  lang = data?.lang in I18N ? data.lang : (navigator.language || '').toLowerCase().startsWith('fr') ? 'fr' : 'en';
+  applyLang();
+  Kit.show($('#title'));
+  loop.start();
+}, () => ({ best: S.best, lang }));
+</script>
+</body>
+</html>

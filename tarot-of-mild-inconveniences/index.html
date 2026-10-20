@@ -1,0 +1,1063 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>The Tarot of Mild Inconveniences</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Shrikhand&family=Karla:ital,wght@0,400;0,600;0,700;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: a 1970s Formica kitchen table — stats pinned like fridge magnets at the head, the day's spread across the middle, your hand along the near edge. */
+:root {
+  --table: #dbe4e1;
+  --speck: #c3cfcb;
+  --card: #fffaf0;
+  --ink: #2b2a1e;
+  --ink-soft: #66644e;
+  --avocado: #5b6a1d;
+  --gold: #b9850f;
+  --tomato: #bf3f29;
+  --edge: #d8cdaa;
+  --back: #5b6a1d;
+  --shadow: #2b2a1e33;
+  --f-display: "Shrikhand", "Cooper Black", Georgia, serif;
+  --f-body: "Karla", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --table: #1e2118; --speck: #2a2e21; --card: #2e3123; --ink: #efe9d4; --ink-soft: #aca78b;
+    --avocado: #a8ba59; --gold: #e2b247; --tomato: #ee7b62; --edge: #4a4b36; --back: #3d4716;
+    --shadow: #00000066;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --table: #1e2118; --speck: #2a2e21; --card: #2e3123; --ink: #efe9d4; --ink-soft: #aca78b;
+  --avocado: #a8ba59; --gold: #e2b247; --tomato: #ee7b62; --edge: #4a4b36; --back: #3d4716;
+  --shadow: #00000066;
+  color-scheme: dark;
+}
+[hidden] { display: none !important; }
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  min-height: 100%;
+  background-color: var(--table);
+  background-image: radial-gradient(var(--speck) 1px, transparent 1.6px), radial-gradient(var(--speck) 1px, transparent 1.6px);
+  background-size: 9px 9px, 13px 13px;
+  background-position: 0 0, 4px 6px;
+  color: var(--ink);
+  font: 16px/1.5 var(--f-body);
+  padding-block: 20px 40px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.wrap { max-width: 1040px; margin: 0 auto; display: grid; gap: 18px; }
+.head { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px 28px; flex-wrap: wrap; }
+.eyebrow { font: 500 12px var(--f-mono); letter-spacing: .12em; text-transform: uppercase; color: var(--ink-soft); }
+h1 { margin: 2px 0 0; font: 400 clamp(26px, 4.6vw, 40px)/1.05 var(--f-display); color: var(--avocado); text-wrap: balance; }
+.stats { display: grid; gap: 6px; min-width: min(100%, 300px); }
+.stat { display: grid; grid-template-columns: 7.5em 1fr 2ch; align-items: center; gap: 10px; font: 500 12px var(--f-mono); letter-spacing: .06em; text-transform: uppercase; }
+.stat .num { text-align: right; font-variant-numeric: tabular-nums; font-size: 14px; }
+.pips { display: grid; grid-template-columns: repeat(10, 1fr); gap: 3px; }
+.pips i { height: 10px; border-radius: 3px; background: var(--speck); }
+.stat.c .pips i.on { background: var(--avocado); }
+.stat.p .pips i.on { background: var(--gold); }
+.stat.d .pips i.on { background: var(--tomato); }
+.stat.low .num { color: var(--tomato); }
+.stat.bump { animation: bump .35s ease; }
+@keyframes bump { 50% { transform: translateX(-3px); } }
+
+.track { display: flex; gap: 6px; flex-wrap: wrap; font: 500 12px var(--f-mono); letter-spacing: .08em; text-transform: uppercase; }
+.track span { padding: 5px 12px; border-radius: 99px; background: var(--card); color: var(--ink-soft); box-shadow: 0 0 0 1px var(--edge); }
+.track span.now { background: var(--avocado); color: var(--card); box-shadow: none; }
+.track span.done { text-decoration: line-through; text-decoration-color: var(--gold); }
+
+.spread { display: grid; grid-template-columns: minmax(230px, 290px) 1fr; gap: 22px; align-items: start; }
+.side { display: grid; gap: 14px; align-content: start; }
+
+.card {
+  position: relative; background: var(--card); color: var(--ink); border-radius: 12px;
+  box-shadow: inset 0 0 0 5px var(--card), inset 0 0 0 6.5px var(--gold), 0 1px 0 var(--edge), 0 12px 22px -14px var(--shadow);
+  border: 1px solid var(--edge);
+}
+.card.event { aspect-ratio: 7 / 11.5; max-width: 100%; padding: 20px 20px 18px; display: grid; grid-template-rows: auto 1fr auto auto auto; gap: 8px; text-align: center; }
+.card.event.reveal { animation: flip .5s ease; }
+@keyframes flip { from { transform: perspective(700px) rotateY(80deg); opacity: .2; } }
+.card-top { display: flex; justify-content: space-between; font: 500 11px var(--f-mono); letter-spacing: .1em; text-transform: uppercase; color: var(--ink-soft); }
+.numeral { color: var(--gold); font-weight: 500; }
+.emblem { display: grid; place-items: center; }
+.emblem svg { width: 62%; max-width: 130px; height: auto; color: var(--avocado); }
+.suit-major .emblem svg { color: var(--gold); }
+.card-title { margin: 0; font: 400 21px/1.15 var(--f-display); text-wrap: balance; color: var(--ink); }
+.hits { list-style: none; margin: 0; padding: 0; display: flex; gap: 6px; justify-content: center; flex-wrap: wrap; }
+.hit { font: 500 12px var(--f-mono); padding: 3px 9px; border-radius: 99px; color: var(--card); }
+.hit.c { background: var(--avocado); }
+.hit.p { background: var(--gold); }
+.hit.d { background: var(--tomato); }
+.card-foot { font-size: 12px; font-style: italic; color: var(--ink-soft); }
+
+.upcoming { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; font: 500 11px var(--f-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--ink-soft); }
+.back {
+  width: 34px; aspect-ratio: 7 / 11.5; border-radius: 5px; border: 2px solid var(--card);
+  background: var(--back) repeating-linear-gradient(45deg, transparent 0 5px, #ffffff22 5px 6px);
+  box-shadow: 0 4px 8px -4px var(--shadow);
+}
+.panel { background: var(--card); border-radius: 12px; padding: 14px 16px; box-shadow: 0 0 0 1px var(--edge); display: grid; gap: 10px; }
+.panel h3 { margin: 0; font: 500 11px var(--f-mono); letter-spacing: .1em; text-transform: uppercase; color: var(--ink-soft); }
+.preview-line { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; min-height: 26px; }
+.warn { color: var(--tomato); font-weight: 700; font-size: 14px; }
+.calm { color: var(--avocado); font-weight: 700; font-size: 14px; }
+.mods { font-size: 13px; color: var(--ink-soft); }
+.actions { display: flex; gap: 14px; align-items: center; justify-content: space-between; flex-wrap: wrap; }
+.spoons { display: flex; gap: 4px; align-items: center; font: 500 11px var(--f-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--ink-soft); }
+.spoons svg { width: 14px; height: 28px; color: var(--gold); }
+.spoons svg.used { color: var(--speck); }
+.log { margin: 0; padding: 0; list-style: none; display: grid; gap: 4px; font-size: 14px; color: var(--ink-soft); }
+.log li:first-child { color: var(--ink); }
+
+button { font: 700 15px var(--f-body); border: 0; border-radius: 99px; padding: 11px 20px; cursor: pointer; background: var(--avocado); color: var(--card); transition: transform .15s ease, background .15s ease; }
+button:hover:not(:disabled) { transform: translateY(-1px); background: var(--gold); color: var(--ink); }
+button:focus-visible, .hand-card:focus-visible, .reading:focus-visible { outline: 3px solid var(--gold); outline-offset: 3px; }
+button.quiet { background: transparent; color: var(--ink); box-shadow: inset 0 0 0 1.5px var(--edge); }
+kbd { font: 500 11px var(--f-mono); padding: 1px 5px; border-radius: 4px; background: #00000018; margin-left: 4px; }
+.eyerow { display: flex; align-items: center; gap: 8px 14px; flex-wrap: wrap; }
+.lang { display: flex; flex: 0 0 auto; border-radius: 99px; background: var(--card); box-shadow: 0 0 0 1px var(--edge); overflow: hidden; }
+.lang button {
+  font: 500 11px var(--f-mono); letter-spacing: .1em; padding: 4px 10px; border-radius: 0;
+  background: transparent; color: var(--ink-soft); transition: none;
+}
+.lang button + button { box-shadow: -1px 0 0 var(--edge); }
+.lang button:hover:not(:disabled) { transform: none; background: var(--speck); color: var(--ink); }
+.lang button[aria-pressed="true"], .lang button[aria-pressed="true"]:hover { background: var(--avocado); color: var(--card); }
+.sheetfoot { align-items: center; justify-content: space-between; }
+
+.hand-wrap { display: grid; gap: 10px; }
+.hand-label { font: 500 11px var(--f-mono); letter-spacing: .1em; text-transform: uppercase; color: var(--ink-soft); }
+.hand { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 150px), 1fr)); gap: 12px; }
+.hand-card {
+  font: inherit; text-align: left; padding: 14px 14px 12px; display: grid; grid-template-rows: auto auto auto 1fr auto; gap: 6px;
+  min-height: 210px; border-radius: 12px; cursor: pointer; transition: transform .15s ease, box-shadow .15s ease;
+}
+.hand-card:hover:not(:disabled) { transform: translateY(-4px) rotate(-.8deg); background: var(--card); color: var(--ink); }
+.hand-card:disabled { cursor: not-allowed; opacity: .5; }
+.hand-card .emblem svg { width: 38px; }
+.hand-card .card-title { font-size: 16px; text-align: left; }
+.hand-card .text { font-size: 14px; line-height: 1.4; }
+.hand-card .card-foot { font-style: normal; font: 500 10px var(--f-mono); letter-spacing: .08em; text-transform: uppercase; display: flex; justify-content: space-between; gap: 6px; }
+.cost { display: flex; gap: 2px; }
+.cost svg { width: 9px; height: 18px; color: var(--gold); }
+.free-tag { color: var(--avocado); }
+
+.overlay { position: fixed; inset: 0; z-index: 20; display: grid; place-items: center; padding: 24px max(16px, env(safe-area-inset-right, 0px)) 24px max(16px, env(safe-area-inset-left, 0px)); background: color-mix(in srgb, var(--table) 86%, transparent); backdrop-filter: blur(3px); overflow-y: auto; }
+.sheet { background: var(--card); border-radius: 16px; padding: 28px; max-width: 680px; width: 100%; display: grid; gap: 16px; box-shadow: 0 0 0 1px var(--edge), 0 30px 60px -30px var(--shadow); }
+.sheet h2 { margin: 0; font: 400 clamp(26px, 5vw, 38px)/1.1 var(--f-display); color: var(--avocado); text-wrap: balance; }
+.sheet p { margin: 0; max-width: 60ch; }
+.sheet .small { font-size: 14px; color: var(--ink-soft); }
+.row { display: flex; gap: 10px; flex-wrap: wrap; }
+.draft { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 170px), 1fr)); gap: 12px; }
+
+.evening { display: grid; gap: 18px; }
+.evening .lede { margin: 0; max-width: 62ch; font-size: 18px; }
+.evening > h2 { margin: 0; font: 400 clamp(28px, 5vw, 44px)/1.05 var(--f-display); color: var(--avocado); text-wrap: balance; }
+.readings { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 180px), 1fr)); gap: 12px; }
+.reading { font: inherit; text-align: left; min-height: 150px; padding: 14px; border-radius: 12px; cursor: pointer; display: grid; gap: 6px; align-content: start; }
+.reading.down { background: var(--back) repeating-linear-gradient(45deg, transparent 0 7px, #ffffff1f 7px 8px); color: var(--card); border: 2px solid var(--card); box-shadow: 0 10px 18px -12px var(--shadow); place-items: center; align-content: center; font: 500 11px var(--f-mono); letter-spacing: .1em; text-transform: uppercase; }
+.card.reading:hover:not(:disabled) { background: var(--card); color: var(--ink); transform: none; }
+.reading .card-title { font-size: 15px; text-align: left; }
+.reading .text { font-size: 14px; line-height: 1.45; }
+.reading .tag { font: 500 10px var(--f-mono); letter-spacing: .1em; text-transform: uppercase; color: var(--gold); }
+.final { display: grid; grid-template-columns: minmax(200px, 260px) 1fr; gap: 24px; align-items: start; }
+.final .card.event { aspect-ratio: auto; min-height: 360px; }
+.final .card.event.reversed .emblem { transform: rotate(180deg); }
+.final .choices { display: grid; gap: 10px; align-content: start; }
+.final .outcome { font-size: 18px; max-width: 58ch; }
+.summary { display: grid; gap: 4px; font: 500 13px var(--f-mono); color: var(--ink-soft); font-variant-numeric: tabular-nums; }
+.summary b { color: var(--ink); font-family: var(--f-display); font-weight: 400; font-size: 22px; letter-spacing: 0; }
+
+@media (max-width: 720px) {
+  .spread, .final { grid-template-columns: 1fr; }
+  .card.event { aspect-ratio: auto; min-height: 330px; max-width: 320px; justify-self: center; width: 100%; }
+  .stat { grid-template-columns: 6.8em 1fr 2ch; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="head">
+    <div>
+      <div class="eyerow"><div class="eyebrow" id="eyebrow" data-t="ordinaryDay">An ordinary day</div>
+        <div class="lang" role="group" data-ta="langGroup" aria-label="Language"></div></div>
+      <h1 data-t="docTitle">The Tarot of Mild Inconveniences</h1>
+    </div>
+    <div class="stats" id="stats" data-ta="statsAria" aria-label="Your stats"></div>
+  </header>
+  <nav class="track" id="track" data-ta="trackAria" aria-label="The day"></nav>
+
+  <section id="table" class="wrap">
+    <div class="spread">
+      <div id="event"></div>
+      <div class="side">
+        <div class="upcoming" id="upcoming"></div>
+        <div class="panel">
+          <h3 data-t="ifEndure">If you endure now</h3>
+          <div class="preview-line" id="preview" aria-live="polite"></div>
+          <div class="mods" id="mods"></div>
+          <div class="actions">
+            <div class="spoons" id="spoons"></div>
+            <button id="endure" data-th="endureBtn">Endure <kbd>E</kbd></button>
+          </div>
+        </div>
+        <ul class="log" id="log" aria-live="polite"></ul>
+      </div>
+    </div>
+    <div class="hand-wrap">
+      <div class="hand-label"><span data-t="handLabel">Your hand · keys 1–5 · </span><span id="deckinfo"></span></div>
+      <div class="hand" id="hand"></div>
+    </div>
+  </section>
+
+  <section id="evening" class="evening" hidden>
+    <div class="eyebrow" data-t="evening">Evening</div>
+    <h2 id="eve-title" data-t="eveTitle">The deck draws you</h2>
+    <p class="lede" id="eve-lede" data-t="eveLede">You sit down at the kitchen table. The deck shuffles itself, and the cards you got through today come back, face down. They would like to read your day to you. Turn them over.</p>
+    <div class="readings" id="readings"></div>
+    <div class="row"><button id="turn" data-th="turnBtn">Turn the next card <kbd>T</kbd></button></div>
+
+    <div id="final" hidden>
+      <div class="final">
+        <div id="you-card"></div>
+        <div class="choices">
+          <p class="lede" id="final-lede"></p>
+          <div class="row" id="final-buttons">
+            <button id="f-up" data-th="fUp">Be read upright <kbd>1</kbd></button>
+            <button id="f-rev" class="quiet" data-th="fRev">Be read reversed <kbd>2</kbd></button>
+            <button id="f-down" class="quiet" data-th="fDown">Stay face down <kbd>3</kbd></button>
+          </div>
+          <p class="outcome" id="outcome" hidden></p>
+          <div class="summary" id="summary" hidden></div>
+          <div class="row"><button id="again-eve" hidden data-t="againEve">Draw another day</button></div>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<div class="overlay" id="title-ov">
+  <div class="sheet">
+    <div class="eyebrow" data-t="titleEyebrow">A deck of 19 inconveniences and 16 small graces</div>
+    <h2 data-t="titleH">Get through one ordinary day</h2>
+    <p data-th="titleP1">Morning, commute, work. Each inconvenience is turned over in turn and will cost you <b>composure</b>, <b>punctuality</b> or <b>dignity</b> when you endure it. You have three spoons per inconvenience to spend on cards from your hand: gain a stat back, block a loss, or cancel an inconvenience of the matching suit. Major Arcana cannot be cancelled.</p>
+    <p data-t="titleP2">If any stat reaches zero, the day is over. Between stages you add one card to your deck. Then it is evening.</p>
+    <p class="small" data-t="titleKeys">Keys: 1–5 play a card · E endure · mouse and touch work everywhere.</p>
+    <div class="row sheetfoot"><button id="start" data-t="startBtn">Cut the deck</button>
+      <div class="lang" role="group" data-ta="langGroup" aria-label="Language"></div></div>
+  </div>
+</div>
+
+<div class="overlay" id="draft-ov" hidden>
+  <div class="sheet">
+    <div class="eyebrow" id="draft-eyebrow">Interlude</div>
+    <h2 id="draft-title" data-t="draftTitle">Choose a card for your deck</h2>
+    <p id="draft-rest" class="small"></p>
+    <div class="draft" id="draft"></div>
+    <div class="row sheetfoot"><div class="lang" role="group" data-ta="langGroup" aria-label="Language"></div></div>
+  </div>
+</div>
+
+<div class="overlay" id="lost-ov" hidden>
+  <div class="sheet">
+    <div class="eyebrow" data-t="lostEyebrow">The day is over early</div>
+    <h2 id="lost-title">You went back to bed.</h2>
+    <p id="lost-sub"></p>
+    <div class="summary" id="lost-summary"></div>
+    <div class="row sheetfoot"><button id="again-lost" data-t="againLost">Try the day again</button>
+      <div class="lang" role="group" data-ta="langGroup" aria-label="Language"></div></div>
+  </div>
+</div>
+
+<script>
+const $ = s => document.querySelector(s);
+const KEYS = ['c', 'p', 'd'];
+const MAX = 10, START = 6, HAND = 5, SPOONS = 3;
+
+// Every name and line lives in I18N below; these tables carry ids and numbers only, so a
+// mid-game language switch cannot change a cost, a hit or a suit match.
+const SUIT = {
+  mugs: { cancel: 'towel' },
+  umbrellas: { cancel: 'umbrella' },
+  keys: { cancel: 'foundkeys' },
+  queues: { cancel: 'book' },
+  major: { cancel: null },
+};
+
+const EVENTS = {
+  wetsock: { num: 'II', suit: 'mugs', hit: { c: 2, d: 1 } },
+  lostkeys: { num: 'I', suit: 'keys', hit: { p: 2, c: 1 } },
+  toast: { num: 'V', suit: 'mugs', hit: { c: 1, d: 1 } },
+  jar: { num: 'VIII', suit: 'major', hit: { c: 2, d: 1 } },
+  snooze: { num: 'XVIII', suit: 'major', hit: { p: 2, c: 1 } },
+  queues3: { num: 'III', suit: 'queues', hit: { p: 3 } },
+  trains: { num: 'Kn', suit: 'queues', hit: { p: 3, c: 1 } },
+  drizzle: { num: 'Pg', suit: 'umbrellas', hit: { c: 1, d: 1 } },
+  puddles: { num: 'IV', suit: 'umbrellas', hit: { c: 1, p: 1, d: 1 } },
+  hanged: { num: 'XII', suit: 'umbrellas', hit: { d: 2, p: 1 } },
+  chariot: { num: 'VII', suit: 'major', hit: { c: 1, p: 2, d: 1 } },
+  replyall: { num: 'XVI', suit: 'major', hit: { c: 2, d: 2 } },
+  meeting: { num: 'X', suit: 'major', hit: { c: 2, p: 2 } },
+  printers: { num: 'II', suit: 'keys', hit: { c: 2, p: 1 } },
+  forgotten: { num: 'I', suit: 'keys', hit: { c: 1, p: 2 } },
+  lift: { num: 'VI', suit: 'queues', hit: { p: 2, d: 1 } },
+  unread: { num: 'VII', suit: 'queues', hit: { c: 2 } },
+  microwave: { num: 'VI', suit: 'major', hit: { c: 1, p: 1, d: 1 } },
+  spill: { num: 'IX', suit: 'mugs', hit: { c: 1, d: 2 } },
+};
+for (const [id, e] of Object.entries(EVENTS)) e.id = id;
+
+const STAGES = [
+  { n: 3, pool: ['wetsock', 'lostkeys', 'toast', 'jar', 'snooze'] },
+  { n: 3, pool: ['queues3', 'trains', 'drizzle', 'puddles', 'hanged', 'chariot'] },
+  { n: 4, pool: ['replyall', 'meeting', 'printers', 'forgotten', 'lift', 'unread', 'microwave', 'spill'] },
+];
+
+function gain(k, n) {
+  G.stats[k] = Math.max(0, Math.min(MAX, G.stats[k] + n));
+  bump.add(k);
+}
+const CARDS = {
+  breath: { cost: 0, kind: 'gain', fx: () => gain('c', 1) },
+  walk: { cost: 1, kind: 'gain', fx: () => gain('p', 2) },
+  nod: { cost: 0, kind: 'gain', fx: () => gain('d', T.played > 0 ? 2 : 1) },
+  shrug: { cost: 0, kind: 'ease', fx: () => { T.reduce++; } },
+  headphones: { cost: 1, kind: 'shield', fx: () => { T.shield.c += 2; } },
+  smalltalk: { cost: 1, kind: 'shield', fx: () => { T.shield.d += 2; } },
+  excuse: { cost: 1, kind: 'shield', fx: () => { KEYS.forEach(k => T.shield[k]++); } },
+  avocado: { cost: 1, kind: 'gain', fx: () => { gain('c', 2); gain('d', 1); } },
+  coffee: { cost: 1, kind: 'gain', fx: () => { gain('c', 1); T.free = true; } },
+  early: { cost: 2, kind: 'gain', fx: () => { gain('p', 3); gain('c', -1); } },
+  star: { cost: 2, kind: 'gain', fx: () => KEYS.forEach(k => gain(k, 1)) },
+  lunch: { cost: 2, kind: 'gain', fx: () => gain('c', 3) },
+  towel: { cost: 1, kind: 'cancel', suit: 'mugs', fx: () => { T.cancel = true; } },
+  umbrella: { cost: 1, kind: 'cancel', suit: 'umbrellas', fx: () => { T.cancel = true; } },
+  foundkeys: { cost: 1, kind: 'cancel', suit: 'keys', fx: () => { T.cancel = true; } },
+  book: { cost: 1, kind: 'cancel', suit: 'queues', fx: () => { T.cancel = true; } },
+};
+const START_DECK = ['breath', 'breath', 'walk', 'walk', 'nod', 'nod', 'shrug', 'headphones'];
+const DRAFT = ['avocado', 'coffee', 'early', 'star', 'lunch', 'towel', 'umbrella', 'foundkeys', 'book', 'smalltalk', 'excuse', 'headphones', 'walk'];
+
+// English stage phrases, built the way the original copy built them.
+const enStage = name => ({ name, this: `this ${name.toLowerCase()}`, of: `the ${name.toLowerCase()}`, end: `End of ${name.toLowerCase()}` });
+
+const I18N = {
+  en: {
+    docTitle: 'The Tarot of Mild Inconveniences',
+    langGroup: 'Language',
+    ordinaryDay: 'An ordinary day',
+    statsAria: 'Your stats', trackAria: 'The day',
+    stats: { c: 'composure', p: 'punctuality', d: 'dignity' },
+    suits: { mugs: 'Mugs', umbrellas: 'Umbrellas', keys: 'Keys', queues: 'Queues', major: 'Major Arcana' },
+    stages: [enStage('Morning'), enStage('Commute'), enStage('Work')],
+    evening: 'Evening',
+    events: {
+      wetsock: ['The Wet Sock', 'You walked on it all morning and told no one.'],
+      lostkeys: ['Ace of Lost Keys', 'They were in your hand. They were always in your hand.'],
+      toast: ['The Burnt Toast', 'You scraped it over the sink like a sculptor.'],
+      jar: ['Strength (of the Jar Lid)', 'The jar won. You had toast instead.'],
+      snooze: ['The Snooze', 'Nine minutes is not a unit of rest. You know that now.'],
+      queues3: ['Three of Queues', 'You chose the shortest line. It was a trap.'],
+      trains: ['Knight of Delayed Trains', 'The announcement apologised for any inconvenience. There was some.'],
+      drizzle: ['Page of Mild Drizzle', 'Not enough rain to complain about. Enough to be damp.'],
+      puddles: ['Four of Puddles', 'A passing bus taught you about displacement.'],
+      hanged: ['The Hanged Umbrella', 'It turned inside out in front of a school trip.'],
+      chariot: ['The Chariot (Replacement Bus Service)', 'It went via everywhere.'],
+      replyall: ['The Reply-All', 'Four hundred people now know you wrote “thanks!!”.'],
+      meeting: ['The Meeting That Could Have Been an Email', 'It ran over. It always runs over.'],
+      printers: ['Two of Printers', 'PC LOAD LETTER. You still do not know what it means.'],
+      forgotten: ['Ace of Forgotten Passwords', 'It had to contain a capital letter and a secret sorrow.'],
+      lift: ['The Lift Out of Order', 'Seven flights. You arrived as a different person.'],
+      unread: ['Seven of Unread', 'You marked them all as read. They knew.'],
+      microwave: ['The Lovers (Two Colleagues, One Microwave)', 'You waited behind the fish. You forgave no one.'],
+      spill: ['Nine of Mugs', 'Coffee, on the shirt, in the exact shape of Belgium.'],
+    },
+    cards: {
+      breath: ['Deep Breath', '+1 composure.'],
+      walk: ['Brisk Walk', '+2 punctuality.'],
+      nod: ['Polite Nod', '+1 dignity, or +2 if you already played a card this turn.'],
+      shrug: ['Shrug', 'The largest hit of this inconvenience is 1 smaller.'],
+      headphones: ['Headphones', 'Block 2 composure loss this turn.'],
+      smalltalk: ['Small Talk', 'Block 2 dignity loss this turn.'],
+      excuse: ['Excuse Me', 'Block 1 loss of every stat this turn.'],
+      avocado: ['The Perfectly Ripe Avocado', '+2 composure, +1 dignity.'],
+      coffee: ['Second Coffee', '+1 composure. Your next card this turn costs 0.'],
+      early: ['Leave Early', '+3 punctuality, −1 composure.'],
+      star: ['The Star of Mild Optimism', '+1 composure, punctuality and dignity.'],
+      lunch: ['The Lunch Break', '+3 composure.'],
+      towel: ['Paper Towel', 'Cancel a Mugs inconvenience.'],
+      umbrella: ['Spare Umbrella', 'Cancel an Umbrellas inconvenience.'],
+      foundkeys: ['Ace of Found Keys', 'Cancel a Keys inconvenience.'],
+      book: ['A Good Book', 'Cancel a Queues inconvenience.'],
+    },
+    kinds: { gain: 'grace', shield: 'shield', ease: 'tactic', cancel: 'remedy' },
+    loss: {
+      c: ['You went back to bed.', 'Composure reached zero. The duvet accepted you without question.'],
+      p: ['The day left without you.', 'Punctuality reached zero. It did not wait.'],
+      d: ['You became an anecdote.', 'Dignity reached zero. Someone will tell this story at a wedding.'],
+    },
+    cancelLines: ['averted. Somewhere a paper towel is proud of you.', 'averted. You saw it coming, for once.', 'averted. It happened to someone else instead.'],
+    easeLines: ['softened. It happened, but gently.', 'softened. You took it on the shoulder.', 'softened, like a bruise in a nice colour.'],
+    readLine: (name, line) => `${name}, ${line}`,
+    sayStage: (st, n) => `${st.name}. ${n} inconveniences are waiting.`,
+    sayShuffle: 'You shuffle your discards back into the deck.',
+    sayPlay: name => `You play ${name}.`,
+    sayCancelled: name => `${name} is cancelled. Nothing happens.`,
+    sayEndure: (name, list) => `You endure ${name}: ${list}.`,
+    sayScratch: name => `You endure ${name} without a scratch.`,
+    sayJoins: name => `${name} joins your deck.`,
+    noSpoons: 'not enough spoons', already: 'already cancelled', onlyCancels: suit => `only cancels ${suit}`,
+    lostSummary: (st, i, n) => `<span>Reached: ${st.name}, inconvenience ${i}</span><span>Inconveniences survived: ${n} of 10</span>`,
+    draftEyebrow: st => `${st.end} · interlude`,
+    draftRest: stat => `You take a moment on a bench. +1 ${stat}. Now choose one card to add to your deck (keys 1–3).`,
+    costsAria: n => `costs ${n} spoons`, free: 'free', nowFree: 'now free',
+    cardAria: (name, text, cost, why) => `${name}. ${text} Costs ${cost} spoons.${why ? ' Unavailable: ' + why : ''}`,
+    cancelWith: name => `Cancel with ${name}`, noCancel: 'Cannot be cancelled',
+    eyebrowPlay: (st, i, n) => `${st.name} · inconvenience ${i} of ${n}`,
+    more: (left, st) => `${left} more ${st.this}`, last: st => `last inconvenience of ${st.of}`,
+    cancelledLine: 'Cancelled. Nothing happens.', blocked: 'Fully blocked.',
+    wouldEnd: stat => `This would end your day (${stat}).`,
+    blocking: (n, stat) => `blocking ${n} ${stat}`, largest: n => `largest hit −${n}`, nextFree: 'next card free',
+    nothingYet: 'Nothing played against it yet.',
+    spoons: 'spoons',
+    deckInfo: (a, b) => `${a} in deck · ${b} discarded`,
+    faceDown: st => `${st} · face down`,
+    tags: { cancel: 'averted', eased: 'softened', took: 'endured' },
+    eveningEyebrow: 'Evening · the cards turn over',
+    finalHand: 'The final hand',
+    youCard: 'This card is you',
+    titles: { c: 'The Unbothered', p: 'The Punctual', d: 'The Dignified' },
+    up: { c: 'kept their head while the toast burned', p: 'arrived, against all available evidence', d: 'stood up straight in the rain' },
+    down: { c: 'came apart a little and kept going anyway', p: 'was late and turned up regardless', d: 'was seen at their worst and lived' },
+    finalLede: title => `Across town, in a café that smells of wet coats, someone is having their cards read. They have asked: “Will tomorrow be all right?” The reader turns over the last card. It is you, ${title}. How would you like to be read?`,
+    readUp: (title, line) => `“${title}, upright,” says the reader. “Someone who ${line}. Tomorrow will be all right.” The stranger nods slowly and finishes their tea.`,
+    readRev: (title, line) => `“${title}, reversed,” says the reader. “Someone who ${line}. That is also a kind of strength.” The stranger laughs for the first time today.`,
+    readDown: 'The reader leaves you face down. “Some cards prefer not to say.” They pour more tea. For once in your life, you are not interpreted.',
+    ranks: ['A Perfectly Ripe Day', 'An Ordinary Tuesday', 'A Day That Happened', 'A Day, Technically'],
+    summary: (rank, total, list, counts, best) => `<b>${rank}</b><span>Your day: ${total} of 30 (${list})</span><span>Averted ${counts.cancel} · softened ${counts.eased} · endured ${counts.took}</span><span>Best day this session: ${best} of 30</span>`,
+    ifEndure: 'If you endure now',
+    endureBtn: 'Endure <kbd>E</kbd>',
+    handLabel: 'Your hand · keys 1–5 · ',
+    eveTitle: 'The deck draws you',
+    eveLede: 'You sit down at the kitchen table. The deck shuffles itself, and the cards you got through today come back, face down. They would like to read your day to you. Turn them over.',
+    turnBtn: 'Turn the next card <kbd>T</kbd>',
+    fUp: 'Be read upright <kbd>1</kbd>', fRev: 'Be read reversed <kbd>2</kbd>', fDown: 'Stay face down <kbd>3</kbd>',
+    againEve: 'Draw another day',
+    titleEyebrow: 'A deck of 19 inconveniences and 16 small graces',
+    titleH: 'Get through one ordinary day',
+    titleP1: 'Morning, commute, work. Each inconvenience is turned over in turn and will cost you <b>composure</b>, <b>punctuality</b> or <b>dignity</b> when you endure it. You have three spoons per inconvenience to spend on cards from your hand: gain a stat back, block a loss, or cancel an inconvenience of the matching suit. Major Arcana cannot be cancelled.',
+    titleP2: 'If any stat reaches zero, the day is over. Between stages you add one card to your deck. Then it is evening.',
+    titleKeys: 'Keys: 1–5 play a card · E endure · mouse and touch work everywhere.',
+    startBtn: 'Cut the deck',
+    draftTitle: 'Choose a card for your deck',
+    lostEyebrow: 'The day is over early',
+    againLost: 'Try the day again',
+  },
+  fr: {
+    docTitle: 'Le Tarot des petites contrariétés',
+    langGroup: 'Langue',
+    ordinaryDay: 'Une journée ordinaire',
+    statsAria: 'Vos jauges', trackAria: 'La journée',
+    stats: { c: 'sang-froid', p: 'ponctualité', d: 'dignité' },
+    suits: { mugs: 'Tasses', umbrellas: 'Parapluies', keys: 'Clés', queues: "Files d'attente", major: 'Arcanes majeurs' },
+    stages: [
+      { name: 'Matin', this: 'ce matin', of: 'du matin', end: 'Fin du matin' },
+      { name: 'Trajet', this: 'sur ce trajet', of: 'du trajet', end: 'Fin du trajet' },
+      { name: 'Travail', this: 'au travail', of: 'du travail', end: 'Fin du travail' },
+    ],
+    evening: 'Soir',
+    events: {
+      wetsock: ['La Chaussette mouillée', 'Vous avez marché dessus toute la matinée sans en parler à personne.'],
+      lostkeys: ['As des clés perdues', 'Elles étaient dans votre main. Elles ont toujours été dans votre main.'],
+      toast: ['La Tartine brûlée', "Vous l'avez grattée au-dessus de l'évier comme un bloc de marbre."],
+      jar: ['La Force (du couvercle de bocal)', 'Le bocal a gagné. Vous avez mangé une tartine à la place.'],
+      snooze: ['Le Snooze', "Neuf minutes, ce n'est pas une unité de repos. Vous le savez, maintenant."],
+      queues3: ['Trois de Files', "Vous avez choisi la file la plus courte. C'était un piège."],
+      trains: ['Cavalier des trains en retard', "L'annonce s'excusait pour la gêne occasionnée. Il y en a eu."],
+      drizzle: ['Valet de la bruine', 'Pas assez de pluie pour râler. Assez pour être humide.'],
+      puddles: ['Quatre de Flaques', 'Un bus qui passait vous a fait un cours sur le déplacement des fluides.'],
+      hanged: ['Le Parapluie pendu', "Il s'est retourné devant une sortie scolaire."],
+      chariot: ['Le Chariot (bus de substitution)', 'Il desservait absolument tout.'],
+      replyall: ['La Maison Dieu (Répondre à tous)', 'Quatre cents personnes savent désormais que vous avez écrit « merci !! ».'],
+      meeting: ['La Roue (de la réunion qui aurait pu être un mail)', 'Elle a débordé. Elle déborde toujours.'],
+      printers: ["Deux d'Imprimantes", "BOURRAGE PAPIER BAC 2. Il n'y a pas de bac 2."],
+      forgotten: ['As des mots de passe oubliés', 'Il fallait au moins une majuscule et un chagrin secret.'],
+      lift: ["L'Ascenseur en panne", "Sept étages. À l'arrivée, vous étiez une autre personne."],
+      unread: ['Sept de Non-lus', 'Vous les avez tous marqués comme lus. Ils le savaient.'],
+      microwave: ["L'Amoureux (deux collègues, un micro-ondes)", "Vous avez attendu derrière le poisson. Vous n'avez pardonné à personne."],
+      spill: ['Neuf de Tasses', 'Du café, sur la chemise, exactement en forme de Belgique.'],
+    },
+    cards: {
+      breath: ['Grande inspiration', '+1 sang-froid.'],
+      walk: ['Marche rapide', '+2 ponctualité.'],
+      nod: ['Hochement poli', '+1 dignité, ou +2 si vous avez déjà joué une carte ce tour-ci.'],
+      shrug: ["Haussement d'épaules", 'Le plus gros coup de cette contrariété est réduit de 1.'],
+      headphones: ['Casque audio', 'Bloque 2 pertes de sang-froid ce tour-ci.'],
+      smalltalk: ['Papotage', 'Bloque 2 pertes de dignité ce tour-ci.'],
+      excuse: ['Pardon, excusez-moi', 'Bloque 1 perte sur chaque jauge ce tour-ci.'],
+      avocado: ["L'Avocat parfaitement mûr", '+2 sang-froid, +1 dignité.'],
+      coffee: ['Deuxième café', '+1 sang-froid. Votre prochaine carte ce tour-ci coûte 0.'],
+      early: ['Partir en avance', '+3 ponctualité, −1 sang-froid.'],
+      star: ["L'Étoile du léger optimisme", '+1 sang-froid, ponctualité et dignité.'],
+      lunch: ['La Pause déjeuner', '+3 sang-froid.'],
+      towel: ['Essuie-tout', 'Annule une contrariété de Tasses.'],
+      umbrella: ['Parapluie de rechange', 'Annule une contrariété de Parapluies.'],
+      foundkeys: ['As des clés retrouvées', 'Annule une contrariété de Clés.'],
+      book: ['Un bon livre', "Annule une contrariété de Files d'attente."],
+    },
+    kinds: { gain: 'grâce', shield: 'bouclier', ease: 'tactique', cancel: 'remède' },
+    loss: {
+      c: ['Retour au lit.', 'Sang-froid à zéro. La couette vous accueille sans poser de questions.'],
+      p: ['La journée est partie sans vous.', "Ponctualité à zéro. Elle n'a pas attendu."],
+      d: ['Votre journée est devenue une anecdote.', "Dignité à zéro. Quelqu'un racontera cette histoire à un mariage."],
+    },
+    cancelLines: ['contrariété évitée. Quelque part, un essuie-tout est fier de vous.', "contrariété évitée. Vous l'avez vue venir, pour une fois.", "contrariété évitée. Elle est tombée sur quelqu'un d'autre."],
+    easeLines: ['contrariété adoucie. Elle a eu lieu, mais en douceur.', "contrariété adoucie. Vous l'avez prise sur l'épaule.", "contrariété adoucie, comme un bleu d'une jolie couleur."],
+    readLine: (name, line) => `${name} : ${line}`,
+    sayStage: (st, n) => `${st.name}. ${n} contrariétés vous attendent.`,
+    sayShuffle: 'Vous remélangez votre défausse dans le jeu.',
+    sayPlay: name => `Vous jouez ${name}.`,
+    sayCancelled: name => `${name} : annulation. Il ne se passe rien.`,
+    sayEndure: (name, list) => `Vous encaissez ${name} : ${list}.`,
+    sayScratch: name => `Vous encaissez ${name} sans une égratignure.`,
+    sayJoins: name => `${name} rejoint votre jeu.`,
+    noSpoons: 'pas assez de cuillères', already: 'déjà annulée', onlyCancels: suit => `réservée aux ${suit}`,
+    lostSummary: (st, i, n) => `<span>Étape atteinte : ${st.name}, contrariété ${i}</span><span>Contrariétés surmontées : ${n} sur 10</span>`,
+    draftEyebrow: st => `${st.end} · entracte`,
+    draftRest: stat => `Vous soufflez un moment sur un banc. +1 ${stat}. Choisissez maintenant une carte à ajouter à votre jeu (touches 1–3).`,
+    costsAria: n => `coûte ${n} cuillères`, free: 'gratuite', nowFree: 'offerte',
+    cardAria: (name, text, cost, why) => `${name}. ${text} Coûte ${cost} cuillères.${why ? ' Indisponible : ' + why : ''}`,
+    cancelWith: name => `Parade : ${name}`, noCancel: 'Impossible à annuler',
+    eyebrowPlay: (st, i, n) => `${st.name} · contrariété ${i} sur ${n}`,
+    more: (left, st) => `encore ${left} ${st.this}`, last: st => `dernière contrariété ${st.of}`,
+    cancelledLine: 'Annulée. Il ne se passe rien.', blocked: 'Tout est bloqué.',
+    wouldEnd: stat => `Votre journée s'arrêterait là (${stat}).`,
+    blocking: (n, stat) => `bouclier ${n} ${stat}`, largest: n => `plus gros coup −${n}`, nextFree: 'prochaine carte offerte',
+    nothingYet: "Rien n'a encore été joué contre elle.",
+    spoons: 'cuillères',
+    deckInfo: (a, b) => `${a} dans le jeu · ${b} en défausse`,
+    faceDown: st => `${st} · face cachée`,
+    tags: { cancel: 'évitée', eased: 'adoucie', took: 'encaissée' },
+    eveningEyebrow: 'Soir · les cartes se retournent',
+    finalHand: 'La dernière main',
+    youCard: "Cette carte, c'est vous",
+    titles: { c: "L'Imperturbable", p: "L'Exactitude", d: 'La Prestance' },
+    up: { c: 'a gardé la tête froide pendant que la tartine brûlait', p: 'a réussi à arriver, contre toute évidence', d: 'a gardé le dos droit sous la pluie' },
+    down: { c: 'a un peu craqué, et a continué quand même', p: 'avait du retard, et a fini par arriver', d: 'a montré son pire jour, et a survécu' },
+    finalLede: title => `À l'autre bout de la ville, dans un café qui sent le manteau mouillé, quelqu'un se fait tirer les cartes. La question posée : « Est-ce que demain, ça ira ? » La cartomancienne retourne la dernière carte. C'est vous : ${title}. Quelle lecture souhaitez-vous ?`,
+    readUp: (title, line) => `« ${title}, à l'endroit, dit la cartomancienne. Une personne qui ${line}. Demain, ça ira. » En face, on hoche lentement la tête et on finit son thé.`,
+    readRev: (title, line) => `« ${title}, à l'envers, dit la cartomancienne. Une personne qui ${line}. C'est aussi une forme de force. » En face, on rit pour la première fois de la journée.`,
+    readDown: "La cartomancienne vous laisse face cachée. « Certaines cartes préfèrent ne rien dire. » Elle reverse du thé. Pour une fois dans votre vie, personne ne vous interprète.",
+    ranks: ['Une journée parfaitement mûre', 'Un mardi ordinaire', 'Une journée qui a eu lieu', 'Une journée, techniquement'],
+    summary: (rank, total, list, counts, best) => `<b>${rank}</b><span>Votre journée : ${total} sur 30 (${list})</span><span>Évitées ${counts.cancel} · adoucies ${counts.eased} · encaissées ${counts.took}</span><span>Meilleure journée de la session : ${best} sur 30</span>`,
+    ifEndure: 'Si vous encaissez maintenant',
+    endureBtn: 'Encaisser <kbd>E</kbd>',
+    handLabel: 'Votre main · touches 1–5 · ',
+    eveTitle: 'Le jeu vous tire le portrait',
+    eveLede: "Vous vous asseyez à la table de la cuisine. Le jeu se mélange tout seul, et les cartes de la journée reviennent, face cachée. Elles aimeraient vous lire votre journée. Retournez-les.",
+    turnBtn: 'Retourner la suivante <kbd>T</kbd>',
+    fUp: "Lecture à l'endroit <kbd>1</kbd>", fRev: "Lecture à l'envers <kbd>2</kbd>", fDown: 'Rester face cachée <kbd>3</kbd>',
+    againEve: 'Tirer une autre journée',
+    titleEyebrow: 'Un jeu de 19 contrariétés et 16 petites grâces',
+    titleH: 'Survivre à une journée ordinaire',
+    titleP1: "Matin, trajet, travail. Chaque contrariété est retournée à son tour et vous coûtera du <b>sang-froid</b>, de la <b>ponctualité</b> ou de la <b>dignité</b> si vous l'encaissez. Vous avez trois cuillères par contrariété à dépenser en cartes de votre main : regagner une jauge, bloquer une perte, ou annuler une contrariété de la couleur correspondante. Les Arcanes majeurs ne s'annulent pas.",
+    titleP2: "Si une jauge tombe à zéro, la journée est finie. Entre deux étapes, vous ajoutez une carte à votre jeu. Ensuite, c'est le soir.",
+    titleKeys: 'Touches : 1–5 jouer une carte · E encaisser · souris et tactile partout.',
+    startBtn: 'Couper le jeu',
+    draftTitle: 'Choisissez une carte pour votre jeu',
+    lostEyebrow: "La journée s'arrête tôt",
+    againLost: 'Retenter la journée',
+  },
+};
+
+// French typography: a narrow no-break space before ? ! : ; » and after «, applied once to every
+// French string (and to whatever a French string function returns).
+(function frenchSpacing() {
+  const fix = s => s.replace(/ ([?!:;»])/g, '\u202f$1').replace(/« /g, '«\u202f');
+  const deep = v => typeof v === 'string' ? fix(v)
+    : typeof v === 'function' ? (...a) => fix(v(...a))
+    : Array.isArray(v) ? v.map(deep)
+    : v && typeof v === 'object' ? Object.fromEntries(Object.entries(v).map(([k, x]) => [k, deep(x)]))
+    : v;
+  I18N.fr = deep(I18N.fr);
+})();
+
+let lang = 'en';
+const t = k => I18N[lang][k] ?? I18N.en[k];
+const stat = k => t('stats')[k];
+const evName = id => t('events')[id][0];
+const cardName = key => t('cards')[key][0];
+const stageT = i => t('stages')[i];
+// The smoke jumps compare the end title with this table, which is the English one.
+const LOSS = I18N.en.loss;
+
+let G, T, uid = 0, best = 0;
+let bump = new Set();
+
+function shuffle(a) {
+  for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; }
+  return a;
+}
+function sample(pool, n) { return shuffle(pool.slice()).slice(0, n); }
+const card = key => ({ id: ++uid, key });
+
+function newGame() {
+  G = { stats: { c: START, p: START, d: START }, stage: 0, idx: 0, events: [], draw: shuffle(START_DECK.map(card)), discard: [], hand: [], log: [], history: [], mode: 'play' };
+  $('#table').hidden = false;
+  $('#evening').hidden = true;
+  startStage();
+}
+
+function startStage() {
+  const st = STAGES[G.stage];
+  G.events = sample(st.pool, st.n);
+  G.idx = 0;
+  const s = G.stage;
+  say(() => t('sayStage')(stageT(s), st.n));
+  startEvent();
+}
+
+function startEvent() {
+  T = { shield: { c: 0, p: 0, d: 0 }, reduce: 0, cancel: false, free: false, played: 0, spoons: SPOONS };
+  fillHand();
+  render(true);
+}
+
+function fillHand() {
+  while (G.hand.length < HAND) {
+    if (!G.draw.length) {
+      if (!G.discard.length) break;
+      G.draw = shuffle(G.discard);
+      G.discard = [];
+      say(() => t('sayShuffle'));
+    }
+    G.hand.push(G.draw.pop());
+  }
+}
+
+// Clamped so the table can be re-rendered (for a language switch) behind the interlude, when
+// idx has run one past the stage; in play idx is always in range.
+const ev = () => EVENTS[G.events[Math.min(G.idx, G.events.length - 1)]];
+const costOf = c => (T.free ? 0 : CARDS[c.key].cost);
+
+function playable(c) {
+  const d = CARDS[c.key];
+  if (costOf(c) > T.spoons) return t('noSpoons');
+  if (d.kind === 'cancel') {
+    if (T.cancel) return t('already');
+    if (ev().suit !== d.suit) return t('onlyCancels')(t('suits')[d.suit]);
+  }
+  return '';
+}
+
+function play(i) {
+  if (G.mode !== 'play') return;
+  const c = G.hand[i];
+  if (!c || playable(c)) return;
+  const d = CARDS[c.key];
+  const cost = costOf(c);
+  T.free = false;
+  T.spoons -= cost;
+  d.fx();
+  T.played++;
+  G.hand.splice(i, 1);
+  G.discard.push(c);
+  say(() => t('sayPlay')(cardName(c.key)));
+  if (checkLoss()) return;
+  render(false);
+}
+
+function outcome() {
+  if (T.cancel) return { cancel: true, dmg: { c: 0, p: 0, d: 0 } };
+  const raw = { c: 0, p: 0, d: 0, ...ev().hit };
+  for (let r = 0; r < T.reduce; r++) {
+    let k = null;
+    for (const s of KEYS) if (raw[s] > 0 && (k === null || raw[s] > raw[k])) k = s;
+    if (k) raw[k]--;
+  }
+  const dmg = {};
+  for (const s of KEYS) dmg[s] = Math.max(0, raw[s] - T.shield[s]);
+  return { cancel: false, dmg };
+}
+
+function endure() {
+  if (G.mode !== 'play') return;
+  const e = ev(), o = outcome();
+  const total = KEYS.reduce((a, k) => a + (e.hit[k] || 0), 0);
+  const taken = KEYS.reduce((a, k) => a + o.dmg[k], 0);
+  for (const k of KEYS) if (o.dmg[k]) gain(k, -o.dmg[k]);
+  const kind = o.cancel ? 'cancel' : taken < total ? 'eased' : 'took';
+  G.history.push({ key: G.events[G.idx], kind });
+  const dmg = o.dmg;
+  say(() => o.cancel ? t('sayCancelled')(evName(e.id)) : taken ? t('sayEndure')(evName(e.id), KEYS.filter(k => dmg[k]).map(k => `−${dmg[k]} ${stat(k)}`).join(', ')) : t('sayScratch')(evName(e.id)));
+  if (checkLoss()) return;
+  G.idx++;
+  if (G.idx < STAGES[G.stage].n) startEvent();
+  else stageEnd();
+}
+
+function checkLoss() {
+  const k = KEYS.find(s => G.stats[s] <= 0);
+  if (!k) return false;
+  G.mode = 'lost';
+  G.lostK = k;
+  render(false);
+  renderLost();
+  $('#lost-ov').hidden = false;
+  $('#again-lost').focus();
+  return true;
+}
+function renderLost() {
+  const k = G.lostK;
+  $('#lost-title').textContent = t('loss')[k][0];
+  $('#lost-sub').textContent = t('loss')[k][1];
+  $('#lost-summary').innerHTML = t('lostSummary')(stageT(G.stage), G.idx + 1, G.history.length);
+}
+
+function lowest() { return KEYS.reduce((a, k) => (G.stats[k] < G.stats[a] ? k : a), 'c'); }
+function highest() { return KEYS.reduce((a, k) => (G.stats[k] > G.stats[a] ? k : a), 'c'); }
+
+function stageEnd() {
+  if (G.stage >= STAGES.length - 1) return evening();
+  G.mode = 'draft';
+  const lo = lowest();
+  gain(lo, 1);
+  renderStats();
+  G.offer = sample(DRAFT, 3);
+  G.rested = lo;
+  renderDraft();
+  $('#draft-ov').hidden = false;
+  $('#draft').querySelector('button').focus();
+}
+function renderDraft() {
+  $('#draft-eyebrow').textContent = t('draftEyebrow')(stageT(G.stage));
+  $('#draft-rest').textContent = t('draftRest')(stat(G.rested));
+  const box = $('#draft');
+  box.innerHTML = '';
+  G.offer.forEach((key, n) => {
+    const b = cardButton({ id: 0, key }, n, '');
+    b.onclick = () => pick(key);
+    box.appendChild(b);
+  });
+}
+
+function pick(key) {
+  if (G.mode !== 'draft') return;
+  G.draw.push(card(key));
+  shuffle(G.draw);
+  say(() => t('sayJoins')(cardName(key)));
+  $('#draft-ov').hidden = true;
+  G.mode = 'play';
+  G.stage++;
+  startStage();
+}
+
+// Log lines are functions of the current language, so the short log re-reads after a switch.
+function say(line) { G.log.unshift(line); G.log.length = Math.min(G.log.length, 3); }
+
+// emblems are built from a few primitives so they stay legible at any size
+function polyStar(n, r1, r2) {
+  const p = [];
+  for (let i = 0; i < n * 2; i++) {
+    const r = i % 2 ? r2 : r1, a = (Math.PI * i) / n - Math.PI / 2;
+    p.push(`${(20 + r * Math.cos(a)).toFixed(1)},${(20 + r * Math.sin(a)).toFixed(1)}`);
+  }
+  return `<polygon points="${p.join(' ')}"/>`;
+}
+function sun() {
+  let s = '<circle cx="20" cy="20" r="7"/>';
+  for (let i = 0; i < 8; i++) {
+    const a = (Math.PI * i) / 4;
+    s += `<line x1="${(20 + 10 * Math.cos(a)).toFixed(1)}" y1="${(20 + 10 * Math.sin(a)).toFixed(1)}" x2="${(20 + 16 * Math.cos(a)).toFixed(1)}" y2="${(20 + 16 * Math.sin(a)).toFixed(1)}" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>`;
+  }
+  return s;
+}
+const EMBLEM = {
+  mugs: '<rect x="8" y="13" width="17" height="19" rx="2.5"/><path d="M25 17h3.5a4.5 4.5 0 0 1 0 9H25" fill="none" stroke="currentColor" stroke-width="3"/><path d="M12 9c0-2 2-2 2-4M18 9c0-2 2-2 2-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>',
+  umbrellas: '<path d="M5 21a15 15 0 0 1 30 0z"/><path d="M20 21v10a3 3 0 0 1-6 0" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>',
+  keys: '<circle cx="12" cy="20" r="6" fill="none" stroke="currentColor" stroke-width="3.5"/><path d="M18 20h16M29 20v6M34 20v4" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round"/>',
+  queues: '<circle cx="9" cy="12" r="4"/><circle cx="20" cy="12" r="4"/><circle cx="31" cy="12" r="4"/><rect x="5" y="18" width="8" height="14" rx="3"/><rect x="16" y="18" width="8" height="14" rx="3"/><rect x="27" y="18" width="8" height="14" rx="3"/>',
+  major: polyStar(8, 16, 6.5),
+  gain: sun(),
+  shield: '<path d="M20 5l12 5v9c0 8-5 13-12 16-7-3-12-8-12-16v-9z"/>',
+  ease: '<path d="M5 24c6-9 10-9 15-2s9 7 15-2" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round"/>',
+  you: polyStar(5, 16, 7),
+};
+const svg = k => `<svg viewBox="0 0 40 40" fill="currentColor" aria-hidden="true">${EMBLEM[k]}</svg>`;
+const spoon = used => `<svg viewBox="0 0 10 20" fill="currentColor" class="${used ? 'used' : ''}" aria-hidden="true"><ellipse cx="5" cy="4.5" rx="3.6" ry="4.3"/><rect x="4" y="8" width="2" height="11" rx="1"/></svg>`;
+
+function cardButton(c, n, why) {
+  const d = CARDS[c.key];
+  const b = document.createElement('button');
+  b.className = 'card hand-card';
+  b.disabled = !!why;
+  const cost = T && G.mode === 'play' && c.id ? costOf(c) : d.cost;
+  const free = cost < d.cost;
+  const [name, text] = t('cards')[c.key];
+  b.innerHTML = `
+    <div class="card-top"><span>${n + 1}</span><span class="cost" aria-label="${t('costsAria')(cost)}">${cost ? Array.from({ length: cost }, () => spoon(false)).join('') : `<span class="free-tag">${t('free')}</span>`}</span></div>
+    <div class="emblem">${svg(d.kind === 'cancel' ? d.suit : d.kind)}</div>
+    <h3 class="card-title">${name}</h3>
+    <div class="text">${text}</div>
+    <div class="card-foot"><span>${t('kinds')[d.kind]}</span><span>${why || (free ? t('nowFree') : '')}</span></div>`;
+  b.setAttribute('aria-label', t('cardAria')(name, text, cost, why));
+  return b;
+}
+
+function eventCard(e, extra = '') {
+  const hits = KEYS.filter(k => e.hit[k]).map(k => `<li class="hit ${k}">−${e.hit[k]} ${stat(k)}</li>`).join('');
+  const foot = SUIT[e.suit].cancel ? t('cancelWith')(cardName(SUIT[e.suit].cancel)) : t('noCancel');
+  return `<article class="card event suit-${e.suit} ${extra}">
+    <div class="card-top"><span class="numeral">${e.num}</span><span>${t('suits')[e.suit]}</span></div>
+    <div class="emblem">${svg(e.suit)}</div>
+    <h2 class="card-title">${evName(e.id)}</h2>
+    <ul class="hits">${hits}</ul>
+    <div class="card-foot">${foot}</div>
+  </article>`;
+}
+
+function renderStats() {
+  $('#stats').innerHTML = KEYS.map(k => {
+    const v = G.stats[k];
+    return `<div class="stat ${k} ${v <= 2 ? 'low' : ''} ${bump.has(k) ? 'bump' : ''}"><span>${stat(k)}</span><span class="pips">${Array.from({ length: MAX }, (_, i) => `<i class="${i < v ? 'on' : ''}"></i>`).join('')}</span><span class="num">${v}</span></div>`;
+  }).join('');
+  bump = new Set();
+}
+
+function renderTrack() {
+  const names = [...t('stages').map(s => s.name), t('evening')];
+  const now = G.mode === 'evening' ? 3 : G.stage;
+  $('#track').innerHTML = names.map((n, i) => `<span class="${i === now ? 'now' : i < now ? 'done' : ''}">${n}</span>`).join('');
+}
+
+function render(reveal) {
+  renderStats();
+  renderTrack();
+  if (G.mode === 'evening') return;
+  const st = STAGES[G.stage], e = ev(), sT = stageT(G.stage);
+  $('#eyebrow').textContent = t('eyebrowPlay')(sT, Math.min(G.idx + 1, st.n), st.n);
+  $('#event').innerHTML = eventCard(e, reveal ? 'reveal' : '');
+  const left = Math.max(0, st.n - G.idx - 1);
+  $('#upcoming').innerHTML = left ? `${Array.from({ length: left }, () => '<span class="back"></span>').join('')}<span>${t('more')(left, sT)}</span>` : `<span>${t('last')(sT)}</span>`;
+
+  const o = outcome();
+  let line;
+  if (o.cancel) line = `<span class="calm">${t('cancelledLine')}</span>`;
+  else {
+    const chips = KEYS.filter(k => o.dmg[k]).map(k => `<span class="hit ${k}">−${o.dmg[k]} ${stat(k)}</span>`).join('');
+    line = chips || `<span class="calm">${t('blocked')}</span>`;
+    const dies = KEYS.find(k => G.stats[k] - o.dmg[k] <= 0);
+    if (dies) line += `<span class="warn">${t('wouldEnd')(stat(dies))}</span>`;
+  }
+  $('#preview').innerHTML = line;
+  const mods = [];
+  for (const k of KEYS) if (T.shield[k]) mods.push(t('blocking')(T.shield[k], stat(k)));
+  if (T.reduce) mods.push(t('largest')(T.reduce));
+  if (T.free) mods.push(t('nextFree'));
+  $('#mods').textContent = mods.length ? mods.join(' · ') : t('nothingYet');
+  $('#spoons').innerHTML = `<span>${t('spoons')}</span>${Array.from({ length: SPOONS }, (_, i) => spoon(i >= T.spoons)).join('')}`;
+  $('#log').innerHTML = G.log.map(l => `<li>${l()}</li>`).join('');
+  $('#deckinfo').textContent = t('deckInfo')(G.draw.length, G.discard.length);
+
+  const hand = $('#hand');
+  hand.innerHTML = '';
+  G.hand.forEach((c, i) => {
+    const b = cardButton(c, i, playable(c));
+    b.onclick = () => play(i);
+    hand.appendChild(b);
+  });
+}
+
+// evening: the deck reads your day back to you
+function reading(h, i) {
+  const name = evName(h.key);
+  if (h.kind === 'cancel') return { tag: t('tags').cancel, text: t('readLine')(name, t('cancelLines')[i % 3]) };
+  if (h.kind === 'eased') return { tag: t('tags').eased, text: t('readLine')(name, t('easeLines')[i % 3]) };
+  return { tag: t('tags').took, text: t('events')[h.key][1] };
+}
+
+// The face-down evening cards are labelled by the stage they came from.
+const READ_STAGE = [0, 0, 0, 1, 1, 1, 2, 2, 2, 2];
+function paintReading(b, i) {
+  if (b.classList.contains('down')) { b.textContent = t('faceDown')(stageT(READ_STAGE[i]).name); return; }
+  const h = G.history[i], name = evName(h.key), r = reading(h, i);
+  b.innerHTML = `<span class="tag">${r.tag}</span><h3 class="card-title">${name}</h3><div class="text">${r.text}</div>`;
+  b.setAttribute('aria-label', `${name}, ${r.tag}. ${r.text}`);
+}
+
+function evening() {
+  G.mode = 'evening';
+  G.turned = 0;
+  $('#table').hidden = true;
+  $('#evening').hidden = false;
+  $('#final').hidden = true;
+  // finalHand() swaps the heading's key; a second evening in the same session starts over.
+  const title = $('#eve-title');
+  title.dataset.t = 'eveTitle'; title.textContent = t('eveTitle');
+  $('#eyebrow').textContent = t('eveningEyebrow');
+  renderStats();
+  renderTrack();
+  const box = $('#readings');
+  box.innerHTML = '';
+  G.history.forEach((h, i) => {
+    const b = document.createElement('button');
+    b.className = 'reading down';
+    paintReading(b, i);
+    b.onclick = () => turn(i);
+    box.appendChild(b);
+  });
+  $('#turn').hidden = false;
+  $('#turn').focus();
+}
+
+function turn(i) {
+  if (G.mode !== 'evening') return;
+  if (i === undefined) i = G.history.findIndex((_, n) => box()[n].classList.contains('down'));
+  const b = box()[i];
+  if (!b || !b.classList.contains('down')) return;
+  b.className = 'card reading';
+  paintReading(b, i);
+  G.turned++;
+  if (G.turned >= G.history.length) finalHand();
+}
+const box = () => $('#readings').children;
+
+function finalHand() {
+  $('#turn').hidden = true;
+  G.mode = 'final';
+  const hi = highest(), total = KEYS.reduce((a, k) => a + G.stats[k], 0);
+  G.you = { hi, lo: lowest(), total };
+  const title = $('#eve-title');
+  title.dataset.t = 'finalHand'; title.textContent = t('finalHand');
+  $('#you-card').innerHTML = `<article class="card event suit-major" id="you-art">
+    <div class="card-top"><span class="numeral">${total}</span><span id="you-suit"></span></div>
+    <div class="emblem">${svg('you')}</div>
+    <h2 class="card-title" id="you-title"></h2>
+    <ul class="hits" id="you-hits"></ul>
+    <div class="card-foot" id="you-foot"></div>
+  </article>`;
+  paintFinal();
+  $('#outcome').hidden = true;
+  $('#summary').hidden = true;
+  $('#again-eve').hidden = true;
+  $('#final-buttons').hidden = false;
+  $('#final').hidden = false;
+  $('#f-up').focus();
+}
+
+function interpret(how) {
+  if (G.mode !== 'final') return;
+  G.mode = 'over';
+  G.how = how;
+  if (how !== 'up') $('#you-art').classList.add('reversed');
+  if (how === 'down') $('#you-art').querySelector('.emblem').style.visibility = 'hidden';
+  best = Math.max(best, G.you.total);
+  G.best = best;
+  paintOutcome();
+  $('#final-buttons').hidden = true;
+  $('#outcome').hidden = false;
+  $('#summary').hidden = false;
+  $('#again-eve').hidden = false;
+  $('#again-eve').focus();
+}
+
+function paintFinal() {
+  const { hi } = G.you;
+  $('#you-suit').textContent = t('suits').major;
+  $('#you-title').textContent = t('titles')[hi];
+  $('#you-hits').innerHTML = KEYS.map(k => `<li class="hit ${k}">${G.stats[k]} ${stat(k)}</li>`).join('');
+  $('#you-foot').textContent = t('youCard');
+  $('#final-lede').textContent = t('finalLede')(t('titles')[hi]);
+}
+
+function paintOutcome() {
+  const { hi, lo, total } = G.you, how = G.how, title = t('titles')[hi];
+  $('#outcome').textContent = how === 'up' ? t('readUp')(title, t('up')[hi])
+    : how === 'rev' ? t('readRev')(title, t('down')[lo]) : t('readDown');
+  const ranks = t('ranks');
+  const rank = total >= 24 ? ranks[0] : total >= 17 ? ranks[1] : total >= 10 ? ranks[2] : ranks[3];
+  const counts = { cancel: 0, eased: 0, took: 0 };
+  G.history.forEach(h => counts[h.kind]++);
+  $('#summary').innerHTML = t('summary')(rank, total, KEYS.map(k => `${stat(k)} ${G.stats[k]}`).join(' · '), counts, G.best);
+}
+
+// Static markup carries data-t (text), data-th (trusted markup from I18N) and data-ta
+// (aria-label). Everything script-built is re-rendered for the current mode; the short play log
+// is kept as functions, so it re-reads too.
+function applyLang() {
+  document.documentElement.lang = lang;
+  document.title = t('docTitle');
+  for (const el of document.querySelectorAll('[data-t]')) el.textContent = t(el.dataset.t);
+  for (const el of document.querySelectorAll('[data-th]')) el.innerHTML = t(el.dataset.th);
+  for (const el of document.querySelectorAll('[data-ta]')) el.setAttribute('aria-label', t(el.dataset.ta));
+  for (const b of document.querySelectorAll('.lang')) {
+    if (!b.children.length) b.innerHTML = '<button type="button" data-lang="fr" lang="fr">FR</button><button type="button" data-lang="en" lang="en">EN</button>';
+    for (const x of b.children) x.setAttribute('aria-pressed', String(x.dataset.lang === lang));
+  }
+  if (!G) return;
+  const m = G.mode;
+  if (m === 'title') { renderStats(); renderTrack(); return; }
+  if (m === 'play' || m === 'lost' || m === 'draft') render(false);
+  if (m === 'lost') renderLost();
+  if (m === 'draft') renderDraft();
+  if (m === 'evening' || m === 'final' || m === 'over') {
+    $('#eyebrow').textContent = t('eveningEyebrow');
+    renderStats(); renderTrack();
+    [...box()].forEach(paintReading);
+    if (m !== 'evening') paintFinal();
+    if (m === 'over') paintOutcome();
+  }
+}
+function setLang(l) {
+  if (!(l in I18N) || l === lang) return;
+  lang = l;
+  applyLang();
+}
+document.addEventListener('click', e => {
+  const b = e.target.closest('[data-lang]');
+  if (b) setLang(b.dataset.lang);
+});
+
+$('#start').onclick = () => { $('#title-ov').hidden = true; newGame(); };
+$('#endure').onclick = endure;
+$('#turn').onclick = () => turn();
+$('#f-up').onclick = () => interpret('up');
+$('#f-rev').onclick = () => interpret('rev');
+$('#f-down').onclick = () => interpret('down');
+$('#again-lost').onclick = () => { $('#lost-ov').hidden = true; newGame(); };
+$('#again-eve').onclick = () => newGame();
+
+addEventListener('keydown', e => {
+  if (e.metaKey || e.ctrlKey || e.altKey) return;
+  const n = Number(e.key);
+  if (!G) return;
+  if (G.mode === 'play') {
+    if (n >= 1 && n <= HAND) play(n - 1);
+    else if (e.key === 'e' || e.key === 'E') endure();
+  } else if (G.mode === 'draft' && n >= 1 && n <= 3) pick(G.offer[n - 1]);
+  else if (G.mode === 'evening' && (e.key === 't' || e.key === 'T')) turn();
+  else if (G.mode === 'final' && n >= 1 && n <= 3) interpret(['up', 'rev', 'down'][n - 1]);
+});
+
+function start(data) {
+  best = data.best || 0;
+  lang = data?.lang in I18N ? data.lang : (navigator.language || '').toLowerCase().startsWith('fr') ? 'fr' : 'en';
+  G = { stats: { c: START, p: START, d: START }, stage: 0, mode: 'title' };
+  applyLang();
+  $('#start').focus();
+}
+window.claude?.hot?.snapshot?.(() => ({ best, lang }));
+window.claude?.hot?.ready ? window.claude.hot.ready(start) : start(window.claude?.hot?.data ?? {});
+</script>
+</body>
+</html>

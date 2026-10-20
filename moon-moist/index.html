@@ -1,0 +1,616 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Please Keep the Moon Moist</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rubik+Puddles&family=Newsreader:ital,opsz,wght@1,6..72,400;1,6..72,600&family=DM+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one window onto a damp night sky; HUD floats in the corners, the moon talks along the bottom. Single-world (night) by choice. */
+:root {
+  --sky-deep: #1a1430;
+  --sky-low: #3b2348;
+  --bone: #efe6d2;
+  --rose: #e58f9e;
+  --sodium: #f2a65a;
+  --rain: #9fd0e8;
+  --ink-dim: #b3a6c4;
+  --f-display: "Rubik Puddles", "Comic Sans MS", system-ui, sans-serif;
+  --f-voice: "Newsreader", Georgia, "Times New Roman", serif;
+  --f-ui: "DM Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  color-scheme: dark;
+}
+[hidden] { display: none !important; }
+html, body { height: 100%; }
+body {
+  margin: 0;
+  background: var(--sky-deep);
+  color: var(--bone);
+  font-family: var(--f-ui);
+  padding-block: 16px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  box-sizing: border-box;
+  overflow: hidden;
+}
+.frame {
+  position: relative;
+  height: 100%;
+  border-radius: 22px;
+  overflow: hidden;
+  background: var(--sky-deep);
+  box-shadow: 0 0 0 1px #ffffff14, 0 30px 80px #00000080;
+  filter: hue-rotate(var(--hue, 0deg));
+  transition: filter 1.2s ease;
+}
+canvas { display: block; width: 100%; height: 100%; touch-action: none; cursor: none; }
+.hud { position: absolute; inset: 0; pointer-events: none; display: grid; grid-template-rows: auto 1fr auto; padding: 16px 18px; gap: 12px; }
+.top { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; flex-wrap: wrap; }
+.brand { font-family: var(--f-display); font-size: 18px; color: var(--rose); line-height: 1.1; max-width: 16ch; }
+.rule { font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-dim); margin-top: 6px; max-width: 32ch; }
+.meter-wrap { display: grid; gap: 6px; justify-items: end; min-width: 180px; }
+.score { font-size: 15px; font-variant-numeric: tabular-nums; color: var(--bone); text-align: right; }
+.score small { color: var(--ink-dim); font-size: 11px; letter-spacing: .06em; }
+.meter { position: relative; width: 200px; max-width: 46vw; height: 12px; border-radius: 99px; background: #ffffff12; overflow: hidden; }
+.meter i { position: absolute; inset: 0 auto 0 0; width: 50%; border-radius: inherit; background: var(--rain); transition: background .3s; }
+.meter b { position: absolute; top: 0; bottom: 0; left: 35%; width: 55%; border-left: 1px dashed #ffffff55; border-right: 1px dashed #ffffff55; }
+.meter-label { font-size: 10px; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-dim); }
+.voice { justify-self: center; text-align: center; font-family: var(--f-voice); font-style: italic; font-size: clamp(17px, 2.6vw, 24px); color: var(--bone); max-width: 34ch; text-wrap: balance; min-height: 1.4em; text-shadow: 0 2px 18px #1a1430; }
+.voice::before { content: "the moon: "; font-style: normal; font-family: var(--f-ui); font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--sodium); vertical-align: middle; }
+html[lang="fr"] .voice::before { content: "la lune\202F: "; }
+.lang { display: inline-flex; margin-top: 8px; border-radius: 99px; overflow: hidden; box-shadow: inset 0 0 0 1px #ffffff44; pointer-events: auto; }
+.lang button { padding: 5px 11px; border-radius: 0; background: transparent; color: var(--ink-dim); font: 500 11px var(--f-ui); letter-spacing: .1em; }
+.lang button:hover { transform: none; background: #ffffff14; color: var(--bone); }
+.lang button[aria-pressed="true"] { background: var(--sodium); color: var(--sky-deep); }
+.card .lang { margin-top: 0; }
+.overlay { position: absolute; inset: 0; display: grid; place-items: center; padding: 24px; background: radial-gradient(ellipse at 50% 40%, #1a143099, #1a1430ee); }
+.card { display: grid; gap: 16px; max-width: 520px; text-align: center; justify-items: center; }
+.card h1 { margin: 0; font-family: var(--f-display); font-weight: 400; font-size: clamp(40px, 8vw, 76px); line-height: .95; color: var(--bone); text-wrap: balance; }
+.card h1 em { font-style: normal; color: var(--rain); }
+.card h2 { margin: 0; font-family: var(--f-voice); font-style: italic; font-weight: 600; font-size: clamp(22px, 4vw, 32px); text-wrap: balance; color: var(--bone); }
+.card p { margin: 0; font-size: 13px; line-height: 1.65; color: var(--ink-dim); max-width: 46ch; }
+.card p.voice-line { font-family: var(--f-voice); font-style: italic; font-size: 18px; color: var(--bone); }
+.row { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; }
+button {
+  font: 500 14px var(--f-ui); letter-spacing: .04em;
+  color: var(--sky-deep); background: var(--sodium);
+  border: 0; border-radius: 99px; padding: 12px 22px; cursor: pointer;
+  transition: transform .15s, background .15s;
+}
+button:hover { transform: translateY(-2px) rotate(-1.5deg); background: var(--rose); }
+button:focus-visible { outline: 2px solid var(--rain); outline-offset: 3px; }
+button.ghost { background: transparent; color: var(--bone); box-shadow: inset 0 0 0 1px #ffffff44; }
+.keys { font-size: 11px; color: var(--ink-dim); letter-spacing: .05em; }
+.stat { font-variant-numeric: tabular-nums; font-size: 14px; color: var(--sodium); }
+@media (max-width: 520px) {
+  .brand { font-size: 15px; }
+  .meter-wrap { min-width: 0; }
+}
+</style>
+</head>
+<body>
+
+<div class="frame" id="frame">
+  <canvas id="sky" data-ta="skyLabel" aria-label="Game: a dry moon drifts across the night sky"></canvas>
+
+  <div class="hud" aria-live="polite">
+    <div class="top">
+      <div>
+        <div class="brand" id="brand">keep the moon moist</div>
+        <div class="rule" id="rule">Rule 1 · rain falls down. probably.</div>
+        <div class="lang" role="group" data-ta="langLabel" aria-label="Language"></div>
+      </div>
+      <div class="meter-wrap">
+        <div class="score"><span id="score">0</span> <small id="unit">moist points</small></div>
+        <div class="meter"><b></b><i id="fill"></i></div>
+        <div class="meter-label" id="mlabel">moon moisture</div>
+      </div>
+    </div>
+    <div></div>
+    <div class="voice" id="voice"></div>
+  </div>
+
+  <div class="overlay" id="title">
+    <div class="card">
+      <h1 data-th="titleH">Please keep the moon <em>moist</em></h1>
+      <p data-t="titleP">You are a cloud. Move to drift, hold to rain. Keep the moon between damp and drenched, inside the dashed lines. The rules will change. The moon will explain. The explanations will not help.</p>
+      <button id="start" data-t="startBtn">Become a cloud</button>
+      <div class="keys" data-t="keys">mouse or touch · or arrow keys + space</div>
+      <div class="lang" role="group" data-ta="langLabel" aria-label="Language"></div>
+    </div>
+  </div>
+
+  <div class="overlay" id="question" hidden>
+    <div class="card">
+      <h2 data-t="qH">Do you remember being a cloud?</h2>
+      <p class="voice-line" data-t="qP">take your time. i have 4.5 billion years and a light drizzle.</p>
+      <div class="row">
+        <button id="q-yes" data-t="qYes">Yes</button>
+        <button id="q-also" class="ghost" data-t="qAlso">Also yes</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="overlay" id="over" hidden>
+    <div class="card">
+      <h2 id="over-line">The moon is a cracker now.</h2>
+      <p class="voice-line" id="over-sub">it was great though.</p>
+      <div class="stat" id="over-stat"></div>
+      <button id="again" data-t="againBtn">Try again, cloud</button>
+      <div class="lang" role="group" data-ta="langLabel" aria-label="Language"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const $ = s => document.querySelector(s);
+const cv = $('#sky'), cx = cv.getContext('2d');
+const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+let W = 0, H = 0;
+function resize() {
+  const r = cv.getBoundingClientRect(), d = Math.min(2, devicePixelRatio || 1);
+  W = r.width; H = r.height;
+  cv.width = W * d; cv.height = H * d;
+  cx.setTransform(d, 0, 0, d, 0, 0);
+}
+addEventListener('resize', resize);
+
+// Every player-visible string, read through t(). Game logic keys on phase ids and indexes only,
+// so switching language mid-game changes words, never rules or scores.
+const I18N = {
+  en: {
+    docTitle: 'Please Keep the Moon Moist',
+    skyLabel: 'Game: a dry moon drifts across the night sky',
+    langLabel: 'Language',
+    titleH: 'Please keep the moon <em>moist</em>',
+    titleP: 'You are a cloud. Move to drift, hold to rain. Keep the moon between damp and drenched, inside the dashed lines. The rules will change. The moon will explain. The explanations will not help.',
+    startBtn: 'Become a cloud',
+    keys: 'mouse or touch · or arrow keys + space',
+    qH: 'Do you remember being a cloud?',
+    qP: 'take your time. i have 4.5 billion years and a light drizzle.',
+    qYes: 'Yes', qAlso: 'Also yes',
+    againBtn: 'Try again, cloud',
+    rule: (n, r) => `Rule ${n} · ${r}`,
+    units: ['moist points', 'grandmothers', 'Tuesdays', 'litres of yes', 'kelvin of regret', 'moons (?)'],
+    brands: ['keep the moon moist', 'keep the moist moon', 'moon the moist keep', 'moist the keep moon', 'keep keep keep'],
+    meter: ['moon moisture', 'moon feelings', 'how much the moon believes in you', 'your moisture (it was always yours)'],
+    phases: {
+      dry: { rule: 'rain falls down. probably.',
+        lines: ['please. i am so dry.', 'i have been dry since the cretaceous.', 'you again. i dreamt you were a sponge.'] },
+      up: { rule: 'rain now falls up. get underneath.',
+        lines: ['i asked gravity to look away for a bit.', 'up is the new down. down is on holiday.', 'the floor has resigned.'] },
+      twins: { rule: 'two moons. wet the one that blinks.',
+        lines: ['one of us is lying. it is not me. it is also me.', 'he is my cousin from the other tide.', 'do not water the impostor. he is a lamp.'] },
+      mirror: { rule: 'left is right now. right is a feeling.',
+        lines: ['i turned you inside out. you looked cold.', 'your hands are in a mirror. get them back later.', 'west has been moved east for maintenance.'] },
+      fish: { rule: 'the rain is fish. fish are wet. it counts.',
+        lines: ['the clouds unionised. fish were cheaper.', 'every fish is a raindrop that went to school.', 'thank you for the herring. i will name it Tuesday.'] },
+      swap: { rule: 'you are the moon now. stand under the rain.',
+        lines: ['thank you. now it is my turn to be the cloud.', 'this was always the plan. i am raining on purpose.', 'we have done this before. you were better at it.'] },
+    },
+    quips: {
+      dry: ['i can feel my craters.', 'i am becoming a biscuit.', 'water. or soup. i am not picky.'],
+      wet: ['too much. i am going soft at the edges.', 'i am a pudding now. stop.', 'the tide is coming from inside me.'],
+      ok: ['yes. like that. like a gentle sponge.', 'you have a very wet aura.', 'mmm. damp.'],
+    },
+    ends: {
+      dry: ['The moon is a cracker now.', 'it was great though. i was a good cracker.'],
+      soup: ['The moon dissolved into soup.', 'it was delicious. that is worse.'],
+    },
+    stat: (score, unit, best, rule) => `${score} ${unit} · best ${best} · reached rule ${rule}`,
+  },
+  fr: {
+    docTitle: 'Prière de garder la lune humide',
+    skyLabel: 'Jeu : une lune sèche dérive dans le ciel nocturne',
+    langLabel: 'Langue',
+    titleH: 'Prière de garder la lune <em>humide</em>',
+    titleP: 'Vous êtes un nuage. Bougez pour dériver, maintenez pour pleuvoir. Gardez la lune entre moite et trempée, entre les pointillés. Les règles vont changer. La lune va expliquer. Les explications ne vont pas aider.',
+    startBtn: 'Devenir nuage',
+    keys: 'souris ou tactile · ou flèches + espace',
+    qH: 'Vous souvenez-vous d’avoir été un nuage ?',
+    qP: 'prenez votre temps. j’ai 4,5 milliards d’années et une petite bruine.',
+    qYes: 'Oui', qAlso: 'Oui aussi',
+    againBtn: 'Encore une fois, nuage',
+    rule: (n, r) => `Règle ${n} · ${r}`,
+    units: ['points d’humidité', 'grands-mères', 'mardis', 'litres de oui', 'kelvins de regret', 'lunes (?)'],
+    brands: ['garder la lune humide', 'garder l’humide lune', 'lune la humide garder', 'humide la garder lune', 'garder garder garder'],
+    meter: ['humidité lunaire', 'sentiments lunaires', 'combien la lune croit en vous', 'votre humidité (elle a toujours été la vôtre)'],
+    phases: {
+      dry: { rule: 'la pluie tombe vers le bas. a priori.',
+        lines: ['pitié. je suis si sèche.', 'je suis sèche depuis le crétacé.', 'encore vous. j’ai rêvé que vous étiez une éponge.'] },
+      up: { rule: 'la pluie tombe vers le haut. passez dessous.',
+        lines: ['j’ai demandé à la gravité de regarder ailleurs un instant.', 'le haut est le nouveau bas. le bas est en congés.', 'le sol a démissionné.'] },
+      twins: { rule: 'deux lunes. arrosez celle qui cligne.',
+        lines: ['l’une de nous ment. ce n’est pas moi. c’est aussi moi.', 'c’est mon cousin de l’autre marée.', 'n’arrosez pas l’imposteur. c’est un lampadaire.'] },
+      mirror: { rule: 'la gauche est à droite. la droite est un état d’âme.',
+        lines: ['j’ai mis votre intérieur à l’extérieur. ça avait l’air froid.', 'vos mains sont dans un miroir. récupérez-les plus tard.', 'l’ouest a été déplacé à l’est pour travaux.'] },
+      fish: { rule: 'la pluie, c’est des poissons. les poissons, c’est mouillé. ça compte.',
+        lines: ['les nuages ont fait grève. les poissons coûtaient moins cher.', 'chaque poisson est une goutte de pluie qui a fait ses classes. en banc.', 'merci pour le hareng. je l’appellerai Mardi.'] },
+      swap: { rule: 'vous êtes la lune maintenant. mettez-vous sous la pluie.',
+        lines: ['merci. maintenant c’est moi le nuage.', 'c’était prévu depuis le début. je pleus exprès.', 'on a déjà fait ça. vous le faisiez mieux.'] },
+    },
+    quips: {
+      dry: ['je sens mes cratères.', 'je deviens une biscotte.', 'de l’eau. ou de la soupe. je ne suis pas difficile.'],
+      wet: ['trop. je ramollis sur les bords.', 'je suis un flan maintenant. arrêtez.', 'la marée monte de l’intérieur.'],
+      ok: ['oui. comme ça. comme une douce éponge.', 'vous avez une aura très humide.', 'mmm. moite.'],
+    },
+    ends: {
+      dry: ['La lune est une biscotte maintenant.', 'c’était bien quand même. j’étais une bonne biscotte.'],
+      soup: ['La lune s’est dissoute dans la soupe.', 'c’était délicieux. c’est bien pire.'],
+    },
+    stat: (score, unit, best, rule) => `${score} ${unit} · record ${best} · règle ${rule} atteinte`,
+  },
+};
+
+// French typography: a narrow no-break space before ? ! : ; » and after «, applied once to every
+// French string (and to whatever a French string function returns) so no line starts with "?".
+(function frenchSpacing() {
+  const fix = s => s.replace(/ ([?!:;»])/g, '\u202f$1').replace(/« /g, '«\u202f');
+  const deep = v => typeof v === 'string' ? fix(v)
+    : typeof v === 'function' ? (...a) => fix(v(...a))
+    : Array.isArray(v) ? v.map(deep)
+    : v && typeof v === 'object' ? Object.fromEntries(Object.entries(v).map(([k, x]) => [k, deep(x)]))
+    : v;
+  I18N.fr = deep(I18N.fr);
+})();
+
+let lang = 'en';
+const t = k => I18N[lang][k] ?? I18N.en[k];
+const num = n => Math.floor(n).toLocaleString(lang);
+
+const PHASES = [
+  { key: 'dry', dur: 15 }, { key: 'up', dur: 15 }, { key: 'twins', dur: 15 },
+  { key: 'mirror', dur: 15 }, { key: 'fish', dur: 15 }, { key: 'swap', dur: 18 },
+];
+
+const stars = Array.from({ length: 110 }, () => ({ x: Math.random(), y: Math.random(), r: Math.random() * 1.4 + .3, p: Math.random() * 6.28 }));
+
+let S;
+function fresh(best = 0) {
+  return { mode: 'title', t: 0, phase: 0, phaseT: 0, loop: 0, wet: 62, soggy: 0, score: 0, best,
+    drops: [], bits: [], spawn: 0, hue: 0, fakeHits: 0 };
+}
+const ptr = { x: .5, y: .22, down: false };
+const keys = {};
+const cloud = { x: 0, y: 0 };
+const pmoon = { x: 0, y: 0 };
+
+function phase() { return PHASES[S.phase]; }
+function R() { return Math.min(W, H) * .1 + 8; }
+
+function moonAt(t, mirrored) {
+  const k = 1 + S.loop * .22;
+  const baseY = phase().key === 'up' ? H * .36 : H * .62;
+  let x = W / 2 + W * .27 * Math.sin(t * .45 * k);
+  const y = baseY + H * .14 * Math.sin(t * .71 * k + 1);
+  if (mirrored) x = W - x;
+  return { x, y };
+}
+
+function moons() {
+  const key = phase().key;
+  if (key === 'swap') return [{ ...pmoon, real: true }];
+  const list = [{ ...moonAt(S.t), real: true }];
+  if (key === 'twins') list.push({ ...moonAt(S.t + 2.2, true), real: false });
+  return list;
+}
+
+// The moon's current line is kept as a lookup (getter), so a language switch can re-say it.
+let typing = null, saying = null;
+function say(get, instant) {
+  saying = get;
+  const text = get();
+  const el = $('#voice');
+  if (instant) { clearInterval(typing); el.textContent = text; return; }
+  clearInterval(typing);
+  let i = 0;
+  el.textContent = '';
+  if (reduce) { el.textContent = text; return; }
+  typing = setInterval(() => { el.textContent = text.slice(0, ++i); if (i >= text.length) clearInterval(typing); }, 34);
+}
+
+function enterPhase(i) {
+  S.phase = i; S.phaseT = 0;
+  const p = phase();
+  if (p.key === 'swap') { pmoon.x = W / 2; pmoon.y = H * .7; }
+  const li = S.loop % 3;
+  say(() => t('phases')[p.key].lines[li]);
+  hud();
+}
+
+function hud() {
+  const p = phase(), units = t('units'), brands = t('brands'), meter = t('meter');
+  $('#rule').textContent = t('rule')(S.loop * PHASES.length + S.phase + 1, t('phases')[p.key].rule);
+  $('#unit').textContent = units[S.loop % units.length];
+  $('#brand').textContent = brands[Math.min(S.loop, brands.length - 1)];
+  $('#mlabel').textContent = p.key === 'swap' ? meter[3] : meter[Math.min(S.loop, 2)];
+}
+
+function nextPhase() {
+  const n = S.phase + 1;
+  if (n === PHASES.length - 1) { S.mode = 'question'; $('#question').hidden = false; $('#q-yes').focus(); return; }
+  if (n >= PHASES.length) { S.loop++; enterPhase(0); return; }
+  enterPhase(n);
+}
+
+function answer() {
+  S.hue = (S.hue + 55) % 360;
+  $('#frame').style.setProperty('--hue', S.hue + 'deg');
+  $('#question').hidden = true;
+  S.mode = 'play';
+  enterPhase(PHASES.length - 1);
+}
+
+function splash(x, y, col, n = 6) {
+  for (let i = 0; i < n; i++) S.bits.push({ x, y, vx: (Math.random() - .5) * 220, vy: -Math.random() * 160 - 40, life: .6, col });
+}
+
+function end(kind) {
+  S.mode = 'over';
+  S.ending = kind;
+  S.best = Math.max(S.best, S.score);
+  fillEnd();
+  $('#over').hidden = false;
+  $('#again').focus();
+}
+
+function fillEnd() {
+  const lines = t('ends')[S.ending], units = t('units');
+  $('#over-line').textContent = lines[0];
+  $('#over-sub').textContent = lines[1];
+  $('#over-stat').textContent = t('stat')(num(S.score), units[S.loop % units.length], num(S.best), S.loop * PHASES.length + S.phase + 1);
+}
+
+function update(dt) {
+  S.t += dt; S.phaseT += dt;
+  const p = phase(), key = p.key;
+  const k = 1 + S.loop * .25;
+
+  // keyboard nudges the same pointer the mouse drives
+  const kv = .9 * dt;
+  if (keys.ArrowLeft) ptr.x -= kv; if (keys.ArrowRight) ptr.x += kv;
+  if (keys.ArrowUp) ptr.y -= kv; if (keys.ArrowDown) ptr.y += kv;
+  ptr.x = Math.max(0, Math.min(1, ptr.x)); ptr.y = Math.max(0, Math.min(1, ptr.y));
+
+  let raining, up = key === 'up';
+  if (key === 'swap') {
+    pmoon.x += (ptr.x * W - pmoon.x) * Math.min(1, dt * 8);
+    pmoon.y += (Math.max(.35, ptr.y) * H - pmoon.y) * Math.min(1, dt * 8);
+    cloud.x = W / 2 + W * .36 * Math.sin(S.t * .62 * k) + W * .06 * Math.sin(S.t * 2.3);
+    cloud.y = H * .17 + 10 * Math.sin(S.t * 1.4);
+    raining = Math.sin(S.t * 1.6) > -.35;
+  } else {
+    const tx = (key === 'mirror' ? 1 - ptr.x : ptr.x) * W;
+    cloud.x += (tx - cloud.x) * Math.min(1, dt * 9);
+    cloud.y += (ptr.y * H - cloud.y) * Math.min(1, dt * 9);
+    raining = ptr.down || keys[' '];
+  }
+
+  if (raining) {
+    S.spawn += dt * 22;
+    while (S.spawn >= 1) {
+      S.spawn--;
+      S.drops.push({ x: cloud.x + (Math.random() - .5) * 56, y: cloud.y + (up ? -12 : 16), vy: up ? -180 : 180,
+        fish: key === 'fish', a: Math.random() * 6.28 });
+    }
+  }
+
+  const g = up ? -620 : 620, r = R(), ms = moons();
+  S.drops = S.drops.filter(d => {
+    d.vy += g * dt; d.y += d.vy * dt; d.a += dt * 6;
+    for (const m of ms) {
+      if (Math.hypot(d.x - m.x, d.y - m.y) < r) {
+        if (m.real) { S.wet += d.fish ? 2.6 : 2.1; splash(d.x, d.y, d.fish ? '#f2a65a' : '#9fd0e8'); }
+        else { S.wet -= 3; splash(d.x, d.y, '#e58f9e', 4); }
+        return false;
+      }
+    }
+    return d.y > -40 && d.y < H + 40;
+  });
+
+  S.bits = S.bits.filter(b => { b.life -= dt; b.vy += 500 * dt; b.x += b.vx * dt; b.y += b.vy * dt; return b.life > 0; });
+
+  S.wet -= dt * (5.6 + S.loop * 1.6);
+  S.wet = Math.min(118, S.wet);
+  if (S.wet > 100) S.soggy += dt; else S.soggy = Math.max(0, S.soggy - dt);
+  if (S.wet >= 35 && S.wet <= 90) S.score += dt * 10 * (1 + S.loop);
+
+  // occasional unprompted remarks
+  if (Math.random() < dt * .05 && S.phaseT > 5) {
+    const mood = S.wet < 30 ? 'dry' : S.wet > 92 ? 'wet' : 'ok';
+    const qi = Math.floor(Math.random() * 3);
+    say(() => t('quips')[mood][qi]);
+  }
+
+  if (S.wet <= 0) return end('dry');
+  if (S.soggy > 2.6) return end('soup');
+  if (S.phaseT >= p.dur) nextPhase();
+}
+
+function drawSky() {
+  const g = cx.createLinearGradient(0, 0, 0, H);
+  g.addColorStop(0, '#1a1430'); g.addColorStop(1, '#3b2348');
+  cx.fillStyle = g; cx.fillRect(0, 0, W, H);
+  for (const s of stars) {
+    const a = reduce ? .7 : .45 + .45 * Math.sin(S.t * 1.3 + s.p);
+    cx.globalAlpha = a; cx.fillStyle = '#efe6d2';
+    cx.beginPath(); cx.arc(s.x * W, s.y * H, s.r, 0, 6.28); cx.fill();
+  }
+  cx.globalAlpha = 1;
+  // a horizon of wet hills, because the moon needs an audience
+  cx.fillStyle = '#140f24';
+  cx.beginPath(); cx.moveTo(0, H);
+  for (let x = 0; x <= W; x += 20) cx.lineTo(x, H * .9 + Math.sin(x * .011 + 1) * 18 + Math.sin(x * .03) * 6);
+  cx.lineTo(W, H); cx.fill();
+}
+
+function mix(a, b, t) {
+  const p = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16));
+  const A = p(a), B = p(b);
+  return `rgb(${A.map((v, i) => Math.round(v + (B[i] - v) * t)).join(',')})`;
+}
+
+function drawMoon(m, r) {
+  const w = Math.max(0, Math.min(1.15, S.wet / 100));
+  const glow = cx.createRadialGradient(m.x, m.y, r * .8, m.x, m.y, r * 2.2);
+  glow.addColorStop(0, m.real ? '#9fd0e833' : '#e58f9e22'); glow.addColorStop(1, '#9fd0e800');
+  cx.fillStyle = glow; cx.beginPath(); cx.arc(m.x, m.y, r * 2.2, 0, 6.28); cx.fill();
+
+  const wob = w > 1 ? Math.sin(S.t * 9) * r * .04 * (w - 1) * 8 : 0;
+  cx.fillStyle = m.real ? mix('#c8b48c', '#e8f0ee', Math.min(1, w)) : '#d8c6b0';
+  cx.beginPath(); cx.ellipse(m.x, m.y, r + wob, r - wob, 0, 0, 6.28); cx.fill();
+
+  cx.fillStyle = '#00000018';
+  for (const [dx, dy, s] of [[-.45, -.35, .18], [.4, .3, .14], [.15, -.55, .09], [-.2, .5, .11]]) {
+    cx.beginPath(); cx.arc(m.x + dx * r, m.y + dy * r, s * r, 0, 6.28); cx.fill();
+  }
+
+  if (m.real && w < .28) {
+    cx.strokeStyle = '#5a4630'; cx.lineWidth = 1.5;
+    cx.beginPath();
+    cx.moveTo(m.x - r * .7, m.y - r * .2); cx.lineTo(m.x - r * .35, m.y - r * .05); cx.lineTo(m.x - r * .45, m.y + r * .3);
+    cx.moveTo(m.x + r * .6, m.y - r * .5); cx.lineTo(m.x + r * .3, m.y - r * .3);
+    cx.stroke();
+  }
+
+  if (m.real) {
+    cx.fillStyle = `rgba(255,255,255,${.12 + .4 * Math.min(1, w)})`;
+    cx.beginPath(); cx.ellipse(m.x - r * .38, m.y - r * .42, r * .28, r * .14, -.6, 0, 6.28); cx.fill();
+  }
+
+  if (m.real && w > .85) {
+    cx.fillStyle = '#9fd0e8';
+    for (let i = 0; i < 3; i++) {
+      const dx = (i - 1) * r * .45, len = (Math.sin(S.t * 2 + i) * .5 + .5) * r * .5 * (w - .8) * 3;
+      cx.beginPath(); cx.ellipse(m.x + dx, m.y + r * .9 + len / 2, 3, len / 2 + 2, 0, 0, 6.28); cx.fill();
+    }
+  }
+
+  // face. only the real moon blinks; the impostor never needs to.
+  const blinkEvery = phase().key === 'twins' ? 1.3 : 3.4;
+  const shut = m.real && (S.t % blinkEvery) < .14;
+  cx.fillStyle = '#2b2140'; cx.strokeStyle = '#2b2140'; cx.lineWidth = Math.max(2, r * .05); cx.lineCap = 'round';
+  for (const s of [-1, 1]) {
+    const ex = m.x + s * r * .3, ey = m.y - r * .08;
+    if (shut) { cx.beginPath(); cx.moveTo(ex - r * .08, ey); cx.lineTo(ex + r * .08, ey); cx.stroke(); }
+    else { cx.beginPath(); cx.arc(ex, ey, r * .07, 0, 6.28); cx.fill(); }
+  }
+  const my = m.y + r * .3;
+  cx.beginPath();
+  if (!m.real) { cx.moveTo(m.x - r * .2, my); cx.lineTo(m.x + r * .2, my); }
+  else if (w < .35) cx.arc(m.x, my + r * .14, r * .2, 1.15 * Math.PI, 1.85 * Math.PI);
+  else if (w <= .9) cx.arc(m.x, my - r * .08, r * .2, .15 * Math.PI, .85 * Math.PI);
+  else cx.ellipse(m.x, my, r * .1, r * .13 + Math.sin(S.t * 8) * r * .02, 0, 0, 6.28);
+  cx.stroke();
+}
+
+function drawCloud(x, y, raining) {
+  cx.fillStyle = raining ? '#cfc6dc' : '#efe6d2';
+  cx.globalAlpha = .92;
+  for (const [dx, dy, s] of [[-24, 4, 18], [0, -6, 24], [24, 4, 18], [-10, 10, 16], [12, 10, 16]]) {
+    cx.beginPath(); cx.arc(x + dx, y + dy, s, 0, 6.28); cx.fill();
+  }
+  cx.globalAlpha = 1;
+  cx.fillStyle = '#2b2140';
+  cx.beginPath(); cx.arc(x - 8, y, 2.4, 0, 6.28); cx.arc(x + 8, y, 2.4, 0, 6.28); cx.fill();
+}
+
+function drawDrop(d) {
+  if (d.fish) {
+    cx.save(); cx.translate(d.x, d.y); cx.rotate(d.vy > 0 ? Math.PI / 2 : -Math.PI / 2); cx.rotate(Math.sin(d.a) * .3);
+    cx.fillStyle = '#f2a65a';
+    cx.beginPath(); cx.ellipse(0, 0, 9, 4.5, 0, 0, 6.28); cx.fill();
+    cx.beginPath(); cx.moveTo(-8, 0); cx.lineTo(-14, -5); cx.lineTo(-14, 5); cx.fill();
+    cx.fillStyle = '#1a1430'; cx.beginPath(); cx.arc(4, -1, 1.2, 0, 6.28); cx.fill();
+    cx.restore();
+  } else {
+    cx.fillStyle = '#9fd0e8';
+    cx.beginPath(); cx.ellipse(d.x, d.y, 2.2, 6, 0, 0, 6.28); cx.fill();
+  }
+}
+
+function draw() {
+  drawSky();
+  const r = R(), key = phase().key;
+  for (const m of moons()) drawMoon(m, r);
+  for (const d of S.drops) drawDrop(d);
+  for (const b of S.bits) { cx.globalAlpha = b.life / .6; cx.fillStyle = b.col; cx.fillRect(b.x, b.y, 3, 3); }
+  cx.globalAlpha = 1;
+  if (S.mode !== 'title') drawCloud(cloud.x, cloud.y, key === 'swap' ? Math.sin(S.t * 1.6) > -.35 : (ptr.down || keys[' ']));
+
+  const w = S.wet;
+  const fill = $('#fill');
+  fill.style.width = Math.max(0, Math.min(100, w)) + '%';
+  fill.style.background = w < 35 ? '#f2a65a' : w > 90 ? '#e58f9e' : '#9fd0e8';
+  $('#score').textContent = num(S.score);
+}
+
+let last = 0;
+function frame(now) {
+  const dt = Math.min(.05, (now - last) / 1000 || 0); last = now;
+  if (S.mode === 'play') update(dt);
+  else if (S.mode === 'title') S.t += dt;
+  draw();
+  requestAnimationFrame(frame);
+}
+
+function begin() {
+  S = fresh(S.best);
+  S.mode = 'play';
+  cloud.x = W / 2; cloud.y = H * .22; ptr.x = .5; ptr.y = .22;
+  $('#title').hidden = true; $('#over').hidden = true;
+  $('#frame').style.setProperty('--hue', '0deg');
+  enterPhase(0);
+}
+
+function setPtr(e) { const r = cv.getBoundingClientRect(); ptr.x = (e.clientX - r.left) / r.width; ptr.y = (e.clientY - r.top) / r.height; }
+cv.addEventListener('pointermove', setPtr);
+cv.addEventListener('pointerdown', e => { setPtr(e); ptr.down = true; cv.setPointerCapture(e.pointerId); });
+addEventListener('pointerup', () => { ptr.down = false; });
+addEventListener('keydown', e => { if (e.key.startsWith('Arrow') || e.key === ' ') { keys[e.key] = true; if (S.mode === 'play') e.preventDefault(); } });
+addEventListener('keyup', e => { keys[e.key] = false; });
+$('#start').onclick = begin;
+$('#again').onclick = begin;
+$('#q-yes').onclick = answer;
+$('#q-also').onclick = answer;
+
+// ---- language -------------------------------------------------------------------------------
+// Static markup carries data-t (text), data-th (trusted markup from I18N) and data-ta (aria-label).
+// The HUD, the moon's current line and the end card are re-rendered from game state.
+function applyLang() {
+  document.documentElement.lang = lang;
+  document.title = t('docTitle');
+  for (const el of document.querySelectorAll('[data-t]')) el.textContent = t(el.dataset.t);
+  for (const el of document.querySelectorAll('[data-th]')) el.innerHTML = t(el.dataset.th);
+  for (const el of document.querySelectorAll('[data-ta]')) el.setAttribute('aria-label', t(el.dataset.ta));
+  for (const box of document.querySelectorAll('.lang')) {
+    if (!box.children.length) box.innerHTML = '<button data-lang="fr" lang="fr">FR</button><button data-lang="en" lang="en">EN</button>';
+    for (const b of box.children) b.setAttribute('aria-pressed', String(b.dataset.lang === lang));
+  }
+  hud();
+  if (saying) say(saying, true);
+  if (S.mode === 'over') fillEnd();
+}
+function setLang(l) {
+  if (!(l in I18N) || l === lang) return;
+  lang = l;
+  applyLang();
+}
+document.addEventListener('click', e => {
+  const b = e.target.closest('[data-lang]');
+  if (b) setLang(b.dataset.lang);
+});
+
+function start(data) {
+  S = fresh(data.best || 0);
+  lang = data?.lang in I18N ? data.lang : (navigator.language || '').toLowerCase().startsWith('fr') ? 'fr' : 'en';
+  applyLang();
+  resize();
+  cloud.x = W / 2; cloud.y = H * .22;
+  requestAnimationFrame(frame);
+}
+window.claude?.hot?.snapshot?.(() => ({ best: Math.max(S?.best || 0, S?.score || 0), lang }));
+window.claude?.hot?.ready ? window.claude.hot.ready(start) : start(window.claude?.hot?.data ?? {});
+</script>
+</body>
+</html>

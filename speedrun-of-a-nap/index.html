@@ -1,0 +1,1247 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Speedrun of a Nap</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:ital,wght@0,500;0,700;1,500&family=Nunito:ital,wght@0,400;0,600;0,800;1,400&display=swap">
+<style>
+/* Layout: a speedrunner's stream layout. Game capture (a bed, seen from the ceiling) on the left, the splits column on the right, commentary under the capture. The timer is the one loud thing. */
+:root {
+  --bg: #e8e6df;          /* pillowcase linen, warm grey */
+  --ink: #1c1f24;
+  --muted: #676a70;
+  --accent: #b88309;      /* gold split */
+  --panel: #f4f3ee;
+  --line: #1c1f2424;
+  --ahead: #17794a;
+  --ahead-soft: #5ea883;
+  --behind: #bf3626;
+  --behind-soft: #d8877c;
+  --duvet: #b7c2cc;
+  --duvet-shade: #9ba8b5;
+  --sheet: #f8f7f3;
+  --skin: #ddb393;
+  --hair: #4b3b2f;
+  --wood: #b08a62;
+  --glow: #59c4f2;
+  --sun: rgba(255, 214, 140, .28);
+  --f-time: "Chakra Petch", "Bahnschrift", "Arial Narrow", sans-serif;
+  --f-body: "Nunito", "Segoe UI", system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0d0f13; --ink: #e8e5dd; --muted: #8b8e95; --accent: #f0c445; --panel: #14171d; --line: #e8e5dd1f;
+    --ahead: #3ccc7c; --ahead-soft: #2a8a57; --behind: #ff6a55; --behind-soft: #a8473b;
+    --duvet: #2b3441; --duvet-shade: #222a35; --sheet: #3a3f48; --skin: #a3806a; --hair: #2a221c; --wood: #4d3d2d;
+    --glow: #6fd3ff; --sun: rgba(120, 150, 255, .06);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0d0f13; --ink: #e8e5dd; --muted: #8b8e95; --accent: #f0c445; --panel: #14171d; --line: #e8e5dd1f;
+  --ahead: #3ccc7c; --ahead-soft: #2a8a57; --behind: #ff6a55; --behind-soft: #a8473b;
+  --duvet: #2b3441; --duvet-shade: #222a35; --sheet: #3a3f48; --skin: #a3806a; --hair: #2a221c; --wood: #4d3d2d;
+  --glow: #6fd3ff; --sun: rgba(120, 150, 255, .06);
+  color-scheme: dark;
+}
+/* kit:css:begin */
+/* Arcade kit: structure only, never a look. Inlined between kit:css markers by kit/inline.mjs.
+   The game's own :root must define --bg --ink --muted --accent --panel --line (light), and
+   redefine them in both dark blocks; everything here reads those tokens. */
+*, *::before, *::after { box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  -webkit-tap-highlight-color: transparent;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+button { font: inherit; color: inherit; cursor: pointer; }
+button:disabled { cursor: default; }
+:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+canvas { display: block; max-width: 100%; touch-action: none; }
+
+/* Full-stage screens (title, twist, end). Sit inside a position:relative stage. */
+.kit-overlay {
+  position: absolute; inset: 0; z-index: 5;
+  display: grid; place-items: center; padding: 24px;
+  background: color-mix(in srgb, var(--bg) 88%, transparent);
+  overflow-y: auto;
+}
+.kit-overlay[hidden] { display: none; }
+
+/* Touch pad: shown only on coarse pointers; buttons carry data-key (see Kit.keys). */
+.kit-pad { display: none; gap: 10px; justify-content: center; padding-block: 10px; user-select: none; }
+.kit-pad [data-key] { min-width: 56px; min-height: 56px; touch-action: none; border: 1px solid var(--line); background: var(--panel); }
+@media (pointer: coarse) { .kit-pad { display: flex; } }
+
+.kit-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+
+@media (prefers-reduced-motion: reduce) {
+  .kit-deco, .kit-deco * { animation: none !important; transition: none !important; }
+}
+/* kit:css:end */
+[hidden] { display: none !important; }
+body { font-family: var(--f-body); padding-block: 12px; overflow: hidden; }
+.stage { position: relative; height: 100%; max-width: 1180px; margin: 0 auto; display: grid; grid-template-columns: minmax(0, 1fr) 330px; gap: 14px; }
+.capture { min-height: 0; min-width: 0; display: grid; grid-template-rows: minmax(0, 1fr) auto auto auto auto; gap: 8px; }
+.screen { position: relative; min-height: 0; border: 1px solid var(--line); background: var(--panel); overflow: hidden; }
+.screen canvas { width: 100%; height: 100%; touch-action: none; cursor: pointer; }
+.tag { position: absolute; left: 10px; bottom: 8px; font: 500 11px var(--f-time); letter-spacing: .1em; text-transform: uppercase; color: var(--muted); pointer-events: none; }
+.cards { position: absolute; left: 10px; bottom: 30px; display: grid; gap: 6px; width: min(300px, calc(100% - 20px)); pointer-events: none; }
+.card { background: var(--panel); border: 1px solid var(--line); border-left: 4px solid var(--behind); padding: 6px 9px 7px; display: grid; gap: 3px; }
+.card b { font: 700 13px var(--f-time); letter-spacing: .06em; text-transform: uppercase; display: flex; justify-content: space-between; gap: 8px; }
+.card b kbd { font: inherit; color: var(--behind); }
+.card span { font-size: 13px; line-height: 1.3; }
+.card i { display: block; height: 3px; background: var(--line); }
+.card i u { display: block; height: 100%; background: var(--behind); text-decoration: none; }
+.toast { position: absolute; left: 50%; top: 44%; transform: translate(-50%, -50%); font: 700 clamp(26px, 5vw, 46px) var(--f-time); letter-spacing: .04em; text-transform: uppercase; text-align: center; pointer-events: none; color: var(--ink); text-shadow: 0 2px 0 var(--bg); white-space: nowrap; }
+.toast.gold { color: var(--accent); }
+.toast.bad { color: var(--behind); }
+.breath { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 10px; align-items: center; font: 500 12px var(--f-time); letter-spacing: .08em; text-transform: uppercase; }
+.track { position: relative; height: 22px; display: flex; border: 1px solid var(--line); background: var(--panel); }
+.track .seg { display: grid; place-items: center; font-size: 11px; color: var(--muted); }
+.track .in { background: color-mix(in srgb, var(--glow) 22%, transparent); }
+.track #cursor { position: absolute; top: -3px; bottom: -3px; width: 3px; background: var(--ink); left: 0; }
+.you { min-width: 9ch; text-align: right; }
+.you.ok { color: var(--ahead); }
+.you.off { color: var(--behind); }
+.meter { display: grid; grid-template-columns: auto minmax(0, 1fr) 5ch; gap: 10px; align-items: center; font: 500 12px var(--f-time); letter-spacing: .08em; text-transform: uppercase; }
+.meter .bar { height: 10px; background: var(--line); position: relative; }
+.meter .bar i { position: absolute; inset: 0 auto 0 0; background: var(--ink); width: 0; }
+.meter .bar s { position: absolute; top: -3px; bottom: -3px; width: 1px; background: var(--muted); text-decoration: none; }
+.meter output { text-align: right; font-variant-numeric: tabular-nums; }
+.acts { display: flex; gap: 8px; flex-wrap: wrap; }
+.acts button { font: 600 14px var(--f-body); padding: 8px 12px; border: 1px solid var(--ink); background: var(--panel); color: var(--ink); border-radius: 2px; }
+.acts button kbd { font: 700 12px var(--f-time); margin-right: 6px; color: var(--muted); }
+.acts button:hover { background: var(--ink); color: var(--bg); }
+.acts .breathe { margin-left: auto; background: var(--ink); color: var(--bg); touch-action: none; user-select: none; -webkit-user-select: none; }
+.acts .breathe.on { background: var(--glow); color: #0d0f13; border-color: var(--glow); }
+.comm { margin: 0; font-size: 15px; line-height: 1.4; min-height: 2.8em; display: grid; grid-template-columns: auto 1fr; gap: 10px; align-items: start; }
+.comm b { font: 700 11px var(--f-time); letter-spacing: .1em; text-transform: uppercase; color: var(--muted); padding-top: 3px; }
+
+/* the splits column, after LiveSplit's conventions */
+.splits { min-height: 0; display: grid; grid-template-rows: auto minmax(0, max-content) auto auto minmax(0, 1fr) auto; gap: 0; border: 1px solid var(--line); background: var(--panel); }
+.splits header { padding: 10px 12px; border-bottom: 1px solid var(--line); text-align: center; }
+.splits header strong { display: block; font: 700 16px var(--f-time); letter-spacing: .02em; }
+.splits header span { font-size: 12.5px; color: var(--muted); }
+.splits header .att { position: absolute; }
+.rows { list-style: none; margin: 0; padding: 0; overflow-y: auto; min-height: 0; }
+.rows li { display: grid; grid-template-columns: minmax(0, 1fr) 6ch 7ch; gap: 8px; padding: 5px 12px; font-size: 14.5px; border-bottom: 1px solid var(--line); align-items: baseline; }
+.rows li span:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rows li .d, .rows li .tm { font: 500 14px var(--f-time); text-align: right; font-variant-numeric: tabular-nums; }
+.rows li .tm { color: var(--ink); }
+.rows li.todo .tm { color: var(--muted); }
+.rows li.cur { background: color-mix(in srgb, var(--glow) 18%, transparent); }
+.rows li.ext span:first-child::before { content: "+ "; color: var(--muted); }
+.d.ahead { color: var(--ahead); } .d.ahead.soft { color: var(--ahead-soft); }
+.d.behind { color: var(--behind); } .d.behind.soft { color: var(--behind-soft); }
+.d.gold { color: var(--accent); }
+.timer { font: 700 clamp(44px, 6.4vw, 66px)/1 var(--f-time); text-align: right; padding: 10px 12px 4px; font-variant-numeric: tabular-nums; letter-spacing: -.01em; color: var(--ink); }
+.timer.ahead { color: var(--ahead); } .timer.behind { color: var(--behind); } .timer.gold { color: var(--accent); }
+.timer small { font-size: .55em; }
+.info { margin: 0; padding: 4px 12px 8px; display: grid; grid-template-columns: 1fr auto; gap: 3px 10px; font-size: 13px; }
+.info dt { color: var(--muted); }
+.info dd { margin: 0; font: 500 13px var(--f-time); text-align: right; font-variant-numeric: tabular-nums; }
+.feed { list-style: none; margin: 0; padding: 8px 12px; border-top: 1px solid var(--line); overflow: hidden; display: grid; align-content: start; gap: 6px;
+  -webkit-mask-image: linear-gradient(to bottom, #000 60%, transparent); mask-image: linear-gradient(to bottom, #000 60%, transparent); }
+.feed li { display: grid; grid-template-columns: 4.2ch 1fr; gap: 8px; font-size: 13px; line-height: 1.35; color: var(--muted); }
+.feed li:first-child { color: var(--ink); }
+.feed time { font: 500 12px var(--f-time); font-variant-numeric: tabular-nums; padding-top: 1px; }
+.foot { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 6px 12px 10px; border-top: 1px solid var(--line); font: 500 11.5px var(--f-time); letter-spacing: .06em; color: var(--muted); text-transform: uppercase; }
+.foot button { font: 600 12px var(--f-body); padding: 4px 10px; border: 1px solid var(--line); background: none; color: var(--muted); }
+
+.kit-overlay { background: color-mix(in srgb, var(--bg) 93%, transparent); }
+.panel { width: min(560px, 100%); display: grid; gap: 12px; }
+.panel .cat { font: 500 12px var(--f-time); letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+.panel h1, .panel h2 { margin: 0; font-family: var(--f-time); font-weight: 700; line-height: .95; letter-spacing: -.01em; }
+.panel h1 { font-size: clamp(42px, 8vw, 76px); }
+.panel h2 { font-size: clamp(34px, 6vw, 56px); }
+.panel h2.gold { color: var(--accent); }
+.panel p { margin: 0; font-size: 16.5px; line-height: 1.5; max-width: 52ch; text-wrap: pretty; }
+.panel p.lede { font-size: 19px; font-style: italic; }
+.panel .big { font: 700 clamp(48px, 10vw, 92px)/1 var(--f-time); font-variant-numeric: tabular-nums; }
+.panel table { border-collapse: collapse; font-size: 14px; width: 100%; max-width: 440px; }
+.panel td { padding: 4px 0; border-bottom: 1px solid var(--line); }
+.panel td + td { text-align: right; font: 500 14px var(--f-time); font-variant-numeric: tabular-nums; }
+.panel .go { justify-self: start; font: 700 17px var(--f-time); letter-spacing: .04em; text-transform: uppercase; padding: 11px 20px; background: var(--ink); color: var(--bg); border: 0; border-radius: 2px; }
+.panel .go:hover { background: var(--accent); color: #111; }
+.panel .row { display: flex; gap: 10px; flex-wrap: wrap; }
+.panel .ghost { font: 600 14px var(--f-body); padding: 10px 14px; border: 1px solid var(--ink); background: none; }
+.rules { display: grid; grid-template-columns: auto 1fr; gap: 6px 12px; font-size: 14.5px; line-height: 1.35; }
+.rules kbd { font: 700 13px var(--f-time); border: 1px solid var(--line); padding: 1px 6px; background: var(--panel); white-space: nowrap; }
+.small { font: 500 11.5px var(--f-time); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.reveal-line { font-size: clamp(20px, 3vw, 27px) !important; line-height: 1.4 !important; min-height: 4.2em; }
+
+/* FR | EN: LiveSplit-style segmented switch in the timer face */
+.lang { display: inline-flex; flex: 0 0 auto; align-self: center; border: 1px solid var(--line); background: var(--panel); }
+.lang button, .acts .lang button { border: 0; border-radius: 0; background: transparent; padding: 3px 9px; font: 700 12px var(--f-time); letter-spacing: .08em; color: var(--muted); min-height: 28px; }
+.lang button + button, .acts .lang button + button { border-left: 1px solid var(--line); }
+.lang button:hover, .acts .lang button:hover { background: transparent; color: var(--ink); }
+.lang button[aria-pressed="true"], .acts .lang button[aria-pressed="true"] { background: var(--ink); color: var(--bg); }
+.langrow { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+
+@media (max-width: 760px) {
+  body { padding-block: 8px; }
+  .stage { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); gap: 8px; }
+  .splits { order: -1; grid-template-rows: auto auto auto; grid-template-columns: minmax(0, 1fr) auto; }
+  .splits header { display: none; }
+  .rows { grid-column: 1; grid-row: 1 / 3; max-height: 84px; }
+  .rows li { padding: 3px 8px; font-size: 13px; grid-template-columns: minmax(0, 1fr) 5.5ch 6.5ch; }
+  .rows li .d, .rows li .tm { font-size: 12.5px; }
+  .timer { grid-column: 2; grid-row: 1 / 3; font-size: 38px; align-self: center; padding: 6px 10px; }
+  .info, .foot, .feed { display: none; }
+  .capture { gap: 6px; }
+  .comm { font-size: 13.5px; min-height: 2.6em; }
+  .comm b { display: none; }
+  .comm { grid-template-columns: 1fr; }
+  .acts button { padding: 8px 9px; font-size: 13px; }
+  .acts .breathe { flex: 1 0 100%; margin-left: 0; padding: 12px; }
+  .cards { width: calc(100% - 20px); }
+  .card span { font-size: 12px; }
+}
+</style>
+</head>
+<body>
+<div class="stage">
+  <section class="capture" data-ta="captureAria" aria-label="Game capture">
+    <div class="screen">
+      <canvas id="cap" data-ta="capAria" aria-label="A bed seen from the ceiling. You are in it, trying to fall asleep."></canvas>
+      <div class="cards" id="cards" aria-live="polite"></div>
+      <div class="toast" id="toast" hidden></div>
+      <div class="tag" id="tag">Capture · Bed (single) · PAL</div>
+    </div>
+    <div class="breath"><span data-t="breath">Breath</span><div class="track" id="track"><div class="seg in" id="seg-in" data-t="segIn">in</div><div class="seg out" id="seg-out" data-t="segOut">out</div><i id="cursor"></i></div><span class="you" id="you">you: out</span></div>
+    <div class="meter"><span id="meter-label">Sleep depth</span><div class="bar" id="bar"><i id="bar-fill"></i></div><output id="meter-val">0%</output></div>
+    <div class="acts">
+      <button type="button" data-act="s"><kbd>S</kbd><span>Swat</span></button>
+      <button type="button" data-act="d"><kbd>D</kbd><span>Dismiss</span></button>
+      <button type="button" data-act="e"><kbd>E</kbd><span>Earplug</span></button>
+      <button type="button" data-act="r"><kbd>R</kbd><span>Resist</span></button>
+      <div class="lang" role="group" data-ta="langGroup" aria-label="Language"></div>
+      <button type="button" class="breathe" id="breathe" data-th="breathe">Hold to breathe in <kbd>Space</kbd></button>
+    </div>
+    <p class="comm" aria-live="polite"><b data-t="commH">Comms</b><span id="comm">Waiting for the runner to lie down.</span></p>
+  </section>
+
+  <aside class="splits" data-ta="splitsAria" aria-label="Splits">
+    <header><strong>Nap% · Any%</strong><span id="cat" data-t="cat">Afternoon · Glitchless · Sofa banned</span></header>
+    <ol class="rows" id="rows"></ol>
+    <div class="timer" id="timer">0:00<small>.00</small></div>
+    <dl class="info">
+      <dt data-t="prev">Previous segment</dt><dd id="prev">—</dd>
+      <dt data-t="sob">Sum of best</dt><dd id="sob">—</dd>
+      <dt data-t="bpt">Best possible time</dt><dd id="bpt">—</dd>
+      <dt data-t="wr">World record</dt><dd id="wr">—</dd>
+    </dl>
+    <ol class="feed" id="feed" data-ta="feedAria" aria-label="Commentary"></ol>
+    <div class="foot"><span id="att">Attempt #1,413</span><button type="button" id="reset" data-t="resetBtn">Reset run</button></div>
+  </aside>
+
+  <div class="kit-overlay" id="title">
+    <div class="panel">
+      <div class="cat" data-t="titleCat">Nap% · Any% · Afternoon · Glitchless</div>
+      <h1 data-t="titleH">Speedrun of a Nap</h1>
+      <p class="lede" data-t="titleLede">The world record is 4:02.71, held by Biscuit, a cat. Sum of best says sub-4 is possible. Nobody has done it. The cat has not tried.</p>
+      <div class="rules">
+        <kbd data-t="kSpace">Space</kbd><span data-t="rule1">Hold to breathe in, release to breathe out. Follow the bar. Breathing in rhythm deepens the sleep; out of rhythm undoes it.</span>
+        <kbd>S D E R</kbd><span data-t="rule2">Swat, Dismiss, Earplug, Resist. Each distraction wants exactly one. The wrong one costs you.</span>
+        <kbd data-t="kMouse">Mouse / touch</kbd><span data-t="rule3">Hold the capture (or the button) to breathe; tap the buttons to respond.</span>
+      </div>
+      <button class="go" id="start" type="button" data-t="startBtn">Start the run</button>
+      <div class="langrow"><div class="small" id="title-small" data-t="titleSmall">about 5 minutes · timer starts on lie-down</div><div class="lang" role="group" data-ta="langGroup" aria-label="Language"></div></div>
+    </div>
+  </div>
+
+  <div class="kit-overlay" id="reveal" hidden>
+    <div class="panel">
+      <div class="cat" id="rev-k">Run complete</div>
+      <p class="reveal-line" id="rev-line"></p>
+      <div class="langrow"><button class="go" id="rev-next" type="button">Go on</button><div class="lang" role="group" data-ta="langGroup" aria-label="Language"></div></div>
+    </div>
+  </div>
+
+  <div class="kit-overlay" id="end" hidden>
+    <div class="panel">
+      <div class="cat" id="end-k"></div>
+      <h2 id="end-title"></h2>
+      <div class="big" id="end-big"></div>
+      <p class="lede" id="end-sub"></p>
+      <p id="end-body"></p>
+      <table><tbody id="end-stats"></tbody></table>
+      <div class="row langrow"><button class="go" id="again" type="button">Start attempt</button><div class="lang" role="group" data-ta="langGroup" aria-label="Language"></div></div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* kit:js:begin */
+// Arcade kit: the plumbing every game re-wrote by hand. Inlined between kit:js markers by
+// kit/inline.mjs, so a game stays one standalone file. Defines exactly two globals, `Kit` and
+// (once a game calls Kit.expose) `__arcade`; nothing else, because a bare top-level name can
+// collide with a window property (sandwich-diplomacy's `top()` shadowed by window.top).
+const Kit = (() => {
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const themeWatchers = [];
+  const onTheme = () => themeWatchers.forEach(f => f());
+  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', onTheme);
+  new MutationObserver(onTheme).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+
+  // Canvas code cannot read CSS variables, so mirror the named tokens into an object and
+  // re-read it whenever the theme flips: the viewer's toggle sets data-theme, the OS sets the media query.
+  function tokens(names, onChange) {
+    const C = {};
+    const read = () => {
+      const cs = getComputedStyle(document.documentElement);
+      for (const n of names) C[n] = cs.getPropertyValue('--' + n).trim();
+      onChange?.(C);
+    };
+    read();
+    themeWatchers.push(read);
+    return C;
+  }
+
+  // Keeps a canvas sharp at the device pixel ratio (capped at 2) and sized to its CSS box.
+  function canvas(el, onResize) {
+    const view = { el, cx: el.getContext('2d'), W: 0, H: 0 };
+    const fit = () => {
+      const r = el.getBoundingClientRect(), d = Math.min(2, devicePixelRatio || 1);
+      view.W = r.width; view.H = r.height;
+      el.width = Math.round(r.width * d); el.height = Math.round(r.height * d);
+      view.cx.setTransform(d, 0, 0, d, 0, 0);
+      onResize?.(view);
+    };
+    new ResizeObserver(fit).observe(el);
+    fit();
+    return view;
+  }
+
+  // step(dt) gets seconds, capped at 50 ms so a background tab or a stalled frame cannot
+  // teleport the game; the loop stops while the tab is hidden and resumes without a jump.
+  function loop(step) {
+    let last = 0, raf = 0, on = false;
+    const frame = t => {
+      const dt = last ? Math.min(0.05, (t - last) / 1000) : 0;
+      last = t;
+      step(dt);
+      if (on) raf = requestAnimationFrame(frame);
+    };
+    const ctl = {
+      start() { if (on) return; on = true; last = 0; raf = requestAnimationFrame(frame); },
+      stop() { on = false; cancelAnimationFrame(raf); },
+      get running() { return on; },
+    };
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden && on) { ctl.stop(); ctl.paused = true; }
+      else if (!document.hidden && ctl.paused) { ctl.paused = false; ctl.start(); }
+    });
+    return ctl;
+  }
+
+  // Held keys by KeyboardEvent.key, lower-cased (' ' for Space). Touch pads feed the same set:
+  // any element with data-key="<key>" inside a .kit-pad holds that key while pressed.
+  const held = new Set();
+  const pressFns = [];
+  const norm = k => (k.length === 1 ? k.toLowerCase() : k);
+  const press = (k, down) => {
+    k = norm(k);
+    if (down === held.has(k)) return;
+    down ? held.add(k) : held.delete(k);
+    pressFns.forEach(f => f(k, down));
+  };
+  const GAME_KEYS = new Set([' ', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight']);
+  addEventListener('keydown', e => {
+    if (e.target.closest?.('input, textarea, select, [contenteditable]')) return;
+    if (GAME_KEYS.has(e.key) && !e.target.closest?.('button')) e.preventDefault();
+    if (!e.repeat) press(e.key, true);
+  });
+  addEventListener('keyup', e => press(e.key, false));
+  addEventListener('blur', () => [...held].forEach(k => press(k, false)));
+  document.addEventListener('pointerdown', e => {
+    const b = e.target.closest?.('.kit-pad [data-key]');
+    if (!b) return;
+    e.preventDefault();
+    b.setPointerCapture?.(e.pointerId);
+    press(b.dataset.key, true);
+    const up = () => { press(b.dataset.key, false); b.removeEventListener('pointerup', up); b.removeEventListener('pointercancel', up); };
+    b.addEventListener('pointerup', up);
+    b.addEventListener('pointercancel', up);
+  });
+  const keys = {
+    down: k => held.has(norm(k)),
+    any: (...ks) => ks.some(k => held.has(norm(k))),
+    onPress(fn) { pressFns.push(fn); },
+  };
+
+  // The claude.ai viewer's hot-update hook: keeps `snapshot()` across a republish. Absent when
+  // self-hosted, so start() then receives {}.
+  function boot(start, snapshot) {
+    if (snapshot) window.claude?.hot?.snapshot?.(snapshot);
+    window.claude?.hot?.ready ? window.claude.hot.ready(start) : start(window.claude?.hot?.data ?? {});
+  }
+
+  // The test hook smoke.mjs drives. endings: { name: { jump(), reached(), seconds? } } where
+  // jump() may shortcut the set-up but must leave the ending's final stretch to real game
+  // logic, and reached() is true only once that ending's screen is actually showing.
+  function expose({ state, endings }) {
+    window.__arcade = {
+      get state() { return state(); },
+      endings: Object.fromEntries(Object.entries(endings).map(([k, v]) => [k, { seconds: v.seconds ?? 8 }])),
+      jump: name => endings[name].jump(),
+      reached: name => !!endings[name].reached(),
+    };
+  }
+
+  // Show one overlay and hide the others; focus its first button so Enter/Space continue.
+  function show(el) {
+    document.querySelectorAll('.kit-overlay').forEach(o => { o.hidden = o !== el; });
+    el?.querySelector('button')?.focus({ preventScroll: true });
+  }
+
+  const rnd = (a, b) => a + Math.random() * (b - a);
+  const pick = a => a[Math.floor(Math.random() * a.length)];
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+
+  return { reduce, tokens, canvas, loop, keys, boot, expose, show, rnd, pick, clamp };
+})();
+/* kit:js:end */
+const $ = s => document.querySelector(s);
+const view = Kit.canvas($('#cap'));
+const C = Kit.tokens(['bg', 'ink', 'muted', 'accent', 'panel', 'line', 'ahead', 'behind', 'duvet', 'duvet-shade', 'sheet', 'skin', 'hair', 'wood', 'glow', 'sun']);
+const { clamp, rnd, pick } = Kit;
+const F_TIME = '"Chakra Petch", "Bahnschrift", "Arial Narrow", sans-serif';
+const F_BODY = '"Nunito", "Segoe UI", system-ui, sans-serif';
+
+// ---- language
+// Logic keeps ids and indexes (split index, distraction kind, line index, key letter); every
+// visible word comes through t(). Timer figures keep LiveSplit's 4:02.71 form in both languages.
+const I18N = {
+  en: {
+    docTitle: 'Speedrun of a Nap',
+    langGroup: 'Language',
+    captureAria: 'Game capture', capAria: 'A bed seen from the ceiling. You are in it, trying to fall asleep.',
+    tagBed: 'Capture · Bed (single) · PAL', tagCeremony: x => `Capture · ceremony in ${x}`,
+    breath: 'Breath', segIn: 'in', segOut: 'out', you: inh => `you: ${inh ? 'in' : 'out'}`,
+    depth1: 'Sleep depth', depth2: 'Still asleep', pct: n => `${n}%`,
+    breathe: 'Hold to breathe in <kbd>Space</kbd>',
+    commH: 'Comms', commWait: 'Waiting for the runner to lie down.',
+    splitsAria: 'Splits', cat: 'Afternoon · Glitchless · Sofa banned',
+    prev: 'Previous segment', sob: 'Sum of best', bpt: 'Best possible time', wr: 'World record',
+    feedAria: 'Commentary', attempt: n => `Attempt #${n}`, resetBtn: 'Reset run', goldTag: ' (gold)',
+    titleCat: 'Nap% · Any% · Afternoon · Glitchless',
+    titleH: 'Speedrun of a Nap',
+    titleLede: 'The world record is 4:02.71, held by Biscuit, a cat. Sum of best says sub-4 is possible. Nobody has done it. The cat has not tried.',
+    kSpace: 'Space', kMouse: 'Mouse / touch',
+    rule1: 'Hold to breathe in, release to breathe out. Follow the bar. Breathing in rhythm deepens the sleep; out of rhythm undoes it.',
+    rule2: 'Swat, Dismiss, Earplug, Resist. Each distraction wants exactly one. The wrong one costs you.',
+    rule3: 'Hold the capture (or the button) to breathe; tap the buttons to respond.',
+    startBtn: 'Start the run', titleSmall: 'about 5 minutes · timer starts on lie-down',
+    revDone: 'Run complete', revWr: 'New world record', goOn: 'Go on', beginWake: 'Begin waking up',
+    againDefault: 'Start attempt', againN: n => `Start attempt #${n}`,
+    by: { 'Biscuit (cat)': 'Biscuit (cat)', you: 'you' },
+    splits: ['Lie down', 'Stop fidgeting', 'Eyes shut (properly)', 'N1', 'Hypnic jerk', 'N2', 'Asleep'],
+    wake: ['Eyes open', 'Sit up', 'Find trousers', 'Awake'],
+    labels: { fly: 'Fly', thought: 'Thought (2009)', drill: "Neighbour's drill", phone: 'Phone urge', duvet: 'Warm duvet', dream: 'Lovely dream', silence: 'Earplugs still in', stay: 'Stay-in-bed urge' },
+    lines: {
+      fly: ['A fly lands on your nose. It is doing laps.', 'A fly. Same fly? Different fly. Same energy.',
+        'The fly is back with a friend. The friend is also the fly.', 'A fly is walking on your ear. It is wearing boots.', 'A fly is circling at the exact pitch of a question.'],
+      thought: ["In 2009 a waiter said 'enjoy your meal' and you said 'you too'.",
+        'In 2009 you waved back at someone who was waving at the person behind you.', "In 2009 you signed an email to a plumber 'love'.",
+        "In 2009 you pronounced 'quinoa' with four syllables, at a dinner party, confidently.", 'In 2009 you held a door for someone 40 metres away and they had to jog.',
+        "In 2009 you called your manager 'mum'. In a meeting. You were thirty.", 'In 2009 you said "you too" to a birthday card.'],
+      drill: ['Next door: a drill. 6 mm masonry bit, by the sound of it.', 'The drill again. They are hanging a shelf. They have been hanging it since 2019.',
+        'Hammer setting now. Bold.', 'The drill stops. You relax. The drill was only breathing.', 'Two drills. A duet.'],
+      phone: ['The urge to check your phone. Just the time. Just the time and everything else.',
+        'What if someone replied. What if it was important. What if it was a dog.', 'Battery was 41%. You could check it is still 41%.',
+        'The phone buzzed. It did not. You think it did. It did not.', 'You could look up whether naps count as sleep. On the phone.'],
+      duvet: ['The duvet has found the exact temperature of a hug.', 'A cool side of the pillow. It knows your name.', 'The duvet has gone heavy and kind.'],
+      dream: ['A dream about a nicer awards ceremony, with a buffet.', 'A dream where you already went to the ceremony. Lovely. Wrong.', 'A dream about a field. Just a field. It is a very good field.'],
+      silence: ['It is so quiet in here. The ceremony is not in here.', 'Someone may be calling your name. Muffled. Probably a pigeon.', 'You can hear your own heartbeat. It is saying "sleep".'],
+      stay: ['The urge to stay in bed. It makes a good case. It has slides.', 'Five more minutes, says the bed. The ceremony is in less than five.', 'What if the trophy came to you?'],
+    },
+    verbs1: { s: 'Swat', d: 'Dismiss', e: 'Earplug', r: 'Resist' },
+    verbs2: { s: 'Kick off', d: 'Dismiss', e: 'Unplug', r: 'Resist' },
+    right: {
+      s: ['Frame-perfect swat.', 'Clean swat. The fly is re-routing.', 'Swatted. No visible movement on the duvet. Lovely.', 'Swat. The fly has gone to bother a cat.'],
+      d: ["Dismissed. 2009 can't hurt you if you don't open it.", 'Thought dismissed. Filed under "never".', 'Dismissed. That one comes back on later attempts. It always does.'],
+      e: ['Earplug in. The foam ones. The good ones.', 'Earplug in. The drill is now a rumour.', 'Earplug in, first try. Massive.'],
+      r: ['Resisted. The phone is face down. The phone is sulking.', 'Resist. Huge willpower on this attempt.', "Resisted. That's the strat."],
+    },
+    wrong: {
+      'fly-d': 'You dismiss the fly. It does not accept your dismissal.', 'fly-e': 'Earplug in. The fly can now be felt but not heard. Worse.',
+      'fly-r': 'You resist the fly. The fly does not resist you.', 'thought-s': 'You swat the thought. It was inside your head. So, briefly, was the hand.',
+      'thought-e': 'You put an earplug in. The thought is coming from inside the head.', 'thought-r': 'You resist the thought, which is a form of thinking about it.',
+      'drill-s': 'You swat at the wall. The wall wins.', 'drill-d': 'You dismiss the drill. Next door, the drill does not get the memo.',
+      'drill-r': 'You resist the drill. The drill is not tempting you, it is just loud.', 'phone-s': 'You swat the phone off the nightstand. Now you have to check it is OK.',
+      'phone-d': 'You dismiss the phone. It lights up again, silently, louder.', 'phone-e': 'Earplug in. The phone continues to be visible.',
+    },
+    wrongTool: (v, p1) => `${v}? Wrong tool. The runner shifted, which is the opposite of the category. ${p1 ? '−2%' : '+4% asleep'}.`,
+    atNothing: (v, p1) => `${v} at nothing. A tiny movement. ${p1 ? '−2%' : '+4% asleep'}.`,
+    right2: ['Good. Up we come.', 'That is the wake-up strat.', 'Clean. The trousers are within reach.', 'Yes. The ceremony is a real place and you are going.'],
+    miss: ['Too slow. That cost a chunk.', 'Ignored it. It did not ignore you.', 'It left on its own terms. Expensive terms.'],
+    missCost: ' −8%.',
+    miss2: 'You let it win. +8% asleep. The ceremony gets no closer to the bed.',
+    flinched: 'Flinched', flinchComm: 'You flinched. You kicked the duvet off a kerb that was not there. −12%.',
+    goldSuffix: ' · gold',
+    goldComm: ['GOLD. Best segment ever.', 'Gold split. Chat is typing in capitals.', "That's a gold. Lifetime best on this segment."],
+    aheadComm: (n, d) => `${n}: ${d} on PB pace. Keep it boring.`,
+    behindComm: (n, d) => `${n}: ${d}. Behind, but naps are long.`,
+    dontMove: "Don't move", jerkComm: 'Hypnic jerk. You are falling off a kerb that does not exist. Do NOT respond. Keep breathing.',
+    reveal: [
+      t => `Asleep. ${t}.`,
+      (t, by) => `That is a world record. The previous record, ${t}, was held by ${by}.`,
+      () => 'The leaderboard has been notified. Biscuit has been notified. Biscuit is asleep.',
+      s => `There is an awards ceremony. It is in your living room, in ${s} seconds. You are expected to attend: awake, upright, in trousers.`,
+      () => 'Unfortunately, you are now extremely good at being asleep.',
+    ],
+    wakeComm: 'Wake-up phase. Short, sharp breaths with the bar. Kick off comforts, dismiss dreams, unplug, resist the bed.',
+    wakeToast: 'Wake up',
+    offBeat: 'Breathing is off. Breathe with the bar, not against it.',
+    onBeat: 'Look at that rhythm. Textbook. Boring. Perfect.',
+    offComm: "And we're off. Strong lie-down. Textbook pillow placement.",
+    idle: [
+      'Fun fact: the sofa route has been banned in this category since the 2021 cushion incident.', 'Counting sheep is banned in Any%. Sheep% is its own category.',
+      'The world record holder is a cat called Biscuit. Biscuit has never practised.', "There's a skip where you just already are asleep. Nobody can do it.",
+      'Route notes: warm feet, cool pillow, do not think about the word "pillow".', 'PAL timing. Naps run slower at 50 Hz.',
+      'Chat is asking about the duvet. It is a 10.5 tog. Standard for the category.', 'If N2 comes in before 3:30, sub-4 is on.',
+      'Mods: please do not ask if they are asleep. That is the run.', 'This is the good pillow. They save it for PB pace.',
+    ],
+    wakeIdle: ['The ceremony has a buffet. Think about the buffet.', 'Trousers are on the chair. The chair is so far.', 'Biscuit has arrived for the ceremony and is asleep on the trophy.',
+      'Wake-up breaths are short and sharp. Like an alarm, but you.', 'No one has ever woken up for a nap award before. This is new tech.'],
+    end: {
+      resetK: (n, tm) => `Attempt #${n} · ${tm}`, resetTitle: 'Run reset.',
+      resetSubBtn: 'You pressed reset. Nobody blames you. Everybody does it.',
+      resetSubAwake: 'You are fully awake. Any% has a 97% reset rate. You are the 97%.',
+      resetBodyWake: 'You reset a world-record run during the awards. Chat has stopped typing. That is how you know.',
+      resetBody: 'The runner sits up, looks at the ceiling, and says "reset" out loud to an empty room. The fly takes this personally. The next attempt starts whenever you are ready, which, statistically, is now.',
+      furthest: 'Furthest split', none: 'none', golds: 'Gold splits this run',
+      wrK: 'Nap% Any% · new world record', wrTitle: 'World record.',
+      wrSub: 'You accept the trophy in your living room, upright, in most of your trousers.',
+      wrBody: (tm, by) => `The trophy is a pillow with a plaque on it. Your speech, in full: "I'd like to thank the fly." Biscuit attends in an official capacity and sleeps through the whole thing, which is, frankly, the better run. Previous record ${tm} by ${by}.`,
+      asleep: 'Asleep', awakeAgain: 'Awake again', later: tm => tm + ' later',
+      foreverK: 'Timer running', foreverTitle: 'Fell asleep for real.',
+      foreverSub: 'Nobody pressed split. The timer is still running, and it will be for some time.',
+      foreverSlow: (tm, d) => `You fell asleep at ${tm}, ${d} off the world record, so there is no ceremony and nobody to wake you. The VOD is eleven hours long and counting. Chat has gone to bed too. Biscuit's record stands, unbothered.`,
+      foreverCeremony: 'The awards went ahead without you. Biscuit accepted on your behalf, asleep, which the committee felt was in the spirit of the thing. Your run never technically ended. The VOD is now the longest in the category.',
+      pb: 'Personal best', sob: 'Sum of best', wr: 'World record', attempts: 'Attempts',
+    },
+    dreamCanvas: '~ a buffet ~',
+  },
+  fr: {
+    docTitle: 'Speedrun d’une sieste',
+    langGroup: 'Langue',
+    captureAria: 'Capture du jeu', capAria: 'Un lit vu du plafond. Vous êtes dedans et vous essayez de vous endormir.',
+    tagBed: 'Capture · Lit (une place) · PAL', tagCeremony: x => `Capture · cérémonie dans ${x}`,
+    breath: 'Souffle', segIn: 'inspi', segOut: 'expi', you: inh => `vous : ${inh ? 'inspi' : 'expi'}`,
+    depth1: 'Profondeur du sommeil', depth2: 'Sommeil restant', pct: n => `${n} %`,
+    breathe: 'Maintenir pour inspirer <kbd>Espace</kbd>',
+    commH: 'Commentaire', commWait: 'On attend le coucher.',
+    splitsAria: 'Splits', cat: 'Après-midi · Glitchless · Canapé interdit',
+    prev: 'Segment précédent', sob: 'Somme des meilleurs', bpt: 'Meilleur temps possible', wr: 'Record du monde',
+    feedAria: 'Commentaire', attempt: n => `Tentative n° ${n}`, resetBtn: 'Reset du run', goldTag: ' (gold)',
+    titleCat: 'Nap% · Any% · Après-midi · Glitchless',
+    titleH: 'Speedrun d’une sieste',
+    titleLede: 'Le record du monde est de 4:02.71, détenu par Biscuit, un chat. La somme des meilleurs dit que le sub-4 est possible. Personne ne l’a fait. Le chat n’a pas essayé.',
+    kSpace: 'Espace', kMouse: 'Souris / tactile',
+    rule1: 'Maintenir pour inspirer, relâcher pour expirer. Suivez la barre. Respirer en rythme approfondit le sommeil ; à contretemps, ça le défait.',
+    rule2: 'Sévir (une claque), Dissiper, Étouffer (bouchons d’oreilles), Résister. Chaque distraction en demande exactement un. Le mauvais coûte cher.',
+    rule3: 'Maintenez la capture (ou le bouton) pour respirer ; touchez les boutons pour réagir.',
+    startBtn: 'Lancer le run', titleSmall: 'environ 5 minutes · le chrono part au coucher',
+    revDone: 'Run terminé', revWr: 'Nouveau record du monde', goOn: 'Continuer', beginWake: 'Commencer à se réveiller',
+    againDefault: 'Lancer une tentative', againN: n => `Lancer la tentative n° ${n}`,
+    by: { 'Biscuit (cat)': 'Biscuit (chat)', you: 'vous' },
+    splits: ['Coucher', 'Arrêter de gigoter', 'Yeux fermés (vraiment)', 'N1', 'Secousse hypnique', 'N2', 'Sommeil'],
+    wake: ['Yeux ouverts', 'Se redresser', 'Trouver un pantalon', 'Réveil'],
+    labels: { fly: 'Mouche', thought: 'Pensée (2009)', drill: 'Perceuse du voisin', phone: 'Envie de téléphone', duvet: 'Couette chaude', dream: 'Joli rêve', silence: 'Bouchons encore en place', stay: 'Envie de rester au lit' },
+    lines: {
+      fly: ['Une mouche se pose sur votre nez. Elle fait des tours de piste.', 'Une mouche. La même ? Une autre. Même énergie.',
+        'La mouche revient avec une amie. L’amie, c’est aussi la mouche.', 'Une mouche marche sur votre oreille. Elle porte des bottes.', 'Une mouche tourne exactement à la hauteur d’une question.'],
+      thought: ['En 2009, un serveur a dit « bon appétit » et vous avez répondu « vous aussi ».',
+        'En 2009, vous avez répondu au salut de quelqu’un qui saluait la personne derrière vous.', 'En 2009, vous avez signé « bisous » un e-mail au plombier.',
+        'En 2009, vous avez prononcé « qui-noa » à un dîner, avec assurance.', 'En 2009, vous avez tenu la porte à quelqu’un à 40 mètres, qui a dû trottiner.',
+        'En 2009, vous avez appelé votre manager « maman ». En réunion. Vous aviez trente ans.', 'En 2009, vous avez répondu « vous aussi » à une carte d’anniversaire.'],
+      drill: ['À côté : une perceuse. Foret béton de 6 mm, à l’oreille.', 'Encore la perceuse. Ils posent une étagère. Ils la posent depuis 2019.',
+        'Mode percussion, maintenant. Audacieux.', 'La perceuse s’arrête. Vous vous détendez. La perceuse reprenait seulement son souffle.', 'Deux perceuses. Un duo.'],
+      phone: ['L’envie de regarder votre téléphone. Juste l’heure. Juste l’heure, et tout le reste.',
+        'Et si quelqu’un avait répondu. Et si c’était important. Et si c’était un chien.', 'La batterie était à 41 %. Vous pourriez vérifier qu’elle est toujours à 41 %.',
+        'Le téléphone a vibré. Non. Vous croyez que si. Non.', 'Vous pourriez chercher si une sieste compte comme du sommeil. Sur le téléphone.'],
+      duvet: ['La couette a trouvé la température exacte d’un câlin.', 'Le côté frais de l’oreiller. Il connaît votre prénom.', 'La couette est devenue lourde et gentille.'],
+      dream: ['Un rêve de remise de prix plus agréable, avec buffet.', 'Un rêve où la cérémonie a déjà eu lieu, avec vous. Charmant. Faux.', 'Un rêve à propos d’un champ. Juste un champ. C’est un très bon champ.'],
+      silence: ['C’est si calme, ici. La cérémonie n’est pas ici.', 'Quelqu’un appelle peut-être votre nom. Étouffé. Sans doute un pigeon.', 'Vous entendez votre propre cœur. Il dit « dors ».'],
+      stay: ['L’envie de rester au lit. Elle plaide bien sa cause. Elle a des diapos.', 'Encore cinq minutes, dit le lit. La cérémonie est dans moins de cinq.', 'Et si le trophée venait à vous ?'],
+    },
+    // S D E R stay mnemonic in French: Sévir, Dissiper, Étouffer, Résister; then Soulever, Enlever
+    verbs1: { s: 'Sévir', d: 'Dissiper', e: 'Étouffer', r: 'Résister' },
+    verbs2: { s: 'Soulever', d: 'Dissiper', e: 'Enlever', r: 'Résister' },
+    right: {
+      s: ['Claque au frame près.', 'Claque propre. La mouche recalcule son itinéraire.', 'Claque. Aucun mouvement visible sur la couette. Superbe.', 'Claque. La mouche est partie embêter un chat.'],
+      d: ['Dissipée. 2009 ne peut rien contre vous si vous ne l’ouvrez pas.', 'Pensée dissipée. Classée dans « jamais ».', 'Dissipée. Celle-là revient aux tentatives suivantes. Toujours.'],
+      e: ['Bouchon en place. Les mousse. Les bons.', 'Bouchon en place. La perceuse n’est plus qu’une rumeur.', 'Bouchon en place du premier coup. Énorme.'],
+      r: ['Résisté. Le téléphone est face contre la table. Le téléphone boude.', 'Résistance. Volonté immense sur cette tentative.', 'Résisté. C’est ça, la strat.'],
+    },
+    wrong: {
+      'fly-d': 'Vous dissipez la mouche. Elle refuse de se laisser dissiper.', 'fly-e': 'Bouchon en place. La mouche se sent mais ne s’entend plus. C’est pire.',
+      'fly-r': 'Vous résistez à la mouche. La mouche, elle, ne vous résiste pas.', 'thought-s': 'Vous sévissez contre la pensée. Elle était dans votre tête. Votre main aussi, brièvement.',
+      'thought-e': 'Vous mettez un bouchon. La pensée vient de l’intérieur de la tête.', 'thought-r': 'Vous résistez à la pensée, ce qui est une façon d’y penser.',
+      'drill-s': 'Vous frappez le mur. Le mur gagne.', 'drill-d': 'Vous dissipez la perceuse. À côté, la perceuse n’a pas reçu la note de service.',
+      'drill-r': 'Vous résistez à la perceuse. Elle ne cherche pas à vous tenter, elle fait juste du bruit.', 'phone-s': 'Vous faites tomber le téléphone de la table de chevet. Maintenant, il faut vérifier qu’il va bien.',
+      'phone-d': 'Vous dissipez le téléphone. Il se rallume, en silencieux, plus fort.', 'phone-e': 'Bouchon en place. Le téléphone reste visible.',
+    },
+    wrongTool: (v, p1) => `${v} ? Mauvais outil. Ça a bougé dans le lit, ce qui est le contraire de la catégorie. ${p1 ? '−2 %' : '+4 % de sommeil'}.`,
+    atNothing: (v, p1) => `${v} dans le vide. Un tout petit mouvement. ${p1 ? '−2 %' : '+4 % de sommeil'}.`,
+    right2: ['Bien. On remonte.', 'C’est ça, la strat du réveil.', 'Propre. Le pantalon est à portée de main.', 'Oui. La cérémonie existe, et vous y allez.'],
+    miss: ['Trop tard. Ça a coûté cher.', 'Ignoré. Ça, en revanche, ne compte pas vous ignorer.', 'C’est parti à ses conditions. Des conditions coûteuses.'],
+    missCost: ' −8 %.',
+    miss2: 'Vous l’avez laissé gagner. +8 % de sommeil. La cérémonie ne se rapproche pas du lit.',
+    flinched: 'Sursaut', flinchComm: 'Sursaut. Vous avez envoyé valser la couette à cause d’un trottoir qui n’existait pas. −12 %.',
+    goldSuffix: ' · gold',
+    goldComm: ['GOLD. Meilleur segment de tous les temps.', 'Split gold. Le chat écrit en majuscules. Pas Biscuit. L’autre chat.', 'C’est un gold. Meilleur temps à vie sur ce segment.'],
+    aheadComm: (n, d) => `${n} : ${d} sur le rythme du PB. On reste ennuyeux.`,
+    behindComm: (n, d) => `${n} : ${d}. En retard, mais une sieste, c’est long.`,
+    dontMove: 'Ne bougez pas', jerkComm: 'Secousse hypnique. Vous tombez d’un trottoir qui n’existe pas. Ne réagissez SURTOUT PAS. Respirez.',
+    reveal: [
+      t => `Sommeil atteint. ${t}.`,
+      (t, by) => `C’est un record du monde. L’ancien record, ${t}, était détenu par ${by}.`,
+      () => 'Le classement a été prévenu. Biscuit a été prévenu. Biscuit dort.',
+      s => `Il y a une cérémonie de remise de prix. Elle a lieu dans votre salon, dans ${s} secondes. Votre présence est attendue : en état de veille, debout, en pantalon.`,
+      () => 'Malheureusement, dormir est désormais votre point fort absolu.',
+    ],
+    wakeComm: 'Phase de réveil. Respirations courtes et vives, avec la barre. Soulevez la couette, dissipez les rêves, enlevez les bouchons, résistez au lit.',
+    wakeToast: 'Debout',
+    offBeat: 'Respiration décalée. Respirez avec la barre, pas contre elle.',
+    onBeat: 'Regardez-moi ce rythme. Exemplaire. Ennuyeux. Parfait.',
+    offComm: 'Et c’est parti. Beau coucher. Placement d’oreiller exemplaire.',
+    idle: [
+      'Anecdote : la route du canapé est bannie de cette catégorie depuis l’incident des coussins de 2021.', 'Compter les moutons est interdit en Any%. Mouton% est une catégorie à part.',
+      'Le record du monde est détenu par un chat nommé Biscuit. Biscuit ne s’est jamais entraîné.', 'Il existe un skip où l’on dort déjà, directement. Personne n’arrive à le faire.',
+      'Notes de route : pieds au chaud, oreiller frais, ne pas penser au mot « oreiller ».', 'Timing PAL. Les siestes tournent plus lentement en 50 Hz.',
+      'Le chat pose des questions sur la couette. C’est une 10,5 tog. Standard pour la catégorie.', 'Si N2 tombe avant 3:30, le sub-4 est jouable.',
+      'Modos : merci de ne pas demander si ça dort. C’est tout le principe du run.', 'C’est le bon oreiller. Réservé au rythme de PB.',
+    ],
+    wakeIdle: ['Il y a un buffet à la cérémonie. Pensez au buffet.', 'Le pantalon est sur la chaise. La chaise est si loin.', 'Biscuit est arrivé pour la cérémonie et dort sur le trophée.',
+      'Les respirations de réveil sont courtes et vives. Comme un réveil-matin, mais vous.', 'Personne ne s’était jamais réveillé pour un prix de sieste. C’est de la nouvelle tech.'],
+    end: {
+      resetK: (n, tm) => `Tentative n° ${n} · ${tm}`, resetTitle: 'Reset du run.',
+      resetSubBtn: 'Vous avez appuyé sur reset. Personne ne vous en veut. Tout le monde le fait.',
+      resetSubAwake: 'Sommeil à zéro. L’Any% a 97 % de taux de reset. Vous êtes les 97 %.',
+      resetBodyWake: 'Vous avez reset un run record du monde pendant la cérémonie. Le chat a arrêté d’écrire. C’est comme ça qu’on sait.',
+      resetBody: 'Vous vous redressez, regardez le plafond et dites « reset » à voix haute dans une pièce vide. La mouche le prend personnellement. La prochaine tentative commence quand vous voulez, c’est-à-dire, statistiquement, maintenant.',
+      furthest: 'Split le plus loin', none: 'aucun', golds: 'Splits gold sur ce run',
+      wrK: 'Nap% Any% · nouveau record du monde', wrTitle: 'Record du monde.',
+      wrSub: 'Vous recevez le trophée dans votre salon, debout, avec la majeure partie de votre pantalon.',
+      wrBody: (tm, by) => `Le trophée est un oreiller avec une plaque dessus. Votre discours, en intégralité : « Je voudrais remercier la mouche. » Biscuit y assiste à titre officiel et dort pendant toute la cérémonie, ce qui est, franchement, le meilleur run. Ancien record : ${tm}, par ${by}.`,
+      asleep: 'Sommeil atteint', awakeAgain: 'Réveil', later: tm => tm + ' plus tard',
+      foreverK: 'Chrono en cours', foreverTitle: 'Dodo pour de vrai.',
+      foreverSub: 'Personne n’a appuyé sur split. Le chrono tourne toujours, et ça va durer.',
+      foreverSlow: (tm, d) => `Le sommeil est venu à ${tm}, à ${d} du record du monde : pas de cérémonie, donc personne pour vous réveiller. La VOD dure onze heures et ça continue. Le chat est allé se coucher, lui aussi. Le record de Biscuit tient, imperturbable.`,
+      foreverCeremony: 'La cérémonie a eu lieu sans vous. Biscuit a accepté le prix en votre nom, en dormant, ce que le comité a trouvé tout à fait dans l’esprit. Techniquement, votre run ne s’est jamais terminé. La VOD est désormais la plus longue de la catégorie.',
+      pb: 'Record perso', sob: 'Somme des meilleurs', wr: 'Record du monde', attempts: 'Tentatives',
+    },
+    dreamCanvas: '~ un buffet ~',
+  },
+};
+
+// French typography: a narrow no-break space before ? ! : ; » and after «, applied once to every
+// French string (and to whatever a French string function returns) so no line starts with "?".
+(function frenchSpacing() {
+  const fix = s => s.replace(/ ([?!:;»])/g, ' $1').replace(/« /g, '« ');
+  const deep = v => typeof v === 'string' ? fix(v)
+    : typeof v === 'function' ? (...a) => fix(v(...a))
+    : Array.isArray(v) ? v.map(deep)
+    : v && typeof v === 'object' ? Object.fromEntries(Object.entries(v).map(([k, x]) => [k, deep(x)]))
+    : v;
+  I18N.fr = deep(I18N.fr);
+})();
+
+let lang = 'en';
+const t = k => I18N[lang][k] ?? I18N.en[k];
+const num = n => n.toLocaleString(lang === 'fr' ? 'fr-FR' : undefined);
+// wr.by is saved in the snapshot as the English id ('Biscuit (cat)' or 'you'); shown translated.
+const byName = by => t('by')[by] ?? by;
+for (const k of ['splits', 'wake', 'right2', 'miss', 'goldComm', 'reveal', 'idle', 'wakeIdle']) {
+  if (I18N.en[k].length !== I18N.fr[k].length) console.error(`i18n: ${k} differs in length`);
+}
+for (const k of Object.keys(I18N.en.lines)) if (I18N.en.lines[k].length !== I18N.fr.lines[k].length) console.error(`i18n: lines.${k} differs in length`);
+// A random line kept as an index, read in whichever language is current when it is shown.
+const pickI = arr => Math.floor(Math.random() * arr.length);
+const line = (get, i) => () => get()[i];
+
+// ---- the category
+const SPLITS = [{ at: 15 }, { at: 30 }, { at: 45 }, { at: 60 }, { at: 72 }, { at: 86 }, { at: 100 }];
+const JERK = 4;   // the Hypnic jerk split
+const WAKE = [{ at: 75 }, { at: 50 }, { at: 25 }, { at: 0 }];
+const TUESDAY_PB = [22.41, 51.83, 84.02, 121.57, 158.2, 205.04, 271.08];      // 4:31.08
+const TUESDAY_GOLD = [19.12, 26.04, 28.71, 33.2, 31.05, 40.31, 52.4];          // sum of best 3:50.83
+const BISCUIT = 242.71;                                                        // 4:02.71
+const IN1 = 3.2, OUT1 = 4.3, IN2 = 1.2, OUT2 = 1.2, CEREMONY = 64;
+
+const TYPES = { fly: { key: 's' }, thought: { key: 'd' }, drill: { key: 'e' }, phone: { key: 'r' } };
+const COMFORTS = { duvet: { key: 's' }, dream: { key: 'd' }, silence: { key: 'e' }, stay: { key: 'r' } };
+
+let S;
+let pb = TUESDAY_PB.slice(), golds = TUESDAY_GOLD.slice(), wr = { t: BISCUIT, by: 'Biscuit (cat)' }, attempts = 1412;
+const fmt = (s, cs = true) => { const c = Math.round(Math.max(0, s) * 100), m = Math.floor(c / 6000), r = Math.floor(c / 100) % 60; return `${m}:${String(r).padStart(2, '0')}${cs ? '.' + String(c % 100).padStart(2, '0') : ''}`; };
+const fmtD = d => (d < 0 ? '−' : '+') + (Math.abs(d) >= 60 ? fmt(Math.abs(d), false) : Math.abs(d).toFixed(1));
+
+function fresh() {
+  return {
+    mode: 'title', phase: 1, t: 0, sleep: 12, bot: null, botIn: false,
+    g0: 0, lastIn: -99, wasIn: false, streak: 0, match: true,
+    dists: [], spawnT: 6, nextId: 1, splitI: 0, times: [], golds: 0,
+    jerk: 0, jerkDone: false, flinched: false, plugT: 0,
+    comm: () => t('commWait'), commT: 0, idleT: 14, idleI: 0, toast: () => '', toastT: 0, toastCls: '',
+    wakeT: 0, wakeI: 0, napTime: 0, cmp: pb.slice(), ending: null, endFrom: '', foreverT0: 0, revI: 0, mismatchT: 0, pace: 0,
+  };
+}
+
+// ---- comms and toasts
+// Both take a function so the line on screen follows a language switch; the feed below keeps
+// each line in the language it was said in.
+function comm(fn, secs = 5) {
+  S.comm = fn; S.commT = secs; $('#comm').textContent = fn();
+  const li = document.createElement('li'); li.innerHTML = '<time></time><span></span>';
+  li.firstChild.textContent = fmt(S.t, false); li.lastChild.textContent = fn();
+  const feed = $('#feed'); feed.prepend(li); while (feed.children.length > 14) feed.lastChild.remove();
+}
+function toast(fn, cls = '', secs = 1.6) { S.toast = fn; S.toastT = secs; S.toastCls = cls; }
+
+// ---- breathing: hold to breathe in, following a guide bar
+function guide() {
+  const IN = S.phase === 1 ? IN1 : IN2, OUT = S.phase === 1 ? OUT1 : OUT2, per = IN + OUT;
+  const u = ((S.t - S.g0) % per + per) % per;
+  return { inPhase: u < IN, u, IN, OUT, per, edge: Math.min(u, Math.abs(u - IN), per - u) };
+}
+function inhaling() { return S.bot ? S.botIn : (Kit.keys.down(' ') || ptrHeld); }
+
+function spawn() {
+  const pool = S.phase === 1 ? TYPES : COMFORTS;
+  const kinds = Object.keys(pool).filter(k => !S.dists.some(d => d.kind === k));
+  if (!kinds.length) return;
+  const kind = pick(kinds), ty = pool[kind];
+  S.dists.push({ id: S.nextId++, kind, key: ty.key, li: pickI(I18N.en.lines[kind]), age: 0, life: S.phase === 1 ? 7 : 6 });
+  renderCards();
+}
+
+function respond(k) {
+  if (S.mode !== 'run' && S.mode !== 'wake') return;
+  if (S.jerk > 0) {
+    if (!S.flinched) { S.flinched = true; S.sleep -= 12; toast(() => t('flinched'), 'bad'); comm(() => t('flinchComm')); }
+    return;
+  }
+  const d = S.dists.find(x => x.key === k);
+  if (d) {
+    S.dists = S.dists.filter(x => x !== d);
+    if (S.phase === 1) {
+      S.sleep -= { s: .5, d: .2, e: .3, r: .2 }[k];
+      if (k === 'e') S.plugT = 30;
+      comm(line(() => t('right')[k], pickI(I18N.en.right[k])), 4);
+    } else {
+      S.sleep -= 2;
+      comm(line(() => t('right2'), pickI(I18N.en.right2)), 4);
+    }
+  } else {
+    S.sleep += S.phase === 1 ? -2 : 4;
+    const first = S.dists[0], p1 = S.phase === 1;
+    const wkey = p1 && first ? `${first.kind}-${k}` : null;
+    const verb = () => t(p1 ? 'verbs1' : 'verbs2')[k];
+    const n = S.dists.length;
+    comm(() => (wkey && t('wrong')[wkey]) || (n ? t('wrongTool')(verb(), p1) : t('atNothing')(verb(), p1)), 4);
+  }
+  renderCards();
+}
+
+// ---- splits
+function splitPhase1() {
+  while (S.splitI < SPLITS.length && S.sleep >= SPLITS[S.splitI].at) {
+    const i = S.splitI, tm = S.t, seg = tm - (i ? S.times[i - 1] : 0);
+    S.times.push(tm);
+    const gold = seg < golds[i];
+    const delta = tm - S.cmp[i];
+    if (gold) { golds[i] = seg; S.golds++; }
+    S.lastSeg = { i, seg, gold, prevDelta: i ? seg - (S.cmp[i] - S.cmp[i - 1]) : delta };
+    toast(() => t('splits')[i] + (gold ? t('goldSuffix') : ''), gold ? 'gold' : delta < 0 ? '' : 'bad', 1.8);
+    if (gold) comm(line(() => t('goldComm'), pickI(I18N.en.goldComm)), 4);
+    else if (delta < 0) comm(() => t('aheadComm')(t('splits')[i], fmtD(delta)), 4);
+    else comm(() => t('behindComm')(t('splits')[i], fmtD(delta)), 4);
+    S.splitI++;
+    if (i === JERK) { S.jerk = 2.4; S.jerkDone = true; S.sleep -= 4; S.flinched = false; toast(() => t('dontMove'), 'bad', 2.4); comm(() => t('jerkComm'), 4); }
+    if (i === SPLITS.length - 1) return finishNap();
+  }
+}
+
+function finishNap() {
+  S.napTime = S.t;
+  const isPB = S.t < pb[pb.length - 1];
+  if (isPB) pb = S.times.slice();
+  if (S.t < wr.t) {
+    S.mode = 'reveal'; S.revI = 0; S.oldWr = { ...wr };
+    wr = { t: S.t, by: 'you' };
+    showRev(); Kit.show($('#reveal'));
+  } else {
+    endGame('forever', 'slow');
+  }
+}
+
+function revealLine(i) {
+  const R = t('reveal')[i];
+  return i === 0 ? R(fmt(S.napTime)) : i === 1 ? R(fmt(S.oldWr.t), byName(S.oldWr.by)) : i === 3 ? R(CEREMONY) : R();
+}
+function showRev() {
+  const last = I18N.en.reveal.length - 1;
+  $('#rev-k').textContent = S.revI ? t('revWr') : t('revDone');
+  $('#rev-line').textContent = revealLine(S.revI);
+  $('#rev-next').textContent = S.revI === last ? t('beginWake') : t('goOn');
+}
+$('#rev-next').onclick = () => {
+  if (S.revI < I18N.en.reveal.length - 1) { S.revI++; showRev(); $('#rev-next').focus(); return; }
+  startWake();
+};
+
+function startWake() {
+  S.phase = 2; S.mode = 'wake'; S.sleep = 100; S.wakeT = 0; S.wakeI = 0; S.t = S.napTime; S.g0 = S.t; S.dists = []; S.spawnT = 4; S.streak = 0; S.lastIn = -99; S.idleT = 9;
+  renderCards(); renderRows(true); setActs();
+  comm(() => t('wakeComm'), 6);
+  toast(() => t('wakeToast'), 'bad', 1.6);
+  Kit.show(null);
+}
+
+// ---- the main step
+function step(dt) {
+  S.t += dt;
+  if (S.commT > 0) S.commT -= dt;
+  if (S.toastT > 0) S.toastT -= dt;
+  if (S.plugT > 0) S.plugT -= dt;
+  const g = guide(), inh = inhaling();
+  if (inh && !S.wasIn) S.lastIn = S.t;
+  S.wasIn = inh;
+  // in rhythm = doing what the bar says, with a little grace at each change, and only if you are actually breathing
+  const recent = S.t - S.lastIn < g.per + 1.5;
+  S.match = recent && (inh === g.inPhase || g.edge < .3);
+  if (S.match) { S.streak += dt; S.mismatchT = 0; } else { S.streak = 0; S.mismatchT += dt; }
+  const mult = 1 + Math.min(.25, S.streak / 40);
+  const busy = S.dists.length > 0;
+
+  if (S.phase === 1) {
+    if (recent) S.sleep += .32 * (busy ? .7 : 1) * dt;
+    if (S.match) S.sleep += .26 * mult * dt;
+    else if (S.t > 6) S.sleep -= (recent ? .1 : .5) * dt;
+    S.sleep -= .15 * S.dists.length * dt;
+  } else {
+    S.wakeT += dt;
+    if (S.match) S.sleep -= 2.3 * mult * (busy ? .45 : 1) * dt;
+    else S.sleep += .9 * dt;
+    S.sleep += .5 * S.dists.length * dt;
+  }
+
+  // distractions age, and the ignored ones cost you
+  if (S.jerk > 0) S.jerk -= dt;
+  else {
+    for (const d of S.dists) d.age += dt;
+    const gone = S.dists.filter(d => d.age >= d.life);
+    if (gone.length) {
+      S.dists = S.dists.filter(d => d.age < d.life);
+      S.sleep += S.phase === 1 ? -8 * gone.length : 8 * gone.length;
+      const mi = pickI(I18N.en.miss);
+      comm(S.phase === 1 ? () => t('miss')[mi] + t('missCost') : () => t('miss2'), 4);
+      renderCards();
+    }
+    S.spawnT -= dt;
+    const depth = S.phase === 1 ? S.sleep / 100 : 1 - S.sleep / 100;
+    const maxN = S.phase === 1 ? 1 + Math.floor(S.sleep / 40) : 2;
+    if (S.spawnT <= 0) {
+      if (S.dists.length < maxN) spawn();
+      S.spawnT = S.phase === 1 ? rnd(8.5, 11) - 3.5 * depth : rnd(4.5, 6) - 1.2 * depth;
+    }
+  }
+
+  S.idleT -= dt;
+  if (S.idleT <= 0 && S.commT <= 0) {
+    if (S.mismatchT > 3) comm(() => t('offBeat'), 4);
+    else if (S.streak > 12) comm(() => t('onBeat'), 4);
+    else if (S.phase === 1) { const i = S.idleI++ % I18N.en.idle.length; comm(() => t('idle')[i], 6); }
+    else comm(line(() => t('wakeIdle'), pickI(I18N.en.wakeIdle)), 6);
+    S.idleT = rnd(9, 13);
+  }
+
+  S.sleep = clamp(S.sleep, 0, 100);
+  if (S.phase === 1) {
+    if (S.sleep <= 0) return endGame('reset', 'awake');
+    splitPhase1();
+  } else {
+    while (S.wakeI < WAKE.length && S.sleep <= WAKE[S.wakeI].at) {
+      const wi = S.wakeI;
+      S.times.push(S.t); toast(() => t('wake')[wi], '', 1.6); S.wakeI++;
+      if (S.wakeI === WAKE.length) return endGame('wr');
+    }
+    if (S.wakeT >= CEREMONY) return endGame('forever', 'ceremony');
+  }
+}
+
+// ---- endings
+function endGame(name, why) {
+  if (S.mode === 'end') return;
+  const from = S.mode;
+  S.mode = 'end'; S.ending = name; S.endFrom = why; S.endWake = from === 'wake';
+  S.dists = []; renderCards();
+  if (name === 'forever') { S.foreverT0 = performance.now(); S.foreverBase = S.t; }
+  fillEnd();
+  Kit.show($('#end'));
+}
+// Writes the end screen from the run's numbers; applyLang() calls it again on a switch.
+function fillEnd() {
+  const name = S.ending, why = S.endFrom, E = t('end');
+  const stats = [];
+  let k, title, big = '', sub, body;
+  if (name === 'reset') {
+    k = E.resetK(num(attempts), fmt(S.t));
+    title = E.resetTitle;
+    sub = why === 'button' ? E.resetSubBtn : E.resetSubAwake;
+    body = S.endWake ? E.resetBodyWake : E.resetBody;
+    stats.push([E.furthest, S.splitI ? t('splits')[S.splitI - 1] : E.none], [E.golds, String(S.golds)]);
+  } else if (name === 'wr') {
+    k = E.wrK;
+    title = E.wrTitle;
+    big = fmt(S.napTime);
+    sub = E.wrSub;
+    body = E.wrBody(fmt(S.oldWr.t), byName(S.oldWr.by));
+    stats.push([E.asleep, fmt(S.napTime)], [E.awakeAgain, E.later(fmt(S.wakeT))], [E.golds, String(S.golds)]);
+  } else {
+    k = E.foreverK;
+    title = E.foreverTitle;
+    sub = E.foreverSub;
+    body = why === 'slow' ? E.foreverSlow(fmt(S.napTime), fmtD(S.napTime - wr.t)) : E.foreverCeremony;
+    stats.push([E.asleep, fmt(S.napTime)], [E.golds, String(S.golds)]);
+  }
+  stats.push([E.pb, fmt(pb[pb.length - 1])], [E.sob, fmt(golds.reduce((a, b) => a + b, 0))], [E.wr, `${fmt(wr.t)} · ${byName(wr.by)}`], [E.attempts, num(attempts)]);
+  $('#end-k').textContent = k; $('#end-title').textContent = title; $('#end-title').className = name === 'wr' ? 'gold' : '';
+  // the forever timer is written by hud() every frame, so a re-fill must not blank it
+  if (name !== 'forever') $('#end-big').textContent = big;
+  $('#end-big').hidden = name === 'reset';
+  $('#end-sub').textContent = sub; $('#end-body').textContent = body;
+  $('#end-stats').innerHTML = stats.map(([a, b]) => `<tr><td>${a}</td><td>${b}</td></tr>`).join('');
+  $('#again').textContent = t('againN')(num(attempts + 1));
+}
+
+function newRun() {
+  S = fresh(); attempts++;
+  S.mode = 'run'; S.g0 = 0;
+  renderRows(true); renderCards(); setActs();
+  $('#att').textContent = t('attempt')(num(attempts));
+  $('#feed').innerHTML = '';
+  comm(() => t('offComm'), 5);
+  Kit.show(null);
+}
+$('#start').onclick = newRun;
+$('#again').onclick = newRun;
+$('#reset').onclick = e => { e.currentTarget.blur(); if (S.mode === 'run' || S.mode === 'wake') endGame('reset', 'button'); };
+
+// ---- input
+let ptrHeld = false;
+const cap = $('#cap'), breatheBtn = $('#breathe');
+for (const el of [cap, breatheBtn]) {
+  el.addEventListener('pointerdown', e => { e.preventDefault(); ptrHeld = true; el.setPointerCapture?.(e.pointerId); });
+  el.addEventListener('pointerup', () => { ptrHeld = false; });
+  el.addEventListener('pointercancel', () => { ptrHeld = false; });
+}
+addEventListener('blur', () => { ptrHeld = false; });
+document.querySelectorAll('[data-act]').forEach(b => {
+  b.addEventListener('mousedown', e => e.preventDefault());   // keep focus off, so Space stays a breath
+  b.addEventListener('click', e => { e.currentTarget.blur(); respond(b.dataset.act); });
+});
+Kit.keys.onPress((k, down) => { if (down && 'sder'.includes(k) && k.length === 1) respond(k); });
+function setActs() {
+  const verbs = t(S.phase === 1 ? 'verbs1' : 'verbs2');
+  document.querySelectorAll('[data-act]').forEach(b => { b.lastChild.textContent = verbs[b.dataset.act]; });
+  $('#meter-label').textContent = S.phase === 1 ? t('depth1') : t('depth2');
+}
+
+// ---- DOM: cards, splits, HUD
+function renderCards() {
+  const verbs = t(S.phase === 1 ? 'verbs1' : 'verbs2');
+  $('#cards').innerHTML = S.dists.map(d => `<div class="card" data-id="${d.id}"><b>${t('labels')[d.kind]}<kbd>${d.key.toUpperCase()} · ${verbs[d.key]}</kbd></b><span></span><i><u></u></i></div>`).join('');
+  S.dists.forEach(d => { $(`.card[data-id="${d.id}"] span`).textContent = t('lines')[d.kind][d.li]; });
+}
+function renderRows(rebuild) {
+  const ol = $('#rows');
+  const rows = [...SPLITS.map((s, i) => ({ name: t('splits')[i], i, ext: false })), ...(S.phase === 2 ? WAKE.map((s, i) => ({ name: t('wake')[i], i: SPLITS.length + i, ext: true })) : [])];
+  if (rebuild || ol.children.length !== rows.length) {
+    ol.innerHTML = rows.map(r => `<li class="${r.ext ? 'ext' : ''}"><span></span><span class="d"></span><span class="tm"></span></li>`).join('');
+    rows.forEach((r, i) => { ol.children[i].firstChild.textContent = r.name; });
+  }
+  const cur = S.phase === 1 ? S.splitI : SPLITS.length + S.wakeI;
+  rows.forEach((r, i) => {
+    const li = ol.children[i], d = li.children[1], tm = li.children[2];
+    li.classList.toggle('cur', i === cur && (S.mode === 'run' || S.mode === 'wake'));
+    li.classList.toggle('todo', i >= S.times.length);
+    if (i < S.times.length) {
+      tm.textContent = fmt(S.times[i], false);
+      if (r.ext) { d.textContent = ''; d.className = 'd'; return; }
+      const delta = S.times[i] - S.cmp[i];
+      const seg = S.times[i] - (i ? S.times[i - 1] : 0);
+      const isGold = seg <= golds[i] + 1e-6;
+      const prevD = i ? S.times[i - 1] - S.cmp[i - 1] : 0;
+      d.textContent = fmtD(delta);
+      d.className = 'd ' + (isGold ? 'gold' : delta < 0 ? 'ahead' + (delta > prevD ? ' soft' : '') : 'behind' + (delta < prevD ? ' soft' : ''));
+    } else {
+      tm.textContent = r.ext ? '—' : fmt(S.cmp[i], false);
+      const live = i === cur && !r.ext && S.mode === 'run' && S.t > S.cmp[i] ? S.t - S.cmp[i] : null;
+      d.textContent = live != null ? fmtD(live) : '';
+      d.className = 'd behind';
+    }
+  });
+  const curLi = ol.children[Math.min(cur, rows.length - 1)];
+  if (curLi && rebuild !== 'no-scroll') ol.scrollTop = Math.max(0, curLi.offsetTop - ol.offsetTop - ol.clientHeight / 2 + curLi.offsetHeight / 2);
+}
+
+let hudT = 0;
+function hud(dt) {
+  const g = S.mode === 'run' || S.mode === 'wake' ? guide() : { u: 0, IN: IN1, OUT: OUT1, per: IN1 + OUT1, inPhase: true };
+  $('#seg-in').style.flex = String(g.IN); $('#seg-out').style.flex = String(g.OUT);
+  $('#cursor').style.left = `calc(${(g.u / g.per * 100).toFixed(2)}% - 1px)`;
+  const inh = S.mode === 'run' || S.mode === 'wake' ? inhaling() : false;
+  const you = $('#you');
+  you.textContent = t('you')(inh);
+  you.className = 'you ' + (S.mode === 'run' || S.mode === 'wake' ? (S.match ? 'ok' : 'off') : '');
+  breatheBtn.classList.toggle('on', inh);
+  $('#bar-fill').style.width = S.sleep.toFixed(1) + '%';
+  $('#meter-val').textContent = t('pct')(Math.floor(S.sleep));
+  S.dists.forEach(d => { const u = document.querySelector(`.card[data-id="${d.id}"] u`); if (u) u.style.width = (100 - d.age / d.life * 100) + '%'; });
+
+  // the timer: LiveSplit colours it by pace against the PB
+  const tEl = $('#timer');
+  let shown = S.t, cls = '';
+  if (S.mode === 'end' && S.ending === 'forever') shown = S.foreverBase + (performance.now() - S.foreverT0) / 1000;
+  else if (S.mode === 'end' || S.mode === 'reveal') shown = S.ending === 'reset' ? S.t : S.napTime || S.t;
+  if (S.mode === 'run') { const i = Math.min(S.splitI, SPLITS.length - 1); cls = S.t > S.cmp[i] ? 'behind' : 'ahead'; }
+  if (S.mode === 'wake') cls = 'gold';
+  if (S.mode === 'reveal' || (S.mode === 'end' && S.ending === 'wr')) cls = 'gold';
+  if (S.mode === 'wake') shown = S.napTime;
+  const s = fmt(shown), dot = s.lastIndexOf('.');
+  const html = `${s.slice(0, dot)}<small>${s.slice(dot)}</small>`;
+  if (tEl.innerHTML !== html) tEl.innerHTML = html;
+  tEl.className = 'timer ' + cls;
+  if (S.mode === 'end' && S.ending === 'forever') $('#end-big').textContent = fmt(shown);
+
+  const toastEl = $('#toast');
+  const showToast = S.toastT > 0 && (S.mode === 'run' || S.mode === 'wake');
+  toastEl.hidden = !showToast;
+  if (showToast) { const tx = S.toast(); if (toastEl.textContent !== tx) toastEl.textContent = tx; toastEl.className = 'toast ' + S.toastCls; }
+
+  hudT -= dt;
+  if (hudT <= 0) {
+    hudT = .1;
+    renderRows('no-scroll');
+    const sob = golds.reduce((a, b) => a + b, 0);
+    $('#sob').textContent = fmt(sob);
+    const done = S.phase === 1 ? S.splitI : SPLITS.length;
+    const bpt = (done ? S.times[done - 1] : 0) + golds.slice(done).reduce((a, b) => a + b, 0);
+    $('#bpt').textContent = S.mode === 'title' ? fmt(sob) : fmt(Math.max(bpt, S.phase === 1 ? S.t : 0));
+    $('#wr').textContent = `${fmt(wr.t)} · ${byName(wr.by)}`;
+    const ls = S.lastSeg;
+    const p = $('#prev');
+    p.textContent = ls ? fmtD(ls.prevDelta) + (ls.gold ? t('goldTag') : '') : '—';
+    p.style.color = ls ? (ls.gold ? 'var(--accent)' : ls.prevDelta < 0 ? 'var(--ahead)' : 'var(--behind)') : '';
+    $('#tag').textContent = S.phase === 2 && S.mode === 'wake' ? t('tagCeremony')(fmt(CEREMONY - S.wakeT, false)) : t('tagBed');
+  }
+}
+
+// ---- the capture: a bed seen from the ceiling
+function draw() {
+  const { cx, W, H } = view, tt = S.t, red = Kit.reduce;
+  cx.clearRect(0, 0, W, H);
+  cx.fillStyle = C.panel; cx.fillRect(0, 0, W, H);
+  // floorboards
+  cx.strokeStyle = C.line; cx.lineWidth = 1;
+  for (let x = 0; x < W; x += 26) { cx.beginPath(); cx.moveTo(x, 0); cx.lineTo(x, H); cx.stroke(); }
+  const bw = Math.min(W * .46, H * .5), bh = H * .9, bx = W / 2 - bw / 2, by = H * .05;
+  const shake = !red && S.jerk > 1.6 ? Math.sin(tt * 60) * 5 : 0;
+  cx.save(); cx.translate(shake, 0);
+  // headboard and bed
+  cx.fillStyle = C.wood; cx.fillRect(bx - 6, by - 10, bw + 12, 14);
+  cx.fillStyle = C.sheet; cx.fillRect(bx, by, bw, bh);
+  cx.strokeStyle = C.line; cx.strokeRect(bx, by, bw, bh);
+  // pillow
+  const px = bx + bw * .14, py = by + bh * .04, pw = bw * .72, ph = bh * .16;
+  cx.fillStyle = C.bg; cx.beginPath(); cx.roundRect(px, py, pw, ph, 14); cx.fill(); cx.strokeStyle = C.line; cx.stroke();
+  // head
+  const hx = W / 2 + shake * 0, hy = py + ph * .55, hr = Math.min(bw * .13, ph * .55);
+  cx.fillStyle = C.hair; cx.beginPath(); cx.arc(hx, hy - hr * .15, hr * 1.05, Math.PI, 0); cx.fill();
+  cx.fillStyle = C.skin; cx.beginPath(); cx.ellipse(hx, hy + hr * .1, hr * .9, hr, 0, 0, 7); cx.fill();
+  cx.fillStyle = C.hair; cx.beginPath(); cx.ellipse(hx, hy - hr * .55, hr * .95, hr * .45, 0, Math.PI, 0); cx.fill();
+  // eyes: open, then heavy, then gone
+  const depth = S.sleep;
+  cx.strokeStyle = C.ink; cx.fillStyle = C.ink; cx.lineWidth = 2; cx.lineCap = 'round';
+  for (const s of [-1, 1]) {
+    const ex = hx + s * hr * .38, ey = hy + hr * .05;
+    if (S.mode === 'title' || depth < 30) { cx.beginPath(); cx.arc(ex, ey, 2.4, 0, 7); cx.fill(); }
+    else if (depth < 60) { cx.beginPath(); cx.moveTo(ex - 5, ey); cx.lineTo(ex + 5, ey); cx.stroke(); }
+    else { cx.beginPath(); cx.arc(ex, ey - 2, 5, .2, Math.PI - .2); cx.stroke(); }
+  }
+  cx.beginPath(); cx.arc(hx, hy + hr * .5, depth > 86 ? 4 : 3, 0, Math.PI); cx.stroke();
+  // earplugs
+  if (S.plugT > 0) { cx.fillStyle = C.accent; for (const s of [-1, 1]) { cx.beginPath(); cx.arc(hx + s * hr * .95, hy + hr * .15, 3.5, 0, 7); cx.fill(); } }
+  // duvet, breathing
+  const inh = (S.mode === 'run' || S.mode === 'wake') && inhaling();
+  S.puff = (S.puff || 0) + ((inh ? 1 : 0) - (S.puff || 0)) * Math.min(1, 1 / 60 * 3.2);
+  const dy = by + bh * .27, dh = bh * .73, rise = (red ? 0 : S.puff) * 6;
+  cx.fillStyle = C['duvet-shade']; cx.fillRect(bx - 4, dy + 6, bw + 8, dh - 6);
+  cx.fillStyle = C.duvet; cx.beginPath(); cx.roundRect(bx - 4 - rise * .5, dy - rise, bw + 8 + rise, dh + rise, 6); cx.fill();
+  cx.strokeStyle = C['duvet-shade']; cx.lineWidth = 1.5;
+  for (let i = 1; i < 5; i++) { cx.beginPath(); cx.moveTo(bx, dy + dh * i / 5); cx.lineTo(bx + bw, dy + dh * i / 5); cx.stroke(); }
+  cx.beginPath(); cx.moveTo(bx + bw / 2, dy); cx.lineTo(bx + bw / 2, dy + dh); cx.stroke();
+  // the body under the duvet
+  cx.fillStyle = C['duvet-shade']; cx.globalAlpha = .55;
+  cx.beginPath(); cx.ellipse(W / 2, dy + dh * .33, bw * (.28 + .03 * S.puff), dh * .26, 0, 0, 7); cx.fill(); cx.globalAlpha = 1;
+  // afternoon light through the curtain gap
+  cx.fillStyle = C.sun; cx.beginPath(); cx.moveTo(W * .1, 0); cx.lineTo(W * .22, 0); cx.lineTo(W * .62, H); cx.lineTo(W * .44, H); cx.fill();
+  cx.restore();
+
+  // nightstand: phone and alarm clock
+  const nx = bx + bw + 18, ny = by + 6, nw = Math.min(80, W - nx - 10);
+  if (nw > 34) {
+    cx.fillStyle = C.wood; cx.fillRect(nx, ny, nw, nw);
+    const phoneOn = S.dists.some(d => d.kind === 'phone');
+    cx.fillStyle = phoneOn ? C.glow : C.ink; cx.beginPath(); cx.roundRect(nx + nw * .12, ny + nw * .14, nw * .32, nw * .58, 4); cx.fill();
+    if (phoneOn && !red) { cx.globalAlpha = .25 + .15 * Math.sin(tt * 5); cx.fillStyle = C.glow; cx.beginPath(); cx.arc(nx + nw * .28, ny + nw * .43, nw * .5, 0, 7); cx.fill(); cx.globalAlpha = 1; }
+    cx.fillStyle = C.ink; cx.fillRect(nx + nw * .52, ny + nw * .2, nw * .42, nw * .26);
+    const mins = 15 * 60 + 4 + Math.floor(S.t / 60);
+    const clockTxt = S.phase === 2 && S.mode === 'wake' ? fmt(CEREMONY - S.wakeT, false) : `${Math.floor(mins / 60) % 24}:${String(mins % 60).padStart(2, '0')}`;
+    cx.fillStyle = S.phase === 2 ? C.behind : C.ahead; cx.font = `700 ${Math.round(nw * .15)}px ${F_TIME}`; cx.textAlign = 'center'; cx.textBaseline = 'middle';
+    cx.fillText(clockTxt, nx + nw * .73, ny + nw * .335); cx.textBaseline = 'alphabetic';
+  }
+
+  // the neighbour's wall
+  const drill = S.dists.some(d => d.kind === 'drill');
+  cx.fillStyle = C.line; cx.fillRect(0, 0, 10, H);
+  if (drill) {
+    cx.strokeStyle = C.behind; cx.lineWidth = 2;
+    for (let i = 0; i < 5; i++) { const y = H * (.2 + i * .14), j = red ? 0 : Math.sin(tt * 40 + i) * 3; cx.beginPath(); cx.moveTo(14, y + j); cx.lineTo(26, y - 6 - j); cx.lineTo(38, y + j); cx.stroke(); }
+    cx.save(); cx.translate(22, H * .5); cx.rotate(-Math.PI / 2);
+    cx.fillStyle = C.behind; cx.font = `700 15px ${F_TIME}`; cx.textAlign = 'center'; cx.fillText(S.plugT > 0 ? 'brrrr' : 'BRRRRRRRRR', 0, 18); cx.restore();
+  }
+
+  // the fly, orbiting the face
+  if (S.dists.some(d => d.kind === 'fly')) {
+    const a = tt * 3.3, fx = hx + Math.cos(a) * hr * 1.9 + Math.sin(a * 2.7) * 9, fy = hy + Math.sin(a * 1.3) * hr * 1.4;
+    cx.fillStyle = C.ink; cx.beginPath(); cx.arc(fx, fy, 3.2, 0, 7); cx.fill();
+    cx.globalAlpha = .45; cx.fillStyle = C.muted;
+    const flap = red ? 1 : Math.abs(Math.sin(tt * 40));
+    cx.beginPath(); cx.ellipse(fx - 3, fy - 3, 4 * flap + 1, 2.4, -.6, 0, 7); cx.ellipse(fx + 3, fy - 3, 4 * flap + 1, 2.4, .6, 0, 7); cx.fill(); cx.globalAlpha = 1;
+    cx.strokeStyle = C.muted; cx.setLineDash([2, 4]); cx.lineWidth = 1;
+    cx.beginPath(); cx.arc(hx, hy, hr * 1.8, a - 1.2, a - .2); cx.stroke(); cx.setLineDash([]);
+  }
+
+  // the thought from 2009
+  const th = S.dists.find(d => d.kind === 'thought');
+  if (th) {
+    const cxp = hx + hr * 2.6, cyp = hy - hr * .2;
+    cx.fillStyle = C.bg; cx.strokeStyle = C.ink; cx.lineWidth = 1.5;
+    for (const [ox, oy, r] of [[-hr * 1.3, hr * .5, 3], [-hr * .9, hr * .2, 5]]) { cx.beginPath(); cx.arc(cxp + ox, cyp + oy, r, 0, 7); cx.fill(); cx.stroke(); }
+    cx.beginPath(); cx.ellipse(cxp + hr * .4, cyp - hr * .6, hr * 1.1, hr * .65, 0, 0, 7); cx.fill(); cx.stroke();
+    cx.fillStyle = C.ink; cx.font = `700 ${Math.round(hr * .55)}px ${F_TIME}`; cx.textAlign = 'center'; cx.textBaseline = 'middle';
+    cx.fillText('2009', cxp + hr * .4, cyp - hr * .6); cx.textBaseline = 'alphabetic';
+  }
+
+  // the comforts of part two, drawn as what they are
+  if (S.phase === 2) {
+    if (S.dists.some(d => d.kind === 'duvet')) { cx.fillStyle = C.accent; cx.globalAlpha = .18; cx.fillRect(bx, dy, bw, dh); cx.globalAlpha = 1; }
+    if (S.dists.some(d => d.kind === 'dream')) { cx.fillStyle = C.ahead; cx.globalAlpha = .5; cx.font = `italic 600 14px ${F_BODY}`; cx.textAlign = 'center'; cx.fillText(t('dreamCanvas'), hx + hr * 2.8, hy - hr * .6, Math.max(60, W - (hx + hr * 2.8)) * 2 - 8); cx.globalAlpha = 1; }
+  }
+
+  // Zs, once it is going well
+  if (depth > 45 && !red && (S.mode === 'run' || S.mode === 'reveal' || (S.mode === 'end' && S.ending === 'forever'))) {
+    cx.fillStyle = C.muted; cx.textAlign = 'left';
+    for (let i = 0; i < 3; i++) {
+      const u = ((tt * .35 + i / 3) % 1);
+      cx.globalAlpha = 1 - u; cx.font = `700 ${Math.round(12 + u * 14)}px ${F_TIME}`;
+      cx.fillText('z', hx + hr + u * 46 + i * 4, hy - hr - u * 50);
+    }
+    cx.globalAlpha = 1;
+  }
+}
+
+function tick(dt) {
+  if (S.mode === 'run' || S.mode === 'wake') step(dt);
+}
+const loop = Kit.loop(dt => { tick(dt); draw(); hud(dt); });
+
+// ---- language switch
+// Static markup carries data-t / data-th / data-ta. The cards, splits, buttons, comm line and
+// any open overlay are re-rendered; the commentary feed keeps each line as it was said.
+function applyLang() {
+  document.documentElement.lang = lang;
+  document.title = t('docTitle');
+  for (const el of document.querySelectorAll('[data-t]')) el.textContent = t(el.dataset.t);
+  for (const el of document.querySelectorAll('[data-th]')) el.innerHTML = t(el.dataset.th);
+  for (const el of document.querySelectorAll('[data-ta]')) el.setAttribute('aria-label', t(el.dataset.ta));
+  for (const box of document.querySelectorAll('.lang')) {
+    if (!box.children.length) box.innerHTML = '<button type="button" data-lang="fr" lang="fr">FR</button><button type="button" data-lang="en" lang="en">EN</button>';
+    for (const b of box.children) b.setAttribute('aria-pressed', String(b.dataset.lang === lang));
+  }
+  if (!S) return;
+  $('#comm').textContent = S.comm();
+  $('#att').textContent = t('attempt')(num(S.mode === 'title' ? attempts + 1 : attempts));
+  setActs(); renderCards(); renderRows(true);
+  if (S.mode === 'reveal') showRev();
+  if (S.mode === 'end') fillEnd();
+  else $('#again').textContent = t('againDefault');
+}
+function setLang(l) {
+  if (!(l in I18N) || l === lang) return;
+  lang = l;
+  applyLang();
+}
+document.addEventListener('click', e => {
+  const b = e.target.closest('[data-lang]');
+  // blurred, like the action buttons, so Space goes back to being a breath
+  if (b) { b.blur(); setLang(b.dataset.lang); }
+});
+
+function start(data) {
+  if (data.pb) pb = data.pb;
+  if (data.golds) golds = data.golds;
+  if (data.wr) wr = data.wr;
+  if (data.attempts) attempts = data.attempts;
+  lang = data?.lang in I18N ? data.lang : (navigator.language || '').toLowerCase().startsWith('fr') ? 'fr' : 'en';
+  S = fresh();
+  applyLang();
+  Kit.show($('#title'));
+  loop.start();
+}
+
+// ---- test hook: each jump leaves the last stretch to the real rules
+// napTo: a run whose splits land on PB pace scaled to `secs`, finished through the real record logic
+function napTo(secs) {
+  newRun();
+  const k = secs / S.cmp[S.cmp.length - 1];
+  S.times = S.cmp.map(x => x * k); S.splitI = SPLITS.length; S.t = secs; S.sleep = 100;
+  finishNap();
+}
+Kit.expose({
+  state: () => S,
+  endings: {
+    wr: {
+      seconds: 14,
+      jump() { napTo(200); startWake(); S.sleep = 1.5; S.spawnT = 99; S.lastIn = S.t; S.g0 = S.t - IN2 - .1; },
+      reached: () => S.ending === 'wr' && !$('#end').hidden,
+    },
+    reset: {
+      seconds: 12,
+      jump() { newRun(); S.t = 10; S.sleep = 3; S.spawnT = 99; },
+      reached: () => S.ending === 'reset' && !$('#end').hidden,
+    },
+    forever: {
+      seconds: 12,
+      jump() { napTo(200); startWake(); S.sleep = 70; S.wakeT = CEREMONY - 4; S.spawnT = 99; },
+      reached: () => S.ending === 'forever' && !$('#end').hidden && $('#end-big').textContent !== '',
+    },
+  },
+});
+Kit.boot(start, () => ({ pb, golds, wr, attempts, lang }));
+</script>
+</body>
+</html>

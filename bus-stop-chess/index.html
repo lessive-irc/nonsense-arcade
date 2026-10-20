@@ -1,0 +1,1742 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Bus Stop Chess</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Doto:wght@700;900&family=Public+Sans:ital,wght@0,400;0,600;0,800;1,400&family=Noto+Sans+Symbols+2&display=swap">
+<style>
+/* Layout: one bus shelter at Stop K. The street runs across the top; the amber LED departure
+   board is the only loud thing; the chess board is painted on the shelter's concrete table. */
+:root {
+  --bg: #e2e6e3;
+  --panel: #f1f4f1;
+  --ink: #1b2124;
+  --muted: #5a6568;
+  --line: #1b212430;
+  --accent: #c98400;
+  --led: #ffb000;
+  --led-dim: #ffb00038;
+  --led-bg: #131517;
+  --steel: #34574b;
+  --road: #a4aaa7;
+  --glass: #c9d7d6;
+  --kerb: #f7f8f5;
+  --sq-l: #d5dad6;
+  --sq-d: #7d8d91;
+  --pc-w: #fbfbf6;
+  --pc-w-edge: #1b2124;
+  --pc-b: #1b2124;
+  --pc-b-edge: #1b2124;
+  --sel: #ffb00080;
+  --lamp: #ffb00000;
+  --f-led: "Doto", ui-monospace, "Courier New", monospace;
+  --f-body: "Public Sans", "Segoe UI", system-ui, sans-serif;
+  --f-piece: "Noto Sans Symbols 2", "DejaVu Sans", "Segoe UI Symbol", "Apple Symbols", serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0d1113; --panel: #151b1e; --ink: #e0e6e2; --muted: #8b979a; --line: #e0e6e224;
+    --accent: #ffb84a; --led: #ffb84a; --led-dim: #ffb84a30; --led-bg: #040506;
+    --steel: #2b4a40; --road: #22282a; --glass: #1b2a2c; --kerb: #3a4245;
+    --sq-l: #56646a; --sq-d: #2e383d; --pc-w: #eef0eb; --pc-w-edge: #0d1113; --pc-b: #0a0d0f; --pc-b-edge: #b3bdbf;
+    --sel: #ffb84a70; --lamp: #ffb84a3a;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0d1113; --panel: #151b1e; --ink: #e0e6e2; --muted: #8b979a; --line: #e0e6e224;
+  --accent: #ffb84a; --led: #ffb84a; --led-dim: #ffb84a30; --led-bg: #040506;
+  --steel: #2b4a40; --road: #22282a; --glass: #1b2a2c; --kerb: #3a4245;
+  --sq-l: #56646a; --sq-d: #2e383d; --pc-w: #eef0eb; --pc-w-edge: #0d1113; --pc-b: #0a0d0f; --pc-b-edge: #b3bdbf;
+  --sel: #ffb84a70; --lamp: #ffb84a3a;
+  color-scheme: dark;
+}
+/* kit:css:begin */
+/* Arcade kit: structure only, never a look. Inlined between kit:css markers by kit/inline.mjs.
+   The game's own :root must define --bg --ink --muted --accent --panel --line (light), and
+   redefine them in both dark blocks; everything here reads those tokens. */
+*, *::before, *::after { box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  -webkit-tap-highlight-color: transparent;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+button { font: inherit; color: inherit; cursor: pointer; }
+button:disabled { cursor: default; }
+:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+canvas { display: block; max-width: 100%; touch-action: none; }
+
+/* Full-stage screens (title, twist, end). Sit inside a position:relative stage. */
+.kit-overlay {
+  position: absolute; inset: 0; z-index: 5;
+  display: grid; place-items: center; padding: 24px;
+  background: color-mix(in srgb, var(--bg) 88%, transparent);
+  overflow-y: auto;
+}
+.kit-overlay[hidden] { display: none; }
+
+/* Touch pad: shown only on coarse pointers; buttons carry data-key (see Kit.keys). */
+.kit-pad { display: none; gap: 10px; justify-content: center; padding-block: 10px; user-select: none; }
+.kit-pad [data-key] { min-width: 56px; min-height: 56px; touch-action: none; border: 1px solid var(--line); background: var(--panel); }
+@media (pointer: coarse) { .kit-pad { display: flex; } }
+
+.kit-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+
+@media (prefers-reduced-motion: reduce) {
+  .kit-deco, .kit-deco * { animation: none !important; transition: none !important; }
+}
+/* kit:css:end */
+[hidden] { display: none !important; }
+.kit-overlay { position: fixed; align-items: safe center; }
+body { font-family: var(--f-body); font-size: 15px; line-height: 1.45; padding-block: 12px; min-height: 100dvh; }
+.stage { position: relative; max-width: 1240px; margin: 0 auto; min-height: calc(100dvh - 24px); display: flex; flex-direction: column; gap: 12px; }
+.street { width: 100%; height: 104px; border-bottom: 2px solid var(--ink); }
+.cols {
+  flex: 1; display: grid; gap: 14px 22px; align-items: start;
+  grid-template-columns: 270px minmax(0, 1fr) 280px;
+  grid-template-areas: "dep board who" "dep board log";
+  grid-template-rows: auto 1fr;
+}
+
+/* The departure board: the one loud object. */
+.dep { grid-area: dep; display: grid; gap: 12px; }
+.led { background: var(--led-bg); color: var(--led); border-radius: 6px; padding: 10px 12px 9px; font-family: var(--f-led); font-weight: 900; text-transform: uppercase; box-shadow: inset 0 0 0 2px #00000060, 0 2px 0 var(--ink); }
+.led-row { display: flex; justify-content: space-between; gap: 10px; white-space: nowrap; }
+.led-head { font-size: 13px; letter-spacing: .08em; opacity: .75; }
+.led-main { font-size: 26px; line-height: 1.15; margin-top: 4px; align-items: baseline; }
+.led-main #led-dest { flex: 1; font-size: 15px; overflow: hidden; text-overflow: clip; }
+.led-due { font-variant-numeric: tabular-nums; }
+.led-due.warn { animation: blink 1s steps(2) infinite; }
+@keyframes blink { 50% { opacity: .25; } }
+.led-tick { margin-top: 6px; font-size: 12px; letter-spacing: .06em; overflow: hidden; white-space: nowrap; border-top: 1px dashed var(--led-dim); padding-top: 5px; }
+.led-tick span { display: inline-block; padding-left: 100%; animation: tick 16s linear infinite; }
+@keyframes tick { to { transform: translateX(-100%); } }
+.tt { list-style: none; margin: 0; padding: 0; border-top: 2px solid var(--ink); font-size: 13px; }
+.tt li { display: grid; grid-template-columns: 6ch 3.5ch 1fr auto; gap: 8px; padding: 6px 2px; border-bottom: 1px solid var(--line); font-variant-numeric: tabular-nums; }
+.tt li b { font-weight: 800; }
+.tt li em { font-style: normal; color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .05em; }
+.tt li.now { background: var(--led-dim); }
+.tt li.gone { color: var(--muted); }
+.tt-cap { font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); margin: 0 0 -6px; }
+.stop-note { font-size: 12px; color: var(--muted); margin: 0; }
+
+/* The board, painted on the concrete table. */
+.boardcol { grid-area: board; display: grid; justify-items: center; gap: 10px; }
+.task { font-weight: 800; font-size: 17px; letter-spacing: .01em; display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; justify-content: center; text-align: center; }
+.task small { font-weight: 400; color: var(--muted); font-size: 13px; }
+.table-top { padding: 12px; background: var(--panel); border: 2px solid var(--ink); border-radius: 4px; box-shadow: 4px 4px 0 var(--line); }
+.board { display: grid; grid-template-columns: repeat(8, 1fr); grid-template-rows: repeat(8, 1fr); width: min(calc(100vw - 64px), 62vh, 540px); aspect-ratio: 1; border: 2px solid var(--ink); user-select: none; -webkit-user-select: none; }
+.sq { position: relative; border: 0; padding: 0; margin: 0; display: grid; place-items: center; background: var(--sq-l); font-family: var(--f-piece); line-height: 1; cursor: pointer; overflow: hidden; }
+.sq.d { background: var(--sq-d); }
+.sq:focus-visible { outline: 3px solid var(--accent); outline-offset: -3px; z-index: 2; }
+.sq .pc { font-size: min(6.6vw, 5.4vh, 50px); transform: translateY(-2%); pointer-events: none; }
+.pc.w { color: var(--pc-w); -webkit-text-stroke: 1.4px var(--pc-w-edge); paint-order: stroke fill; }
+.pc.b { color: var(--pc-b); -webkit-text-stroke: 1px var(--pc-b-edge); paint-order: stroke fill; }
+.sq.last::before { content: ""; position: absolute; inset: 0; background: var(--led-dim); }
+.sq.sel::before { content: ""; position: absolute; inset: 0; background: var(--sel); }
+.sq.tgt::after { content: ""; position: absolute; width: 26%; height: 26%; border-radius: 50%; background: var(--ink); opacity: .32; }
+.sq.tgt.cap::after { width: 86%; height: 86%; background: none; border: 4px solid var(--ink); opacity: .3; }
+.sq.cur { box-shadow: inset 0 0 0 3px var(--accent); }
+.sq.bad { animation: bad .45s; }
+@keyframes bad { 25%, 75% { transform: translateX(-3px); } 50% { transform: translateX(3px); } }
+.sq .co { position: absolute; font-family: var(--f-body); font-size: 10px; font-weight: 800; color: var(--muted); pointer-events: none; }
+.sq .co.f { right: 3px; bottom: 1px; }
+.sq .co.r { left: 3px; top: 2px; }
+.sq.scramble .pc { transition: none; }
+.under { display: flex; gap: 12px; align-items: center; justify-content: center; flex-wrap: wrap; font-size: 12px; color: var(--muted); }
+.under kbd { font-family: var(--f-body); border: 1px solid var(--line); border-radius: 3px; padding: 0 4px; background: var(--panel); }
+
+/* The stranger on the bench. */
+.who { grid-area: who; display: grid; gap: 8px; }
+.who h2 { margin: 0; font-size: 22px; font-weight: 800; line-height: 1.1; }
+.who .style { margin: 0; font-size: 12.5px; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
+.say { margin: 0; font-style: italic; font-size: 16px; line-height: 1.45; border-left: 3px solid var(--led); padding: 2px 0 2px 12px; min-height: 4.4em; text-wrap: pretty; }
+.score { display: flex; gap: 14px; font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
+.score b { color: var(--ink); font-variant-numeric: tabular-nums; }
+.logbox { grid-area: log; }
+.logbox h3 { margin: 0 0 4px; font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+.log { margin: 0; padding: 0; list-style: none; font-variant-numeric: tabular-nums; font-size: 14px; max-height: 210px; overflow-y: auto; border-top: 2px solid var(--ink); }
+.log li { display: grid; grid-template-columns: 3.4ch 1fr 1fr; gap: 6px; padding: 3px 2px; border-bottom: 1px solid var(--line); }
+.log li span:first-child { color: var(--muted); }
+.log li.note { display: block; color: var(--muted); font-style: italic; font-size: 13px; }
+
+button.act { font-weight: 800; font-size: 15px; padding: 11px 18px; border-radius: 4px; border: 2px solid var(--ink); background: var(--led-bg); color: var(--led); box-shadow: 3px 3px 0 var(--line); }
+button.act:hover { transform: translate(-1px, -1px); }
+button.act:active { transform: translate(1px, 1px); box-shadow: none; }
+button.ghost { background: var(--panel); color: var(--ink); font-weight: 600; font-size: 14px; padding: 8px 14px; border: 2px solid var(--ink); border-radius: 4px; }
+
+/* Overlays: notices pasted on the shelter glass. */
+.card { width: min(560px, 100%); background: var(--panel); border: 2px solid var(--ink); border-radius: 4px; box-shadow: 6px 6px 0 var(--line); padding: 22px 24px; display: grid; gap: 14px; }
+.card h1 { margin: 0; font-family: var(--f-led); font-weight: 900; text-transform: uppercase; font-size: clamp(38px, 9vw, 66px); line-height: .95; color: var(--led); background: var(--led-bg); padding: 12px 14px 10px; border-radius: 6px; letter-spacing: .02em; }
+.card h2 { margin: 0; font-size: clamp(24px, 5vw, 32px); line-height: 1.1; font-weight: 800; text-wrap: balance; }
+.card p { margin: 0; text-wrap: pretty; }
+.card .lede { font-size: 18px; font-style: italic; }
+.card .meta { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
+.card .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+.card .prev { font-size: 13px; color: var(--muted); border-left: 3px solid var(--line); padding-left: 10px; }
+.card .speech { font-size: 17px; font-style: italic; border-left: 3px solid var(--led); padding-left: 12px; }
+.blind { font-family: var(--f-led); font-weight: 900; text-transform: uppercase; background: var(--led-bg); color: var(--led); padding: 6px 10px; border-radius: 4px; display: inline-block; font-size: 20px; }
+.gamelog { font-variant-numeric: tabular-nums; font-size: 14px; display: flex; flex-wrap: wrap; gap: 4px 12px; }
+.reveal-line { font-size: clamp(19px, 3.2vw, 24px); line-height: 1.4; min-height: 4.2em; }
+
+/* FR | EN: a two-cell plate in the shelter's ink and panel */
+.lang { display: inline-flex; flex: 0 0 auto; border: 2px solid var(--ink); border-radius: 4px; background: var(--panel); overflow: hidden; }
+.lang button { border: 0; background: transparent; padding: 3px 9px; font: 800 12px var(--f-body); letter-spacing: .06em; color: var(--muted); min-height: 28px; }
+.lang button + button { border-left: 1px solid var(--line); }
+.lang button:hover { color: var(--ink); }
+.lang button[aria-pressed="true"] { background: var(--led-bg); color: var(--led); }
+.who-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
+.who-head .who-top { flex: 1; min-width: 0; }
+/* The scrolling ticker is one nowrap line; without a 0 minimum its length set the column's
+   width, and on a phone a long line widened the whole layout viewport past the screen. */
+.dep { grid-template-columns: minmax(0, 1fr); }
+
+@media (max-width: 980px) {
+  .cols { grid-template-columns: 240px minmax(0, 1fr); grid-template-areas: "dep board" "who board" "log board"; grid-template-rows: auto auto 1fr; }
+}
+@media (max-width: 700px) {
+  body { padding-block: 8px; font-size: 14px; }
+  .stage { gap: 8px; min-height: calc(100dvh - 16px); }
+  .street { height: 62px; }
+  .cols { grid-template-columns: minmax(0, 1fr); grid-template-areas: "dep" "who" "board" "log"; grid-template-rows: none; gap: 8px; }
+  .tt, .tt-cap, .stop-note { display: none; }
+  .led { padding: 7px 10px 6px; }
+  .led-main { font-size: 21px; margin-top: 2px; }
+  .led-main #led-dest { font-size: 12px; }
+  .led-head { font-size: 11px; }
+  .led-tick { font-size: 11px; margin-top: 3px; padding-top: 3px; }
+  .who { gap: 4px; }
+  .who-top { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+  .who h2 { font-size: 17px; }
+  .who .style { font-size: 11px; }
+  .say { font-size: 14px; min-height: 3em; }
+  .score { display: none; }
+  .table-top { padding: 0; border: 0; box-shadow: none; background: none; }
+  .board { width: min(calc(100vw - 32px), 56vh); }
+  .sq .pc { font-size: min(9.4vw, 6vh); }
+  .task { font-size: 15px; }
+  .under { display: none; }
+  .log { max-height: 96px; font-size: 13px; }
+  .card { padding: 16px; }
+}
+</style>
+</head>
+<body>
+<div class="stage" id="stage">
+  <canvas class="street kit-deco" id="street" aria-hidden="true"></canvas>
+
+  <div class="cols">
+    <section class="dep" data-ta="depAria" aria-label="Departure board, Stop K">
+      <div class="led" role="status" aria-live="off">
+        <div class="led-row led-head"><span data-t="ledHead">Stop K · Kingsway</span><span id="led-clock">22:58</span></div>
+        <div class="led-row led-main"><span id="led-route">H3</span><span id="led-dest">Hanger Lane</span><span class="led-due" id="led-due">Dep</span></div>
+        <div class="led-tick"><span id="led-tick">Services calling at Stop K may be delayed by chess</span></div>
+      </div>
+      <p class="tt-cap" data-t="ttCap">Tonight's departures</p>
+      <ol class="tt" id="tt"></ol>
+      <p class="stop-note" data-t="stopNote">Timetable valid until further notice. No castling. No en passant. Please do not lean on the timetable.</p>
+    </section>
+
+    <section class="who" aria-live="polite">
+      <div class="who-head">
+        <div class="who-top">
+          <h2 id="who-name">Stop K</h2>
+          <p class="style" id="who-style">Nobody here yet</p>
+        </div>
+        <div class="lang" role="group" data-ta="langGroup" aria-label="Language"></div>
+      </div>
+      <p class="say" id="say">A concrete table with a chessboard painted on it. Someone has scratched a second, smaller board into the shelter glass.</p>
+      <div class="score" id="score"><span>Won <b id="sc-won">0</b>/5</span><span>Mistakes <b id="sc-err">0</b></span></div>
+      <button class="ghost" id="draw" data-th="drawBtn" hidden>Offer the bus a draw <span aria-hidden="true">½–½</span></button>
+    </section>
+
+    <section class="boardcol" data-ta="boardAria" aria-label="Chess board">
+      <div class="task" id="task">The board is set. Nobody is sitting at it.</div>
+      <div class="table-top"><div class="board" id="board" role="grid" data-ta="boardAria" aria-label="Chess board"></div></div>
+      <div class="under" data-th="underHtml"><span>Click a piece, then a square</span><span><kbd>←↑↓→</kbd> move · <kbd>Space</kbd> pick up / put down · <kbd>Esc</kbd> let go</span></div>
+    </section>
+
+    <section class="logbox" data-ta="logAria" aria-label="Move log">
+      <h3 data-t="logH">Move log</h3>
+      <ol class="log" id="log"></ol>
+    </section>
+  </div>
+
+  <div class="kit-overlay" id="title">
+    <div class="card">
+      <h1 data-th="titleH">Bus Stop<br>Chess</h1>
+      <p class="lede" data-t="titleLede">You have just missed the H3. The next one is a B4, in six minutes. There is a chessboard painted on the table in the shelter.</p>
+      <p data-t="titleP">Strangers sit down opposite you and set up a position. Solve it before their bus comes: mate in one, mate in two, or win them some material. Click a piece, then the square it goes to. A wrong move costs you eight seconds.</p>
+      <div class="row"><button class="act" id="start" data-t="startBtn">Sit down and play</button><span class="meta" data-t="titleMeta">About 4 minutes · keyboard: arrows and space</span><div class="lang" role="group" data-ta="langGroup" aria-label="Language"></div></div>
+      <p class="meta" id="best-line" hidden></p>
+    </div>
+  </div>
+
+  <div class="kit-overlay" id="intro" hidden>
+    <div class="card">
+      <p class="prev" id="in-prev"></p>
+      <span class="meta" id="in-meta"></span>
+      <h2 id="in-name"></h2>
+      <p class="speech" id="in-speech"></p>
+      <p class="meta" id="in-task"></p>
+      <div class="row"><button class="act" id="in-go" data-t="inGo">Sit down opposite</button><div class="lang" role="group" data-ta="langGroup" aria-label="Language"></div></div>
+    </div>
+  </div>
+
+  <div class="kit-overlay" id="reveal" hidden>
+    <div class="card">
+      <span class="meta" id="rev-meta" data-t="revMeta">23:41 · Stop K</span>
+      <p class="reveal-line" id="rev-line"></p>
+      <div class="gamelog" id="rev-log" hidden></div>
+      <div class="row"><button class="act" id="rev-next">Go on</button><div class="lang" role="group" data-ta="langGroup" aria-label="Language"></div></div>
+    </div>
+  </div>
+
+  <div class="kit-overlay" id="end" hidden>
+    <div class="card">
+      <span class="blind" id="end-blind"></span>
+      <h2 id="end-title"></h2>
+      <p class="lede" id="end-sub"></p>
+      <p id="end-body"></p>
+      <p class="meta" id="end-stat"></p>
+      <div class="row"><button class="act" id="end-again" data-t="againBtn">Wait for the first bus and play again</button><div class="lang" role="group" data-ta="langGroup" aria-label="Language"></div></div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* kit:js:begin */
+// Arcade kit: the plumbing every game re-wrote by hand. Inlined between kit:js markers by
+// kit/inline.mjs, so a game stays one standalone file. Defines exactly two globals, `Kit` and
+// (once a game calls Kit.expose) `__arcade`; nothing else, because a bare top-level name can
+// collide with a window property (sandwich-diplomacy's `top()` shadowed by window.top).
+const Kit = (() => {
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const themeWatchers = [];
+  const onTheme = () => themeWatchers.forEach(f => f());
+  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', onTheme);
+  new MutationObserver(onTheme).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+
+  // Canvas code cannot read CSS variables, so mirror the named tokens into an object and
+  // re-read it whenever the theme flips: the viewer's toggle sets data-theme, the OS sets the media query.
+  function tokens(names, onChange) {
+    const C = {};
+    const read = () => {
+      const cs = getComputedStyle(document.documentElement);
+      for (const n of names) C[n] = cs.getPropertyValue('--' + n).trim();
+      onChange?.(C);
+    };
+    read();
+    themeWatchers.push(read);
+    return C;
+  }
+
+  // Keeps a canvas sharp at the device pixel ratio (capped at 2) and sized to its CSS box.
+  function canvas(el, onResize) {
+    const view = { el, cx: el.getContext('2d'), W: 0, H: 0 };
+    const fit = () => {
+      const r = el.getBoundingClientRect(), d = Math.min(2, devicePixelRatio || 1);
+      view.W = r.width; view.H = r.height;
+      el.width = Math.round(r.width * d); el.height = Math.round(r.height * d);
+      view.cx.setTransform(d, 0, 0, d, 0, 0);
+      onResize?.(view);
+    };
+    new ResizeObserver(fit).observe(el);
+    fit();
+    return view;
+  }
+
+  // step(dt) gets seconds, capped at 50 ms so a background tab or a stalled frame cannot
+  // teleport the game; the loop stops while the tab is hidden and resumes without a jump.
+  function loop(step) {
+    let last = 0, raf = 0, on = false;
+    const frame = t => {
+      const dt = last ? Math.min(0.05, (t - last) / 1000) : 0;
+      last = t;
+      step(dt);
+      if (on) raf = requestAnimationFrame(frame);
+    };
+    const ctl = {
+      start() { if (on) return; on = true; last = 0; raf = requestAnimationFrame(frame); },
+      stop() { on = false; cancelAnimationFrame(raf); },
+      get running() { return on; },
+    };
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden && on) { ctl.stop(); ctl.paused = true; }
+      else if (!document.hidden && ctl.paused) { ctl.paused = false; ctl.start(); }
+    });
+    return ctl;
+  }
+
+  // Held keys by KeyboardEvent.key, lower-cased (' ' for Space). Touch pads feed the same set:
+  // any element with data-key="<key>" inside a .kit-pad holds that key while pressed.
+  const held = new Set();
+  const pressFns = [];
+  const norm = k => (k.length === 1 ? k.toLowerCase() : k);
+  const press = (k, down) => {
+    k = norm(k);
+    if (down === held.has(k)) return;
+    down ? held.add(k) : held.delete(k);
+    pressFns.forEach(f => f(k, down));
+  };
+  const GAME_KEYS = new Set([' ', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight']);
+  addEventListener('keydown', e => {
+    if (e.target.closest?.('input, textarea, select, [contenteditable]')) return;
+    if (GAME_KEYS.has(e.key) && !e.target.closest?.('button')) e.preventDefault();
+    if (!e.repeat) press(e.key, true);
+  });
+  addEventListener('keyup', e => press(e.key, false));
+  addEventListener('blur', () => [...held].forEach(k => press(k, false)));
+  document.addEventListener('pointerdown', e => {
+    const b = e.target.closest?.('.kit-pad [data-key]');
+    if (!b) return;
+    e.preventDefault();
+    b.setPointerCapture?.(e.pointerId);
+    press(b.dataset.key, true);
+    const up = () => { press(b.dataset.key, false); b.removeEventListener('pointerup', up); b.removeEventListener('pointercancel', up); };
+    b.addEventListener('pointerup', up);
+    b.addEventListener('pointercancel', up);
+  });
+  const keys = {
+    down: k => held.has(norm(k)),
+    any: (...ks) => ks.some(k => held.has(norm(k))),
+    onPress(fn) { pressFns.push(fn); },
+  };
+
+  // The claude.ai viewer's hot-update hook: keeps `snapshot()` across a republish. Absent when
+  // self-hosted, so start() then receives {}.
+  function boot(start, snapshot) {
+    if (snapshot) window.claude?.hot?.snapshot?.(snapshot);
+    window.claude?.hot?.ready ? window.claude.hot.ready(start) : start(window.claude?.hot?.data ?? {});
+  }
+
+  // The test hook smoke.mjs drives. endings: { name: { jump(), reached(), seconds? } } where
+  // jump() may shortcut the set-up but must leave the ending's final stretch to real game
+  // logic, and reached() is true only once that ending's screen is actually showing.
+  function expose({ state, endings }) {
+    window.__arcade = {
+      get state() { return state(); },
+      endings: Object.fromEntries(Object.entries(endings).map(([k, v]) => [k, { seconds: v.seconds ?? 8 }])),
+      jump: name => endings[name].jump(),
+      reached: name => !!endings[name].reached(),
+    };
+  }
+
+  // Show one overlay and hide the others; focus its first button so Enter/Space continue.
+  function show(el) {
+    document.querySelectorAll('.kit-overlay').forEach(o => { o.hidden = o !== el; });
+    el?.querySelector('button')?.focus({ preventScroll: true });
+  }
+
+  const rnd = (a, b) => a + Math.random() * (b - a);
+  const pick = a => a[Math.floor(Math.random() * a.length)];
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+
+  return { reduce, tokens, canvas, loop, keys, boot, expose, show, rnd, pick, clamp };
+})();
+/* kit:js:end */
+
+/* chess:begin */
+// Chess rules for the puzzles: every piece's moves, check, mate, stalemate, promotion to a queen,
+// SAN. No castling and no en passant: no answer or defence in any puzzle here can use either.
+const Chess = (() => {
+  const FILES = 'abcdefgh';
+  const VAL = { p: 1, n: 3, b: 3, r: 5, q: 9, k: 0 };
+  const N_D = [[1, 2], [2, 1], [2, -1], [1, -2], [-1, -2], [-2, -1], [-2, 1], [-1, 2]];
+  const K_D = [[1, 0], [1, 1], [0, 1], [-1, 1], [-1, 0], [-1, -1], [0, -1], [1, -1]];
+  const B_D = [[1, 1], [1, -1], [-1, 1], [-1, -1]], R_D = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+  const sqName = i => FILES[i & 7] + ((i >> 3) + 1);
+  const side = p => (p ? (p === p.toUpperCase() ? 'w' : 'b') : null);
+  const other = c => (c === 'w' ? 'b' : 'w');
+  const on = (f, r) => f >= 0 && f < 8 && r >= 0 && r < 8;
+
+  function fromFEN(fen) {
+    const [rows, turn] = fen.split(' ');
+    const b = Array(64).fill(null);
+    rows.split('/').forEach((row, r) => {
+      let f = 0;
+      for (const ch of row) { if (/\d/.test(ch)) f += +ch; else b[(7 - r) * 8 + f++] = ch; }
+    });
+    return { b, turn: turn || 'w' };
+  }
+
+  function pseudo(pos) {
+    const { b, turn } = pos, out = [];
+    for (let i = 0; i < 64; i++) {
+      const p = b[i];
+      if (!p || side(p) !== turn) continue;
+      const f = i & 7, r = i >> 3, t = p.toLowerCase();
+      const add = to => out.push({ from: i, to, piece: p, cap: b[to],
+        promo: t === 'p' && (to >> 3 === 7 || to >> 3 === 0) ? (turn === 'w' ? 'Q' : 'q') : null });
+      if (t === 'p') {
+        const d = turn === 'w' ? 1 : -1, home = turn === 'w' ? 1 : 6;
+        if (on(f, r + d) && !b[(r + d) * 8 + f]) {
+          add((r + d) * 8 + f);
+          if (r === home && !b[(r + 2 * d) * 8 + f]) add((r + 2 * d) * 8 + f);
+        }
+        for (const df of [-1, 1]) {
+          if (!on(f + df, r + d)) continue;
+          const q = b[(r + d) * 8 + f + df];
+          if (q && side(q) !== turn) add((r + d) * 8 + f + df);
+        }
+      } else if (t === 'n' || t === 'k') {
+        for (const [df, dr] of t === 'n' ? N_D : K_D) {
+          if (!on(f + df, r + dr)) continue;
+          const q = b[(r + dr) * 8 + f + df];
+          if (!q || side(q) !== turn) add((r + dr) * 8 + f + df);
+        }
+      } else {
+        const dirs = t === 'b' ? B_D : t === 'r' ? R_D : B_D.concat(R_D);
+        for (const [df, dr] of dirs) {
+          let ff = f + df, rr = r + dr;
+          while (on(ff, rr)) {
+            const q = b[rr * 8 + ff];
+            if (q) { if (side(q) !== turn) add(rr * 8 + ff); break; }
+            add(rr * 8 + ff);
+            ff += df; rr += dr;
+          }
+        }
+      }
+    }
+    return out;
+  }
+
+  // Is square sq attacked by colour `by`?
+  function attacked(b, sq, by) {
+    const f = sq & 7, r = sq >> 3;
+    const at = (ff, rr) => (on(ff, rr) ? b[rr * 8 + ff] : undefined);
+    const is = (p, t) => p && side(p) === by && p.toLowerCase() === t;
+    const d = by === 'w' ? -1 : 1;
+    if (is(at(f - 1, r + d), 'p') || is(at(f + 1, r + d), 'p')) return true;
+    for (const [df, dr] of N_D) if (is(at(f + df, r + dr), 'n')) return true;
+    for (const [df, dr] of K_D) if (is(at(f + df, r + dr), 'k')) return true;
+    for (const [dirs, ts] of [[B_D, 'bq'], [R_D, 'rq']]) {
+      for (const [df, dr] of dirs) {
+        let ff = f + df, rr = r + dr, p;
+        while ((p = at(ff, rr)) !== undefined) {
+          if (p) { if (side(p) === by && ts.includes(p.toLowerCase())) return true; break; }
+          ff += df; rr += dr;
+        }
+      }
+    }
+    return false;
+  }
+
+  const kingSq = (b, c) => b.indexOf(c === 'w' ? 'K' : 'k');
+  function make(pos, m) {
+    const b = pos.b.slice();
+    b[m.to] = m.promo || m.piece;
+    b[m.from] = null;
+    return { b, turn: other(pos.turn) };
+  }
+  const inCheck = pos => attacked(pos.b, kingSq(pos.b, pos.turn), other(pos.turn));
+  // Try each move in place and undo it: copying the board per candidate was most of the cost.
+  function legal(pos) {
+    const b = pos.b, opp = other(pos.turn), k = kingSq(b, pos.turn);
+    return pseudo(pos).filter(m => {
+      b[m.to] = m.promo || m.piece; b[m.from] = null;
+      const ok = !attacked(b, m.from === k ? m.to : k, opp);
+      b[m.from] = m.piece; b[m.to] = m.cap;
+      return ok;
+    });
+  }
+  function state(pos) {
+    if (legal(pos).length) return inCheck(pos) ? 'check' : 'play';
+    return inCheck(pos) ? 'mate' : 'stalemate';
+  }
+
+  function san(pos, m) {
+    const t = m.piece.toLowerCase();
+    let s;
+    if (t === 'p') s = (m.cap ? FILES[m.from & 7] + 'x' : '') + sqName(m.to) + (m.promo ? '=Q' : '');
+    else {
+      const rivals = legal(pos).filter(o => o.piece === m.piece && o.to === m.to && o.from !== m.from);
+      let dis = '';
+      if (rivals.length) {
+        if (!rivals.some(o => (o.from & 7) === (m.from & 7))) dis = FILES[m.from & 7];
+        else if (!rivals.some(o => o.from >> 3 === m.from >> 3)) dis = String((m.from >> 3) + 1);
+        else dis = sqName(m.from);
+      }
+      s = t.toUpperCase() + dis + (m.cap ? 'x' : '') + sqName(m.to);
+    }
+    const st = state(make(pos, m));
+    return s + (st === 'mate' ? '#' : st === 'check' ? '+' : '');
+  }
+
+  // Material from colour c's side.
+  function material(b, c) {
+    let v = 0;
+    for (const p of b) if (p) v += (side(p) === c ? 1 : -1) * VAL[p.toLowerCase()];
+    return v;
+  }
+  const mates = pos => legal(pos).filter(m => state(make(pos, m)) === 'mate');
+  const hasMate = pos => legal(pos).some(m => state(make(pos, m)) === 'mate');
+  // Does move m force mate next move against every reply?
+  function forcesMate(pos, m) {
+    const n = make(pos, m), rs = legal(n);
+    if (!rs.length) return inCheck(n);
+    return rs.every(r => hasMate(make(n, r)));
+  }
+  // Alpha-beta over material, from `me`'s side; mate is worth 100.
+  function search(pos, depth, me, a = -1e9, bb = 1e9) {
+    if (!depth) return material(pos.b, me);
+    // captures first, so the cut-offs come early
+    const ms = legal(pos).sort((x, y) => (y.cap ? VAL[y.cap.toLowerCase()] : -1) - (x.cap ? VAL[x.cap.toLowerCase()] : -1));
+    if (!ms.length) return inCheck(pos) ? (pos.turn === me ? -100 : 100) : 0;
+    if (pos.turn === me) {
+      let best = -1e9;
+      for (const m of ms) { best = Math.max(best, search(make(pos, m), depth - 1, me, a, bb)); a = Math.max(a, best); if (a >= bb) break; }
+      return best;
+    }
+    let best = 1e9;
+    for (const m of ms) { best = Math.min(best, search(make(pos, m), depth - 1, me, a, bb)); bb = Math.min(bb, best); if (a >= bb) break; }
+    return best;
+  }
+  const bySan = (pos, s) => legal(pos).find(m => san(pos, m).replace(/[+#]$/, '') === s.replace(/[+#]$/, ''));
+  return { fromFEN, legal, make, state, san, bySan, inCheck, material, mates, hasMate, forcesMate, search, sqName, side, other };
+})();
+/* chess:end */
+const $ = s => document.querySelector(s);
+
+// ---- language
+// Moves are judged and stored in English SAN (the rules engine and the answer keys use it);
+// sanL() rewrites the piece letters for display, French algebraic: R D T F C for K Q R B N.
+// Pawn moves and squares are the same in both, so the route-name reveal (H3, B4…) holds.
+// Every visible word comes through t(); lists picked by index are the same length in both.
+const I18N = {
+  en: {
+    docTitle: 'Bus Stop Chess',
+    langGroup: 'Language',
+    depAria: 'Departure board, Stop K', boardAria: 'Chess board', logAria: 'Move log',
+    ledHead: 'Stop K · Kingsway', ttCap: "Tonight's departures",
+    stopNote: 'Timetable valid until further notice. No castling. No en passant. Please do not lean on the timetable.',
+    scoreHtml: (w, e) => `<span>Won <b id="sc-won">${w}</b>/5</span><span>Mistakes <b id="sc-err">${e}</b></span>`,
+    drawBtn: 'Offer the bus a draw <span aria-hidden="true">½–½</span>',
+    underHtml: '<span>Click a piece, then a square</span><span><kbd>←↑↓→</kbd> move · <kbd>Space</kbd> pick up / put down · <kbd>Esc</kbd> let go</span>',
+    logH: 'Move log',
+    titleH: 'Bus Stop<br>Chess',
+    titleLede: 'You have just missed the H3. The next one is a B4, in six minutes. There is a chessboard painted on the table in the shelter.',
+    titleP: 'Strangers sit down opposite you and set up a position. Solve it before their bus comes: mate in one, mate in two, or win them some material. Click a piece, then the square it goes to. A wrong move costs you eight seconds.',
+    startBtn: 'Sit down and play', titleMeta: 'About 4 minutes · keyboard: arrows and space',
+    bestLine: b => `Best tonight: ${b} of 6`,
+    inGo: 'Sit down opposite', revMeta: '23:41 · Stop K', goOn: 'Go on', takeBlack: 'Take Black',
+    againBtn: 'Wait for the first bus and play again',
+    stopName: 'Stop K', nobody: 'Nobody here yet',
+    sayIdle: 'A concrete table with a chessboard painted on it. Someone has scratched a second, smaller board into the shelter glass.',
+    taskIdle: 'The board is set. Nobody is sitting at it.',
+    boardOf: (i, n) => `board ${i} of ${n}`,
+    taskFinal: 'Black to play · mate in 2 <small>against the B6</small>',
+    tasks: ['White to play · mate in 1', 'Black to play · mate in 1', 'White to play · win material', 'White to play · mate in 1, three boards', 'White to play · mate in 2'],
+    waiting: (r, d, at, last) => `Waiting for the ${r} to ${d} · due ${at}${last ? ' · last bus' : ''}`,
+    secondsUntil: (task, s, r) => `${task} · ${s} seconds until the ${r}`,
+    result: (at, r, who, won, board) => `${at} · the ${r} left with ${who}. ${won ? 'You won.' : 'You ran out of bus.'} ${board}`,
+    noteArrived: r => `The ${r} arrived. Unfinished.`,
+    notePutBack: (s, p) => `${s}? Put back. −${p} s`,
+    noteBoard: n => `Board ${n}`,
+    dests: ['Hanger Lane', 'Bramley', 'Bramley Ring', 'Abbey Mill', 'Fenwick', 'Bramley Depot'],
+    ttStatus: { dep: 'Dep', due: 'Due', last: 'Last' },
+    ledDue: 'Due', ledDep: 'Dep',
+    busDest: { your: 'Your move', nis: 'Not in service', departed: 'Departed', draw: 'Draw agreed' },
+    theBus: 'The B6', busStyle: 'Last bus · only goes forward · has never lost on this route',
+    color: { w: 'white', b: 'black' },
+    pieceLabel: (sq, c, p) => `${sq}, ${c} ${p}`,
+    pieceName: { k: 'king', q: 'queen', r: 'rook', b: 'bishop', n: 'knight', p: 'pawn' },
+    people: {
+      odell: {
+        name: 'Mr Odell', short: 'Mr Odell', style: 'Pensioner · only moves knights · since 1974',
+        intro: "Sit down, sit down. I've set one up. White to play. I'll warn you now: I only move the horses. Everything else is furniture.",
+        idle: [
+          "The knight is the only piece you can't block. Like a good bus driver.",
+          "I gave up bishops in 1974. Never looked back. Can't, really. They're diagonal.",
+          "My wife played the rooks. Straight lines, that woman. Forty-one years.",
+          "The B4 used to be the 22. Then the 22A. Now it's a square, apparently.",
+          "Don't touch the pawns. Nobody knows what the pawns want.",
+          "You've got a knight's face. That's a compliment. Mostly.",
+          "Up two and over. That's how I got to the shops this morning.",
+          "Take your time. Not too much. The B4 has a mind of its own.",
+        ],
+        wrong: ["No. Think like a horse. Up two and over. Always over.", "That's a bishop move. In my presence.", "Put it back. The horse is embarrassed for you.", "Close. In the sense that it's on the same board."],
+        win: "Smothered. Lovely. The king had everything he needed around him and it still did him in. Like retirement.",
+        fail: "There's my bus. Keep the position, it's yours now. Don't let anyone move the bishops.",
+        board: "Mr Odell pats the knight on the head and, on his way past, moves a black piece on the board scratched into the shelter glass. You don't see which.",
+      },
+      poppy: {
+        name: 'Poppy, 7', short: 'Poppy', style: 'Rearranges the pieces · calls both knights Dennis',
+        intro: "I've done the board. I did it nicer. You're Black now because Black is my second favourite colour and you're my second favourite person here. Nan's asleep.",
+        idle: [
+          "The castle is called Steve. Both castles are called Steve.",
+          "That horse is Dennis. That horse is also Dennis. They don't know about each other.",
+          "Nan says chess is for people who haven't got a telly. We've got three tellies.",
+          "When you win I'm going to put all the pieces in my mouth. Not all. The small ones.",
+          "Bishops are the vicar ones. They go sideways because of God.",
+          "The bus is late because it's thinking. My teacher does that.",
+          "Your king looks sad. Mine's fine. Mine's having a lovely time.",
+          "I turned the board round so it's fair. Fair means I like it.",
+        ],
+        wrong: ["That's not a good move. That's a tidy move.", "No! Steve doesn't go there. Steve goes everywhere except there.", "Do it again but better.", "My nan would've done that. She's asleep."],
+        win: "The bottom row! He can't get out because of his own little men. That's like my brother at swimming.",
+        fail: "Nan's awake. We have to go. You can keep Dennis. Not that Dennis. The other one.",
+        board: "Poppy wakes her nan and, before climbing on, rearranges one black piece on the shelter glass. Her nan says 'leave it, Poppy.' She doesn't.",
+      },
+      pemberton: {
+        name: 'Mrs Pemberton-Hale', short: 'Mrs Pemberton-Hale', style: 'Treasurer, Bramley Bowls Club · plays for material',
+        intro: "I don't do checkmate, dear. Checkmate is vanity. I play for material. Win yourself a piece worth having and I'll minute it.",
+        idle: [
+          "A queen is nine points. That's what she's worth on the books, whatever she thinks of herself.",
+          "The club accounts balance to the penny. The bowls do not.",
+          "Knights are three. Bishops are three. Nobody believes me. I've audited it.",
+          "I haven't paid a full fare since 1991. I have a pass. The pass has a pass.",
+          "Two things at once, dear. Like the AGM and the buffet.",
+          "I'm minded to write to the council about this shelter. I'm minded to write to the council about most things.",
+          "Don't go for the king. The king is a liability with a crown on.",
+        ],
+        wrong: ["That's not material, dear. That's a gesture.", "You've given me a pawn. I'll take it. I'm not proud.", "No. The books don't lie, and the books are saying no.", "Lovely move. Costs you a rook. I'll invoice you."],
+        reply: "I'll move the king, then. One has to.",
+        win: "The queen, for a knight. I'll put that under 'Income, Sundry'.",
+        fail: "That's me. I'll carry the position forward to next year's accounts.",
+        board: "Mrs Pemberton-Hale counts her change twice, then nudges one black piece on the shelter glass, the way you'd straighten a picture.",
+      },
+      gareth: {
+        name: 'Gareth', short: 'Gareth', style: 'Commuter · three games at once · one of them is a phone call',
+        intro: "Hi. Yes. Hi. Sorry. I've got three on the go, can you finish these for me? Mate in one, all three. — No, Pam, I'm at the stop.",
+        idle: [
+          "— Pam, I said Thursday. — Sorry, not you. Board two.",
+          "I do this every night. Three boards, the F3, a meal deal.",
+          "— No, the spreadsheet's fine. It's the bus that's late. — Sorry. Your move.",
+          "Simultaneous exhibition, they call it. My wife calls it 'Gareth not listening'.",
+          "— Can I call you back? I'm in a mating net. — Chess, Pam.",
+          "I've got a board on the 6:12 as well. Different man. Very aggressive.",
+          "— Pam, they've put their queen somewhere stupid. — The stranger. Not you.",
+        ],
+        wrong: ["— Sorry, Pam. — No, that's not mate. He just walks out, see?", "Nope. Close. Not close.", "— Pam, hang on. — That's check, not mate. Different word, different bus."],
+        sub: ["One. — Yes, Pam. — Board two, quick.", "Two. — Pam, I'll be twenty minutes. — Last one."],
+        win: "All three. — Pam! Pam, I won all three. — She's hung up.",
+        fail: "That's the F3. — Pam, I'm getting on. — Keep the boards, I've got loads at home.",
+        board: "Gareth, still on the phone, moves a black piece on the shelter glass without looking. 'Board four,' he tells Pam.",
+      },
+      dennis: {
+        name: 'Dennis', short: 'Dennis', style: 'Drives the 38 · not tonight · sees two moves ahead',
+        intro: "Evening. I drive the 38, so I know about waiting. Two moves, this one. Something on the back row's been bothering me all shift.",
+        idle: [
+          "You learn patience on the 38. And how to brake for a pigeon without anyone falling over.",
+          "Every route's a line. Every line's a file. Never thought about it till tonight.",
+          "The B6 is the last one. It's always the last one. Never seen it early.",
+          "Give up the big one to get the little one through. That's not chess, that's rush hour.",
+          "Mind the gap. Between your rooks, I mean.",
+          "There's a driver on the B6 nobody's met. They say he's very good.",
+          "Back row's like the back seat. Everyone thinks it's safe.",
+        ],
+        wrong: ["No. Think back row. Think about who's guarding the door.", "That's a nice move on somebody else's board.", "Two moves. Not one. Not a lovely afternoon of them."],
+        reply: "Have to take it. You know I have to take it.",
+        win: "Back row. Every time. The door's always the weak point.",
+        fail: "There she is. The last bus. — Hang on.",
+        board: "Dennis reaches over and moves a black queen on the shelter glass. 'That's the route,' he says, to nobody.",
+      },
+    },
+    scrambleSay: "Hang on. I'm doing it nicer.",
+    unscrambleSay: 'There. I put them back. Mostly where they were. Exactly where they were.',
+    finalWrongTicker: ['B6 · that move does not stop at this stop', 'B6 · not check · not anything · I am still here', 'B6 · please stand clear of the wrong squares'],
+    finalWrongSay: ['The B6 revs, once. You put the piece back.', 'The bus does not respond. Its wipers go across once.', 'The indicator ticks. Left. Right. Left.'],
+    busReplyTicker: s => `B6 · ${s} · it is a forward move · it is the only one`,
+    busReplySay: 'The B6 plays g3. Its hazard lights come on, briefly, then go off as if nothing happened.',
+    arriving: (r, d) => `${r} ${d} · now arriving`,
+    ticker: [
+      'Services calling at Stop K may be delayed by chess',
+      'Please do not lean on the timetable',
+      'CCTV in operation · it is also following the game',
+      'No smoking · no castling',
+      'This stop is K · Kingsway',
+      'Retain your ticket for inspection',
+      'Lost property: one white bishop, answers to Clive',
+      'Next stop request: press the bell once. Once',
+    ],
+    busTicker: [
+      'B6 · holding at Stop K · it is Black to move',
+      'B6 · I have never been checkmated · I have been clamped',
+      'B6 · please have your move ready',
+      'B6 · I only go forward · you noticed',
+      'B6 · this service will depart at 23:47 with or without your queen',
+      'B6 · the driver is not the driver · I am the driver',
+    ],
+    reveal: [
+      'The B6 pulls in at 23:41. Dennis reaches for the doors. They do not open. He stands there for a while, then walks home.',
+      'Its blind flickers. BRAMLEY DEPOT goes. In its place, in amber: 1. h3',
+      'You look at the timetable. H3. B4. B5. A4. F3. B6. Not routes. Squares. A pawn move, every one. Buses only go forward.',
+      'And everyone who boarded leant over the board scratched into the shelter glass and played one black move on the way. A knight, for Mr Odell. A knight, for Poppy. A pawn, for the treasurer. A queen, twice, for the men with jobs.',
+      'The B6 has been playing one long game all evening. Everybody else has gone home. It is Black to move, and you are Black.',
+    ],
+    revealSay: 'The B6 is idling at Stop K. Its doors are shut. Its engine sounds like thinking.',
+    finalSay: 'The B6 waits with its doors shut. On the glass, the long game. Black to play. The bus leaves at 23:47.',
+    drawSay: 'You hold out your hand towards the bus. It considers this for a while, idling.',
+    drawTicker: 'B6 · considering your offer · please wait',
+    stat: (w, m, tm) => `Strangers beaten ${w} of 5 · mistakes ${m} · ${tm} at the stop`,
+    statBest: b => ` · best ${b} of 6`,
+    end: {
+      beaten: { blind: 'B6 · Not in service', title: 'You beat the bus.', sub: '…Qxg3#. The B6 sighs through its air brakes and opens its doors.',
+        body: 'Nobody is driving it. Nobody has ever driven it. It takes you home anyway, the long way, past the depot, and lets you off outside your door, which is not on any route. At the stop behind you, a new board is already scratched into the glass.',
+        ticker: 'B6 · not in service · good game' },
+      missed: { blind: 'Next service 05:52', title: 'You have missed the last bus.', sub: 'At 23:47 exactly, the B6 indicates and pulls away, with your position still on the glass.',
+        body: 'You wait at Stop K until the first bus, an H3, at 05:52. It does not stop. It has already moved. In the morning someone has finished the game on the glass for you. You lost, apparently, in a line nobody would have played.',
+        ticker: 'Last service has departed · next service 05:52' },
+      draw: { blind: 'B6 · ½–½', title: 'A draw. You ride off together.', sub: 'The doors fold open with a long, relieved hiss. You get on. It does not ask to see a ticket.',
+        body: 'You sit at the front, on the left, where the long game is reflected in the windscreen. Neither of you mentions it. At the depot the B6 turns its engine off and you sit in the dark for a minute, two players who know exactly what the other would have done.',
+        ticker: 'B6 · draw agreed · this bus terminates here · thank you' },
+    },
+  },
+  fr: {
+    docTitle: 'Échecs à l’arrêt',
+    langGroup: 'Langue',
+    depAria: 'Tableau des départs, arrêt K', boardAria: 'Échiquier', logAria: 'Feuille de partie',
+    ledHead: 'Arrêt K · Kingsway', ttCap: 'Départs de ce soir',
+    stopNote: 'Horaires valables jusqu’à nouvel ordre. Pas de roque. Pas de prise en passant. Merci de ne pas vous appuyer sur les horaires.',
+    scoreHtml: (w, e) => `<span>Gagné <b id="sc-won">${w}</b>/5</span><span>Erreurs <b id="sc-err">${e}</b></span>`,
+    drawBtn: 'Proposer la nulle au bus <span aria-hidden="true">½–½</span>',
+    underHtml: '<span>Cliquez une pièce, puis une case</span><span><kbd>←↑↓→</kbd> déplacer · <kbd>Espace</kbd> prendre / poser · <kbd>Échap</kbd> lâcher</span>',
+    logH: 'Feuille de partie',
+    titleH: 'Échecs<br>à l’arrêt',
+    titleLede: 'Vous venez de rater le H3. Le prochain est un B4, dans six minutes. Un échiquier est peint sur la table de l’abribus.',
+    titleP: 'Des inconnus s’assoient en face de vous et installent une position. Résolvez-la avant l’arrivée de leur bus : mat en un, mat en deux, ou gain de matériel. Cliquez une pièce, puis la case où elle va. Un mauvais coup vous coûte huit secondes.',
+    startBtn: 'S’asseoir et jouer', titleMeta: 'Environ 4 minutes · clavier : flèches et espace',
+    bestLine: b => `Record ce soir : ${b} sur 6`,
+    inGo: 'S’asseoir en face', revMeta: '23:41 · Arrêt K', goOn: 'Continuer', takeBlack: 'Prendre les Noirs',
+    againBtn: 'Attendre le premier bus et rejouer',
+    stopName: 'Arrêt K', nobody: 'Personne pour l’instant',
+    sayIdle: 'Une table en béton, avec un échiquier peint dessus. Quelqu’un a gravé un second échiquier, plus petit, dans la vitre de l’abribus.',
+    taskIdle: 'L’échiquier est en place. Personne n’est assis devant.',
+    boardOf: (i, n) => `échiquier ${i} sur ${n}`,
+    taskFinal: 'Les Noirs jouent · mat en 2 <small>contre le B6</small>',
+    tasks: ['Les Blancs jouent · mat en 1', 'Les Noirs jouent · mat en 1', 'Les Blancs jouent · gain de matériel', 'Les Blancs jouent · mat en 1, trois échiquiers', 'Les Blancs jouent · mat en 2'],
+    waiting: (r, d, at, last) => `En attendant le ${r} pour ${d} · prévu à ${at}${last ? ' · dernier bus' : ''}`,
+    secondsUntil: (task, s, r) => `${task} · ${s} secondes avant le ${r}`,
+    result: (at, r, who, won, board) => `${at} · le ${r} est parti avec ${who}. ${won ? 'Vous avez gagné.' : 'Vous êtes à court de bus.'} ${board}`,
+    noteArrived: r => `Le ${r} est arrivé. Partie inachevée.`,
+    notePutBack: (s, p) => `${s} ? Remis en place. −${p} s`,
+    noteBoard: n => `Échiquier ${n}`,
+    dests: ['Hanger Lane', 'Bramley', 'Bramley Ring', 'Abbey Mill', 'Fenwick', 'Dépôt de Bramley'],
+    ttStatus: { dep: 'Parti', due: 'Prévu', last: 'Dernier' },
+    ledDue: 'Prévu', ledDep: 'Parti',
+    busDest: { your: 'À vous', nis: 'Hors service', departed: 'Parti', draw: 'Nulle acceptée' },
+    theBus: 'Le B6', busStyle: 'Dernier bus · ne va qu’en avant · n’a jamais perdu sur cette ligne',
+    color: { w: 'blanc', b: 'noir' },
+    pieceLabel: (sq, c, p) => `${sq}, ${p} ${c}`,
+    // the colour agrees with the piece: une dame blanche, un fou noir
+    pieceName: { k: 'roi', q: 'dame', r: 'tour', b: 'fou', n: 'cavalier', p: 'pion' },
+    people: {
+      odell: {
+        name: 'M. Odell', short: 'M. Odell', style: 'Retraité · ne joue que les cavaliers · depuis 1974',
+        intro: 'Asseyez-vous, asseyez-vous. J’en ai préparé une. Les Blancs jouent. Je vous préviens : je ne bouge que les chevaux. Le reste, c’est du mobilier.',
+        idle: [
+          'Le cavalier, c’est la seule pièce qu’on ne peut pas bloquer. Comme un bon chauffeur de bus.',
+          'J’ai arrêté les fous en 1974. Les fous, très peu pour moi. Ma femme dit que j’en ai gardé un.',
+          'Ma femme jouait les tours. Toujours tout droit, cette femme. Quarante et un ans.',
+          'Le B4, avant, c’était le 22. Puis le 22A. Maintenant c’est une case, apparemment.',
+          'Ne touchez pas aux pions. Personne ne sait ce que veulent les pions.',
+          'Vous avez une tête de cavalier. C’est un compliment. En gros.',
+          'Deux en avant, un de côté. C’est comme ça que je suis allé faire mes courses ce matin.',
+          'Prenez votre temps. Pas trop. Le B4 n’en fait qu’à sa tête.',
+        ],
+        wrong: ['Non. Pensez cheval. Deux en avant, un de côté. Toujours de côté.', 'Ça, c’est un coup de fou. En ma présence.', 'Remettez-le. Le cheval a honte pour vous.', 'Presque. Au sens où c’est sur le même échiquier.'],
+        win: 'Mat à l’étouffée. Ravissant. Le roi avait tout ce qu’il lui fallait autour de lui, et ça l’a quand même achevé. Comme la retraite.',
+        fail: 'Voilà mon bus. Gardez la position, elle est à vous. Ne laissez personne toucher aux fous.',
+        board: 'M. Odell tapote la tête du cavalier et, en passant, déplace une pièce noire sur l’échiquier gravé dans la vitre de l’abribus. Vous ne voyez pas laquelle.',
+      },
+      poppy: {
+        name: 'Poppy, 7 ans', short: 'Poppy', style: 'Range les pièces à sa façon · appelle les deux cavaliers Dennis',
+        intro: 'J’ai fait l’échiquier. Je l’ai fait plus joli. Vous êtes les Noirs, parce que le noir c’est ma deuxième couleur préférée et vous êtes ma deuxième personne préférée ici. Mamie dort.',
+        idle: [
+          'La tour, elle s’appelle Steve. Les deux tours s’appellent Steve.',
+          'Ce cheval, c’est Dennis. Ce cheval-là aussi, c’est Dennis. Ils sont pas au courant l’un de l’autre.',
+          'Mamie dit que les échecs c’est pour les gens qui ont pas la télé. Nous on a trois télés.',
+          'Quand vous aurez gagné je vais mettre toutes les pièces dans ma bouche. Pas toutes. Les petites.',
+          'Les fous, c’est les rigolos. Ils marchent de travers exprès.',
+          'Le bus est en retard parce qu’il réfléchit. Ma maîtresse fait pareil.',
+          'Votre roi a l’air triste. Le mien ça va. Le mien il passe une super soirée.',
+          'J’ai tourné l’échiquier pour que ce soit juste. Juste, ça veut dire que ça me plaît.',
+        ],
+        wrong: ['C’est pas un bon coup. C’est un coup bien rangé.', 'Non ! Steve va pas là. Steve va partout sauf là.', 'Refaites-le, mais mieux.', 'Ma mamie aurait fait ça. Elle dort.'],
+        win: 'La dernière rangée ! Il peut pas sortir à cause de ses propres petits bonshommes. C’est comme mon frère à la piscine.',
+        fail: 'Mamie s’est réveillée. Faut qu’on y aille. Vous pouvez garder Dennis. Pas ce Dennis-là. L’autre.',
+        board: 'Poppy réveille sa mamie et, avant de monter, déplace une pièce noire sur la vitre de l’abribus. Sa mamie lui dit « laisse ça, Poppy ». Elle ne laisse pas.',
+      },
+      pemberton: {
+        name: 'Mme Pemberton-Hale', short: 'Mme Pemberton-Hale', style: 'Trésorière, club de boules de Bramley · joue le matériel',
+        intro: 'Je ne fais pas dans l’échec et mat, mon chou. L’échec et mat, c’est de la vanité. Je joue le matériel. Gagnez une pièce qui en vaille la peine et je l’inscrirai au procès-verbal.',
+        idle: [
+          'Une dame vaut neuf points. C’est ce qu’elle vaut dans les comptes, quoi qu’elle pense d’elle-même.',
+          'Les comptes du club tombent juste au centime près. Les boules, non.',
+          'Cavalier, trois. Fou, trois. Personne ne me croit. J’ai fait l’audit.',
+          'Je n’ai pas payé plein tarif depuis 1991. J’ai une carte. La carte a une carte.',
+          'Deux choses à la fois, mon chou. Comme l’assemblée générale et le buffet.',
+          'J’envisage d’écrire à la mairie au sujet de cet abribus. J’envisage d’écrire à la mairie au sujet de presque tout.',
+          'N’allez pas chercher le roi. Le roi, c’est un passif avec une couronne dessus.',
+        ],
+        wrong: ['Ça, ce n’est pas du matériel, mon chou. C’est un geste.', 'Vous m’avez donné un pion. Je le prends. Je ne suis pas fière.', 'Non. Les comptes ne mentent pas, et les comptes disent non.', 'Joli coup. Il vous coûte une tour. Je vous enverrai la facture.'],
+        reply: 'Je bouge le roi, alors. Il faut bien.',
+        win: 'La dame, pour un cavalier. Je mets ça en « Produits divers ».',
+        fail: 'C’est le mien. Je reporte la position sur l’exercice suivant.',
+        board: 'Mme Pemberton-Hale compte deux fois sa monnaie, puis pousse une pièce noire sur la vitre de l’abribus, comme on redresse un tableau.',
+      },
+      gareth: {
+        name: 'Gareth', short: 'Gareth', style: 'Navetteur · trois parties à la fois · dont un appel téléphonique',
+        intro: 'Salut. Oui. Salut. Pardon. J’en ai trois en cours, vous pouvez me les finir ? Mat en un, les trois. — Non, Pam, je suis à l’arrêt.',
+        idle: [
+          '— Pam, j’ai dit jeudi. — Pardon, pas vous. Échiquier deux.',
+          'Je fais ça tous les soirs. Trois échiquiers, le F3, une formule sandwich.',
+          '— Non, le tableur va très bien. C’est le bus qui est en retard. — Pardon. À vous.',
+          'Une simultanée, ça s’appelle. Ma femme appelle ça « Gareth qui n’écoute pas ».',
+          '— Je peux te rappeler ? Je suis pris dans un filet de mat. — Les échecs, Pam.',
+          'J’ai aussi un échiquier dans le 6 h 12. Un autre type. Très agressif.',
+          '— Pam, la dame est à un endroit idiot. — En face. Pas toi.',
+        ],
+        wrong: ['— Pardon, Pam. — Non, ce n’est pas mat. Il s’en va tranquillement, vous voyez ?', 'Non. Presque. Pas presque.', '— Pam, attends. — Ça, c’est échec, pas mat. Autre mot, autre bus.'],
+        sub: ['Un. — Oui, Pam. — Échiquier deux, vite.', 'Deux. — Pam, j’en ai pour vingt minutes. — Le dernier.'],
+        win: 'Les trois. — Pam ! Pam, j’ai gagné les trois. — Elle a raccroché.',
+        fail: 'Voilà le F3. — Pam, je monte. — Gardez les échiquiers, j’en ai plein à la maison.',
+        board: 'Gareth, toujours au téléphone, déplace une pièce noire sur la vitre de l’abribus sans regarder. « Échiquier quatre », dit-il à Pam.',
+      },
+      dennis: {
+        name: 'Dennis', short: 'Dennis', style: 'Conduit le 38 · pas ce soir · voit deux coups à l’avance',
+        intro: 'Bonsoir. Je conduis le 38, alors l’attente, je connais. Deux coups, celle-ci. Il y a un truc sur la dernière rangée qui me tracasse depuis le début de mon service.',
+        idle: [
+          'Sur le 38, on apprend la patience. Et à freiner pour un pigeon sans faire tomber personne.',
+          'Chaque trajet, c’est une ligne. Et une ligne, si on la tourne, c’est une colonne. J’y avais jamais pensé avant ce soir.',
+          'Le B6, c’est le dernier. C’est toujours le dernier. Jamais vu en avance.',
+          'Lâcher la grosse pour faire passer la petite. C’est pas des échecs, ça, c’est l’heure de pointe.',
+          'Attention à la marche. Entre vos tours, je veux dire.',
+          'Il y a un chauffeur sur le B6 que personne n’a jamais vu. Il paraît qu’il est très fort.',
+          'La dernière rangée, c’est comme la banquette du fond. Tout le monde croit qu’on y est à l’abri.',
+        ],
+        wrong: ['Non. Pensez dernière rangée. Pensez à qui garde la porte.', 'Joli coup, sur l’échiquier de quelqu’un d’autre.', 'Deux coups. Pas un. Pas tout un après-midi non plus.'],
+        reply: 'Obligé de prendre. Vous savez que je suis obligé de prendre.',
+        win: 'La dernière rangée. À chaque fois. La porte, c’est toujours le point faible.',
+        fail: 'La voilà. Le dernier bus. — Attendez.',
+        board: 'Dennis tend le bras et déplace une dame noire sur la vitre de l’abribus. « Voilà l’itinéraire », dit-il, à personne.',
+      },
+    },
+    scrambleSay: 'Attendez. Je le fais plus joli.',
+    unscrambleSay: 'Voilà. Je les ai remises. À peu près où elles étaient. Exactement où elles étaient.',
+    finalWrongTicker: ['B6 · ce coup ne dessert pas cet arrêt', 'B6 · pas échec · pas rien · je suis toujours là', 'B6 · veuillez vous tenir à l’écart des mauvaises cases'],
+    finalWrongSay: ['Le B6 donne un coup d’accélérateur. Vous remettez la pièce en place.', 'Le bus ne réagit pas. Ses essuie-glaces passent une fois.', 'Le clignotant fait tic-tac. Gauche. Droite. Gauche.'],
+    busReplyTicker: s => `B6 · ${s} · c’est un coup vers l’avant · c’est le seul`,
+    busReplySay: 'Le B6 joue g3. Ses feux de détresse s’allument, brièvement, puis s’éteignent comme si de rien n’était.',
+    arriving: (r, d) => `${r} ${d} · arrive`,
+    ticker: [
+      'Les services desservant l’arrêt K peuvent être retardés par les échecs',
+      'Merci de ne pas vous appuyer sur les horaires',
+      'Vidéosurveillance en service · elle suit aussi la partie',
+      'Interdit de fumer · interdit de roquer',
+      'Cet arrêt est K · Kingsway',
+      'Conservez votre titre de transport jusqu’au contrôle',
+      'Objets trouvés : un fou blanc, répond au nom de Clive',
+      'Arrêt demandé : appuyez une fois sur le bouton. Une fois',
+    ],
+    busTicker: [
+      'B6 · en attente à l’arrêt K · les Noirs ont le trait',
+      'B6 · je n’ai jamais été maté · on m’a déjà mis un sabot',
+      'B6 · merci de préparer votre coup',
+      'B6 · je ne vais qu’en avant · vous l’avez remarqué',
+      'B6 · ce service partira à 23:47 avec ou sans votre dame',
+      'B6 · le chauffeur n’est pas le chauffeur · le chauffeur, c’est moi',
+    ],
+    reveal: [
+      'Le B6 arrive à 23:41. Dennis tend la main vers les portes. Elles ne s’ouvrent pas. Il reste planté là un moment, puis rentre à pied.',
+      'Sa girouette clignote. DÉPÔT DE BRAMLEY s’efface. À la place, en orange : 1. h3',
+      'Vous regardez les horaires. H3. B4. B5. A4. F3. B6. Pas des lignes. Des cases. Un coup de pion, à chaque fois. Les bus ne vont qu’en avant.',
+      'Et chaque personne qui est montée s’est penchée sur l’échiquier gravé dans la vitre pour jouer un coup noir au passage. Un cavalier, pour M. Odell. Un cavalier, pour Poppy. Un pion, pour la trésorière. Une dame, deux fois, pour les hommes qui ont un travail.',
+      'Le B6 joue une longue partie depuis le début de la soirée. Tout le monde est rentré. Les Noirs ont le trait, et les Noirs, c’est vous.',
+    ],
+    revealSay: 'Le B6 tourne au ralenti à l’arrêt K. Ses portes sont fermées. Son moteur a l’air de réfléchir.',
+    finalSay: 'Le B6 attend, portes fermées. Sur la vitre, la longue partie. Les Noirs jouent. Le bus part à 23:47.',
+    drawSay: 'Vous tendez la main vers le bus. Il y réfléchit un long moment, au ralenti.',
+    drawTicker: 'B6 · examen de votre proposition · veuillez patienter',
+    stat: (w, m, tm) => `Parties gagnées ${w} sur 5 · erreurs ${m} · ${tm} à l’arrêt`,
+    statBest: b => ` · record ${b} sur 6`,
+    end: {
+      beaten: { blind: 'B6 · Hors service', title: 'Vous avez battu le bus.', sub: '…Dxg3#. Le B6 soupire par ses freins à air et ouvre ses portes.',
+        body: 'Personne ne le conduit. Personne ne l’a jamais conduit. Il vous ramène quand même, par le chemin le plus long, en passant par le dépôt, et vous dépose devant votre porte, qui n’est sur aucune ligne. À l’arrêt derrière vous, un nouvel échiquier est déjà gravé dans la vitre.',
+        ticker: 'B6 · hors service · bien joué' },
+      missed: { blind: 'Prochain service 05:52', title: 'Vous avez raté le dernier bus.', sub: 'À 23:47 pile, le B6 met son clignotant et s’en va, votre position toujours sur la vitre.',
+        body: 'Vous attendez à l’arrêt K jusqu’au premier bus, un H3, à 05:52. Il ne s’arrête pas. Il a déjà joué. Au matin, quelqu’un a fini la partie sur la vitre à votre place. Vous avez perdu, apparemment, sur une ligne que personne n’aurait jouée.',
+        ticker: 'Dernier service parti · prochain service 05:52' },
+      draw: { blind: 'B6 · ½–½', title: 'Nulle. Vous partez ensemble.', sub: 'Les portes se replient dans un long soupir soulagé. Vous montez. Il ne vous demande pas de ticket.',
+        body: 'Vous vous asseyez à l’avant, à gauche, là où la longue partie se reflète dans le pare-brise. Personne n’en parle. Au dépôt, le B6 coupe son moteur et vous restez dans le noir une minute, deux adversaires qui savent exactement ce que l’autre aurait fait.',
+        ticker: 'B6 · nulle acceptée · ce bus est terminus ici · merci' },
+    },
+  },
+};
+
+// French typography: a narrow no-break space before ? ! : ; » and after «, applied once to every
+// French string (and to whatever a French string function returns) so no line starts with "?".
+(function frenchSpacing() {
+  const fix = s => s.replace(/ ([?!:;»])/g, ' $1').replace(/« /g, '« ');
+  const deep = v => typeof v === 'string' ? fix(v)
+    : typeof v === 'function' ? (...a) => fix(v(...a))
+    : Array.isArray(v) ? v.map(deep)
+    : v && typeof v === 'object' ? Object.fromEntries(Object.entries(v).map(([k, x]) => [k, deep(x)]))
+    : v;
+  I18N.fr = deep(I18N.fr);
+})();
+
+let lang = 'en';
+const t = k => I18N[lang][k] ?? I18N.en[k];
+const who = key => t('people')[key];
+const FR_SAN = { K: 'R', Q: 'D', R: 'T', B: 'F', N: 'C' };
+const sanL = s => lang === 'fr' ? s.replace(/[KQRBN]/g, c => FR_SAN[c]) : s;
+// French piece colours agree with the piece's gender: une dame blanche, une tour noire.
+const FEM = { q: 1, r: 1 };
+const colourOf = (c, p) => { const w = t('color')[c]; return lang === 'fr' && FEM[p] ? (c === 'w' ? 'blanche' : 'noire') : w; };
+for (const k of ['tasks', 'dests', 'ticker', 'busTicker', 'reveal', 'finalWrongTicker', 'finalWrongSay']) {
+  if (I18N.en[k].length !== I18N.fr[k].length) console.error(`i18n: ${k} differs in length`);
+}
+for (const p of Object.keys(I18N.en.people)) for (const k of ['idle', 'wrong', 'sub']) {
+  if ((I18N.en.people[p][k] || []).length !== (I18N.fr.people[p][k] || []).length) console.error(`i18n: people.${p}.${k} differs in length`);
+}
+
+// The long game. The bus only moves pawns, and only forward: its moves are the arrivals.
+// Each stranger, boarding, plays one black move on the board scratched into the shelter glass.
+const BUS_GAME = ['h3', 'Nf6', 'b4', 'Nd5', 'b5', 'c5', 'a4', 'Qa5', 'f3', 'Qb4', 'b6'];
+const FINAL = { kind: 'm2', key: 'Qh4+', time: 75, flip: true, me: 'b' };
+
+// dest indexes I18N.dests
+const TIMETABLE = [
+  { at: '22:58', route: 'H3', dest: 0 },
+  { at: '23:04', route: 'B4', dest: 1 },
+  { at: '23:12', route: 'B5', dest: 2 },
+  { at: '23:21', route: 'A4', dest: 3 },
+  { at: '23:33', route: 'F3', dest: 4 },
+  { at: '23:41', route: 'B6', dest: 5, last: true },
+];
+const destName = i => t('dests')[i];
+
+// Behaviour only; every word a stranger says is in I18N.people under the same key.
+const PEOPLE = {
+  odell: { hat: 'cap', prefer: 'n' },
+  poppy: { hat: 'bunches' },
+  pemberton: { hat: 'hat', reply_mode: 'search' },
+  gareth: { hat: 'phone' },
+  dennis: { hat: 'peak' },
+};
+
+// Every position below is checked at load by the same rules the board uses: the key move must
+// be legal and must do what the task says, or the console says which puzzle is wrong.
+const ROUNDS = [
+  { who: 'odell', kind: 'm1', time: 60, me: 'w', fens: ['6rk/6pp/p7/6N1/8/1P6/PB6/K7 w'], keys: ['Nf7#'] },
+  { who: 'poppy', kind: 'm1', time: 60, me: 'b', flip: true, scramble: true, fens: ['4r1k1/R4ppp/8/8/8/8/5PPP/6K1 b'], keys: ['Re1#'] },
+  { who: 'pemberton', kind: 'win', time: 75, me: 'w', gain: 3, fens: ['q3k2r/5ppp/8/1N6/8/8/5PPP/3R2K1 w'], keys: ['Nc7+'] },
+  { who: 'gareth', kind: 'm1', time: 80, me: 'w', fens: ['r1bqkb1r/pppp1ppp/2n2n2/4p2Q/2B1P3/8/PPPP1PPP/RNB1K1NR w', '7k/8/6K1/8/8/8/8/1Q6 w', 'k7/8/1K6/8/8/8/8/7R w'], keys: ['Qxf7#', 'Qb8#', 'Rh8#'] },
+  { who: 'dennis', kind: 'm2', time: 90, me: 'w', fens: ['1r2r1k1/5ppp/8/8/2q5/8/4QPPP/4R1K1 w'], keys: ['Qxe8+'] },
+];
+const PENALTY = 8;
+const GLYPH = { k: '♚', q: '♛', r: '♜', b: '♝', n: '♞', p: '♟' };
+
+// Verify every puzzle, and the long game, with the board's own rules.
+const PUZZLES_OK = (() => {
+  const bad = [];
+  const check = (label, kind, fen, key, gain) => {
+    const pos = Chess.fromFEN(fen), m = Chess.bySan(pos, key);
+    if (!m) return bad.push(`${label}: ${key} is not legal`);
+    const n = Chess.make(pos, m);
+    if (kind === 'm1' && Chess.state(n) !== 'mate') bad.push(`${label}: ${key} is not mate`);
+    if (kind === 'm2' && (!Chess.forcesMate(pos, m) || Chess.mates(pos).length)) bad.push(`${label}: ${key} does not force mate in 2, or a mate in 1 exists`);
+    if (kind === 'win' && Chess.search(n, 3, pos.turn) < Chess.material(pos.b, pos.turn) + gain) bad.push(`${label}: ${key} does not win ${gain}`);
+  };
+  ROUNDS.forEach((r, i) => r.fens.forEach((f, j) => check(`round ${i + 1}.${j + 1}`, r.kind, f, r.keys[j], r.gain)));
+  let pos = Chess.fromFEN('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w');
+  for (const s of BUS_GAME) {
+    const m = Chess.bySan(pos, s);
+    if (!m) { bad.push(`bus game: ${s} is not legal`); break; }
+    if (pos.turn === 'w' && (m.piece !== 'P' || m.cap)) bad.push(`bus game: ${s} is not a forward pawn move`);
+    pos = Chess.make(pos, m);
+  }
+  FINAL.pos = pos;
+  check('final', 'm2', toFEN(pos), FINAL.key);
+  for (const b of bad) console.error('puzzle check failed: ' + b);
+  return !bad.length;
+})();
+function toFEN(pos) {
+  let s = '';
+  for (let r = 7; r >= 0; r--) {
+    let e = 0;
+    for (let f = 0; f < 8; f++) {
+      const p = pos.b[r * 8 + f];
+      if (!p) { e++; continue; }
+      if (e) { s += e; e = 0; }
+      s += p;
+    }
+    if (e) s += e;
+    if (r) s += '/';
+  }
+  return s + ' ' + pos.turn;
+}
+
+const C = Kit.tokens(['bg', 'panel', 'ink', 'muted', 'line', 'led', 'led-bg', 'steel', 'road', 'glass', 'kerb', 'lamp']);
+const view = Kit.canvas($('#street'));
+const sqEls = [];
+let S;
+
+function fresh(best) {
+  return {
+    mode: 'title', round: -1, sub: 0, step: 0, P: null, pos: null, stepStart: null, sel: -1, cursor: 36,
+    clock: 0, clockMax: 1, last: null, won: 0, mistakes: 0, best: best || 0, elapsed: 0,
+    log: [], who: null, idleT: 8, idleI: 0, tickI: 0, queue: [], busy: false, flip: false, ending: null,
+    bus: null, scrambleT: 0, results: [], drawPending: false,
+    sayFn: () => t('sayIdle'), tickFn: () => t('ticker')[0],
+  };
+}
+
+// Timed steps in game time, so a hidden tab or a slow frame cannot reorder the story.
+function later(sec, fn) { S.queue.push({ t: sec, fn }); }
+
+function buildBoard() {
+  const el = $('#board');
+  for (let i = 0; i < 64; i++) {
+    const b = document.createElement('button');
+    b.className = 'sq';
+    b.type = 'button';
+    b.tabIndex = -1;
+    b.addEventListener('click', () => clickSquare(+b.dataset.sq));
+    el.appendChild(b);
+    sqEls.push(b);
+  }
+}
+
+// Display slot k (0 = top-left) to board square, honouring the flip.
+const slotSq = k => { const row = k >> 3, col = k & 7; return S.flip ? row * 8 + (7 - col) : (7 - row) * 8 + col; };
+
+function renderBoard() {
+  const pos = S.pos;
+  let targets = [];
+  if (S.sel >= 0 && pos) targets = Chess.legal(pos).filter(m => m.from === S.sel).map(m => m.to);
+  for (let k = 0; k < 64; k++) {
+    const sq = slotSq(k), el = sqEls[k], f = sq & 7, r = sq >> 3;
+    el.dataset.sq = sq;
+    const p = S.scrambleT > 0 && S.scramble ? S.scramble[sq] : pos ? pos.b[sq] : null;
+    el.className = 'sq' + ((f + r) % 2 === 0 ? ' d' : '') +
+      (S.last && (S.last.from === sq || S.last.to === sq) ? ' last' : '') +
+      (S.sel === sq ? ' sel' : '') + (targets.includes(sq) ? ' tgt' + (p ? ' cap' : '') : '') +
+      (S.cursor === sq && S.kbd ? ' cur' : '');
+    let html = p ? `<span class="pc ${Chess.side(p)}">${GLYPH[p.toLowerCase()]}︎</span>` : '';
+    if ((k >> 3) === 7) html += `<span class="co f">${'abcdefgh'[f]}</span>`;
+    if ((k & 7) === 0) html += `<span class="co r">${r + 1}</span>`;
+    el.innerHTML = html;
+    const pl = p && p.toLowerCase();
+    el.setAttribute('aria-label', p ? t('pieceLabel')(Chess.sqName(sq), colourOf(Chess.side(p), pl), t('pieceName')[pl]) : Chess.sqName(sq));
+    el.tabIndex = S.cursor === sq ? 0 : -1;
+  }
+}
+
+// Moves are kept in English SAN and shown through sanL(); notes are functions, so the whole
+// sheet follows a language switch.
+function renderLog() {
+  const ol = $('#log');
+  ol.innerHTML = S.log.map(e => e.note ? `<li class="note">${e.note()}</li>` :
+    `<li><span>${e.no}.</span><span>${e.w ? sanL(e.w) : ''}</span><span>${e.b ? sanL(e.b) : ''}</span></li>`).join('');
+  ol.scrollTop = ol.scrollHeight;
+}
+// Append a SAN to the log, numbered from the position's turn.
+function logMove(pos, sanStr) {
+  const lastE = S.log[S.log.length - 1];
+  if (pos.turn === 'w') S.log.push({ no: S.moveNo, w: sanStr });
+  else if (lastE && !lastE.note && lastE.no === S.moveNo && !lastE.b) { lastE.b = sanStr; }
+  else S.log.push({ no: S.moveNo, w: '…', b: sanStr });
+  if (pos.turn === 'b') S.moveNo++;
+  renderLog();
+}
+function logNote(fn) { S.log.push({ note: fn }); renderLog(); }
+
+function say(fn) { S.sayFn = fn; $('#say').textContent = fn(); S.idleT = Kit.rnd(9, 13); }
+
+function setTicker(fn) {
+  S.tickFn = fn;
+  const el = $('#led-tick');
+  el.textContent = fn();
+  el.style.animation = 'none';
+  void el.offsetWidth;
+  el.style.animation = '';
+}
+
+function renderTimetable() {
+  const k = S.round + 1, st = t('ttStatus');
+  $('#tt').innerHTML = TIMETABLE.map((r, i) => {
+    const cls = i < k ? 'gone' : i === k ? 'now' : '';
+    const s = i < k ? st.dep : i === k ? st.due : r.last ? st.last : '';
+    return `<li class="${cls}"><span>${r.at}</span><b>${r.route}</b><span>${destName(r.dest)}</span><em>${s}</em></li>`;
+  }).join('');
+}
+
+const fmt = s => { s = Math.max(0, Math.ceil(s)); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`; };
+function renderLED() {
+  const k = Math.min(S.round + 1, TIMETABLE.length - 1);
+  const row = TIMETABLE[k], bd = t('busDest');
+  if (S.mode === 'final' || S.mode === 'end' && S.round >= 5) {
+    $('#led-route').textContent = 'B6';
+    $('#led-dest').textContent = S.ending === 'beaten' ? bd.nis : S.ending === 'missed' ? bd.departed : bd.your;
+    $('#led-due').textContent = S.mode === 'final' ? fmt(S.clock) : '—';
+  } else {
+    $('#led-route').textContent = S.round < 0 ? 'B4' : row.route;
+    $('#led-dest').textContent = destName(S.round < 0 ? 1 : row.dest);
+    $('#led-due').textContent = S.mode === 'play' ? fmt(S.clock) : S.bus && S.bus.phase !== 'gone' ? t('ledDue') : '—';
+  }
+  $('#led-due').classList.toggle('warn', (S.mode === 'play' || S.mode === 'final') && S.clock < 10);
+  // The shelter clock: the next bus's time, minus what is left on the countdown.
+  const [h, m] = (S.mode === 'final' ? '23:47' : row.at).split(':').map(Number);
+  const left = (S.mode === 'play' || S.mode === 'final') ? Math.ceil((S.clock / S.clockMax) * (S.mode === 'final' ? 6 : 6)) : 0;
+  const mins = h * 60 + m - left;
+  $('#led-clock').textContent = `${String(Math.floor(mins / 60) % 24).padStart(2, '0')}:${String(mins % 60).padStart(2, '0')}`;
+}
+
+function renderSide() {
+  $('#score').innerHTML = t('scoreHtml')(S.won, S.mistakes);
+}
+
+function setWho(key) {
+  S.who = key;
+  renderWho();
+}
+function renderWho() {
+  if (S.who === 'bus') {
+    $('#who-name').textContent = t('theBus');
+    $('#who-style').textContent = t('busStyle');
+  } else if (S.who) {
+    const p = who(S.who);
+    $('#who-name').textContent = p.name;
+    $('#who-style').textContent = p.style;
+  } else {
+    $('#who-name').textContent = t('stopName');
+    $('#who-style').textContent = t('nobody');
+  }
+}
+
+// The task line above the board, from the round and the board within it.
+function renderTask() {
+  const el = $('#task');
+  if (S.round < 0) { el.textContent = t('taskIdle'); return; }
+  if (S.round >= ROUNDS.length) { el.innerHTML = t('taskFinal'); return; }
+  const R = ROUNDS[S.round], n = R.fens.length;
+  el.innerHTML = `${t('tasks')[S.round]}${n > 1 ? ` <small>${t('boardOf')(S.taskBoard + 1, n)}</small>` : ''}`;
+}
+
+function loadPuzzle(fen, P) {
+  S.pos = Chess.fromFEN(fen);
+  S.stepStart = S.pos;
+  S.base = S.pos;
+  S.step = 0; S.sel = -1; S.last = null; S.busy = false;
+  S.flip = !!P.flip;
+  S.moveNo = 1;
+  S.cursor = S.flip ? 4 + 8 * 1 : 4 + 8 * 1;
+  renderBoard();
+}
+
+function beginRound(k) {
+  S.round = k;
+  const R = ROUNDS[k];
+  S.P = R; S.sub = 0; S.taskBoard = 0; S.mode = 'intro';
+  S.log = []; renderLog();
+  setWho(R.who);
+  S.clock = R.time; S.clockMax = R.time;
+  loadPuzzle(R.fens[0], R);
+  if (R.scramble) scramble();
+  renderTimetable(); renderLED();
+  fillIntro();
+  say(() => who(R.who).intro);
+  renderTask();
+  Kit.show($('#intro'));
+}
+// The intro card, from the round; applyLang() calls it again while the card is up.
+function fillIntro() {
+  const k = S.round, R = ROUNDS[k], p = who(R.who);
+  const prev = S.results[k - 1];
+  $('#in-prev').hidden = !prev;
+  if (prev) $('#in-prev').textContent = prev();
+  const nx = TIMETABLE[k + 1];
+  $('#in-meta').textContent = t('waiting')(nx.route, destName(nx.dest), nx.at, nx.last);
+  $('#in-name').textContent = p.name;
+  $('#in-speech').textContent = p.intro;
+  $('#in-task').textContent = t('secondsUntil')(t('tasks')[k], R.time, nx.route);
+}
+
+function sitDown() {
+  if (S.mode !== 'intro') return;
+  Kit.show(null);
+  S.mode = 'play';
+  S.idleT = 6;
+  if (S.P.scramble) { S.scrambleT = Kit.reduce ? 0.6 : 1.6; say(() => t('scrambleSay')); renderBoard(); }
+  focusBoard();
+}
+
+// Poppy's version of the position: the same pieces, somewhere else, until she puts them back.
+function scramble() {
+  const pcs = S.pos.b.filter(Boolean), free = [...Array(64).keys()].sort(() => Math.random() - .5);
+  S.scramble = Array(64).fill(null);
+  pcs.forEach((p, i) => { S.scramble[free[i]] = p; });
+}
+
+function focusBoard() {
+  const el = sqEls.find(e => +e.dataset.sq === S.cursor);
+  if (S.kbd) el?.focus({ preventScroll: true });
+}
+
+function canMove() { return (S.mode === 'play' || S.mode === 'final') && !S.busy && S.scrambleT <= 0 && S.pos && S.pos.turn === S.P.me; }
+
+function clickSquare(sq) {
+  if (!canMove()) return;
+  S.cursor = sq;
+  const p = S.pos.b[sq];
+  if (S.sel >= 0) {
+    const m = Chess.legal(S.pos).find(x => x.from === S.sel && x.to === sq);
+    if (m) { S.sel = -1; playMove(m); return; }
+  }
+  S.sel = p && Chess.side(p) === S.pos.turn && S.sel !== sq ? sq : -1;
+  renderBoard();
+}
+
+// Judge a move by what it does, not by matching an answer key: any mate counts.
+function judge(m) {
+  const P = S.P, n = Chess.make(S.pos, m);
+  if (Chess.state(n) === 'mate') return 'mate';
+  if (P.kind === 'm2' && S.step === 0) return Chess.forcesMate(S.pos, m) ? 'good' : 'bad';
+  if (P.kind === 'win') {
+    const base = Chess.material(S.base.b, P.me);
+    return Chess.search(n, S.step === 0 ? 3 : 1, P.me) >= base + P.gain ? (S.step === 0 ? 'good' : 'won') : 'bad';
+  }
+  return 'bad';
+}
+
+const pickI = arr => Math.floor(Math.random() * arr.length);
+function playMove(m) {
+  const verdict = judge(m);
+  const before = S.pos, sanStr = Chess.san(before, m);
+  if (verdict === 'bad') {
+    S.mistakes++;
+    S.clock -= PENALTY;
+    S.last = m;
+    S.pos = Chess.make(before, m);
+    renderBoard();
+    const el = sqEls.find(e => +e.dataset.sq === m.to);
+    el?.classList.add('bad');
+    logNote(() => t('notePutBack')(sanL(sanStr), PENALTY));
+    if (S.mode === 'final') {
+      const i = pickI(I18N.en.finalWrongTicker), j = pickI(I18N.en.finalWrongSay);
+      setTicker(() => t('finalWrongTicker')[i]);
+      say(() => t('finalWrongSay')[j]);
+    } else { const wk = S.who, i = pickI(I18N.en.people[wk].wrong); say(() => who(wk).wrong[i]); }
+    S.busy = true;
+    renderSide();
+    later(0.7, () => { S.pos = S.stepStart; S.last = null; S.busy = false; renderBoard(); });
+    return;
+  }
+  logMove(before, sanStr);
+  S.pos = Chess.make(before, m);
+  S.last = m;
+  renderBoard();
+  if (verdict === 'mate' || verdict === 'won') return solved();
+  // a good first move: the opponent answers, then it is our move again
+  S.busy = true;
+  later(Kit.reduce ? 0.4 : 0.9, opponentReply);
+}
+
+function opponentReply() {
+  const pos = S.pos, rs = Chess.legal(pos);
+  let pool = rs;
+  const who0 = S.who === 'bus' ? null : PEOPLE[S.who];
+  if (S.who === 'bus') pool = rs.filter(m => m.piece === 'P') .length ? rs.filter(m => m.piece === 'P') : rs;
+  else if (who0.reply_mode === 'search') {
+    // she defends: whichever reply leaves us the least
+    const sc = rs.map(m => Chess.search(Chess.make(pos, m), 2, S.P.me));
+    const lo = Math.min(...sc);
+    pool = rs.filter((m, i) => sc[i] === lo);
+  } else if (who0.prefer) {
+    const pr = rs.filter(m => m.piece.toLowerCase() === who0.prefer);
+    if (pr.length) pool = pr;
+  }
+  const r = Kit.pick(pool);
+  const rsan = Chess.san(pos, r);
+  logMove(pos, rsan);
+  S.pos = Chess.make(pos, r);
+  S.last = r;
+  S.stepStart = S.pos;
+  S.step = 1;
+  S.busy = false;
+  if (S.who === 'bus') {
+    setTicker(() => t('busReplyTicker')(sanL(rsan)));
+    say(() => t('busReplySay'));
+  } else if (I18N.en.people[S.who].reply) { const wk = S.who; say(() => who(wk).reply); }
+  renderBoard();
+}
+
+function solved() {
+  S.busy = true;
+  if (S.mode === 'final') return later(Kit.reduce ? 0.5 : 1.1, () => finish('beaten'));
+  const R = S.P, wk = S.who;
+  if (S.sub < R.fens.length - 1) {
+    const si = S.sub;
+    say(() => who(wk).sub[si]);
+    S.sub++;
+    later(1.0, () => {
+      const n = S.sub + 1;
+      S.log.push({ note: () => t('noteBoard')(n) });
+      loadPuzzle(R.fens[S.sub], R);
+      S.taskBoard = S.sub;
+      renderTask();
+      renderLog();
+    });
+    return;
+  }
+  S.won++;
+  renderSide();
+  say(() => who(wk).win);
+  endRound(true);
+}
+
+function endRound(won) {
+  S.mode = 'leaving';
+  S.busy = true;
+  S.sel = -1;
+  const R = S.P, wk = R.who, nx = TIMETABLE[S.round + 1];
+  S.results[S.round] = () => t('result')(nx.at, nx.route, who(wk).short, won, who(wk).board);
+  if (!won) { say(() => who(wk).fail); logNote(() => t('noteArrived')(nx.route)); }
+  renderBoard();
+  later(Kit.reduce ? 0.6 : 1.4, () => {
+    arriveBus(nx);
+    setTicker(() => t('arriving')(nx.route, destName(nx.dest)));
+  });
+  if (S.round < ROUNDS.length - 1) {
+    later(Kit.reduce ? 2.2 : 5.6, () => beginRound(S.round + 1));
+  } else {
+    later(Kit.reduce ? 2.0 : 4.4, startReveal);
+  }
+}
+
+// bus.dest is a function, so the blind on the street canvas follows a language switch.
+function arriveBus(row) {
+  S.bus = { route: row.route, dest: () => destName(row.dest), x: 1.4, phase: 'in', hold: S.round < ROUNDS.length - 1 ? 1.4 : 999 };
+  if (Kit.reduce) { S.bus.x = 0.55; S.bus.phase = 'stop'; }
+  renderLED();
+}
+
+function startReveal() {
+  S.mode = 'reveal';
+  S.revI = 0;
+  setWho('bus');
+  say(() => t('revealSay'));
+  showRevealLine();
+  Kit.show($('#reveal'));
+}
+function showRevealLine() {
+  const R = t('reveal');
+  $('#rev-line').textContent = R[S.revI];
+  const lastLine = S.revI === R.length - 1;
+  $('#rev-log').hidden = S.revI < 3;
+  if (S.revI >= 3) $('#rev-log').innerHTML = gameLogHTML();
+  $('#rev-next').textContent = lastLine ? t('takeBlack') : t('goOn');
+}
+function gameLogHTML() {
+  const out = [];
+  for (let i = 0; i < BUS_GAME.length; i += 2) out.push(`<span>${i / 2 + 1}. ${sanL(BUS_GAME[i])} ${BUS_GAME[i + 1] ? sanL(BUS_GAME[i + 1]) : '…'}</span>`);
+  return out.join('');
+}
+function revealNext() {
+  if (S.mode !== 'reveal') return;
+  if (S.revI < I18N.en.reveal.length - 1) { S.revI++; showRevealLine(); return; }
+  startFinal();
+}
+
+function startFinal() {
+  Kit.show(null);
+  S.round = 5;
+  S.mode = 'final';
+  S.P = { ...FINAL, fens: [toFEN(FINAL.pos)] };
+  setWho('bus');
+  S.clock = FINAL.time; S.clockMax = FINAL.time;
+  loadPuzzle(S.P.fens[0], S.P);
+  S.base = S.pos;
+  S.log = [];
+  for (let i = 0; i < BUS_GAME.length; i += 2) S.log.push({ no: i / 2 + 1, w: BUS_GAME[i], b: BUS_GAME[i + 1] || '' });
+  S.moveNo = 6;
+  renderLog();
+  if (!S.bus || S.bus.route !== 'B6') { S.bus = { route: 'B6', dest: () => '1. h3', x: 0.55, phase: 'stop', hold: 999 }; }
+  S.bus.dest = () => t('busDest').your;
+  renderTask();
+  $('#draw').hidden = false;
+  say(() => t('finalSay'));
+  setTicker(() => t('busTicker')[0]);
+  renderTimetable(); renderLED();
+  focusBoard();
+}
+
+function offerDraw() {
+  if (S.mode !== 'final' || S.drawPending) return;
+  S.drawPending = true;
+  S.busy = true;
+  say(() => t('drawSay'));
+  setTicker(() => t('drawTicker'));
+  later(Kit.reduce ? 0.6 : 1.6, () => finish('draw'));
+}
+
+function finish(kind) {
+  if (S.mode === 'end') return;
+  S.mode = 'end';
+  S.ending = kind;
+  S.busy = true;
+  $('#draw').hidden = true;
+  S.best = Math.max(S.best, S.won + (kind === 'beaten' ? 1 : 0));
+  S.endElapsed = S.elapsed;
+  if (kind === 'beaten') S.bus.dest = () => t('busDest').nis;
+  else if (kind === 'missed') { S.bus.phase = 'out'; S.bus.dest = () => destName(5); }
+  else { S.bus.phase = 'out'; S.bus.dest = () => t('busDest').draw; }
+  fillEnd();
+  setTicker(() => t('end')[kind].ticker);
+  renderLED();
+  later(Kit.reduce ? 0.2 : 1.2, () => Kit.show($('#end')));
+}
+// The end card from the saved outcome; applyLang() calls it again on a switch.
+function fillEnd() {
+  const E = t('end')[S.ending];
+  $('#end-blind').textContent = E.blind;
+  $('#end-title').textContent = E.title;
+  $('#end-sub').textContent = E.sub;
+  $('#end-body').textContent = E.body;
+  $('#end-stat').textContent = t('stat')(S.won, S.mistakes, fmt(S.endElapsed)) + (S.best ? t('statBest')(S.best) : '');
+}
+
+function timeOut() {
+  if (S.mode === 'final') return finish('missed');
+  S.busy = true;
+  endRound(false);
+}
+
+// Street strip: shelter, Stop K flag, stranger on the bench, buses on the road.
+function drawStreet(tt) {
+  const { cx, W, H } = view;
+  if (!W) return;
+  cx.clearRect(0, 0, W, H);
+  const road = H * 0.66;
+  cx.fillStyle = C.bg; cx.fillRect(0, 0, W, road);
+  cx.fillStyle = C.road; cx.fillRect(0, road, W, H - road);
+  cx.fillStyle = C.kerb; cx.fillRect(0, road - 3, W, 3);
+  cx.strokeStyle = C.kerb; cx.lineWidth = 2; cx.setLineDash([18, 16]);
+  cx.beginPath(); cx.moveTo(0, H - 7); cx.lineTo(W, H - 7); cx.stroke(); cx.setLineDash([]);
+  const s = H / 104, sx = Math.max(10, W * 0.06), sw = Math.min(250 * s * 1.3, W * 0.42), sh = road - 10 * s;
+  // shelter glass and frame
+  cx.globalAlpha = .55; cx.fillStyle = C.glass; cx.fillRect(sx, 12 * s, sw, sh - 12 * s); cx.globalAlpha = 1;
+  cx.fillStyle = C.steel;
+  cx.fillRect(sx - 6 * s, 6 * s, sw + 12 * s, 7 * s);
+  cx.fillRect(sx, 6 * s, 4 * s, sh - 6 * s); cx.fillRect(sx + sw - 4 * s, 6 * s, 4 * s, sh - 6 * s);
+  // the board scratched into the glass
+  const gx = sx + sw * 0.66, gy = 22 * s, gs = 3.2 * s;
+  cx.strokeStyle = C.muted; cx.lineWidth = 1;
+  for (let i = 0; i <= 4; i++) { cx.beginPath(); cx.moveTo(gx, gy + i * gs * 2); cx.lineTo(gx + 8 * gs, gy + i * gs * 2); cx.stroke(); cx.beginPath(); cx.moveTo(gx + i * gs * 2, gy); cx.lineTo(gx + i * gs * 2, gy + 8 * gs); cx.stroke(); }
+  // bench and table
+  cx.fillStyle = C.ink;
+  cx.fillRect(sx + sw * 0.12, sh - 18 * s, sw * 0.5, 4 * s);
+  cx.fillRect(sx + sw * 0.15, sh - 14 * s, 3 * s, 14 * s); cx.fillRect(sx + sw * 0.58, sh - 14 * s, 3 * s, 14 * s);
+  drawPerson(cx, sx + sw * 0.32, sh - 18 * s, s, S.mode === 'final' || S.mode === 'reveal' || S.mode === 'end' ? null : S.who, tt);
+  // Stop K flag
+  const px = sx + sw + 26 * s;
+  cx.fillStyle = C.steel; cx.fillRect(px, 8 * s, 3 * s, road - 8 * s);
+  cx.fillStyle = C['led-bg']; cx.beginPath(); cx.arc(px + 1.5 * s, 18 * s, 12 * s, 0, Math.PI * 2); cx.fill();
+  cx.fillStyle = C.led; cx.font = `900 ${14 * s}px ${getComputedStyle(document.documentElement).getPropertyValue('--f-led')}`;
+  cx.textAlign = 'center'; cx.textBaseline = 'middle'; cx.fillText('K', px + 1.5 * s, 19 * s);
+  // a lamp post and a bin, for scale and for company
+  const lx = W * 0.86;
+  cx.fillStyle = C.steel; cx.fillRect(lx, 4 * s, 3 * s, road - 4 * s); cx.fillRect(lx - 14 * s, 4 * s, 17 * s, 3 * s);
+  cx.fillStyle = C.lamp; cx.beginPath(); cx.moveTo(lx - 16 * s, 7 * s); cx.lineTo(lx - 2 * s, 7 * s); cx.lineTo(lx + 8 * s, road); cx.lineTo(lx - 26 * s, road); cx.fill();
+  cx.fillStyle = C.ink; cx.fillRect(lx + 14 * s, road - 22 * s, 13 * s, 22 * s);
+  // the bus
+  if (S.bus && S.bus.phase !== 'gone') drawBus(cx, W, H, road, s);
+}
+
+function drawPerson(cx, x, y, s, whoKey, tt) {
+  if (!whoKey || whoKey === 'bus') return;
+  const kid = whoKey === 'poppy';
+  const k = kid ? 0.72 : 1;
+  const bob = Kit.reduce ? 0 : Math.sin(tt * 1.3) * 0.6 * s;
+  cx.fillStyle = C.ink;
+  // body
+  cx.beginPath(); cx.roundRect(x - 9 * s * k, y - 30 * s * k + bob, 18 * s * k, 30 * s * k, 6 * s * k); cx.fill();
+  // head
+  const hy = y - 38 * s * k + bob;
+  cx.beginPath(); cx.arc(x, hy, 7 * s * k, 0, Math.PI * 2); cx.fill();
+  if (whoKey === 'odell') { cx.fillRect(x - 8 * s, hy - 7 * s, 16 * s, 4 * s); cx.fillRect(x, hy - 5 * s, 11 * s, 2.5 * s); }
+  if (whoKey === 'poppy') { cx.beginPath(); cx.arc(x - 7 * s * k, hy - 2 * s, 3.2 * s, 0, 7); cx.arc(x + 7 * s * k, hy - 2 * s, 3.2 * s, 0, 7); cx.fill(); }
+  if (whoKey === 'pemberton') { cx.fillRect(x - 12 * s, hy - 5 * s, 24 * s, 2.5 * s); cx.fillRect(x - 6 * s, hy - 11 * s, 12 * s, 7 * s); }
+  if (whoKey === 'gareth') { cx.fillRect(x + 6 * s, hy - 5 * s, 3 * s, 10 * s); cx.fillRect(x + 4 * s, hy + 6 * s, 6 * s, 10 * s); }
+  if (whoKey === 'dennis') { cx.fillRect(x - 8 * s, hy - 9 * s, 16 * s, 5 * s); cx.fillRect(x - 10 * s, hy - 5 * s, 15 * s, 2 * s); }
+}
+
+function drawBus(cx, W, H, road, s) {
+  const b = S.bus, bw = Math.min(300 * s * 1.25, W * 0.62), bh = H * 0.78;
+  const x = b.x * W - bw / 2, y = road + H * 0.24 - bh;
+  cx.fillStyle = C.steel;
+  cx.beginPath(); cx.roundRect(x, y, bw, bh, 8 * s); cx.fill();
+  cx.fillStyle = C.glass;
+  const winY = y + bh * 0.36, winH = bh * 0.3;
+  for (let i = 0; i < 6; i++) cx.fillRect(x + bw * 0.14 + i * bw * 0.135, winY, bw * 0.11, winH);
+  cx.fillRect(x + 6 * s, winY, bw * 0.08, bh * 0.5);
+  // the destination blind
+  cx.fillStyle = C['led-bg']; cx.fillRect(x + 6 * s, y + 6 * s, bw * 0.6, bh * 0.24);
+  cx.fillStyle = C.led; cx.textAlign = 'left'; cx.textBaseline = 'middle';
+  cx.font = `900 ${Math.round(bh * 0.18)}px ${getComputedStyle(document.documentElement).getPropertyValue('--f-led')}`;
+  cx.fillText(`${b.route} ${b.dest()}`.toUpperCase(), x + 11 * s, y + 6 * s + bh * 0.125, bw * 0.6 - 10 * s);
+  cx.fillStyle = C.ink;
+  for (const wx of [0.2, 0.8]) { cx.beginPath(); cx.arc(x + bw * wx, road + H * 0.24, bh * 0.13, 0, Math.PI * 2); cx.fill(); }
+}
+
+function stepBus(dt) {
+  const b = S.bus;
+  if (!b) return;
+  if (b.phase === 'in') { b.x += (0.55 - b.x) * Math.min(1, dt * 2.6); if (Math.abs(b.x - 0.55) < 0.004) { b.x = 0.55; b.phase = 'stop'; } }
+  else if (b.phase === 'stop') { b.hold -= dt; if (b.hold <= 0) b.phase = 'out'; }
+  else if (b.phase === 'out') { b.x -= dt * (0.15 + (0.55 - b.x) * 1.6 + 0.2); if (b.x < -0.6) b.phase = 'gone'; }
+}
+
+let tAnim = 0;
+function step(dt) {
+  tAnim += dt;
+  if (S.mode !== 'title') S.elapsed += S.mode === 'end' ? 0 : dt;
+  for (let i = 0; i < S.queue.length; i++) {
+    const q = S.queue[i];
+    q.t -= dt;
+    if (q.t <= 0) { S.queue.splice(i--, 1); q.fn(); }
+  }
+  if (S.scrambleT > 0) {
+    S.scrambleT -= dt;
+    if (S.scrambleT <= 0) { say(() => t('unscrambleSay')); renderBoard(); }
+  }
+  if ((S.mode === 'play' || S.mode === 'final') && !S.busy) {
+    S.clock -= dt;
+    if (S.clock <= 0) { S.clock = 0; timeOut(); }
+  }
+  if ((S.mode === 'play' || S.mode === 'final') && S.scrambleT <= 0) {
+    S.idleT -= dt;
+    if (S.idleT <= 0) {
+      if (S.mode === 'final') { S.tickI = (S.tickI + 1) % I18N.en.busTicker.length; const i = S.tickI; setTicker(() => t('busTicker')[i]); S.idleT = 11; }
+      else { const wk = S.who, n = I18N.en.people[wk].idle.length; S.idleI = (S.idleI + 1 + Math.floor(Math.random() * 2)) % n; const i = S.idleI; say(() => who(wk).idle[i]); }
+    }
+  }
+  if (S.mode === 'play' && Math.floor(tAnim / 15) !== Math.floor((tAnim - dt) / 15)) { S.tickI = (S.tickI + 1) % I18N.en.ticker.length; const i = S.tickI; setTicker(() => t('ticker')[i]); }
+  stepBus(dt);
+  renderLED();
+  drawStreet(tAnim);
+}
+
+function reset(best) {
+  S = fresh(best);
+  $('#draw').hidden = true;
+  $('#log').innerHTML = '';
+  S.who = null;
+  renderWho();
+  $('#say').textContent = S.sayFn();
+  S.pos = Chess.fromFEN('8/8/8/8/8/8/8/8 w');
+  renderBoard(); renderTimetable(); renderLED(); renderSide(); renderTask();
+  $('#best-line').hidden = !S.best;
+  $('#best-line').textContent = t('bestLine')(S.best);
+}
+
+function begin() {
+  if (S.mode !== 'title') return;
+  S.bus = { route: 'H3', dest: () => destName(0), x: 0.55, phase: 'out', hold: 0 };
+  beginRound(0);
+}
+
+buildBoard();
+$('#start').onclick = begin;
+$('#in-go').onclick = sitDown;
+$('#rev-next').onclick = revealNext;
+$('#draw').onclick = offerDraw;
+$('#end-again').onclick = () => { reset(S.best); Kit.show($('#title')); };
+
+Kit.keys.onPress((k, down) => {
+  if (!down) return;
+  const arrows = { ArrowUp: [-1, 0], ArrowDown: [1, 0], ArrowLeft: [0, -1], ArrowRight: [0, 1] };
+  if (arrows[k] && (S.mode === 'play' || S.mode === 'final')) {
+    S.kbd = true;
+    // move the cursor in screen terms, whichever way round the board is
+    const slot = sqEls.findIndex(e => +e.dataset.sq === S.cursor);
+    const row = Kit.clamp((slot >> 3) + arrows[k][0], 0, 7), col = Kit.clamp((slot & 7) + arrows[k][1], 0, 7);
+    S.cursor = slotSq(row * 8 + col);
+    renderBoard(); focusBoard();
+    return;
+  }
+  const onButton = document.activeElement && document.activeElement.tagName === 'BUTTON';
+  if ((k === ' ' || k === 'Enter') && !onButton && (S.mode === 'play' || S.mode === 'final')) { S.kbd = true; clickSquare(S.cursor); }
+  if (k === 'Escape') { S.sel = -1; renderBoard(); }
+  if (k === 'd' && S.mode === 'final') offerDraw();
+});
+
+const loop = Kit.loop(step);
+
+// ---- language switch
+// Static markup carries data-t / data-th / data-ta. The board's labels, the move sheet, the
+// timetable, the stranger's line, the ticker and any open card are rewritten in place.
+function applyLang() {
+  document.documentElement.lang = lang;
+  document.title = t('docTitle');
+  for (const el of document.querySelectorAll('[data-t]')) el.textContent = t(el.dataset.t);
+  for (const el of document.querySelectorAll('[data-th]')) el.innerHTML = t(el.dataset.th);
+  for (const el of document.querySelectorAll('[data-ta]')) el.setAttribute('aria-label', t(el.dataset.ta));
+  for (const box of document.querySelectorAll('.lang')) {
+    if (!box.children.length) box.innerHTML = '<button type="button" data-lang="fr" lang="fr">FR</button><button type="button" data-lang="en" lang="en">EN</button>';
+    for (const b of box.children) b.setAttribute('aria-pressed', String(b.dataset.lang === lang));
+  }
+  if (!S) return;
+  renderWho(); renderSide(); renderTask(); renderTimetable(); renderLED(); renderBoard(); renderLog();
+  $('#say').textContent = S.sayFn();
+  $('#led-tick').textContent = S.tickFn();
+  $('#best-line').textContent = t('bestLine')(S.best);
+  if (S.mode === 'intro') fillIntro();
+  if (S.mode === 'reveal') showRevealLine();
+  if (S.mode === 'end') fillEnd();
+}
+function setLang(l) {
+  if (!(l in I18N) || l === lang) return;
+  lang = l;
+  applyLang();
+}
+document.addEventListener('click', e => {
+  const b = e.target.closest('[data-lang]');
+  if (b) setLang(b.dataset.lang);
+});
+
+Kit.expose({
+  state: () => S,
+  endings: {
+    // jump() skips the five strangers; the final, the bus's reply and the mate are real play
+    beaten: {
+      seconds: 9,
+      jump() {
+        startFinal();
+        const go = (s, d) => setTimeout(() => { const m = Chess.bySan(S.pos, s); if (m) { clickSquare(m.from); clickSquare(m.to); } }, d);
+        go('Qh4', 600); go('Qxg3', 2600);
+      },
+      reached: () => S.ending === 'beaten' && !$('#end').hidden,
+    },
+    missed: {
+      seconds: 8,
+      jump() { startFinal(); S.clock = 2.5; },
+      reached: () => S.ending === 'missed' && !$('#end').hidden,
+    },
+    draw: {
+      seconds: 7,
+      jump() { startFinal(); setTimeout(() => $('#draw').click(), 700); },
+      reached: () => S.ending === 'draw' && !$('#end').hidden,
+    },
+  },
+});
+
+Kit.boot(data => {
+  lang = data?.lang in I18N ? data.lang : (navigator.language || '').toLowerCase().startsWith('fr') ? 'fr' : 'en';
+  reset(data.best || 0);
+  applyLang();
+  Kit.show($('#title'));
+  loop.start();
+}, () => ({ best: S ? S.best : 0, lang }));
+</script>
+</body>
+</html>
